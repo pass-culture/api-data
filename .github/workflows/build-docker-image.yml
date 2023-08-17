@@ -1,9 +1,0 @@
-name: Build docker image
-run-name: ${{ github.actor }} build docker image
-on: [push]
-jobs:
-  build-docker-image:
-    name: "Build image job"
-    runs-on: docker-cache
-    steps:
-      - run: echo "Bulding the image ..."
