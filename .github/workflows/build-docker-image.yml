@@ -1,9 +1,119 @@
 name: Build docker image
-run-name: ${{ github.actor }} build docker image
+
 on: [push]
+
+env:
+  DOCKER_REGISTRY_PROJECT_ID: passculture-infra-prod
+  DOCKER_REGISTRY_REGION: europe-west1
+  DOCKER_REGISTRY_REPOSITORY: pass-culture-artifact-registry
+  GCP_PROJECT: passculture-data-ehp
+
 jobs:
+  linter:
+    name: "linter job"
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4.7.0
+        with:
+          python-version: 3.7
+      - name : Install Black 
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r  linter-requirements.txt      
+      - name: Run Black
+        run: black --check --verbose .
+  
+  build-api-reco:
+    name: "build and test API Reco"
+    runs-on: [self-hosted, linux, x64]
+    defaults:
+     run: 
+       working-directory: "apps/recommendation/api"
+    
+    container: python:3.7 
+    services:
+      postgres:
+        image: postgres:10.1-alpine
+        env:
+          POSTGRES_PASS: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DBNAME: db
+        ports:
+          - 5432:5432
+   
+    steps:
+      - uses: actions/checkout@v3
+    #   - uses: actions/setup-python@v4.7.0
+    #    with:
+    #     python-version: 3.7
+      - name : Install requirements
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r api-dev-requirements.txt
+      - run: cat /etc/os-release
+      - name : Install psql client 
+        run: apt update && apt install -y postgresql-client
+      - name : Run tests
+        run:  |
+          export PYTHONPATH=$PYTHONPATH:~/data-gcp/apps/recommendation/api
+          ./run_tests.sh
+        
+
+    
+         
   build-docker-image:
     name: "Build image job"
-    runs-on: docker-cache
+    runs-on: [self-hosted, linux, x64]
+    permissions:
+      id-token: write
+      contents: write
+
     steps:
-      - run: echo "Bulding the image ..."
+      - name: Checkout ref
+        uses: actions/checkout@v3
+        with:
+          ref: "${{ github.ref }}"
+          fetch-depth: 0
+          
+      - name: Output variables
+        id: vars
+        run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" >> $GITHUB_ENV
+
+      - name: get short SHA
+        id: sha
+        run: echo ::set-output name=short_sha::${GITHUB_SHA}
+
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2.2.1
+        with:
+          driver: docker
+
+      - id: openid-auth
+        name: "Authenticate with Google Cloud"
+        uses: "google-github-actions/auth@v1"
+        with:
+          create_credentials_file: false
+          token_format: "access_token"
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
+
+      - id: docker-login
+        uses: docker/login-action@v2.1.0
+        name: "Docker login"
+        with:
+          registry: "${{ env.DOCKER_REGISTRY_REGION }}-docker.pkg.dev"
+          username: "oauth2accesstoken"
+          password: "${{ steps.openid-auth.outputs.access_token }}"
+
+      - name: "Build and push recommendation docker image"
+        uses: docker/build-push-action@v3.2.0
+        with:
+         context: "apps/recommendation/api"
+         push: true
+         tags: |
+               ${{ env.DOCKER_REPO }}/api-data/recommendation:${{ steps.sha.outputs.short_sha }}
+               ${{ env.DOCKER_REPO }}/api-data/recommendation:latest
+              
+             
