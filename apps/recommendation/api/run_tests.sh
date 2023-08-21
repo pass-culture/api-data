@@ -11,7 +11,7 @@ fi
 
 [ "$CI" '!=' true ] && docker-compose up -d testdb
 function wait_for_container () {(
-    until PGPASSWORD=postgres psql -h localhost -p $DATA_GCP_TEST_POSTGRES_PORT -U "postgres" -c '\q'; do
+    until PGPASSWORD=postgres psql -h postgres -p $DATA_GCP_TEST_POSTGRES_PORT -U "postgres" -c '\q'; do
       >&2 echo "Postgres is unavailable - sleeping"
       sleep 2
     done
