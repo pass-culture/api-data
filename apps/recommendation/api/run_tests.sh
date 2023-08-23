@@ -3,13 +3,7 @@
 export DATA_GCP_TEST_POSTGRES_PORT=5432
 export DB_NAME="db"
 export PYTHONPATH=$PYTHONPATH:$(pwd)
-
-if [ "$CI" '=' true ]
-then
-  export PG_HOST="postgres"
-else
-  export PG_HOST="localhost"
-fi
+export PG_HOST="${PG_HOST:-localhost}"
 
 [ "$CI" '!=' true ] && docker-compose up -d testdb
 function wait_for_container () {(

@@ -24,66 +24,62 @@ jobs:
       - name: Run Black
         run: black --check --verbose .
   
-  build-api-reco:
+  build-and-test-api-reco:
     name: "build and test API Reco"
     runs-on: [self-hosted, linux, x64]
     defaults:
      run: 
        working-directory: "apps/recommendation/api"
     
-    container: python:3.7 
+    #container: python:3.7 
     services:
       postgres:
-        image: postgres:10.1-alpine
+        image: postgres:12.4
         env:
           POSTGRES_PASS: postgres
           POSTGRES_USER: postgres
           POSTGRES_DBNAME: db
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
         ports:
           - 5432:5432
    
     steps:
       - uses: actions/checkout@v3
-    #   - uses: actions/setup-python@v4.7.0
-    #    with:
-    #     python-version: 3.7
+      - uses: actions/setup-python@v4.7.0
+        with:
+         python-version: 3.7
       - name : Install requirements
         run: |
           python -m pip install --upgrade pip
           pip install -r api-dev-requirements.txt
       - run: cat /etc/os-release
       - name : Install psql client 
-        run: apt update && apt install -y postgresql-client
+        run: sudo apt update && sudo apt install -y postgresql-client
       - name : Run tests
+        env:
+         PG_HOST: "localhost"
         run:  |
           export PYTHONPATH=$PYTHONPATH:~/data-gcp/apps/recommendation/api
           ./run_tests.sh
-        
-
-    
          
-  build-docker-image:
+  build-and-push-reco-docker-image:
+    if: github.ref == 'refs/heads/master'
     name: "Build image job"
     runs-on: [self-hosted, linux, x64]
     permissions:
       id-token: write
       contents: write
-
     steps:
-      - name: Checkout ref
-        uses: actions/checkout@v3
-        with:
-          ref: "${{ github.ref }}"
-          fetch-depth: 0
+      - uses: actions/checkout@v3
           
       - name: Output variables
         id: vars
         run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" >> $GITHUB_ENV
-
-      - name: get short SHA
-        id: sha
-        run: echo ::set-output name=short_sha::${GITHUB_SHA}
-
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2.2.1
