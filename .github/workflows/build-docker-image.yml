@@ -34,7 +34,7 @@ jobs:
     #container: python:3.7 
     services:
       postgres:
-        image: postgres:12.4
+        image: kartoza/postgis:12.4
         env:
           POSTGRES_PASS: postgres
           POSTGRES_USER: postgres
