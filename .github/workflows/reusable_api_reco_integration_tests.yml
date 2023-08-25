@@ -1,5 +1,7 @@
 name: API Reco Test Integration
 
+run-name: "[${{ github.event.inputs.ENV }}] API-Reco Test Integration"
+
 on:
   workflow_call:
     inputs:
@@ -13,6 +15,8 @@ on:
       GCP_WORKLOAD_IDENTITY_PROVIDER:
         required: true
       ARTIFACT_REGISTRY_SERVICE_ACCOUNT:
+        required: true
+      SLACK_BOT_TOKEN:
         required: true
 
 jobs:
@@ -42,3 +46,28 @@ jobs:
            secrets: API_RCO_TOKEN:${{ inputs.DATA_GCP_PROJECT }}/api-reco-token-${{ inputs.ENV }}
       - name: Run tests collection
         run: newman run api_integration_tests.postman_collection.json --environment ${{ inputs.ENV }}.postman_environment.json --env-var "api_token=${{ steps.secrets.outputs.API_RCO_TOKEN }}"
+      - name: Post to a Slack channel
+        id: slack
+        if: ${{ failure() }}
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: "C05Q7UE8D9R" # alerts_data
+          payload: |
+            {
+              "attachments": [
+                  {
+                      "mrkdwn_in": ["text"],
+                      "color": "#A30002",
+                      "author_name": "${{github.actor}}",
+                      "author_link": "https://github.com/${{github.actor}}",
+                      "author_icon": "https://github.com/${{github.actor}}.png",
+                      "title": "API Reco Integration Test on ${{ inputs.ENV }}",
+                      "title_link": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}",
+                      "text": "Test Integration on ${{ inputs.ENV }} is failed :boom:"
+                  }
+              ],
+              "unfurl_links": false,
+              "unfurl_media": false
+            }
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}

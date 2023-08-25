@@ -1,4 +1,6 @@
-name: Build API Data docker image
+name: Build and Deploy API
+
+run-name: "Deploy ${{ github.event.inputs.API_NAME }} on ${{ github.event.inputs.ENV }}"
 
 on:
   workflow_call:
@@ -9,10 +11,18 @@ on:
       API_SOURCE_PATH:
         type: string
         required: true
+      DATA_GCP_PROJECT:
+        type: string
+        required: true
+      API_SERVICE_NAME:
+        type: string
+        required: true
     secrets:
       GCP_WORKLOAD_IDENTITY_PROVIDER:
         required: true
       ARTIFACT_REGISTRY_SERVICE_ACCOUNT:
+        required: true
+      SLACK_BOT_TOKEN:
         required: true
 
 env:
@@ -22,7 +32,7 @@ env:
   GCP_PROJECT: passculture-data-ehp
 
 jobs:
-  build-and-push-reco-docker-image:
+  build-and-push-docker-image:
     name: "Build image job"
     runs-on: [self-hosted, linux, x64]
     permissions:
@@ -30,7 +40,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v3
-          
       - name: Output variables
         id: vars
         run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" >> $GITHUB_ENV
@@ -38,12 +47,10 @@ jobs:
       - name: get short SHA
         id: sha
         run: echo ::set-output name=short_sha::${GITHUB_SHA}
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2.2.1
         with:
           driver: docker
-
       - id: openid-auth
         name: "Authenticate with Google Cloud"
         uses: "google-github-actions/auth@v1"
@@ -52,13 +59,6 @@ jobs:
           token_format: "access_token"
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
-
-      - name: Get Secret
-        id: 'secrets'
-        uses: 'google-github-actions/get-secretmanager-secrets@v1'
-        with:
-           secrets: API_RCO_TOKEN:passculture-data-ehp/api-reco-token-dev
-
       - id: docker-login
         uses: docker/login-action@v2.1.0
         name: "Docker login"
@@ -66,7 +66,6 @@ jobs:
           registry: "${{ env.DOCKER_REGISTRY_REGION }}-docker.pkg.dev"
           username: "oauth2accesstoken"
           password: "${{ steps.openid-auth.outputs.access_token }}"
-
       - name: "Build and push ${{ inputs.API_NAME }} docker image"
         uses: docker/build-push-action@v3.2.0
         with:
@@ -75,5 +74,29 @@ jobs:
          tags: |
                ${{ env.DOCKER_REPO }}/api-data/${{ inputs.API_NAME }}:${{ steps.sha.outputs.short_sha }}
                ${{ env.DOCKER_REPO }}/api-data/${{ inputs.API_NAME }}:latest
-              
-             
+
+  deploy-api:
+    runs-on: [self-hosted, linux, x64]
+    needs: build-and-push-docker-image
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+    - uses: 'actions/checkout@v3'
+    - name: Output variables
+      id: vars
+      run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" >> $GITHUB_ENV
+    - name: get short SHA
+      id: sha
+      run: echo ::set-output name=short_sha::${GITHUB_SHA}
+    - uses: 'google-github-actions/auth@v1'
+      with:
+        workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+        service_account: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
+    - id: 'deploy'
+      uses: 'google-github-actions/deploy-cloudrun@v1'
+      with:
+        service: ${{ inputs.API_SERVICE_NAME }}
+        image: "${{ env.DOCKER_REPO }}/api-data/${{ inputs.API_NAME }}:${{ steps.sha.outputs.short_sha }}"
+        project_id: ${{ inputs.DATA_GCP_PROJECT }}
+        region: "europe-west1"
