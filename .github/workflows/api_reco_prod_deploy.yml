@@ -6,7 +6,7 @@ on:
       - production
     paths:
       - 'apps/recommendation/api/src/**'
-      
+
 env:
  API_SERVICE_NAME: "apireco-prod"
 
@@ -18,27 +18,27 @@ jobs:
 
  ########## Tests Integration #############     
 
-  # prod-api-reco-test-integration:
-  #   uses: ./.github/workflows/reusable_api_reco_integration_tests.yml
-  #   needs: prod-api-reco-coverage-tests
-  #   with:
-  #     ENV: dev
-  #     DATA_GCP_PROJECT: "passculture-data-ehp"
-  #   secrets:
-  #     GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-  #     ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
-  #     SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+  prod-api-reco-test-integration:
+    uses: ./.github/workflows/reusable_api_reco_integration_tests.yml
+    needs: prod-api-reco-coverage-tests
+    with:
+      ENV: prod
+      DATA_GCP_PROJECT: "passculture-data-prd"
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
 
 ####### API RECO Deploy ################
 
   prod-deploy-api-reco:
-    needs: prod-api-reco-coverage-tests
+    needs: prod-api-reco-test-integration
     uses: ./.github/workflows/reusable_build_and_deploy_api.yml
     with:
       API_NAME: recommendation
       API_SOURCE_PATH: "apps/recommendation/api"
-      DATA_GCP_PROJECT: "passculture-data-ehp"
+      DATA_GCP_PROJECT: "passculture-data-prod"
       API_SERVICE_NAME: "TO-Change"
     secrets:
       GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
@@ -58,7 +58,7 @@ jobs:
         if: ${{ always() }}
         uses: slackapi/slack-github-action@v1.23.0
         with:
-          channel-id: "C05Q7UE8D9R" # alerts_data
+          channel-id: "C01GVAXM02W" # alerts_data
           payload: |
             {
                     "attachments": [
