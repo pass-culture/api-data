@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'apps/recommendation/api'
+      - 'apps/recommendation/api/src/**'
 
 
 env:

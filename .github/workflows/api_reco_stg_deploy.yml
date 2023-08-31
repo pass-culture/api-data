@@ -5,8 +5,8 @@ on:
     branches:
       - staging
     paths:
-      - 'apps/recommendation/api'
-
+      - 'apps/recommendation/api/src/**'
+      
 env:
  API_SERVICE_NAME: "apireco-stg"
 
