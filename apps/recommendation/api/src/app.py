@@ -45,7 +45,7 @@ def close_db_session(exception):
 def home():
     response = make_response(
         """
-        PassCulture - Recommendation API
+        PassCulture - Recommendation API DEV
 
         Welcome to the recommendation API!
         Check this route '/recommendation/<user_id>?token=<token>' for recommended offers.
