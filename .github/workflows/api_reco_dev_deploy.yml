@@ -2,10 +2,10 @@ name: Deploy API Reco on DEV
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'apps/recommendation/api/src/**'
+    # branches:
+    #   - main
+    # paths:
+    #   - 'apps/recommendation/api/src/**'
 
 
 env:
