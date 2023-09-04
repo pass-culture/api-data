@@ -2,17 +2,17 @@ name: Deploy API Compliance on DEV
 
 on:
   push:
-     branches:
-       - main
-     paths:
-       - 'fraud/compliance/api/src/**'
+    #  branches:
+    #    - main
+    #  paths:
+    #    - 'fraud/compliance/api/src/**'
 
 env:
   API_SERVICE_NAME: "compliance-dev"
 
 jobs:
 
-  dev-deploy-api-reco:
+  dev-deploy-api-compliance:
     needs: dev-api-reco-test-integration
     uses: ./.github/workflows/reusable_build_and_deploy_api.yml
     with:
