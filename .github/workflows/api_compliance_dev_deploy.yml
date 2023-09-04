@@ -16,7 +16,7 @@ jobs:
     uses: ./.github/workflows/reusable_build_and_deploy_api.yml
     with:
       API_NAME: compliance
-      API_SOURCE_PATH: "fraud/compliance/api"
+      API_SOURCE_PATH: "apps/fraud/compliance/api"
       DATA_GCP_PROJECT: "passculture-data-ehp"
       API_SERVICE_NAME: "compliance-dev"
     secrets:
