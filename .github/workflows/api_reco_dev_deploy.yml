@@ -2,23 +2,18 @@ name: Deploy API Reco on DEV
 
 on:
   push:
-    # C'est commenté pour tester le workflow sur la PR
-    # branches:
-    #   - main
-    # paths:
-    #   - 'apps/recommendation/api/src/**'
-
+     branches:
+       - main
+     paths:
+       - 'apps/recommendation/api/src/**'
 
 env:
   API_SERVICE_NAME: "apireco-dev"
 
 jobs:
- ########## API Reco Coverage Tests ############# 
 
   dev-api-reco-coverage-tests:
     uses: ./.github/workflows/reusable_api_reco_coverage_tests.yml
-
- ########## Tests Integration #############     
 
   dev-api-reco-test-integration:
     uses: ./.github/workflows/reusable_api_reco_integration_tests.yml
@@ -30,9 +25,6 @@ jobs:
       GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-
-
-####### API RECO Deploy ################
 
   dev-deploy-api-reco:
     needs: dev-api-reco-test-integration
@@ -46,7 +38,6 @@ jobs:
       GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-
 
   slack-notification:
     runs-on: [self-hosted, linux, x64]

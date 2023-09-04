@@ -44,9 +44,9 @@ jobs:
         id: vars
         run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" >> $GITHUB_ENV
 
-      - name: get short SHA
+      - name: Get short SHA
         id: sha
-        run: echo ::set-output name=short_sha::${GITHUB_SHA}
+        run: echo "short_sha=${GITHUB_SHA}" >> $GITHUB_OUTPUT
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2.2.1
         with:
@@ -86,9 +86,9 @@ jobs:
     - name: Output variables
       id: vars
       run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" >> $GITHUB_ENV
-    - name: get short SHA
+    - name: Get short SHA
       id: sha
-      run: echo ::set-output name=short_sha::${GITHUB_SHA}
+      run: echo "short_sha=${GITHUB_SHA}" >> $GITHUB_OUTPUT
     - uses: 'google-github-actions/auth@v1'
       with:
         workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}

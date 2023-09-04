@@ -11,12 +11,9 @@ env:
  API_SERVICE_NAME: "apireco-stg"
 
 jobs:
- ########## API Reco Coverage Tests ############# 
 
   stg-api-reco-coverage-tests:
     uses: ./.github/workflows/reusable_api_reco_coverage_tests.yml
-
- ########## Tests Integration #############     
 
   stg-api-reco-test-integration:
     uses: ./.github/workflows/reusable_api_reco_integration_tests.yml
@@ -28,9 +25,6 @@ jobs:
       GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-
-
-####### API RECO Deploy ################
 
   stg-deploy-api-reco:
     needs: stg-api-reco-test-integration
@@ -44,7 +38,6 @@ jobs:
       GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-
 
   slack-notification:
     runs-on: [self-hosted, linux, x64]

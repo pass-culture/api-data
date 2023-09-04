@@ -1,9 +1,0 @@
-name: Main workflow
-
-on: [push]
-
-jobs:
-
- ########## API Reco Coverage Tests ############# 
-  api-reco-coverage-tests:
-    uses: ./.github/workflows/reusable_api_reco_coverage_tests.yml

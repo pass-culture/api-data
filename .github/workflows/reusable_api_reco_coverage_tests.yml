@@ -23,7 +23,6 @@ jobs:
   api-reco-coverage-test:
     name: "API Reco Coverage test"
     needs: linter
-    #if: github.ref == 'refs/heads/master'
     runs-on: [self-hosted, linux, x64]
     defaults:
      run: 
@@ -58,8 +57,10 @@ jobs:
       - name : Run tests
         env:
          PG_HOST: "localhost"
+         DB_NAME: "db"
+         DATA_GCP_TEST_POSTGRES_PORT: 5432
+         PYTHONPATH: $PYTHONPATH:~/data-gcp/apps/recommendation/api
         run:  |
-          export PYTHONPATH=$PYTHONPATH:~/data-gcp/apps/recommendation/api
-          ./run_tests.sh
+          pytest --cov
 
 
