@@ -13,7 +13,6 @@ env:
 jobs:
 
   dev-deploy-api-compliance:
-    needs: dev-api-reco-test-integration
     uses: ./.github/workflows/reusable_build_and_deploy_api.yml
     with:
       API_NAME: compliance
