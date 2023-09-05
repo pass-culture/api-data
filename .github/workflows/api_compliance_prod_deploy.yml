@@ -1,14 +1,14 @@
-name: Deploy API Compliance on DEV
+name: Deploy API Compliance on Staging
 
 on:
   push:
-    #  branches:
-    #    - main
-    #  paths:
-    #    - 'fraud/compliance/api/src/**'
+      branches:
+        - production
+      paths:
+        - 'fraud/compliance/api/src/**'
 
 env:
-  API_SERVICE_NAME: "api-compliance-dev"
+  API_SERVICE_NAME: "api-compliance-prod"
 
 jobs:
 
@@ -17,8 +17,8 @@ jobs:
     with:
       API_NAME: compliance
       API_SOURCE_PATH: "apps/fraud/compliance/api"
-      DATA_GCP_PROJECT: "passculture-data-ehp"
-      API_SERVICE_NAME: "api-compliance-dev"
+      DATA_GCP_PROJECT: "passculture-data-prod"
+      API_SERVICE_NAME: "api-compliance-prod"
     secrets:
       GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
