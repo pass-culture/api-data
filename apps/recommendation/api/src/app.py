@@ -47,7 +47,7 @@ def home():
         """
         PassCulture - Recommendation API
 
-        Welcome to the recommendation API!
+        Welcome to the recommendation API! TEST
         Check this route '/recommendation/<user_id>?token=<token>' for recommended offers.
 
         ()_()
