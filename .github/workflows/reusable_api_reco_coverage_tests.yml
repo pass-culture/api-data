@@ -1,0 +1,66 @@
+name: "Linter and Coverage test"
+
+on:
+  workflow_call:
+
+jobs:
+
+  linter:
+    name: "linter job"
+    runs-on: [self-hosted, linux, x64]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4.7.0
+        with:
+          python-version: 3.7
+      - name : Install Black 
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r  linter-requirements.txt      
+      - name: Run Black
+        run: black --check --verbose .
+
+  api-reco-coverage-test:
+    name: "API Reco Coverage test"
+    needs: linter
+    runs-on: [self-hosted, linux, x64]
+    defaults:
+     run: 
+       working-directory: "apps/recommendation/api"
+    services:
+      postgres:
+        image: kartoza/postgis:12.4
+        env:
+          POSTGRES_PASS: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DBNAME: db
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4.7.0
+        with:
+         python-version: 3.7
+      - name : Install requirements
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r api-dev-requirements.txt
+      - run: cat /etc/os-release
+      - name : Install psql client 
+        run: sudo apt update && sudo apt install -y postgresql-client
+      - name : Run tests
+        env:
+         PG_HOST: "localhost"
+         DB_NAME: "db"
+         DATA_GCP_TEST_POSTGRES_PORT: 5432
+         PYTHONPATH: $PYTHONPATH:~/data-gcp/apps/recommendation/api
+        run:  |
+          pytest --cov
+
+

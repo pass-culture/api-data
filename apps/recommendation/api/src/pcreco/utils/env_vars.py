@@ -14,9 +14,11 @@ SQL_BASE = os.environ.get("SQL_BASE")
 SQL_BASE_USER = os.environ.get("SQL_BASE_USER")
 SQL_BASE_SECRET_ID = os.environ.get("SQL_BASE_SECRET_ID")
 SQL_CONNECTION_NAME = os.environ.get("SQL_CONNECTION_NAME")
-SQL_BASE_PASSWORD = os.environ.get(
-    "SQL_BASE_PASSWORD", access_secret(GCP_PROJECT, SQL_BASE_SECRET_ID)
-)
+
+try:
+    SQL_BASE_PASSWORD = access_secret(GCP_PROJECT, SQL_BASE_SECRET_ID)
+except:
+    SQL_BASE_PASSWORD = os.environ.get("SQL_BASE_PASSWORD", "postgres")
 
 # Vertex ai attributes
 DEFAULT_RECO_MODEL = os.environ.get("DEFAULT_RECO_MODEL", "default")

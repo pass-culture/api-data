@@ -1,0 +1,74 @@
+name:  Deploy API Reco on PROD
+
+on:
+  push:
+    branches:
+      - production
+    paths:
+      - 'apps/recommendation/api/src/**'
+
+env:
+ API_SERVICE_NAME: "apireco-prod"
+
+jobs:
+
+  prod-api-reco-coverage-tests:
+    uses: ./.github/workflows/reusable_api_reco_coverage_tests.yml
+
+  prod-api-reco-test-integration:
+    uses: ./.github/workflows/reusable_api_reco_integration_tests.yml
+    needs: prod-api-reco-coverage-tests
+    with:
+      ENV: prod
+      DATA_GCP_PROJECT: "passculture-data-prd"
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+  prod-deploy-api-reco:
+    needs: prod-api-reco-test-integration
+    uses: ./.github/workflows/reusable_build_and_deploy_api.yml
+    with:
+      API_NAME: recommendation
+      API_SOURCE_PATH: "apps/recommendation/api"
+      DATA_GCP_PROJECT: "passculture-data-prod"
+      API_SERVICE_NAME: "TO-Change"
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+
+  slack-notification:
+    runs-on: [self-hosted, linux, x64]
+    needs:
+      - prod-deploy-api-reco
+    if: ${{ always() }}
+    steps:
+      - uses: technote-space/workflow-conclusion-action@v3
+      - name: Post to a Slack channel
+        id: slack
+        if: ${{ always() }}
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: "C01GVAXM02W" # alerts_data
+          payload: |
+            {
+                    "attachments": [
+                        {
+                            "mrkdwn_in": ["text"],
+                            "color": "${{ fromJSON('["#36a64f", "#A30002"]')[ env.WORKFLOW_CONCLUSION == 'failure'] }}",
+                            "author_name": "${{github.actor}}",
+                            "author_link": "https://github.com/${{github.actor}}",
+                            "author_icon": "https://github.com/${{github.actor}}.png",
+                            "title": "API Reco Deployment",
+                            "title_link": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}",
+                            "text": "Le déploiement de `${{ env.API_SERVICE_NAME }}` est ${{ fromJSON('["réussi", "échoué"]')[env.WORKFLOW_CONCLUSION == 'failure'] }} ${{ fromJSON('[":muscle:", ":boom:"]')[env.WORKFLOW_CONCLUSION == 'failure'] }}"
+                        }
+                    ],
+                    "unfurl_links": false,
+                    "unfurl_media": false
+            }
+    env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
