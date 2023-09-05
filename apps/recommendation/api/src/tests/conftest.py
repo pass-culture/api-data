@@ -9,14 +9,13 @@ from typing import Any, Dict
 
 
 DATA_GCP_TEST_POSTGRES_PORT = os.getenv("DATA_GCP_TEST_POSTGRES_PORT")
-PG_HOST = os.getenv("PG_HOST", "127.0.0.1")
 DB_NAME = os.getenv("DB_NAME", "db")
 DEFAULT_IRIS_ID = "45327"
 
 TEST_DATABASE_CONFIG = {
     "user": "postgres",
     "password": "postgres",
-    "host": PG_HOST,
+    "host": "127.0.0.1",
     "port": DATA_GCP_TEST_POSTGRES_PORT,
     "database": DB_NAME,
 }
@@ -301,7 +300,7 @@ def create_iris_france(engine, connection):
 @pytest.fixture
 def setup_database(app_config: Dict[str, Any]) -> Any:
     engine = create_engine(
-        f"postgresql+psycopg2://postgres:postgres@{PG_HOST}:{DATA_GCP_TEST_POSTGRES_PORT}/{DB_NAME}"
+        f"postgresql+psycopg2://postgres:postgres@127.0.0.1:{DATA_GCP_TEST_POSTGRES_PORT}/{DB_NAME}"
     )
     connection = engine.connect().execution_options(autocommit=True)
 

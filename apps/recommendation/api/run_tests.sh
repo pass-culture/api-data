@@ -1,13 +1,18 @@
 #!/bin/bash
 
-export DATA_GCP_TEST_POSTGRES_PORT=5432
-export DB_NAME="db"
 export PYTHONPATH=$PYTHONPATH:$(pwd)
-export PG_HOST="${PG_HOST:-localhost}"
+if [ "$CI" '=' true ]
+then
+  export DATA_GCP_TEST_POSTGRES_PORT=5432
+  export DB_NAME="db"
+else
+  set +a; source ../../.env.local; set -a;
+fi
 
 [ "$CI" '!=' true ] && docker-compose up -d testdb
 function wait_for_container () {(
-    until PGPASSWORD=postgres psql -h $PG_HOST -p $DATA_GCP_TEST_POSTGRES_PORT -U "postgres" -c '\q'; do
+    echo "Debug :  executre wait_for_container"
+    until PGPASSWORD=postgres psql -h postgres -p $DATA_GCP_TEST_POSTGRES_PORT -U "postgres" -c '\q'; do
       >&2 echo "Postgres is unavailable - sleeping"
       sleep 2
     done
