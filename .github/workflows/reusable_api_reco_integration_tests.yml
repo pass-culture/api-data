@@ -1,16 +1,13 @@
 name: API Reco Test Integration
 
-run-name: "[${{ github.event.inputs.ENV }}] API-Reco Test Integration"
+run-name: "[${{ github.event.inputs.TARGET_ENV }}] API-Reco Test Integration"
 
 on:
   workflow_call:
     inputs:
-      ENV:
+      TARGET_ENV:
         type: string
         required: true
-      DATA_GCP_PROJECT:
-         type: string
-         required: true
     secrets:
       GCP_WORKLOAD_IDENTITY_PROVIDER:
         required: true
@@ -19,10 +16,15 @@ on:
       SLACK_BOT_TOKEN:
         required: true
 
+env:
+  DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
+  API_RECO_SECRET_NAME: ${{ vars.API_RECO_SECRET_NAME }}
+
 jobs:
   tests-integration-api-reco:
-    name: "Tests Integration sur l'API RECO"
+    name: "[ ${{ inputs.TARGET_ENV }} ] Tests Integration sur l'API RECO"
     runs-on: [self-hosted, linux, x64]
+    environment: ${{ inputs.TARGET_ENV }}
     permissions:
       contents: 'write'
       id-token: 'write'
@@ -32,7 +34,6 @@ jobs:
        working-directory: "apps/recommendation/api/postman"
     steps:
       - uses: actions/checkout@v3
-      - run: echo "running integration test on ${{ inputs.ENV }}"
       - id: openid-auth
         name: "Authenticate with Google Cloud"
         uses: "google-github-actions/auth@v1"
@@ -43,15 +44,15 @@ jobs:
         id: 'secrets'
         uses: 'google-github-actions/get-secretmanager-secrets@v1'
         with:
-           secrets: API_RCO_TOKEN:${{ inputs.DATA_GCP_PROJECT }}/api-reco-token-${{ inputs.ENV }}
+           secrets: API_RECO_TOKEN:${{ env.DATA_GCP_PROJECT }}/${{ env.API_RECO_SECRET_NAME }}
       - name: Run tests collection
-        run: newman run api_integration_tests.postman_collection.json --environment ${{ inputs.ENV }}.postman_environment.json --env-var "api_token=${{ steps.secrets.outputs.API_RCO_TOKEN }}"
+        run: newman run api_integration_tests.postman_collection.json --environment ${{ inputs.TARGET_ENV }}.postman_environment.json --env-var "api_token=${{ steps.secrets.outputs.API_RECO_TOKEN }}"
       - name: Post to a Slack channel
         id: slack
         if: ${{ failure() }}
         uses: slackapi/slack-github-action@v1.23.0
         with:
-          channel-id: "C05Q7UE8D9R" # alerts_data
+          channel-id: "C01GVAXM02W" # alerts_data
           payload: |
             {
               "attachments": [
@@ -61,9 +62,9 @@ jobs:
                       "author_name": "${{github.actor}}",
                       "author_link": "https://github.com/${{github.actor}}",
                       "author_icon": "https://github.com/${{github.actor}}.png",
-                      "title": "API Reco Integration Test on ${{ inputs.ENV }}",
+                      "title": "API Reco Integration Test on ${{ inputs.TARGET_ENV }}",
                       "title_link": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}",
-                      "text": "Test Integration on ${{ inputs.ENV }} is failed :boom:"
+                      "text": "Test Integration on ${{ inputs.TARGET_ENV }} is failed :boom:"
                   }
               ],
               "unfurl_links": false,

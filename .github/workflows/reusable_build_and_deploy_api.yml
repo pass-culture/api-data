@@ -8,13 +8,13 @@ on:
       API_NAME:
         type: string
         required: true
+      API_SERVICE_NAME:
+        type: string
+        required: true
       API_SOURCE_PATH:
         type: string
         required: true
-      DATA_GCP_PROJECT:
-        type: string
-        required: true
-      API_SERVICE_NAME:
+      TARGET_ENV:
         type: string
         required: true
     secrets:
@@ -29,11 +29,12 @@ env:
   DOCKER_REGISTRY_PROJECT_ID: passculture-infra-prod
   DOCKER_REGISTRY_REGION: europe-west1
   DOCKER_REGISTRY_REPOSITORY: pass-culture-artifact-registry
-  GCP_PROJECT: passculture-data-ehp
+  DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
 
 jobs:
   build-and-push-docker-image:
     name: "Build image job"
+    environment: ${{ inputs.TARGET_ENV }}
     runs-on: [self-hosted, linux, x64]
     permissions:
       id-token: write
@@ -77,6 +78,7 @@ jobs:
 
   deploy-api:
     runs-on: [self-hosted, linux, x64]
+    environment: ${{ inputs.TARGET_ENV }}
     needs: build-and-push-docker-image
     permissions:
       contents: 'read'
@@ -96,7 +98,7 @@ jobs:
     - id: 'deploy'
       uses: 'google-github-actions/deploy-cloudrun@v1'
       with:
-        service: ${{ inputs.API_SERVICE_NAME }}
+        service: "${{ inputs.API_SERVICE_NAME }}-${{ inputs.TARGET_ENV }}"
         image: "${{ env.DOCKER_REPO }}/api-data/${{ inputs.API_NAME }}:${{ steps.sha.outputs.short_sha }}"
-        project_id: ${{ inputs.DATA_GCP_PROJECT }}
+        project_id: ${{ env.DATA_GCP_PROJECT }}
         region: "europe-west1"
