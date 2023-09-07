@@ -1,24 +1,44 @@
-name: Deploy API Compliance on Staging
+name: Deploy API Compliance
 
 on:
   push:
-      branches:
-        - staging
-      paths:
-        - 'fraud/compliance/api/src/**'
+    branches:
+      - main
+      - staging
+      - production
+    paths:
+      - 'fraud/compliance/api/src/**'
 
 env:
-  API_SERVICE_NAME: "api-compliance-stg"
+  API_SERVICE_NAME: ${{ vars.API_COMPLIANCE_SERVICE_NAME }}  
 
 jobs:
+    
+  setup-job:
+    runs-on: [self-hosted, linux, x64]
+    outputs:
+      env_name: ${{ steps.set-variable.outputs.env_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set environment variable
+        id: set-variable
+        run: |
+          if [ ${{ github.ref }} = 'refs/heads/main' ]; then
+            echo "env_name=dev" >> $GITHUB_OUTPUT
+          elif [ ${{ github.ref }} = 'refs/heads/staging' ]; then
+            echo "env_name=staging" >> $GITHUB_OUTPUT
+          elif [ ${{ github.ref }} = 'refs/heads/production' ]; then
+            echo "env_name=production" >> $GITHUB_OUTPUT
+          fi
 
-  dev-deploy-api-compliance:
+  deploy-api-compliance:
+    needs: setup-job
     uses: ./.github/workflows/reusable_build_and_deploy_api.yml
     with:
       API_NAME: compliance
       API_SOURCE_PATH: "apps/fraud/compliance/api"
-      DATA_GCP_PROJECT: "passculture-data-ehp"
-      API_SERVICE_NAME: "api-compliance-stg"
+      TARGET_ENV: ${{ needs.setup-job.outputs.env_name }}
+      API_SERVICE_NAME: ${{ env.API_SERVICE_NAME }}
     secrets:
       GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
@@ -26,8 +46,10 @@ jobs:
 
   slack-notification:
     runs-on: [self-hosted, linux, x64]
+    environment: ${{ needs.setup-job.outputs.env_name }}
     needs:
-      - dev-deploy-api-reco
+      - deploy-api-compliance
+      - setup-job
     if: ${{ always() }}
     steps:
       - uses: technote-space/workflow-conclusion-action@v3
