@@ -1,0 +1,74 @@
+name: API Reco Test Integration
+
+run-name: "[${{ github.event.inputs.TARGET_ENV }}] API-Reco Test Integration"
+
+on:
+  workflow_call:
+    inputs:
+      TARGET_ENV:
+        type: string
+        required: true
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER:
+        required: true
+      ARTIFACT_REGISTRY_SERVICE_ACCOUNT:
+        required: true
+      SLACK_BOT_TOKEN:
+        required: true
+
+env:
+  DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
+  API_RECO_SECRET_NAME: ${{ vars.API_RECO_SECRET_NAME }}
+
+jobs:
+  tests-integration-api-reco:
+    name: "[ ${{ inputs.TARGET_ENV }} ] Tests Integration sur l'API RECO"
+    runs-on: [self-hosted, linux, x64]
+    environment: ${{ inputs.TARGET_ENV }}
+    permissions:
+      contents: 'write'
+      id-token: 'write'
+    container: postman/newman:5.3
+    defaults:
+     run: 
+       working-directory: "apps/recommendation/api/postman"
+    steps:
+      - uses: actions/checkout@v3
+      - id: openid-auth
+        name: "Authenticate with Google Cloud"
+        uses: "google-github-actions/auth@v1"
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
+      - name: Get Secret
+        id: 'secrets'
+        uses: 'google-github-actions/get-secretmanager-secrets@v1'
+        with:
+           secrets: API_RECO_TOKEN:${{ env.DATA_GCP_PROJECT }}/${{ env.API_RECO_SECRET_NAME }}
+      - name: Run tests collection
+        run: newman run api_integration_tests.postman_collection.json --environment ${{ inputs.TARGET_ENV }}.postman_environment.json --env-var "api_token=${{ steps.secrets.outputs.API_RECO_TOKEN }}"
+      - name: Post to a Slack channel
+        id: slack
+        if: ${{ failure() }}
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: "C01GVAXM02W" # alerts_data
+          payload: |
+            {
+              "attachments": [
+                  {
+                      "mrkdwn_in": ["text"],
+                      "color": "#A30002",
+                      "author_name": "${{github.actor}}",
+                      "author_link": "https://github.com/${{github.actor}}",
+                      "author_icon": "https://github.com/${{github.actor}}.png",
+                      "title": "API Reco Integration Test on ${{ inputs.TARGET_ENV }}",
+                      "title_link": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}",
+                      "text": "Test Integration on ${{ inputs.TARGET_ENV }} is failed :boom:"
+                  }
+              ],
+              "unfurl_links": false,
+              "unfurl_media": false
+            }
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
