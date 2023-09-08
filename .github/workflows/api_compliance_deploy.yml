@@ -8,6 +8,7 @@ on:
       - production
     paths:
       - 'fraud/compliance/api/src/**'
+  workflow_dispatch:
 
 env:
   API_SERVICE_NAME: ${{ vars.API_COMPLIANCE_SERVICE_NAME }}  
