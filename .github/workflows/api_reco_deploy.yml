@@ -35,18 +35,6 @@ jobs:
     needs: setup-job
     uses: ./.github/workflows/reusable_api_reco_coverage_tests.yml
 
-  api-reco-test-integration:
-    uses: ./.github/workflows/reusable_api_reco_integration_tests.yml
-    needs: 
-      - setup-job
-      - api-reco-coverage-tests
-    with:
-      TARGET_ENV:  ${{ needs.setup-job.outputs.env_name }}
-    secrets:
-      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-      ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-
   deploy-api-reco:
     needs: 
       - api-reco-coverage-tests
@@ -62,12 +50,24 @@ jobs:
       ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
+  api-reco-test-integration:
+    uses: ./.github/workflows/reusable_api_reco_integration_tests.yml
+    needs: 
+      - setup-job
+      - deploy-api-reco
+    with:
+      TARGET_ENV:  ${{ needs.setup-job.outputs.env_name }}
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
   slack-notification:
     runs-on: [self-hosted, linux, x64]
     environment: ${{ needs.setup-job.outputs.env_name }}
     needs:
       - setup-job
-      - deploy-api-reco
+      - api-reco-test-integration
     if: ${{ always() }}
     steps:
       - uses: technote-space/workflow-conclusion-action@v3
@@ -96,3 +96,5 @@ jobs:
             }
     env:
         SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+
