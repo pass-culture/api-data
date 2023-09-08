@@ -2,12 +2,13 @@ name: Deploy API Reco
 
 on:
   push:
-#      branches:
-#       - main
-#       - staging
-# #      - production
-#      paths:
-#        - 'apps/recommendation/api/src/**'
+    branches:
+      - main
+      - staging
+      - production
+    paths:
+      - 'apps/recommendation/api/src/**'
+  workflow_dispatch:
 
 jobs:
 
@@ -30,23 +31,21 @@ jobs:
             echo "env_name=dev" >> $GITHUB_OUTPUT
           fi
 
-
-
   api-reco-coverage-tests:
     needs: setup-job
     uses: ./.github/workflows/reusable_api_reco_coverage_tests.yml
 
-  # api-reco-test-integration:
-  #   uses: ./.github/workflows/reusable_api_reco_integration_tests.yml
-  #   needs: 
-  #     - setup-job
-  #     - api-reco-coverage-tests
-  #   with:
-  #     TARGET_ENV:  ${{ needs.setup-job.outputs.env_name }}
-  #   secrets:
-  #     GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-  #     ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
-  #     SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+  api-reco-test-integration:
+    uses: ./.github/workflows/reusable_api_reco_integration_tests.yml
+    needs: 
+      - setup-job
+      - api-reco-coverage-tests
+    with:
+      TARGET_ENV:  ${{ needs.setup-job.outputs.env_name }}
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
   deploy-api-reco:
     needs: 
@@ -89,7 +88,7 @@ jobs:
                             "author_icon": "https://github.com/${{github.actor}}.png",
                             "title": "API Reco Deployment",
                             "title_link": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}",
-                            "text": "Le déploiement de `apireco-${{ needs.setup-job.outputs.env_name }}` est ${{ fromJSON('["réussi", "échoué"]')[env.WORKFLOW_CONCLUSION == 'failure'] }} ${{ fromJSON('[":muscle:", ":boom:"]')[env.WORKFLOW_CONCLUSION == 'failure'] }}"
+                            "text": "Le déploiement de `l'API reco sur ${{ needs.setup-job.outputs.env_name }}` est ${{ fromJSON('["réussi", "échoué"]')[env.WORKFLOW_CONCLUSION == 'failure'] }} ${{ fromJSON('[":muscle:", ":boom:"]')[env.WORKFLOW_CONCLUSION == 'failure'] }}"
                         }
                     ],
                     "unfurl_links": false,
