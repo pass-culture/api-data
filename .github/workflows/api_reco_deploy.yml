@@ -73,7 +73,6 @@ jobs:
       API_SOURCE_PATH: "apps/recommendation/api"
       TARGET_ENV: ${{ needs.setup-job.outputs.env_name }}
       API_SERVICE_NAME: "apireco" 
-    secrets:
       GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
@@ -105,7 +104,6 @@ jobs:
                             "title": "API Reco Deployment",
                             "title_link": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}",
                             "text": "Le déploiement de `${{ env.API_SERVICE_NAME }}-${{ needs.setup-job.outputs.env_name }}` est ${{ fromJSON('["réussi", "échoué"]')[env.WORKFLOW_CONCLUSION == 'failure'] }} ${{ fromJSON('[":muscle:", ":boom:"]')[env.WORKFLOW_CONCLUSION == 'failure'] }}"
->>>>>>> 0e9efe1 (refactor CI)
                         }
                     ],
                     "unfurl_links": false,
