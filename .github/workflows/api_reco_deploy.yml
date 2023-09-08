@@ -46,11 +46,6 @@ jobs:
   #     ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
   #     SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
-  deploy-api-reco:
-    needs: 
-      - api-reco-coverage-tests
-    uses: ./.github/workflows/reusable_api_reco_coverage_tests.yml
-
   api-reco-test-integration:
     uses: ./.github/workflows/reusable_api_reco_integration_tests.yml
     needs: 
