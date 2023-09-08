@@ -39,7 +39,7 @@ jobs:
       API_NAME: compliance
       API_SOURCE_PATH: "apps/fraud/compliance/api"
       TARGET_ENV: ${{ needs.setup-job.outputs.env_name }}
-      API_SERVICE_NAME: ${{ env.API_SERVICE_NAME }}
+      API_SERVICE_NAME: "api-compliance"
     secrets:
       GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
