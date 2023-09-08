@@ -56,8 +56,17 @@ Le dossier contient:
 
 ## Déploiement local
 **Pour tester l'API en local**
+- Telecharger le model en local
+```
+dans le dossier 'apps/fraud/compliance/api/'
+mkdir ./src/pcpapillon/local_model
+gsutil cp <GSC_PATH> ./src/pcpapillon/local_model/
+```
+Vous pouvez trouver le GSC_PATH sur MLflow
 ``` 
-cd apps/fraud/validation/api/src/
+export API_LOCAL=True
+Si nécessaire 'pip install -r requirements.txt'
+cd src
 uvicorn main:app --reload
 ```
 **Pour l'image Docker**
