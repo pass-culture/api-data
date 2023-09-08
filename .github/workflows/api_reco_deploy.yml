@@ -49,6 +49,23 @@ jobs:
   deploy-api-reco:
     needs: 
       - api-reco-coverage-tests
+    uses: ./.github/workflows/reusable_api_reco_coverage_tests.yml
+
+  api-reco-test-integration:
+    uses: ./.github/workflows/reusable_api_reco_integration_tests.yml
+    needs: 
+      - api-reco-coverage-tests
+      - setup-job
+    with:
+      TARGET_ENV:  ${{ needs.setup-job.outputs.env_name }}
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+  deploy-api-reco:
+    needs: 
+      - api-reco-test-integration
       - setup-job
     uses: ./.github/workflows/reusable_build_and_deploy_api.yml
     with:
@@ -87,7 +104,8 @@ jobs:
                             "author_icon": "https://github.com/${{github.actor}}.png",
                             "title": "API Reco Deployment",
                             "title_link": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}",
-                            "text": "Le déploiement de `${{ vars.API_RECO_SERVICE_NAME }}` est ${{ fromJSON('["réussi", "échoué"]')[env.WORKFLOW_CONCLUSION == 'failure'] }} ${{ fromJSON('[":muscle:", ":boom:"]')[env.WORKFLOW_CONCLUSION == 'failure'] }}"
+                            "text": "Le déploiement de `${{ env.API_SERVICE_NAME }}-${{ needs.setup-job.outputs.env_name }}` est ${{ fromJSON('["réussi", "échoué"]')[env.WORKFLOW_CONCLUSION == 'failure'] }} ${{ fromJSON('[":muscle:", ":boom:"]')[env.WORKFLOW_CONCLUSION == 'failure'] }}"
+>>>>>>> 0e9efe1 (refactor CI)
                         }
                     ],
                     "unfurl_links": false,
