@@ -31,7 +31,7 @@ jobs:
     container: postman/newman:5.3
     defaults:
      run: 
-       working-directory: "apps/recommendation/api/postman"
+       working-directory: "apps/recommendation_v2/api/postman"
     steps:
       - uses: actions/checkout@v3
       - id: openid-auth

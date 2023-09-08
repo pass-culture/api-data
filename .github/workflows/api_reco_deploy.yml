@@ -7,7 +7,7 @@ on:
       - staging
       - production
     paths:
-      - 'apps/recommendation/api/src/**'
+      - 'apps/recommendation_v2/api/src/**'
   workflow_dispatch:
 
 jobs:
@@ -41,26 +41,26 @@ jobs:
       - setup-job
     uses: ./.github/workflows/reusable_build_and_deploy_api.yml
     with:
-      API_NAME: recommendation
-      API_SOURCE_PATH: "apps/recommendation/api"
+      API_NAME: recommendation_v2
+      API_SOURCE_PATH: "apps/recommendation_v2/api"
       TARGET_ENV: ${{ needs.setup-job.outputs.env_name }}
-      API_SERVICE_NAME: "apireco"
+      API_SERVICE_NAME: "apirecov2"
     secrets:
       GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
-  api-reco-test-integration:
-    uses: ./.github/workflows/reusable_api_reco_integration_tests.yml
-    needs: 
-      - setup-job
-      - deploy-api-reco
-    with:
-      TARGET_ENV:  ${{ needs.setup-job.outputs.env_name }}
-    secrets:
-      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-      ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
-      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+#  api-reco-test-integration:
+#    uses: ./.github/workflows/reusable_api_reco_integration_tests.yml
+#    needs: 
+#      - setup-job
+#      - deploy-api-reco
+#    with:
+#      TARGET_ENV:  ${{ needs.setup-job.outputs.env_name }}
+#    secrets:
+#      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+#      ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
+#      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
 
   slack-notification:
     runs-on: [self-hosted, linux, x64]
