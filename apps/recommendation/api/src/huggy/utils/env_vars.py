@@ -19,7 +19,7 @@ SQL_BASE_SECRET_ID = os.environ.get("SQL_BASE_SECRET_ID")
 SQL_BASE_USER = os.environ.get("SQL_BASE_USER")
 SQL_CONNECTION_NAME = os.environ.get("SQL_CONNECTION_NAME")
 SQL_BASE_PASSWORD = os.environ.get(
-    "SQL_BASE_PASSWORD", None # access_secret(GCP_PROJECT, SQL_BASE_SECRET_ID)
+    "SQL_BASE_PASSWORD", None  # access_secret(GCP_PROJECT, SQL_BASE_SECRET_ID)
 )
 SQL_PORT = os.environ.get("SQL_PORT")
 SQL_HOST = os.environ.get("SQL_HOST")
