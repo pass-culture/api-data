@@ -1,5 +1,3 @@
-#!/bin/bash
-
 export PYTHONPATH=$PYTHONPATH:$(pwd)
 if [ "$CI" '=' true ]
 then
@@ -17,7 +15,7 @@ function wait_for_container () {(
     done
 )}
 function run () {(
-    pytest
+    docker run -it -p 8080:8080 pcreco_orm
 )}
 sleep 3
 wait_for_container
