@@ -7,7 +7,7 @@ from huggy.crud.iris import get_iris_from_coordinates
 
 
 def get_user_profile(
-    db: Session, user_id: str, call_id: str, latitude: float, longitude: float
+    db: Session, user_id: str, latitude: float, longitude: float
 ) -> User:
     """Query the database in ORM mode to get additional information about
     an user. (age, number of bookings, number of clicks, number of favorites,
@@ -31,12 +31,13 @@ def get_user_profile(
 
     if latitude and longitude:
         iris_id = get_iris_from_coordinates(db, latitude, longitude)
+    else:
+        iris_id = None
 
     if user_profile:
 
         user = User(
             user_id=user_id,
-            call_id=call_id,
             longitude=longitude,
             latitude=latitude,
             found=True,
@@ -48,4 +49,13 @@ def get_user_profile(
             user_deposit_remaining_credit=user_profile[4],
         )
 
-        return user
+    else:
+        user = User(
+            user_id=user_id,
+            longitude=longitude,
+            latitude=latitude,
+            found=False,
+            iris_id=iris_id,
+        )
+
+    return user

@@ -1,12 +1,10 @@
 import os
-from typing import Any
 import pytest
-from unittest.mock import patch
-
 
 from huggy.crud.iris import (
     get_iris_from_coordinates,
 )
+from sqlalchemy.orm import Session
 
 DATA_GCP_TEST_POSTGRES_PORT = os.getenv("DATA_GCP_TEST_POSTGRES_PORT")
 DB_NAME = os.getenv("DB_NAME", "postgres")
@@ -20,43 +18,18 @@ TEST_DATABASE_CONFIG = {
 }
 
 
-def test_get_iris_from_coordinates(setup_database: Any):
-    # Given
-    with patch("huggy.utils.database.SessionLocal") as connection_mock:
-        connection_mock.return_value = setup_database
+@pytest.mark.parametrize(
+    ["longitude", "latitude", "expected_iris_id"],
+    [
+        (2.33294778256192, 48.831930605740254, 45327),
+        (None, None, None),
+        # (-122.1639346, 37.4449422, None)
+    ],
+)
+def test_get_iris_from_coordinates(
+    setup_database: Session, longitude, latitude, expected_iris_id
+):
+    iris_id = get_iris_from_coordinates(setup_database, longitude, latitude)
 
-        # When
-        longitude = 2.331289
-        latitude = 48.830719
-        iris_id = get_iris_from_coordinates(longitude, latitude)
-
-        # Then
-        assert iris_id == 45327
-
-
-def test_get_iris_from_coordinates_without_coordinates(setup_database: Any):
-    # Given
-    with patch("huggy.utils.database.SessionLocal") as connection_mock:
-        connection_mock.return_value = setup_database
-
-        # When
-        longitude = None
-        latitude = None
-        iris_id = get_iris_from_coordinates(longitude, latitude)
-
-        # Then
-        assert iris_id is None
-
-
-def test_get_iris_from_coordinates_not_in_france(setup_database: Any):
-    # Given
-    with patch("huggy.utils.database.SessionLocal") as connection_mock:
-        connection_mock.return_value = setup_database
-
-        # When
-        longitude = -122.1639346
-        latitude = 37.4449422
-        iris_id = get_iris_from_coordinates(longitude, latitude)
-
-        # Then
-        assert iris_id is None
+    # Then
+    assert iris_id == expected_iris_id

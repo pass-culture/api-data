@@ -15,7 +15,7 @@ from huggy.core.model_engine.recommendation import Recommendation
 from huggy.crud.user import get_user_profile
 from huggy.crud.offer import get_offer_characteristics
 
-from huggy.utils.database import SessionLocal
+from huggy.utils.database import get_db
 from huggy.utils.env_vars import cloud_trace_context
 from huggy.utils.cloud_logging.setup import setup_logging
 
@@ -29,14 +29,6 @@ async def setup_trace(request: Request):
 
 
 custom_logger = setup_logging()
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 @app.get("/", dependencies=[Depends(setup_trace)])

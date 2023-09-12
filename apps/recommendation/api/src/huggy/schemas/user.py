@@ -15,7 +15,6 @@ class User:
     """Characteristics of an user"""
 
     user_id: str
-    call_id: str = None
     longitude: float = None
     latitude: float = None
     iris_id: str = None
