@@ -30,6 +30,7 @@ env:
   DOCKER_REGISTRY_REGION: europe-west1
   DOCKER_REGISTRY_REPOSITORY: pass-culture-artifact-registry
   DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
+  ENV_SHORT_NAME: ${{ vars.ENV_SHORT_NAME }}
 
 jobs:
   build-and-push-docker-image:
@@ -98,7 +99,7 @@ jobs:
     - id: 'deploy'
       uses: 'google-github-actions/deploy-cloudrun@v1'
       with:
-        service: "${{ inputs.API_SERVICE_NAME }}-${{ inputs.TARGET_ENV }}"
+        service: "${{ inputs.API_SERVICE_NAME }}-${{ env.ENV_SHORT_NAME }}"
         image: "${{ env.DOCKER_REPO }}/api-data/${{ inputs.API_NAME }}:${{ steps.sha.outputs.short_sha }}"
         project_id: ${{ env.DATA_GCP_PROJECT }}
         region: "europe-west1"
