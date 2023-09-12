@@ -1,0 +1,80 @@
+name: Deploy API Compliance
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+      - production
+    paths:
+      - 'fraud/compliance/api/src/**'
+  workflow_dispatch:
+
+jobs:
+    
+  setup-job:
+    runs-on: [self-hosted, linux, x64]
+    outputs:
+      env_name: ${{ steps.set-variable.outputs.env_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set environment variable
+        id: set-variable
+        run: |
+          if [ ${{ github.ref }} = 'refs/heads/main' ]; then
+            echo "env_name=dev" >> $GITHUB_OUTPUT
+          elif [ ${{ github.ref }} = 'refs/heads/staging' ]; then
+            echo "env_name=staging" >> $GITHUB_OUTPUT
+          elif [ ${{ github.ref }} = 'refs/heads/production' ]; then
+            echo "env_name=production" >> $GITHUB_OUTPUT
+          else
+            echo "env_name=dev" >> $GITHUB_OUTPUT
+          fi
+
+  deploy-api-compliance:
+    needs: setup-job
+    uses: ./.github/workflows/reusable_build_and_deploy_api.yml
+    with:
+      API_NAME: compliance
+      API_SOURCE_PATH: "apps/fraud/compliance/api"
+      TARGET_ENV: ${{ needs.setup-job.outputs.env_name }}
+      API_SERVICE_NAME: "api-compliance"
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
+  slack-notification:
+    runs-on: [self-hosted, linux, x64]
+    environment: ${{ needs.setup-job.outputs.env_name }}
+    needs:
+      - deploy-api-compliance
+      - setup-job
+    if: ${{ always() }}
+    steps:
+      - uses: technote-space/workflow-conclusion-action@v3
+      - name: Post to a Slack channel
+        id: slack
+        if: ${{ always() }}
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          channel-id: "C01GVAXM02W" # alerts_data
+          payload: |
+            {
+                    "attachments": [
+                        {
+                            "mrkdwn_in": ["text"],
+                            "color": "${{ fromJSON('["#36a64f", "#A30002"]')[ env.WORKFLOW_CONCLUSION == 'failure'] }}",
+                            "author_name": "${{github.actor}}",
+                            "author_link": "https://github.com/${{github.actor}}",
+                            "author_icon": "https://github.com/${{github.actor}}.png",
+                            "title": "API Compliance Deployment",
+                            "title_link": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}",
+                            "text": "Le déploiement de `l'API Compliance sur ${{ needs.setup-job.outputs.env_name }}` est ${{ fromJSON('["réussi", "échoué"]')[env.WORKFLOW_CONCLUSION == 'failure'] }} ${{ fromJSON('[":muscle:", ":boom:"]')[env.WORKFLOW_CONCLUSION == 'failure'] }}"
+                        }
+                    ],
+                    "unfurl_links": false,
+                    "unfurl_media": false
+            }
+    env:
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
