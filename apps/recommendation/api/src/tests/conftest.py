@@ -1,15 +1,14 @@
 from datetime import datetime, timedelta
 import os
 import pytest
-
 import pandas as pd
 import pytz
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from typing import Any, Dict
 
 
-DATA_GCP_TEST_POSTGRES_PORT = os.getenv("DATA_GCP_TEST_POSTGRES_PORT")
-DB_NAME = os.getenv("DB_NAME", "db")
+DATA_GCP_TEST_POSTGRES_PORT = os.getenv("DATA_GCP_TEST_POSTGRES_PORT", 5432)
+DB_NAME = os.getenv("DB_NAME", "postgres")
 DEFAULT_IRIS_ID = "45327"
 
 TEST_DATABASE_CONFIG = {
@@ -34,13 +33,17 @@ def create_non_recommendable_offers(engine):
     non_recommendable_offers = pd.DataFrame(
         {"user_id": ["111", "112"], "offer_id": ["1", "3"]}
     )
-    engine.execute("DROP MATERIALIZED VIEW IF EXISTS non_recommendable_offers CASCADE;")
+    engine.connect().execute(
+        text("DROP MATERIALIZED VIEW IF EXISTS non_recommendable_offers CASCADE;")
+    )
 
     non_recommendable_offers.to_sql(
         "non_recommendable_offers_temporary_table", con=engine, if_exists="replace"
     )
-    engine.execute(
-        "CREATE MATERIALIZED VIEW non_recommendable_offers AS SELECT * FROM non_recommendable_offers_temporary_table;"
+    engine.connect().execute(
+        text(
+            "CREATE MATERIALIZED VIEW non_recommendable_offers AS SELECT * FROM non_recommendable_offers_temporary_table;"
+        )
     )
 
 
@@ -48,13 +51,17 @@ def create_non_recommendable_items(engine):
     non_recommendable_offers = pd.DataFrame(
         {"user_id": ["111", "112"], "item_id": ["isbn-1", "isbn-3"]}
     )
-    engine.execute("DROP MATERIALIZED VIEW IF EXISTS non_recommendable_items CASCADE;")
+    engine.connect().execute(
+        text("DROP MATERIALIZED VIEW IF EXISTS non_recommendable_items CASCADE;")
+    )
 
     non_recommendable_offers.to_sql(
         "non_recommendable_items_temporary_table", con=engine, if_exists="replace"
     )
-    engine.execute(
-        "CREATE MATERIALIZED VIEW non_recommendable_items AS SELECT * FROM non_recommendable_items_temporary_table;"
+    engine.connect().execute(
+        text(
+            "CREATE MATERIALIZED VIEW non_recommendable_items AS SELECT * FROM non_recommendable_items_temporary_table;"
+        )
     )
 
 
@@ -215,15 +222,17 @@ def create_recommendable_offers_raw(engine):
             ],
         }
     )
-    engine.execute(
-        "DROP MATERIALIZED VIEW IF EXISTS recommendable_offers_raw_mv CASCADE;"
+    engine.connect().execute(
+        text("DROP MATERIALIZED VIEW IF EXISTS recommendable_offers_raw_mv CASCADE;")
     )
 
     recommendable_offers_raw.to_sql(
         "recommendable_offers_raw", con=engine, if_exists="replace"
     )
-    engine.execute(
-        "CREATE MATERIALIZED VIEW recommendable_offers_raw_mv AS SELECT *, ST_MakePoint(venue_longitude, venue_latitude)::geography as venue_geo FROM recommendable_offers_raw WITH DATA;"
+    engine.connect().execute(
+        text(
+            "CREATE MATERIALIZED VIEW recommendable_offers_raw_mv AS SELECT *, ST_MakePoint(venue_longitude, venue_latitude)::geography as venue_geo FROM recommendable_offers_raw WITH DATA;"
+        )
     )
 
 
@@ -250,8 +259,10 @@ def create_enriched_user(engine):
         }
     )
     enriched_user.to_sql("enriched_user", con=engine, if_exists="replace")
-    engine.execute(
-        "CREATE MATERIALIZED VIEW enriched_user_mv AS SELECT * FROM enriched_user;"
+    engine.connect().execute(
+        text(
+            "CREATE MATERIALIZED VIEW enriched_user_mv AS SELECT * FROM enriched_user;"
+        )
     )
 
 
@@ -294,7 +305,7 @@ def create_iris_france(engine, connection):
             USING ST_SetSRID(shape::Geometry, 4326);
         """
 
-    connection.execute(sql)
+    engine.connect().execute(text(sql))
 
 
 @pytest.fixture
@@ -316,25 +327,35 @@ def setup_database(app_config: Dict[str, Any]) -> Any:
 
     yield connection
     try:
-        engine.execute(
-            "DROP MATERIALIZED VIEW IF EXISTS recommendable_offers_raw_mv CASCADE;"
+        engine.connect().execute(
+            text(
+                "DROP MATERIALIZED VIEW IF EXISTS recommendable_offers_raw_mv CASCADE;"
+            )
         )
 
-        engine.execute(
-            "DROP MATERIALIZED VIEW IF EXISTS non_recommendable_offers CASCADE;"
+        engine.connect().execute(
+            text("DROP MATERIALIZED VIEW IF EXISTS non_recommendable_offers CASCADE;")
         )
-        engine.execute(
-            "DROP MATERIALIZED VIEW IF EXISTS non_recommendable_items CASCADE;"
+        engine.connect().execute(
+            text("DROP MATERIALIZED VIEW IF EXISTS non_recommendable_items CASCADE;")
         )
 
-        engine.execute("DROP TABLE IF EXISTS recommendable_offers_raw CASCADE;")
-        engine.execute(
-            "DROP TABLE IF EXISTS non_recommendable_offers_temporary_table CASCADE;"
+        engine.connect().execute(
+            text("DROP TABLE IF EXISTS recommendable_offers_raw CASCADE;")
         )
-        engine.execute("DROP TABLE IF EXISTS enriched_user CASCADE;")
-        engine.execute("DROP MATERIALIZED VIEW IF EXISTS enriched_user_mv CASCADE;")
-        engine.execute("DROP TABLE IF EXISTS past_recommended_offers CASCADE ;")
-        engine.execute("DROP TABLE IF EXISTS iris_france CASCADE;")
+        engine.connect().execute(
+            text(
+                "DROP TABLE IF EXISTS non_recommendable_offers_temporary_table CASCADE;"
+            )
+        )
+        engine.connect().execute(text("DROP TABLE IF EXISTS enriched_user CASCADE;"))
+        engine.connect().execute(
+            text("DROP MATERIALIZED VIEW IF EXISTS enriched_user_mv CASCADE;")
+        )
+        engine.connect().execute(
+            text("DROP TABLE IF EXISTS past_recommended_offers CASCADE ;")
+        )
+        engine.connect().execute(text("DROP TABLE IF EXISTS iris_france CASCADE;"))
     except:
         pass
     finally:

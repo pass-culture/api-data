@@ -6,7 +6,6 @@ def sort_offers(
     order_query: dict = {"user_distance": "ASC", "item_score": "ASC"},
     list_offers: List[Offer] = None,
 ):
-
     order_statement_list = []
     for column, order in order_query.items():
         if order == "ASC":

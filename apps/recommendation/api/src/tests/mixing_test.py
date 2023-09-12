@@ -130,7 +130,6 @@ class DiversificationTest:
     def test_diversification(
         self,
     ):
-
         offers = order_offers_by_score_and_diversify_features(
             mock_scored_offers,
             score_column="item_score",

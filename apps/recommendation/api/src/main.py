@@ -58,7 +58,6 @@ def similar_offers(
     longitude: float = None,  # venue_longitude
     db: Session = Depends(get_db),
 ):
-
     call_id = str(uuid.uuid4())
 
     user = get_user_profile(db, playlist_params.user_id, call_id, latitude, longitude)
@@ -105,7 +104,6 @@ def similar_offers(
     longitude: float = None,  # venue_longitude
     db: Session = Depends(get_db),
 ):
-
     call_id = str(uuid.uuid4())
 
     user = get_user_profile(
@@ -154,7 +152,6 @@ def playlist_recommendation(
     longitude: float = None,
     db: Session = Depends(get_db),
 ):
-
     call_id = str(uuid.uuid4())
 
     user = get_user_profile(db, user_id, call_id, latitude, longitude)

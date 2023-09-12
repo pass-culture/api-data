@@ -17,7 +17,6 @@ class PlaylistParamsTest:
         ],
     )
     def test_has_conditions(self, input_params, has_conditions):
-
         input_params = PlaylistParams(input_params)
         assert input_params.has_conditions == has_conditions
 

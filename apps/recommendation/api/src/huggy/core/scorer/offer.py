@@ -79,7 +79,6 @@ class OfferScorer:
         db: Session,
         recommendable_items: List[RecommendableItem],
     ) -> List[RecommendableOffer]:
-
         recommendable_offers = get_nearest_offers(db, self.user, recommendable_items)
 
         size = len(recommendable_offers)
