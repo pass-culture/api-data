@@ -11,6 +11,7 @@ from typing import Any, Dict
 from huggy.models.non_recommendable_items import NonRecommendableItems
 from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
 from huggy.models.enriched_user import User
+from huggy.models.item_ids_mv import ItemIdsMv
 
 DATA_GCP_TEST_POSTGRES_PORT = os.getenv("DATA_GCP_TEST_POSTGRES_PORT")
 DB_NAME = os.getenv("DB_NAME", "postgres")
@@ -419,6 +420,65 @@ def create_iris_france(engine):
         conn.close()
 
 
+def create_item_ids_mv(engine):
+    data = [
+        {
+            "item_id": "isbn-1",
+            "offer_id": "1",
+            "booking_number": 3,
+        },
+        {
+            "item_id": "isbn-2",
+            "offer_id": "2",
+            "booking_number": 5,
+        },
+        {
+            "item_id": "movie-3",
+            "offer_id": "3",
+            "booking_number": 10,
+        },
+        {
+            "item_id": "movie-4",
+            "offer_id": "4",
+            "booking_number": 2,
+        },
+        {
+            "item_id": "movie-5",
+            "offer_id": "5",
+            "booking_number": 1,
+        },
+        {
+            "item_id": "product-6",
+            "offer_id": "6",
+            "booking_number": 9,
+        },
+        {
+            "item_id": "product-7",
+            "offer_id": "7",
+            "booking_number": 5,
+        },
+        {
+            "item_id": "product-8",
+            "offer_id": "8",
+            "booking_number": 5,
+        },
+        {
+            "item_id": "product-9",
+            "offer_id": "9",
+            "booking_number": 10,
+        },
+    ]
+
+    if inspect(engine).has_table(ItemIdsMv.__tablename__):
+        ItemIdsMv.__table__.drop(engine)
+    ItemIdsMv.__table__.create(bind=engine)
+
+    with engine.connect() as conn:
+        conn.execute(insert(ItemIdsMv), data)
+        conn.commit()
+        conn.close()
+
+
 @pytest.fixture
 def setup_database(app_config: Dict[str, Any]) -> Session:
     engine = create_engine(
@@ -436,6 +496,7 @@ def setup_database(app_config: Dict[str, Any]) -> Session:
     create_qpi_answers(engine)
     create_past_recommended_offers(engine)
     create_iris_france(engine)
+    create_item_ids_mv(engine)
 
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
