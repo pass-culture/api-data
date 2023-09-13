@@ -43,7 +43,7 @@ class RecommendableOffersRawMv(RecommendableOffersRaw):
 
 
 class RecommendableOffersRawMvTemp(RecommendableOffersRaw):
-    __tablename__ = "recommendable_offers_raw_tmp"
+    __tablename__ = "recommendable_offers_raw_mw_tmp"
     offer_id = Column(
         None, ForeignKey("recommendable_offers_raw.offer_id"), primary_key=True
     )
