@@ -161,3 +161,6 @@ cython_debug/
 
 #Compliance local models
 *.cb
+
+#Vscode workspace
+*.code-workspace

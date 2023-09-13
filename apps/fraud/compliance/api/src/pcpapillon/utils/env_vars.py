@@ -29,7 +29,7 @@ SECRET_KEY = access_secret(GCP_PROJECT, API_SECRET_KET_SECRET_ID)
 HASH_ALGORITHM = os.environ.get("VALIDATION_LOGIN_KEY", "HS256")
 LOGIN_TOKEN_EXPIRATION = os.environ.get("LOGIN_TOKEN_EXPIRATION", 30)
 
-if API_LOCAL:
+if isAPI_LOCAL:
     API_USER = "user_local"
     API_PWD = "pwd_local"
 
