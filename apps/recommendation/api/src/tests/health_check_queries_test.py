@@ -14,7 +14,7 @@ from huggy.utils.database import bind_engine
 
 @pytest.mark.parametrize(
     "table_name, expected_result",
-    [("recommendable_offers_raw", True)],
+    [("enriched_user", True)],
 )
 def test_should_raise_exception_when_it_does_not_come_from_sql_alchemy(
     table_name: str, expected_result: bool, engine=bind_engine
