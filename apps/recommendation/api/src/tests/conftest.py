@@ -424,7 +424,12 @@ def setup_database(app_config: Dict[str, Any]) -> Session:
     engine = create_engine(
         f"postgresql+psycopg2://postgres:postgres@127.0.0.1:{DATA_GCP_TEST_POSTGRES_PORT}/{DB_NAME}"
     )
+    try:
+        from huggy.utils.database import Base
 
+        Base.metadata.drop_all(engine)
+    except:
+        pass
     create_recommendable_offers_raw(engine)
     create_non_recommendable_items(engine)
     create_enriched_user(engine)
@@ -440,11 +445,6 @@ def setup_database(app_config: Dict[str, Any]) -> Session:
     finally:
         db.close()
 
-    # try:
-    #     from huggy.utils.database import Base
-    #     Base.metadata.drop_all(engine)
-    # except:
-    #     pass
     # try:
     #     connection.execute(
     #         text("DROP MATERIALIZED VIEW IF EXISTS recommendable_offers_raw_mv CASCADE;")

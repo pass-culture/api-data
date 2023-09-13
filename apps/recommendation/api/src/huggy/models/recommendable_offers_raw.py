@@ -71,3 +71,5 @@ def get_available_table(engine, offer_model_base) -> str:
         result = inspect(engine).has_table(table_name)
         if result:
             return eval(offer_model)
+        else:
+            return "no table found"
