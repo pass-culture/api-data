@@ -49,6 +49,7 @@ def create_non_recommendable_items(engine):
             ],
         )
         conn.commit()
+        conn.close()
 
 
 def create_recommendable_offers_raw(engine):
@@ -278,6 +279,7 @@ def create_recommendable_offers_raw(engine):
     with engine.connect() as conn:
         conn.execute(insert(RecommendableOffersRaw), data)
         conn.commit()
+        conn.close()
 
 
 def create_enriched_user(engine):
@@ -370,6 +372,7 @@ def create_enriched_user(engine):
     with engine.connect() as conn:
         conn.execute(insert(User), data)
         conn.commit()
+        conn.close()
 
 
 def create_qpi_answers(engine):
@@ -411,7 +414,9 @@ def create_iris_france(engine):
             USING ST_SetSRID(shape::Geometry, 4326);
         """
 
-    engine.connect().execute(text(sql))
+    with engine.connect() as conn:
+        conn.execute(text(sql))
+        conn.close()
 
 
 @pytest.fixture
@@ -435,12 +440,11 @@ def setup_database(app_config: Dict[str, Any]) -> Session:
     finally:
         db.close()
 
-    try:
-        from huggy.utils.database import Base
-
-        Base.metadata.drop_all(engine)
-    except:
-        pass
+    # try:
+    #     from huggy.utils.database import Base
+    #     Base.metadata.drop_all(engine)
+    # except:
+    #     pass
     # try:
     #     connection.execute(
     #         text("DROP MATERIALIZED VIEW IF EXISTS recommendable_offers_raw_mv CASCADE;")
