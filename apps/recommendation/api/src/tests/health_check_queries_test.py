@@ -3,7 +3,7 @@ import pytest
 from huggy.models.recommendable_offers_raw import (
     get_available_table,
     RecommendableOffersRaw,
-    RecommendableOffersRawMvTemp,
+    RecommendableOffersRawMvTmp,
     RecommendableOffersRawMvOld,
     RecommendableOffersRawMv,
 )
@@ -16,7 +16,7 @@ from huggy.utils.database import bind_engine
         (
             "RecommendableOffersRaw",
             [
-                RecommendableOffersRawMvTemp,
+                RecommendableOffersRawMvTmp,
                 RecommendableOffersRawMvOld,
                 RecommendableOffersRawMv,
                 RecommendableOffersRaw,
