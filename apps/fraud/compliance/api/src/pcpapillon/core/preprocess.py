@@ -42,7 +42,7 @@ def prepare_features(data, params):
             data[key] = 0 if data[key] is None else int(data[key])
     if "macro_text" in params.keys():
         semantic_content = " ".join(
-            [semantic_feature.lower() for semantic_feature in params["macro_text"]]
+            [data[semantic_feature].lower() for semantic_feature in params["macro_text"]]
         )
         data["semantic_content"] = semantic_content
     return data
