@@ -15,9 +15,15 @@ DEFAULT_RECO_MODEL = os.environ.get("DEFAULT_RECO_MODEL", "default")
 API_LOCAL = os.environ.get("API_LOCAL", False)
 # SQL
 SQL_BASE = os.environ.get("SQL_BASE", "cloudsql-recommendation-dev-ew1")
-SQL_BASE_SECRET_ID = os.environ.get("SQL_BASE_SECRET_ID", "cloudsql-recommendation-dev-ew1_database_credentials_password")
+SQL_BASE_SECRET_ID = os.environ.get(
+    "SQL_BASE_SECRET_ID",
+    "cloudsql-recommendation-dev-ew1_database_credentials_password",
+)
 SQL_BASE_USER = os.environ.get("SQL_BASE_USER", "cloudsql-recommendation-dev-ew1")
-SQL_CONNECTION_NAME = os.environ.get("SQL_CONNECTION_NAME", "passculture-data-ehp:europe-west1:cloudsql-recommendation-dev-ew1")
+SQL_CONNECTION_NAME = os.environ.get(
+    "SQL_CONNECTION_NAME",
+    "passculture-data-ehp:europe-west1:cloudsql-recommendation-dev-ew1",
+)
 SQL_BASE_PASSWORD = os.environ.get(
     "SQL_BASE_PASSWORD", access_secret(GCP_PROJECT, SQL_BASE_SECRET_ID)
 )
