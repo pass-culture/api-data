@@ -14,16 +14,15 @@ DEFAULT_SIMILAR_OFFER_MODEL = os.environ.get("DEFAULT_SIMILAR_OFFER_MODEL", "def
 DEFAULT_RECO_MODEL = os.environ.get("DEFAULT_RECO_MODEL", "default")
 API_LOCAL = os.environ.get("API_LOCAL", False)
 # SQL
-SQL_BASE = os.environ.get("SQL_BASE")
-SQL_BASE_SECRET_ID = os.environ.get("SQL_BASE_SECRET_ID")
-SQL_BASE_USER = os.environ.get("SQL_BASE_USER")
-SQL_CONNECTION_NAME = os.environ.get("SQL_CONNECTION_NAME")
+SQL_BASE = os.environ.get("SQL_BASE", "cloudsql-recommendation-dev-ew1")
+SQL_BASE_SECRET_ID = os.environ.get("SQL_BASE_SECRET_ID", "cloudsql-recommendation-dev-ew1_database_credentials_password")
+SQL_BASE_USER = os.environ.get("SQL_BASE_USER", "cloudsql-recommendation-dev-ew1")
+SQL_CONNECTION_NAME = os.environ.get("SQL_CONNECTION_NAME", "passculture-data-ehp:europe-west1:cloudsql-recommendation-dev-ew1")
 SQL_BASE_PASSWORD = os.environ.get(
     "SQL_BASE_PASSWORD", access_secret(GCP_PROJECT, SQL_BASE_SECRET_ID)
 )
 SQL_PORT = os.environ.get("SQL_PORT")
 SQL_HOST = os.environ.get("SQL_HOST")
-
 # logger
 cloud_trace_context = contextvars.ContextVar("cloud_trace_context", default="")
 http_request_context = contextvars.ContextVar("http_request_context", default=dict({}))

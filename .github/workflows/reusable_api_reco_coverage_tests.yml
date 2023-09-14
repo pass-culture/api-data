@@ -3,9 +3,6 @@ name: "Linter and Coverage test"
 on:
   workflow_call:
 
-env:
-  SQL_BASE_SECRET_ID: ${{ vars.SQL_BASE_SECRET_ID }}
-
 jobs:
 
   linter:
@@ -62,7 +59,6 @@ jobs:
          DB_NAME: "db"
          DATA_GCP_TEST_POSTGRES_PORT: 5432
          PYTHONPATH: $PYTHONPATH:~/data-gcp/apps/recommendation/api
-         SQL_BASE_SECRET_ID: ${{ vars.SQL_BASE_SECRET_ID }}
         run:  |
           pytest --cov
 
