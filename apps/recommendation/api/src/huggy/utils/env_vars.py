@@ -29,7 +29,7 @@ try:
     SQL_BASE_PASSWORD = access_secret(GCP_PROJECT, SQL_BASE_SECRET_ID)
 except:
     SQL_BASE_PASSWORD = os.environ.get("SQL_BASE_PASSWORD", "postgres")
-    
+
 SQL_PORT = os.environ.get("SQL_PORT")
 SQL_HOST = os.environ.get("SQL_HOST")
 # logger
