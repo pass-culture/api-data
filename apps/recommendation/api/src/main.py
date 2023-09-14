@@ -1,5 +1,6 @@
 from fastapi import Depends, FastAPI, Request
 from fastapi.logger import logger
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 import uuid
 
@@ -33,8 +34,8 @@ custom_logger = setup_logging()
 
 @app.get("/", dependencies=[Depends(setup_trace)])
 def read_root():
-    logger.info("Auth user welcome to : Refacto API test")
-    return "Auth user welcome to : Refacto API test"
+    logger.info("Welcome to the recommendation API!")
+    return "Welcome to the recommendation API!"
 
 
 @app.get("/check")
@@ -53,7 +54,7 @@ def similar_offers(
 
     call_id = str(uuid.uuid4())
 
-    user = get_user_profile(db, playlist_params.user_id, call_id, latitude, longitude)
+    user = get_user_profile(db, playlist_params.user_id, latitude, longitude)
 
     offer = get_offer_characteristics(db, offer_id, latitude, longitude)
 
@@ -86,7 +87,29 @@ def similar_offers(
 
     scoring.save_recommendation(db, offer_recommendations)
 
-    return offer_recommendations
+    return jsonable_encoder(
+        {
+            "results": offer_recommendations,
+            "params": {
+                "reco_origin": scoring.reco_origin,
+                "retrieval_model_endpoint": scoring.scorer.retrieval_endpoints[
+                    0
+                ].endpoint_name,
+                "retrieval_model_name": scoring.scorer.retrieval_endpoints[
+                    0
+                ].model_display_name,
+                "retrieval_model_version": scoring.scorer.retrieval_endpoints[
+                    0
+                ].model_version,
+                "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
+                "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
+                "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,
+                "geo_located": user.is_geolocated,
+                # "filtered": input_reco.has_conditions if input_reco else False,
+                "call_id": call_id,
+            },
+        }
+    )
 
 
 @app.get("/similar_offers/{offer_id}", dependencies=[Depends(setup_trace)])
@@ -101,7 +124,7 @@ def similar_offers(
     call_id = str(uuid.uuid4())
 
     user = get_user_profile(
-        db, playlist_params.user_id, call_id, latitude, longitude
+        db, playlist_params.user_id, latitude, longitude
     )  # corriger pour avoir la latitude / longitude de l'user (et non de la venue)
 
     offer = get_offer_characteristics(db, offer_id, latitude, longitude)
@@ -135,7 +158,29 @@ def similar_offers(
 
     scoring.save_recommendation(db, offer_recommendations)
 
-    return offer_recommendations
+    return jsonable_encoder(
+        {
+            "results": offer_recommendations,
+            "params": {
+                "reco_origin": scoring.reco_origin,
+                "retrieval_model_endpoint": scoring.scorer.retrieval_endpoints[
+                    0
+                ].endpoint_name,
+                "retrieval_model_name": scoring.scorer.retrieval_endpoints[
+                    0
+                ].model_display_name,
+                "retrieval_model_version": scoring.scorer.retrieval_endpoints[
+                    0
+                ].model_version,
+                "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
+                "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
+                "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,
+                "geo_located": user.is_geolocated,
+                # "filtered": input_reco.has_conditions if input_reco else False,
+                "call_id": call_id,
+            },
+        }
+    )
 
 
 @app.post("/playlist_recommendation/{user_id}", dependencies=[Depends(setup_trace)])
@@ -149,7 +194,7 @@ def playlist_recommendation(
 
     call_id = str(uuid.uuid4())
 
-    user = get_user_profile(db, user_id, call_id, latitude, longitude)
+    user = get_user_profile(db, user_id, latitude, longitude)
 
     scoring = Recommendation(user, params_in=playlist_params)
 
@@ -178,4 +223,26 @@ def playlist_recommendation(
 
     scoring.save_recommendation(db, user_recommendations)
 
-    return user_recommendations
+    return jsonable_encoder(
+        {
+            "playlist_recommended_offers": user_recommendations,
+            "params": {
+                "reco_origin": scoring.reco_origin,
+                "retrieval_model_endpoint": scoring.scorer.retrieval_endpoints[
+                    0
+                ].endpoint_name,
+                "retrieval_model_name": scoring.scorer.retrieval_endpoints[
+                    0
+                ].model_display_name,
+                "retrieval_model_version": scoring.scorer.retrieval_endpoints[
+                    0
+                ].model_version,
+                "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
+                "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
+                "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,
+                "geo_located": user.is_geolocated,
+                # "filtered": input_reco.has_conditions if input_reco else False,
+                "call_id": call_id,
+            },
+        }
+    )

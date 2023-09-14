@@ -107,6 +107,15 @@ def get_nearest_offers(
             .over(partition_by=offer_table.item_id, order_by=user_distance)
             .label("offer_rank")
         )
+        user_distance_condition = [offer_table.default_max_distance >= user_distance]
+    else:
+        user_distance = None
+        user_distance_condition = []
+        offer_rank = (
+            func.row_number()
+            .over(partition_by=offer_table.item_id, order_by=offer_table.stock_price)
+            .label("offer_rank")
+        )
 
     nearest_offers_subquery = (
         db.query(
@@ -128,12 +137,7 @@ def get_nearest_offers(
         )
         .filter(offer_table.item_id.in_(recommendable_items_ids))
         .filter(offer_table.stock_price <= user.user_deposit_remaining_credit)
-        .filter(
-            or_(
-                offer_table.default_max_distance >= user_distance,
-                user_distance == None,
-            )
-        )
+        .filter(*user_distance_condition)
         .filter(*underage_condition)
         .subquery()
     )

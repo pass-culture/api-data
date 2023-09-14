@@ -20,7 +20,7 @@ class RecommendableOffersRaw(Base):
     offer_creation_date = Column(DateTime)
     stock_beginning_date = Column(DateTime)
     stock_price = Column(Float)
-    offer_is_duo = Column(Boolean)
+    is_duo = Column(Boolean)
     offer_type_domain = Column(String(256))
     offer_type_label = Column(String(256))
     booking_number = Column(Integer)
