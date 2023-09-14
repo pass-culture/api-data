@@ -3,6 +3,9 @@ name: "Linter and Coverage test"
 on:
   workflow_call:
 
+env:
+  SQL_BASE_SECRET_ID: ${{ vars.SQL_BASE_SECRET_ID }}
+
 jobs:
 
   linter:
