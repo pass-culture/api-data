@@ -46,7 +46,7 @@ jobs:
         with:
            secrets: API_RECO_TOKEN:${{ env.DATA_GCP_PROJECT }}/${{ env.API_RECO_SECRET_NAME }}
       - name: Run tests collection
-        run: newman run api_integration_tests.postman_collection.json --environment ${{ inputs.TARGET_ENV }}.postman_environment.json --env-var "api_token=${{ steps.secrets.outputs.API_RECO_TOKEN }}"
+        run: newman run api_integration_tests.postman_collection.json --environment ${{ inputs.TARGET_ENV }}.postman_environment.json
       - name: Post to a Slack channel
         id: slack
         if: ${{ failure() }}

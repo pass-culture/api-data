@@ -301,10 +301,6 @@
 					],
 					"query": [
 						{
-							"key": "token",
-							"value": "{{api_token}}"
-						},
-						{
 							"key": "longitude",
 							"value": "2.3688874"
 						},

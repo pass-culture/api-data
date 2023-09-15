@@ -135,8 +135,8 @@ class RetrievalEndpoint(AbstractEndpoint):
         if self.params_in.offer_type_list is not None:
             label, domain = [], []
             for type in self.params_in.offer_type_list:
-                domain.append(type.key)
-                label.append(type.value)
+                domain.append(list(type.keys())[0])
+                label.append(list(type.values())[0])
             params.append(ListParams(label="offer_type_domain", values=domain))
             params.append(ListParams(label="offer_type_label", values=label))
 
