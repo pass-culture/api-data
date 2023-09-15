@@ -2,10 +2,9 @@ version: "3.7"
 
 services:
   testdb:
-    image: kartoza/postgis:12.4
-    ports:
+    image: postgis/postgis:12-3.3
+    container_name: testdb
+    ports:      
       - "${DATA_GCP_TEST_POSTGRES_PORT}:5432"
     environment:
-      - POSTGRES_PASS=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_DBNAME=db
+      - POSTGRES_PASSWORD=postgres

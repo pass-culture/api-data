@@ -1,43 +1,31 @@
-import os
-from typing import Any
-from unittest.mock import patch, Mock
 import pytest
 
-from pcreco.utils.health_check_queries import (
-    does_materialized_view_exist,
-    get_materialized_view_status,
-)
+from sqlalchemy import inspect
+from sqlalchemy.orm import Session
+
+# from huggy.models.recommendable_offers_raw import (
+#     get_available_table,
+#     RecommendableOffersRaw,
+#     RecommendableOffersRawMvTmp,
+#     RecommendableOffersRawMvOld,
+#     RecommendableOffersRawMv,
+# )
+from huggy.utils.database import bind_engine
 
 
 @pytest.mark.parametrize(
-    "materialized_view_name,expected_result",
-    [("recommendable_offers_raw_mv", True)],
+    "table_name, expected_result",
+    [
+        ("enriched_user", True),
+        ("recommendable_offers_raw", True),
+        ("iris_france", True),
+        ("non_recommendable_items", True),
+        ("item_ids_mv", True),
+    ],
 )
-def test_does_view_exist(
-    setup_database: Any, materialized_view_name: str, expected_result: bool
+def test_tables_should_exist(
+    setup_database: Session, table_name: str, expected_result: bool
 ):
-    # Given
-    connection = setup_database
-
-    # When
-    result = does_materialized_view_exist(connection, materialized_view_name)
-
-    # Then
+    result = inspect(setup_database.get_bind()).has_table(table_name)
+    # assert result is not None
     assert result is expected_result
-
-
-@patch("pcreco.utils.health_check_queries.does_materialized_view_exist")
-def test_should_raise_exception_when_it_does_not_come_from_sql_alchemy(
-    does_materialized_view_exist_mock: Mock,
-    setup_database: Any,
-):
-    # Given
-    with patch("pcreco.utils.db.db_connection.__get_session") as connection_mock:
-        does_materialized_view_exist_mock.return_value = True
-        materialized_view_name = "materialized_view_name"
-        connection_mock.return_value = setup_database
-        # When
-        result = get_materialized_view_status(materialized_view_name)
-
-        # Then
-        assert result["is_materialized_view_name_datasource_exists"] is True

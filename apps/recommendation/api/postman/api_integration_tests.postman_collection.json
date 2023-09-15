@@ -1,10 +1,10 @@
 {
 	"info": {
-		"_postman_id": "df7ae9b3-2d32-4e13-8fdb-538d617f6943",
+		"_postman_id": "1a340cdf-0502-4564-85e3-3ec416e210ea",
 		"name": "API Integration Tests",
 		"description": "Collection of integration tests for the reco api.\nMade with Postman",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "21927341"
+		"_exporter_id": "25420344"
 	},
 	"item": [
 		{
@@ -76,105 +76,7 @@
 			"response": []
 		},
 		{
-			"name": "/health/recommendable_offers",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Request is successful with a status code of 200\", function () {",
-							"  pm.response.to.have.status(200);",
-							"});",
-							"",
-							"pm.test(\"Response must be a JSON and have a body\", function () {",
-							"     pm.response.to.be.ok;",
-							"     pm.response.to.be.withBody;",
-							"     pm.response.to.be.json;",
-							"});",
-							"",
-							"pm.test(\"Response must be a JSON with the right keys\", function () {",
-							"  const jsonResponse = pm.response.json();",
-							"  pm.expect(jsonResponse).to.be.an(\"object\");",
-							"  pm.expect(jsonResponse).to.have.property('is_recommendable_offers_raw_mv_datasource_exists')",
-							"});",
-							"",
-							"",
-							"pm.test(\"Response must be healthy\", function () {",
-							"  const jsonResponse = pm.response.json();",
-							"  pm.expect(jsonResponse.is_recommendable_offers_raw_mv_datasource_exists).to.be.true;",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{api_url}}/health/recommendable_offers",
-					"host": [
-						"{{api_url}}"
-					],
-					"path": [
-						"health",
-						"recommendable_offers"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "/health/non_recommendable_offers",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Request is successful with a status code of 200\", function () {",
-							"  pm.response.to.have.status(200);",
-							"});",
-							"",
-							"pm.test(\"Response must be a JSON and have a body\", function () {",
-							"     pm.response.to.be.ok;",
-							"     pm.response.to.be.withBody;",
-							"     pm.response.to.be.json;",
-							"});",
-							"",
-							"pm.test(\"Response must be a JSON with the right keys\", function () {",
-							"  const jsonResponse = pm.response.json();",
-							"  pm.expect(jsonResponse).to.be.an(\"object\");",
-							"  pm.expect(jsonResponse).to.have.property('is_non_recommendable_offers_datasource_exists')",
-							"});",
-							"",
-							"",
-							"pm.test(\"Response must be healthy\", function () {",
-							"  const jsonResponse = pm.response.json();",
-							"  pm.expect(jsonResponse.is_non_recommendable_offers_datasource_exists).to.be.true;",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{api_url}}/health/non_recommendable_offers",
-					"host": [
-						"{{api_url}}"
-					],
-					"path": [
-						"health",
-						"non_recommendable_offers"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "/playlis_recommendation/user_id",
+			"name": "/playlist_recommendation/user_id",
 			"event": [
 				{
 					"listen": "test",
@@ -209,49 +111,18 @@
 				}
 			],
 			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?token={{api_token}}",
-					"host": [
-						"{{api_url}}"
-					],
-					"path": [
-						"playlist_recommendation",
-						"{{user_id}}"
-					],
-					"query": [
-						{
-							"key": "token",
-							"value": "{{api_token}}"
-						}
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "/playlist_recommendation/user_id no token",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Request is forbidden with a status code of 403\", function () {",
-							"  pm.response.to.have.status(403);",
-							"});",
-							"",
-							"pm.test(\"Body matches string Forbidden\", function () {",
-							"    pm.expect(pm.response.text()).to.include(\"Forbidden\");",
-							"});"
-						],
-						"type": "text/javascript"
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
 					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{}"
+				},
 				"url": {
 					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}",
 					"host": [
@@ -314,10 +185,20 @@
 				}
 			],
 			"request": {
-				"method": "GET",
-				"header": [],
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{}"
+				},
 				"url": {
-					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?token={{api_token}}&longitude=2.3688874&latitude=48.8632553",
+					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?longitude=2.3688874&latitude=48.8632553",
 					"host": [
 						"{{api_url}}"
 					],
@@ -326,10 +207,6 @@
 						"{{user_id}}"
 					],
 					"query": [
-						{
-							"key": "token",
-							"value": "{{api_token}}"
-						},
 						{
 							"key": "longitude",
 							"value": "2.3688874"
@@ -344,7 +221,7 @@
 			"response": []
 		},
 		{
-			"name": "/playlis_recommendation/user_id Geoloc with empyt body",
+			"name": "/playlist_recommendation/user_id Geoloc with empyt body",
 			"event": [
 				{
 					"listen": "test",
@@ -505,7 +382,7 @@
 					}
 				},
 				"url": {
-					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?token={{api_token}}&longitude=2.3688874&latitude=48.8632553",
+					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?longitude=2.3688874&latitude=48.8632553",
 					"host": [
 						"{{api_url}}"
 					],
@@ -514,10 +391,6 @@
 						"{{user_id}}"
 					],
 					"query": [
-						{
-							"key": "token",
-							"value": "{{api_token}}"
-						},
 						{
 							"key": "longitude",
 							"value": "2.3688874"
@@ -596,7 +469,7 @@
 					}
 				},
 				"url": {
-					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?token={{api_token}}&longitude=2.3688874&latitude=48.8632553",
+					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?longitude=2.3688874&latitude=48.8632553",
 					"host": [
 						"{{api_url}}"
 					],
@@ -605,10 +478,6 @@
 						"{{user_id}}"
 					],
 					"query": [
-						{
-							"key": "token",
-							"value": "{{api_token}}"
-						},
 						{
 							"key": "longitude",
 							"value": "2.3688874"
@@ -690,7 +559,7 @@
 					}
 				},
 				"url": {
-					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?token={{api_token}}&longitude=2.3688874&latitude=48.8632553",
+					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?longitude=2.3688874&latitude=48.8632553",
 					"host": [
 						"{{api_url}}"
 					],
@@ -699,10 +568,6 @@
 						"{{user_id}}"
 					],
 					"query": [
-						{
-							"key": "token",
-							"value": "{{api_token}}"
-						},
 						{
 							"key": "longitude",
 							"value": "2.3688874"
@@ -787,7 +652,7 @@
 					}
 				},
 				"url": {
-					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?token={{api_token}}&longitude=2.3688874&latitude=48.8632553",
+					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?longitude=2.3688874&latitude=48.8632553",
 					"host": [
 						"{{api_url}}"
 					],
@@ -796,10 +661,6 @@
 						"{{user_id}}"
 					],
 					"query": [
-						{
-							"key": "token",
-							"value": "{{api_token}}"
-						},
 						{
 							"key": "longitude",
 							"value": "2.3688874"
@@ -883,7 +744,7 @@
 					}
 				},
 				"url": {
-					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?token={{api_token}}&longitude=2.3688874&latitude=48.8632553",
+					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?longitude=2.3688874&latitude=48.8632553",
 					"host": [
 						"{{api_url}}"
 					],
@@ -892,10 +753,6 @@
 						"{{user_id}}"
 					],
 					"query": [
-						{
-							"key": "token",
-							"value": "{{api_token}}"
-						},
 						{
 							"key": "longitude",
 							"value": "2.3688874"
@@ -979,7 +836,7 @@
 					}
 				},
 				"url": {
-					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?token={{api_token}}&longitude=2.3688874&latitude=48.8632553",
+					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?longitude=2.3688874&latitude=48.8632553",
 					"host": [
 						"{{api_url}}"
 					],
@@ -988,10 +845,6 @@
 						"{{user_id}}"
 					],
 					"query": [
-						{
-							"key": "token",
-							"value": "{{api_token}}"
-						},
 						{
 							"key": "longitude",
 							"value": "2.3688874"
@@ -1075,7 +928,7 @@
 					}
 				},
 				"url": {
-					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?token={{api_token}}&longitude=2.3688874&latitude=48.8632553",
+					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?longitude=2.3688874&latitude=48.8632553",
 					"host": [
 						"{{api_url}}"
 					],
@@ -1084,10 +937,6 @@
 						"{{user_id}}"
 					],
 					"query": [
-						{
-							"key": "token",
-							"value": "{{api_token}}"
-						},
 						{
 							"key": "longitude",
 							"value": "2.3688874"
@@ -1379,7 +1228,7 @@
 					}
 				},
 				"url": {
-					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?token={{api_token}}&longitude=2.3688874&latitude=48.8632553",
+					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?longitude=2.3688874&latitude=48.8632553",
 					"host": [
 						"{{api_url}}"
 					],
@@ -1388,10 +1237,6 @@
 						"{{user_id}}"
 					],
 					"query": [
-						{
-							"key": "token",
-							"value": "{{api_token}}"
-						},
 						{
 							"key": "longitude",
 							"value": "2.3688874"
@@ -1473,7 +1318,7 @@
 					}
 				},
 				"url": {
-					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?token={{api_token}}&longitude=2.3688874&latitude=48.8632553",
+					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?longitude=2.3688874&latitude=48.8632553",
 					"host": [
 						"{{api_url}}"
 					],
@@ -1482,10 +1327,6 @@
 						"{{user_id}}"
 					],
 					"query": [
-						{
-							"key": "token",
-							"value": "{{api_token}}"
-						},
 						{
 							"key": "longitude",
 							"value": "2.3688874"
@@ -1567,7 +1408,7 @@
 					}
 				},
 				"url": {
-					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?token={{api_token}}&longitude=2.3688874&latitude=48.8632553",
+					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?longitude=2.3688874&latitude=48.8632553",
 					"host": [
 						"{{api_url}}"
 					],
@@ -1576,10 +1417,6 @@
 						"{{user_id}}"
 					],
 					"query": [
-						{
-							"key": "token",
-							"value": "{{api_token}}"
-						},
 						{
 							"key": "longitude",
 							"value": "2.3688874"
@@ -1661,7 +1498,7 @@
 					}
 				},
 				"url": {
-					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?token={{api_token}}&longitude=2.3688874&latitude=48.8632553",
+					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?longitude=2.3688874&latitude=48.8632553",
 					"host": [
 						"{{api_url}}"
 					],
@@ -1670,10 +1507,6 @@
 						"{{user_id}}"
 					],
 					"query": [
-						{
-							"key": "token",
-							"value": "{{api_token}}"
-						},
 						{
 							"key": "longitude",
 							"value": "2.3688874"
@@ -1755,7 +1588,7 @@
 					}
 				},
 				"url": {
-					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?token={{api_token}}&longitude=2.3688874&latitude=48.8632553",
+					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?longitude=2.3688874&latitude=48.8632553",
 					"host": [
 						"{{api_url}}"
 					],
@@ -1764,10 +1597,6 @@
 						"{{user_id}}"
 					],
 					"query": [
-						{
-							"key": "token",
-							"value": "{{api_token}}"
-						},
 						{
 							"key": "longitude",
 							"value": "2.3688874"
@@ -1831,10 +1660,20 @@
 				}
 			],
 			"request": {
-				"method": "GET",
-				"header": [],
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"categories\": [\"LIVRES\", \"FILMS_SERIES_CINEMA\", \"SPECTACLES\"]\r\n}"
+				},
 				"url": {
-					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?token={{api_token}}&categories=LIVRES&categories=FILMS_SERIES_CINEMA&categories=SPECTACLES",
+					"raw": "{{api_url}}/playlist_recommendation/{{user_id}}?longitude=2.3688874&latitude=48.8632553",
 					"host": [
 						"{{api_url}}"
 					],
@@ -1844,20 +1683,12 @@
 					],
 					"query": [
 						{
-							"key": "token",
-							"value": "{{api_token}}"
+							"key": "longitude",
+							"value": "2.3688874"
 						},
 						{
-							"key": "categories",
-							"value": "LIVRES"
-						},
-						{
-							"key": "categories",
-							"value": "FILMS_SERIES_CINEMA"
-						},
-						{
-							"key": "categories",
-							"value": "SPECTACLES"
+							"key": "latitude",
+							"value": "48.8632553"
 						}
 					]
 				}
@@ -1916,7 +1747,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{api_url}}/similar_offers/{{offer_id}}?token={{api_token}}&modelEndpoint={{sim_offers_model_endpoint}}",
+					"raw": "{{api_url}}/similar_offers/{{offer_id}}?userId={{user_id}}&modelEndpoint={{sim_offers_model_endpoint}}",
 					"host": [
 						"{{api_url}}"
 					],
@@ -1926,12 +1757,95 @@
 					],
 					"query": [
 						{
-							"key": "token",
-							"value": "{{api_token}}"
+							"key": "userId",
+							"value": "{{user_id}}"
 						},
 						{
 							"key": "modelEndpoint",
 							"value": "{{sim_offers_model_endpoint}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/similar_offers/offer_id",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"pm.test(\"Response time is less than 10s\", function () {\r",
+							"    pm.expect(pm.response.responseTime).to.be.below(10000);\r",
+							"});\r",
+							"pm.test(\"Response must be a JSON and have a body\", function () {\r",
+							"     pm.response.to.be.ok;\r",
+							"     pm.response.to.be.withBody;\r",
+							"     pm.response.to.be.json;\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Response must contain an array results\", function () {\r",
+							"  const jsonResponse = pm.response.json();\r",
+							"  pm.expect(jsonResponse).to.be.an(\"object\");\r",
+							"  pm.expect(jsonResponse).to.have.property('results')\r",
+							"  pm.expect(jsonResponse.results).to.be.an(\"array\");\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Response must at least 1 offer\", function () {\r",
+							"  const jsonResponse = pm.response.json();\r",
+							"  pm.expect(jsonResponse.results.length).to.be.above(1);\r",
+							"});\r",
+							"\r",
+							"function checkIfArrayIsUnique(array) {\r",
+							"  return array.length === new Set(array).size;\r",
+							"}\r",
+							"\r",
+							"pm.test('Check if Offer_ids are unique', () => {\r",
+							"    let ids = []\r",
+							"    _.each(pm.response.json().results, (item) => {\r",
+							"        ids.push(item)\r",
+							"    })\r",
+							"\r",
+							"    pm.expect(checkIfArrayIsUnique(ids), ids).to.be.true\r",
+							"})"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"modelEndpoint\": \"{{sim_offers_model_endpoint}}\",\r\n    \"userId\": \"{{user_id}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{api_url}}/similar_offers/{{offer_id}}?longitude=2.3688874&latitude=48.8632553",
+					"host": [
+						"{{api_url}}"
+					],
+					"path": [
+						"similar_offers",
+						"{{offer_id}}"
+					],
+					"query": [
+						{
+							"key": "longitude",
+							"value": "2.3688874"
+						},
+						{
+							"key": "latitude",
+							"value": "48.8632553"
 						}
 					]
 				}
@@ -1990,7 +1904,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{api_url}}/similar_offers/{{offer_id}}?token={{api_token}}&modelEndpoint={{sim_offers_model_endpoint}}&longitude=2.3688874&latitude=48.8632553",
+					"raw": "{{api_url}}/similar_offers/{{offer_id}}?userId={{user_id}}&modelEndpoint={{sim_offers_model_endpoint}}&longitude=2.3688874&latitude=48.8632553",
 					"host": [
 						"{{api_url}}"
 					],
@@ -2000,8 +1914,8 @@
 					],
 					"query": [
 						{
-							"key": "token",
-							"value": "{{api_token}}"
+							"key": "userId",
+							"value": "{{user_id}}"
 						},
 						{
 							"key": "modelEndpoint",
@@ -2021,35 +1935,186 @@
 			"response": []
 		},
 		{
-			"name": "/similar_offers/offer_id no token",
+			"name": "/similar_offers/offer_id geoloc",
 			"event": [
 				{
 					"listen": "test",
 					"script": {
 						"exec": [
-							"pm.test(\"Request is forbidden with a status code of 403\", function () {\r",
-							"  pm.response.to.have.status(403);\r",
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"pm.test(\"Response time is less than 10s\", function () {\r",
+							"    pm.expect(pm.response.responseTime).to.be.below(10000);\r",
+							"});\r",
+							"pm.test(\"Response must be a JSON and have a body\", function () {\r",
+							"     pm.response.to.be.ok;\r",
+							"     pm.response.to.be.withBody;\r",
+							"     pm.response.to.be.json;\r",
 							"});\r",
 							"\r",
-							"pm.test(\"Body matches string Forbidden\", function () {\r",
-							"    pm.expect(pm.response.text()).to.include(\"Forbidden\");\r",
-							"});"
+							"pm.test(\"Response must contain an array results\", function () {\r",
+							"  const jsonResponse = pm.response.json();\r",
+							"  pm.expect(jsonResponse).to.be.an(\"object\");\r",
+							"  pm.expect(jsonResponse).to.have.property('results')\r",
+							"  pm.expect(jsonResponse.results).to.be.an(\"array\");\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Response must at least 1 offer\", function () {\r",
+							"  const jsonResponse = pm.response.json();\r",
+							"  pm.expect(jsonResponse.results.length).to.be.above(1);\r",
+							"});\r",
+							"\r",
+							"function checkIfArrayIsUnique(array) {\r",
+							"  return array.length === new Set(array).size;\r",
+							"}\r",
+							"\r",
+							"pm.test('Check if Offer_ids are unique', () => {\r",
+							"    let ids = []\r",
+							"    _.each(pm.response.json().results, (item) => {\r",
+							"        ids.push(item)\r",
+							"    })\r",
+							"\r",
+							"    pm.expect(checkIfArrayIsUnique(ids), ids).to.be.true\r",
+							"})"
 						],
 						"type": "text/javascript"
 					}
 				}
 			],
 			"request": {
-				"method": "GET",
+				"method": "POST",
 				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"userId\": \"{{user_id}}\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
 				"url": {
-					"raw": "{{api_url}}/similar_offers/{{offer_id}}",
+					"raw": "{{api_url}}/similar_offers/{{offer_id}}?longitude=2.3688874&latitude=48.8632553",
 					"host": [
 						"{{api_url}}"
 					],
 					"path": [
 						"similar_offers",
 						"{{offer_id}}"
+					],
+					"query": [
+						{
+							"key": "longitude",
+							"value": "2.3688874"
+						},
+						{
+							"key": "latitude",
+							"value": "48.8632553"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/similar_offers/offer_id categories",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"pm.test(\"Response time is less than 10s\", function () {\r",
+							"    pm.expect(pm.response.responseTime).to.be.below(10000);\r",
+							"});\r",
+							"pm.test(\"Response must be a JSON and have a body\", function () {\r",
+							"     pm.response.to.be.ok;\r",
+							"     pm.response.to.be.withBody;\r",
+							"     pm.response.to.be.json;\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Response must contain an array results\", function () {\r",
+							"  const jsonResponse = pm.response.json();\r",
+							"  pm.expect(jsonResponse).to.be.an(\"object\");\r",
+							"  pm.expect(jsonResponse).to.have.property('results')\r",
+							"  pm.expect(jsonResponse.results).to.be.an(\"array\");\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Response must at least 1 offer\", function () {\r",
+							"  const jsonResponse = pm.response.json();\r",
+							"  pm.expect(jsonResponse.results.length).to.be.above(1);\r",
+							"});\r",
+							"\r",
+							"function checkIfArrayIsUnique(array) {\r",
+							"  return array.length === new Set(array).size;\r",
+							"}\r",
+							"\r",
+							"pm.test('Check if Offer_ids are unique', () => {\r",
+							"    let ids = []\r",
+							"    _.each(pm.response.json().results, (item) => {\r",
+							"        ids.push(item)\r",
+							"    })\r",
+							"\r",
+							"    pm.expect(checkIfArrayIsUnique(ids), ids).to.be.true\r",
+							"})\r",
+							"\r",
+							"\r",
+							"pm.test(\"Response must contain an array params with filtered = true\", function () {\r",
+							"  const jsonResponse = pm.response.json();\r",
+							"  pm.expect(jsonResponse).to.be.an(\"object\");\r",
+							"  pm.expect(jsonResponse).to.have.property('params')\r",
+							"  pm.expect(jsonResponse.params).to.have.property(\"filtered\");\r",
+							"  pm.expect(jsonResponse.params.filtered).to.be.true;\r",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{api_url}}/similar_offers/{{offer_id}}?userId={{user_id}}&categories=LIVRES&categories=FILMS_SERIES_CINEMA&categories=SPECTACLES",
+					"host": [
+						"{{api_url}}"
+					],
+					"path": [
+						"similar_offers",
+						"{{offer_id}}"
+					],
+					"query": [
+						{
+							"key": "userId",
+							"value": "{{user_id}}"
+						},
+						{
+							"key": "categories",
+							"value": "LIVRES"
+						},
+						{
+							"key": "categories",
+							"value": "FILMS_SERIES_CINEMA"
+						},
+						{
+							"key": "categories",
+							"value": "SPECTACLES"
+						}
 					]
 				}
 			},
@@ -2113,38 +2178,25 @@
 				}
 			],
 			"request": {
-				"method": "GET",
+				"method": "POST",
 				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"userId\": {{user_id}}, \r\n    \"categories\": [\"LIVRES\", \"FILMS_SERIES_CINEMA\", \"SPECTACLES\"]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
 				"url": {
-					"raw": "{{api_url}}/similar_offers/{{offer_id}}?token={{api_token}}&modelEndpoint={{sim_offers_model_endpoint}}&categories=LIVRES&categories=FILMS_SERIES_CINEMA&categories=SPECTACLES",
+					"raw": "{{api_url}}/similar_offers/{{offer_id}}",
 					"host": [
 						"{{api_url}}"
 					],
 					"path": [
 						"similar_offers",
 						"{{offer_id}}"
-					],
-					"query": [
-						{
-							"key": "token",
-							"value": "{{api_token}}"
-						},
-						{
-							"key": "modelEndpoint",
-							"value": "{{sim_offers_model_endpoint}}"
-						},
-						{
-							"key": "categories",
-							"value": "LIVRES"
-						},
-						{
-							"key": "categories",
-							"value": "FILMS_SERIES_CINEMA"
-						},
-						{
-							"key": "categories",
-							"value": "SPECTACLES"
-						}
 					]
 				}
 			},
