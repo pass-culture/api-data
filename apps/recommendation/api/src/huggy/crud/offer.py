@@ -72,26 +72,17 @@ def get_nearest_offers(
     offer_table = get_available_table(bind_engine, "RecommendableOffersRaw")
 
     non_recommendable_items = get_non_recommendable_items(db, user)
-
+    print(f"non_recommendable_items : {non_recommendable_items}")
     recommendable_items_ids = [
         item.item_id
         for item in recommendable_items
         if item.item_id not in non_recommendable_items
     ]
-
-    offer_table = get_available_table(bind_engine, "RecommendableOffersRaw")
+    print(f"recommendable_items_ids : {recommendable_items_ids}")
 
     if user.latitude is not None and user.longitude is not None:
         user_geolocated = True
         user_point = WKTElement(f"POINT({user.latitude} {user.longitude})")
-    else:
-        user_geolocated = False
-
-    underage_condition = []
-    if user.age and user.age < 18:
-        underage_condition.append(offer_table.is_underage_recommendable)
-
-    if user_geolocated:
         user_distance = func.ST_Distance(
             user_point,
             func.Geometry(
@@ -109,6 +100,7 @@ def get_nearest_offers(
         )
         user_distance_condition = [offer_table.default_max_distance >= user_distance]
     else:
+        user_geolocated = False
         user_distance = None
         user_distance_condition = []
         offer_rank = (
@@ -116,6 +108,15 @@ def get_nearest_offers(
             .over(partition_by=offer_table.item_id, order_by=offer_table.stock_price)
             .label("offer_rank")
         )
+
+    print(f"user_geolocated : {user_geolocated}")
+    print(f"user_distance : {user_distance}")
+    print(f"user_distance_condition : {user_distance_condition}")
+    print(f"offer_rank : {offer_rank}")
+
+    underage_condition = []
+    if user.age and user.age < 18:
+        underage_condition.append(offer_table.is_underage_recommendable)
 
     nearest_offers_subquery = (
         db.query(
@@ -141,6 +142,8 @@ def get_nearest_offers(
         .filter(*underage_condition)
         .subquery()
     )
+
+    print(f"nearest_offers_subquery : {nearest_offers_subquery}")
 
     nearest_offers = (
         db.query(
@@ -168,6 +171,8 @@ def get_nearest_offers(
         .all()
     )
 
+    print(f"nearest_offers : {nearest_offers}")
+
     nearest_offers_result = []
     for offer in nearest_offers:
         nearest_offers_result.append(
@@ -191,4 +196,5 @@ def get_nearest_offers(
             )
         )
 
+    print(f"nearest_offers_result: {nearest_offers_result}")
     return nearest_offers_result
