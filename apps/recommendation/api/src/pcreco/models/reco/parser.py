@@ -62,7 +62,6 @@ def parse_internal(request):
 
 
 def parse_params(request, geo_located) -> PlaylistParamsIn:
-
     if request.method == "POST":
         params = dict(request.get_json(), **dict(request.args))
     elif request.method == "GET":

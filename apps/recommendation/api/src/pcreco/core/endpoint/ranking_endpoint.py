@@ -60,7 +60,6 @@ class ModelRankingEndpoint(RankingEndpoint):
     ) -> t.List[RecommendableOffer]:
         offers_list = []
         for row in recommendable_offers:
-
             offers_list.append(
                 {
                     "offer_id": row.offer_id,

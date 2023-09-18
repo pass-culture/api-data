@@ -37,13 +37,18 @@ def get_prediction_and_main_contribution(model, data_w_emb, pool):
 
 
 def _get_prediction_main_contribution(model, data, pool):
-    explainer = shap.Explainer(model, link=shap.links.logit)
-    shap_values = explainer.shap_values(pool)
-    top_val, top_rej = __get_contribution_from_shap_values(shap_values, data)
+    shap_values = _get_shap_values(model, pool)
+    top_val, top_rej = _get_contribution_from_shap_values(shap_values, data)
     return top_val, top_rej
 
 
-def __get_contribution_from_shap_values(shap_values, data):
+def _get_shap_values(model, pool):
+    explainer = shap.Explainer(model, link=shap.links.logit)
+    shap_values = explainer.shap_values(pool)
+    return shap_values
+
+
+def _get_contribution_from_shap_values(shap_values, data):
     topk_validation_factor = []
     topk_rejection_factor = []
     data_keys = list(data.keys())

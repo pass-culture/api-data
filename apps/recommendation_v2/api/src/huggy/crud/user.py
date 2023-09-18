@@ -33,7 +33,6 @@ def get_user_profile(
         iris_id = get_iris_from_coordinates(db, latitude, longitude)
 
     if user_profile:
-
         user = User(
             user_id=user_id,
             call_id=call_id,

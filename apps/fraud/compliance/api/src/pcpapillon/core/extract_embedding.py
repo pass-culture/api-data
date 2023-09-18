@@ -3,8 +3,10 @@ import numpy as np
 from PIL import Image
 import io
 
-def _encode_from_feature(model,feature):
+
+def _encode_from_feature(model, feature):
     return model.encode(feature)
+
 
 def extract_embedding(data, params, prepoc_models):
     """
@@ -32,7 +34,7 @@ def extract_embedding(data, params, prepoc_models):
                 pass
         if feature["type"] == "text":
             model = prepoc_models[feature["type"]]
-            embedding = _encode_from_feature(model,data[feature["name"]])
+            embedding = _encode_from_feature(model, data[feature["name"]])
             data[f"""{feature["name"]}_embedding"""] = embedding
 
     return data

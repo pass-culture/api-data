@@ -19,7 +19,6 @@ class RecommendableOfferQueryBuilder:
         order_query: str = "user_km_distance ASC, item_score ASC",
         offer_limit: int = 20,
     ):
-
         arr_sql = ",".join(
             [
                 f"('{item.item_id}'::VARCHAR, {item.item_score}::FLOAT, {item.item_rank}::INT)"

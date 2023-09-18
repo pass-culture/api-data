@@ -55,7 +55,6 @@ def get_offer_characteristics(
 
 
 def get_non_recommendable_items(db: Session, user: User) -> List[str]:
-
     non_recommendable_items = db.query(
         NonRecommendableItems.item_id.label("item_id")
     ).filter(NonRecommendableItems.user_id == user.user_id)

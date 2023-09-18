@@ -21,7 +21,6 @@ class PlaylistParamsTest:
         ],
     )
     def test_has_conditions(self, input_params, has_conditions):
-
         input_params = PlaylistParamsIn(input_params)
         assert input_params.has_conditions == has_conditions
 
@@ -34,7 +33,6 @@ class PlaylistParamsTest:
         ],
     )
     def test_is_reco_mixed(self, input_params, is_reco_mixed):
-
         input_params = PlaylistParamsIn(input_params)
         assert input_params.is_reco_mixed == is_reco_mixed
 
@@ -47,7 +45,6 @@ class PlaylistParamsTest:
         ],
     )
     def test_number_of_recommendations(self, input_params, nb_reco_display):
-
         input_params = PlaylistParamsIn(input_params)
         assert input_params.nb_reco_display == nb_reco_display
 

@@ -27,7 +27,6 @@ INPUT_PARAMS = [
 
 class PlaylistParamsIn:
     def __init__(self, json={}, geo_located=True):
-
         json = {k: v for k, v in json.items() if k in INPUT_PARAMS}
         self.json_input = json
         self.has_conditions = False

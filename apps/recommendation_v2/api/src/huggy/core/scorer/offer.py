@@ -79,7 +79,6 @@ class OfferScorer:
         db: Session,
         recommendable_items: List[RecommendableItem],
     ) -> List[RecommendableOffer]:
-
         non_recommendable_items = get_non_recommendable_items(db, self.user)
 
         recommendable_offers = []

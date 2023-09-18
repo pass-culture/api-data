@@ -55,7 +55,6 @@ def similar_offers(
     playlist_params: PlaylistParams,
     db: Session = Depends(get_db),
 ):
-
     call_id = str(uuid.uuid4())
 
     user = get_user_profile(db, user.user_id, call_id, user.latitude, user.longitude)
@@ -100,7 +99,6 @@ def similar_offers(
 def playlist_recommendation(
     user: UserInput, playlist_params: PlaylistParams, db: Session = Depends(get_db)
 ):
-
     call_id = str(uuid.uuid4())
 
     user = get_user_profile(db, user.user_id, call_id, user.latitude, user.longitude)

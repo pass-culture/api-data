@@ -33,5 +33,4 @@ class Offer:
         if query_result is not None:
             return query_result[0], query_result[1], True
         else:
-
             return None, 0, False
