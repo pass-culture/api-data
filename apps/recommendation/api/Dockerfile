@@ -1,14 +1,15 @@
-FROM python:3.7-slim
+FROM python:3.9-slim
 
 ENV PYTHONUNBUFFERED True
 
 ENV APP_HOME /app
 WORKDIR $APP_HOME
-COPY src/app.py ./
-COPY api-requirements.txt ./
+# Install libraries
+COPY ./requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY src/pcreco/ ./pcreco/
-
-RUN pip install -r api-requirements.txt
-
-CMD exec gunicorn --bind :$PORT --workers 1 --threads 10 --preload --timeout 0 app:app
+# Copy local code to the container
+COPY ./src .
+COPY ./src/huggy ./huggy
+EXPOSE 8080
+CMD exec gunicorn -k uvicorn.workers.UvicornWorker --bind :8080 --workers 1 --threads 10 --preload --timeout 0 main:app

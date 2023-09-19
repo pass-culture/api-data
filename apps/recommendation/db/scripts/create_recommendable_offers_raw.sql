@@ -1,4 +1,6 @@
-CREATE EXTENSION Postgis;
+
+CREATE EXTENSION IF NOT EXISTS postgis;
+
 CREATE TABLE IF NOT EXISTS public.recommendable_offers_raw(
     item_id varchar,
     offer_id varchar,
