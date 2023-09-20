@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from geoalchemy2.elements import WKTElement
 from typing import List
+import time
 
 from huggy.schemas.offer import Offer, RecommendableOffer
 from huggy.schemas.user import User
@@ -13,6 +14,7 @@ from huggy.models.non_recommendable_items import NonRecommendableItems
 
 from huggy.crud.iris import get_iris_from_coordinates
 from huggy.utils.database import bind_engine
+from huggy.utils.env_vars import log_duration
 
 
 def get_offer_characteristics(
@@ -69,17 +71,32 @@ def get_non_recommendable_items(db: Session, user: User) -> List[str]:
 def get_nearest_offers(
     db: Session, user: User, recommendable_items: List[RecommendableItem]
 ) -> List[Offer]:
+    start = time.time()
     offer_table = get_available_table(bind_engine, "RecommendableOffersRaw")
+    log_duration(
+        f"1. get_available_table {str(user.user_id)} offer_table: {str(offer_table)}",
+        start,
+    )
 
+    start = time.time()
     non_recommendable_items = get_non_recommendable_items(db, user)
-    print(f"non_recommendable_items : {non_recommendable_items}")
+    log_duration(
+        f"2. get_non_recommendable_items {str(user.user_id)} non_recommendable_items : {non_recommendable_items}",
+        start,
+    )
+
+    start = time.time()
     recommendable_items_ids = [
         item.item_id
         for item in recommendable_items
         if item.item_id not in non_recommendable_items
     ]
-    print(f"recommendable_items_ids : {recommendable_items_ids}")
+    log_duration(
+        f"3. get_recommendable_items_ids {str(user.user_id)} recommendable_items_ids : {recommendable_items_ids}",
+        start,
+    )
 
+    start = time.time()
     if user.latitude is not None and user.longitude is not None:
         user_geolocated = True
         user_point = WKTElement(f"POINT({user.latitude} {user.longitude})")
@@ -122,10 +139,10 @@ def get_nearest_offers(
             .label("offer_rank")
         )
 
-    print(f"user_geolocated : {user_geolocated}")
-    print(f"user_distance : {user_distance}")
-    print(f"user_distance_condition : {user_distance_condition}")
-    print(f"offer_rank : {offer_rank}")
+    # print(f"user_geolocated : {user_geolocated}")
+    # print(f"user_distance : {user_distance}")
+    # print(f"user_distance_condition : {user_distance_condition}")
+    # print(f"offer_rank : {offer_rank}")
 
     underage_condition = []
     if user.age and user.age < 18:
@@ -156,8 +173,6 @@ def get_nearest_offers(
         .subquery()
     )
 
-    print(f"nearest_offers_subquery : {nearest_offers_subquery}")
-
     nearest_offers = (
         db.query(
             offer_table.offer_id.label("offer_id"),
@@ -184,8 +199,12 @@ def get_nearest_offers(
         .all()
     )
 
-    print(f"nearest_offers : {nearest_offers}")
+    log_duration(
+        f"4. nearest_offers {str(user.user_id)} nearest_offers : {nearest_offers}",
+        start,
+    )
 
+    start = time.time()
     nearest_offers_result = []
     for offer in nearest_offers:
         nearest_offers_result.append(
@@ -209,5 +228,9 @@ def get_nearest_offers(
             )
         )
 
-    print(f"nearest_offers_result: {nearest_offers_result}")
+    log_duration(
+        f"5. parse nearest_offers in list {str(user.user_id)} nearest_offers_result : {nearest_offers_result}",
+        start,
+    )
+
     return nearest_offers_result
