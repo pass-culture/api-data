@@ -120,7 +120,7 @@ def get_nearest_offers(
                 .label("offer_rank")
             )
         else:
-            user_distance_condition = []
+            user_distance_condition = [1 == 1]
             offer_rank = (
                 func.row_number()
                 .over(
@@ -132,7 +132,7 @@ def get_nearest_offers(
     else:
         user_geolocated = False
         user_distance = None
-        user_distance_condition = []
+        user_distance_condition = [1 == 1]
         offer_rank = (
             func.row_number()
             .over(partition_by=offer_table.item_id, order_by=offer_table.stock_price)
@@ -166,39 +166,44 @@ def get_nearest_offers(
             offer_table.is_geolocated.label("is_geolocated"),
             offer_rank,
         )
-        .filter(offer_table.item_id.in_(recommendable_items_ids))
-        .filter(offer_table.stock_price <= user.user_deposit_remaining_credit)
         .filter(*user_distance_condition)
         .filter(*underage_condition)
+        .filter(offer_table.item_id.in_(recommendable_items_ids))
+        .filter(offer_table.stock_price <= user.user_deposit_remaining_credit)
         .subquery()
     )
 
     nearest_offers = (
-        db.query(
-            offer_table.offer_id.label("offer_id"),
-            offer_table.item_id.label("item_id"),
-            offer_table.venue_id.label("venue_id"),
-            user_distance,
-            offer_table.booking_number.label("booking_number"),
-            offer_table.stock_price.label("stock_price"),
-            offer_table.offer_creation_date.label("offer_creation_date"),
-            offer_table.stock_beginning_date.label("stock_beginning_date"),
-            offer_table.category.label("category"),
-            offer_table.subcategory_id.label("subcategory_id"),
-            offer_table.search_group_name.label("search_group_name"),
-            offer_table.venue_latitude.label("venue_latitude"),
-            offer_table.venue_longitude.label("venue_longitude"),
-            offer_table.is_geolocated.label("is_geolocated"),
-            offer_rank,
-        )
-        .join(
-            nearest_offers_subquery,
-            offer_table.offer_id == nearest_offers_subquery.c.offer_id,
-        )
+        db.query(nearest_offers_subquery)
         .filter(nearest_offers_subquery.c.offer_rank == 1)
         .all()
     )
 
+    # nearest_offers = (
+    #     db.query(
+    #         offer_table.offer_id.label("offer_id"),
+    #         offer_table.item_id.label("item_id"),
+    #         offer_table.venue_id.label("venue_id"),
+    #         user_distance,
+    #         offer_table.booking_number.label("booking_number"),
+    #         offer_table.stock_price.label("stock_price"),
+    #         offer_table.offer_creation_date.label("offer_creation_date"),
+    #         offer_table.stock_beginning_date.label("stock_beginning_date"),
+    #         offer_table.category.label("category"),
+    #         offer_table.subcategory_id.label("subcategory_id"),
+    #         offer_table.search_group_name.label("search_group_name"),
+    #         offer_table.venue_latitude.label("venue_latitude"),
+    #         offer_table.venue_longitude.label("venue_longitude"),
+    #         offer_table.is_geolocated.label("is_geolocated"),
+    #         offer_rank,
+    #     )
+    #     .join(
+    #         nearest_offers_subquery,
+    #         offer_table.offer_id == nearest_offers_subquery.c.offer_id,
+    #     )
+    #     .filter(nearest_offers_subquery.c.offer_rank == 1)
+    #     .all()
+    # )
     log_duration(
         f"4. nearest_offers {str(user.user_id)} nearest_offers : {nearest_offers}",
         start,
