@@ -97,47 +97,30 @@ def get_nearest_offers(
     )
 
     start = time.time()
-    if user.latitude is not None and user.longitude is not None:
-        user_geolocated = True
-        user_point = WKTElement(f"POINT({user.latitude} {user.longitude})")
-        user_distance = func.ST_Distance(
-            user_point,
-            func.Geometry(
-                func.ST_MakePoint(
-                    offer_table.venue_longitude,
-                    offer_table.venue_latitude,
-                )
-            ),
-        ).label("user_distance")
-
-        if offer_table.is_geolocated:
-            user_distance_condition = [
-                offer_table.default_max_distance >= user_distance
-            ]
-            offer_rank = (
-                func.row_number()
-                .over(partition_by=offer_table.item_id, order_by=user_distance)
-                .label("offer_rank")
+    # if user.latitude is not None and user.longitude is not None:
+    # user_geolocated = True
+    user_point = WKTElement(f"POINT({user.latitude} {user.longitude})")
+    user_distance = func.ST_Distance(
+        user_point,
+        func.Geometry(
+            func.ST_MakePoint(
+                offer_table.venue_longitude,
+                offer_table.venue_latitude,
             )
-        else:
-            user_distance_condition = [1 == 1]
-            offer_rank = (
-                func.row_number()
-                .over(
-                    partition_by=offer_table.item_id, order_by=offer_table.stock_price
-                )
-                .label("offer_rank")
-            )
+        ),
+    ).label("user_distance")
 
-    else:
-        user_geolocated = False
-        user_distance = None
-        user_distance_condition = [1 == 1]
-        offer_rank = (
-            func.row_number()
-            .over(partition_by=offer_table.item_id, order_by=offer_table.stock_price)
-            .label("offer_rank")
+    user_distance_condition = [
+        offer_table.default_max_distance >= func.coalesce(user_distance, 0)
+    ]
+    offer_rank = (
+        func.row_number()
+        .over(
+            partition_by=offer_table.item_id,
+            order_by=func.coalesce(user_distance, offer_table.stock_price),
         )
+        .label("offer_rank")
+    )
 
     # print(f"user_geolocated : {user_geolocated}")
     # print(f"user_distance : {user_distance}")
