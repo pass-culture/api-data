@@ -55,7 +55,7 @@ class SimilarOffer(ModelEngine):
             return []
         return super().get_scoring(db)
 
-    def save_recommendation(self, db: Session, recommendations) -> None:
+    def save_recommendation(self, db: Session, recommendations, call_id) -> None:
         if len(recommendations) > 0:
             start = time.time()
             date = datetime.datetime.now(pytz.utc)
@@ -69,7 +69,7 @@ class SimilarOffer(ModelEngine):
                     model_name=self.scorer.retrieval_endpoints[0].model_display_name,
                     model_version=self.scorer.retrieval_endpoints[0].model_version,
                     # reco_filters=json.dumps(self.params_in.json_input),
-                    call_id=self.user.call_id,
+                    call_id=call_id,
                     venue_iris_id=self.offer.iris_id,
                 )
                 db.add(reco_offer)

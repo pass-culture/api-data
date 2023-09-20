@@ -93,12 +93,25 @@ def get_nearest_offers(
             ),
         ).label("user_distance")
 
-        offer_rank = (
-            func.row_number()
-            .over(partition_by=offer_table.item_id, order_by=user_distance)
-            .label("offer_rank")
-        )
-        user_distance_condition = [offer_table.default_max_distance >= user_distance]
+        if offer_table.is_geolocated:
+            user_distance_condition = [
+                offer_table.default_max_distance >= user_distance
+            ]
+            offer_rank = (
+                func.row_number()
+                .over(partition_by=offer_table.item_id, order_by=user_distance)
+                .label("offer_rank")
+            )
+        else:
+            user_distance_condition = []
+            offer_rank = (
+                func.row_number()
+                .over(
+                    partition_by=offer_table.item_id, order_by=offer_table.stock_price
+                )
+                .label("offer_rank")
+            )
+
     else:
         user_geolocated = False
         user_distance = None

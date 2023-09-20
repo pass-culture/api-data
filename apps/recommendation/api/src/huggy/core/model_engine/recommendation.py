@@ -27,7 +27,7 @@ class Recommendation(ModelEngine):
         self.reco_origin = reco_origin
         return model_params
 
-    def save_recommendation(self, db: Session, recommendations) -> None:
+    def save_recommendation(self, db: Session, recommendations, call_id) -> None:
         if len(recommendations) > 0:
             start = time.time()
             date = datetime.datetime.now(pytz.utc)
@@ -41,7 +41,7 @@ class Recommendation(ModelEngine):
                     model_name=self.scorer.retrieval_endpoints[0].model_display_name,
                     model_version=self.scorer.retrieval_endpoints[0].model_version,
                     # reco_filters=json.dumps(self.params_in.json_input),
-                    call_id=self.user.call_id,
+                    call_id=call_id,
                     user_iris_id=self.user.iris_id,
                 )
                 db.add(reco_offer)
