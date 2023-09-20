@@ -7,7 +7,7 @@ from huggy.core.model_selection.model_configuration import (
 import huggy.core.model_selection.endpoint.user_retrieval as user_retrieval
 import huggy.core.model_selection.endpoint.user_ranking as user_ranking
 
-RANKING_LIMIT = 100
+RANKING_LIMIT = 50
 
 retrieval_filter = ModelConfiguration(
     name="recommendation_filter",
