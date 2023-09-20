@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_
+from sqlalchemy import func, and_
+from sqlalchemy.sql.expression import literal_column
 from geoalchemy2.elements import WKTElement
 from typing import List
 import time
@@ -92,40 +93,40 @@ def get_nearest_offers(
         if item.item_id not in non_recommendable_items
     ]
     log_duration(
-        f"3. get_recommendable_items_ids {str(user.user_id)} recommendable_items_ids : {recommendable_items_ids}",
+        f"3. get_recommendable_items_ids {str(user.user_id)} recommendable_items_ids : {len(recommendable_items_ids)}",
         start,
     )
 
     start = time.time()
-    # if user.latitude is not None and user.longitude is not None:
-    # user_geolocated = True
-    user_point = WKTElement(f"POINT({user.latitude} {user.longitude})")
-    user_distance = func.ST_Distance(
-        user_point,
-        func.Geometry(
-            func.ST_MakePoint(
-                offer_table.venue_longitude,
-                offer_table.venue_latitude,
-            )
-        ),
-    ).label("user_distance")
+    if user.latitude is not None and user.longitude is not None:
+        # user_geolocated = True
+        user_point = WKTElement(f"POINT({user.latitude} {user.longitude})")
 
-    user_distance_condition = [
-        offer_table.default_max_distance >= func.coalesce(user_distance, 0)
-    ]
+        user_distance = func.coalesce(
+            func.ST_Distance(
+                user_point,
+                func.Geometry(
+                    func.ST_MakePoint(
+                        offer_table.venue_longitude,
+                        offer_table.venue_latitude,
+                    )
+                ),
+            ),
+            0,
+        ).label("user_distance")
+    else:
+        user_distance = literal_column("0").label("user_distance")
+
+    user_distance_condition = [offer_table.default_max_distance >= user_distance]
+
     offer_rank = (
         func.row_number()
         .over(
             partition_by=offer_table.item_id,
-            order_by=func.coalesce(user_distance, offer_table.stock_price),
+            order_by=and_(user_distance.asc(), offer_table.stock_price.asc()),
         )
         .label("offer_rank")
     )
-
-    # print(f"user_geolocated : {user_geolocated}")
-    # print(f"user_distance : {user_distance}")
-    # print(f"user_distance_condition : {user_distance_condition}")
-    # print(f"offer_rank : {offer_rank}")
 
     underage_condition = []
     if user.age and user.age < 18:
@@ -162,33 +163,8 @@ def get_nearest_offers(
         .all()
     )
 
-    # nearest_offers = (
-    #     db.query(
-    #         offer_table.offer_id.label("offer_id"),
-    #         offer_table.item_id.label("item_id"),
-    #         offer_table.venue_id.label("venue_id"),
-    #         user_distance,
-    #         offer_table.booking_number.label("booking_number"),
-    #         offer_table.stock_price.label("stock_price"),
-    #         offer_table.offer_creation_date.label("offer_creation_date"),
-    #         offer_table.stock_beginning_date.label("stock_beginning_date"),
-    #         offer_table.category.label("category"),
-    #         offer_table.subcategory_id.label("subcategory_id"),
-    #         offer_table.search_group_name.label("search_group_name"),
-    #         offer_table.venue_latitude.label("venue_latitude"),
-    #         offer_table.venue_longitude.label("venue_longitude"),
-    #         offer_table.is_geolocated.label("is_geolocated"),
-    #         offer_rank,
-    #     )
-    #     .join(
-    #         nearest_offers_subquery,
-    #         offer_table.offer_id == nearest_offers_subquery.c.offer_id,
-    #     )
-    #     .filter(nearest_offers_subquery.c.offer_rank == 1)
-    #     .all()
-    # )
     log_duration(
-        f"4. nearest_offers {str(user.user_id)} nearest_offers : {nearest_offers}",
+        f"4. nearest_offers {str(user.user_id)} nearest_offers : {len(nearest_offers)}",
         start,
     )
 
@@ -217,7 +193,7 @@ def get_nearest_offers(
         )
 
     log_duration(
-        f"5. parse nearest_offers in list {str(user.user_id)} nearest_offers_result : {nearest_offers_result}",
+        f"5. parse nearest_offers in list {str(user.user_id)} nearest_offers_result : {len(nearest_offers_result)}",
         start,
     )
 
