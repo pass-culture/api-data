@@ -83,7 +83,7 @@ class OfferScorer:
         start = time.time()
         recommendable_offers = get_nearest_offers(db, self.user, recommendable_items)
         log_duration(
-            f"get_nearest_offers {str(self.user.user_id)} offers : {len(recommendable_offers)}",
+            f"GLOBAL. get_nearest_offers {str(self.user.user_id)} offers : {len(recommendable_offers)}",
             start,
         )
         size = len(recommendable_offers)
