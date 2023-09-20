@@ -49,9 +49,9 @@ class RecommendableOffer:
     search_group_name: str
     venue_latitude: float
     venue_longitude: float
-    is_geolocated: bool
     item_score: float  # lower = better
-    item_rank: int
+    is_geolocated: bool = None
+    item_rank: int = None
     query_order: int = None  # SQL query order by (lower = better)
     random: float = None
     offer_score: float = None  # higher = better
