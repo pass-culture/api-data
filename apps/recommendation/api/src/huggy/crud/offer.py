@@ -106,7 +106,6 @@ def get_nearest_offers(
             func.ST_MakePoint(
                 offer_table.venue_longitude,
                 offer_table.venue_latitude,
-
             )
         ),
     ).label("user_distance")
