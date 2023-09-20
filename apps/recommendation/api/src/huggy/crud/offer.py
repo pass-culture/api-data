@@ -117,7 +117,7 @@ def get_nearest_offers(
         func.row_number()
         .over(
             partition_by=offer_table.item_id,
-            order_by=func.coalesce(user_distance, offer_table.stock_price),  
+            order_by=func.coalesce(user_distance, offer_table.stock_price),
         )
         .label("offer_rank")
     )
