@@ -36,7 +36,7 @@ def to_float(x: float = None):
 class RankingEndpoint(AbstractEndpoint):
     def init_input(self, user: User, params_in: PlaylistParams):
         self.user = user
-        self.user_input = str(self.user.id)
+        self.user_input = str(self.user.user_id)
         self.params_in = params_in
 
     @abstractmethod
@@ -95,7 +95,7 @@ class ModelRankingEndpoint(RankingEndpoint):
             instances=instances, endpoint_name=self.endpoint_name
         )
         log_duration(
-            f"ranking_endpoint {str(self.user.id)} offers : {len(recommendable_offers)}",
+            f"ranking_endpoint {str(self.user.user_id)} offers : {len(recommendable_offers)}",
             start,
         )
         self.model_version = prediction_result.model_version
@@ -110,5 +110,5 @@ class ModelRankingEndpoint(RankingEndpoint):
             if current_score is not None:
                 row.offer_score = current_score
                 row.offer_output = current_score
-        log_duration(f"ranking_endpoint {str(self.user.id)}", start)
+        log_duration(f"ranking_endpoint {str(self.user.user_id)}", start)
         return sorted(recommendable_offers, key=lambda x: x.offer_output, reverse=True)

@@ -43,10 +43,11 @@ class OfferContext(Base):
     This table is used to log the context of the offer when it is recommended to an user."""
 
     __tablename__ = "offer_context"
-    call_id = Column(String(256))
+    user_id = Column(String(256), primary_key=True)
+    offer_id = Column(String(256), primary_key=True)
+    call_id = Column(String(256), primary_key=True)
     context = Column(String(256))
     date = Column(DateTime(timezone=True))
-    user_id = Column(String(256))
     user_bookings_count = Column(Float)
     user_clicks_count = Column(Float)
     user_favorites_count = Column(Float)
@@ -55,7 +56,6 @@ class OfferContext(Base):
     user_latitude = Column(Float)
     user_longitude = Column(Float)
     offer_user_distance = Column(Float)
-    offer_id = Column(String(256))
     offer_item_id = Column(String(256))
     offer_booking_number = Column(Float)
     offer_stock_price = Column(Float)

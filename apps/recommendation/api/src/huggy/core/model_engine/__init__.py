@@ -7,7 +7,7 @@ from huggy.schemas.playlist_params import PlaylistParams
 from huggy.core.model_selection.model_configuration import ModelConfiguration
 from huggy.utils.mixing import order_offers_by_score_and_diversify_features
 from huggy.schemas.offer import RecommendableOffer
-from huggy.models.recommendable_offers_raw import OfferContext
+from huggy.models.past_recommended_offers import OfferContext
 import typing as t
 from huggy.utils.env_vars import (
     NUMBER_OF_RECOMMENDATIONS,
@@ -102,7 +102,7 @@ class ModelEngine(ABC):
                         call_id=call_id,
                         context=context,
                         date=date,
-                        user_id=user.id,
+                        user_id=user.user_id,
                         user_bookings_count=user.bookings_count,
                         user_clicks_count=user.clicks_count,
                         user_favorites_count=user.favorites_count,
