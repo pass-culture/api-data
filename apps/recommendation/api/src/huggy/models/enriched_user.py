@@ -38,5 +38,5 @@ def get_available_table(engine, model_base) -> str:
         result = inspect(engine).has_table(table_name)
         if result:
             return eval(model)
-        else:
-            return "no table found"
+    if not result:
+        return "no table found"
