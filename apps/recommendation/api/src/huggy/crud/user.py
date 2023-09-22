@@ -14,8 +14,21 @@ def get_user_profile(
     an user. (age, number of bookings, number of clicks, number of favorites,
     amount of remaining deposit).
     """
+    if latitude and longitude:
+        iris_id = get_iris_from_coordinates(db, latitude, longitude)
+    else:
+        iris_id = None
 
     user_table = get_available_table(bind_engine, "User")
+
+    if user_table is None:
+        return User(
+            user_id=user_id,
+            longitude=longitude,
+            latitude=latitude,
+            found=False,
+            iris_id=iris_id,
+        )
 
     user_profile = (
         db.query(
@@ -31,11 +44,6 @@ def get_user_profile(
         .filter(user_table.user_id == user_id)
         .first()
     )
-
-    if latitude and longitude:
-        iris_id = get_iris_from_coordinates(db, latitude, longitude)
-    else:
-        iris_id = None
 
     if user_profile:
 
