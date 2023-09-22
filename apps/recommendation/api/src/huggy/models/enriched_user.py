@@ -34,8 +34,11 @@ class UserMv(User):
 def get_available_table(engine, model_base) -> str:
     for suffix in ["", "Mv", "MvTmp", "MvOld"]:
         model = f"{model_base}{suffix}"
-        table_name = eval(model).__tablename__
-        result = inspect(engine).has_table(table_name)
+        try:
+            table_name = eval(model).__tablename__
+            result = inspect(engine).has_table(table_name)
+        except NameError:
+            print(f"Model {model} is not defined")
         if result:
             return eval(model)
     if not result:
