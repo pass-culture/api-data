@@ -40,8 +40,7 @@ def get_available_table(engine, model_base) -> str:
             print(eval(model), result)
         except NameError:
             print(f"Model {model} is not defined")
-        if result:
+        if result is True:
             return eval(model)
-        else:
-            print(f"{model_base} table does not exist in database.")
-            return None
+    # print(f"{model_base} table does not exist in database.")
+    # return None
