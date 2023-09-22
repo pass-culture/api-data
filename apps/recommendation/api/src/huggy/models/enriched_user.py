@@ -38,7 +38,7 @@ def get_available_table(engine, model_base) -> str:
         try:
             table_name = eval(model).__tablename__
             result = inspect(engine).has_table(table_name)
-            print(eval(model))
+            print(eval(model), result)
         except NameError:
             print(f"Model {model} is not defined")
         if result:
