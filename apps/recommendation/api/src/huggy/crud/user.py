@@ -21,7 +21,7 @@ def get_user_profile(
         iris_id = None
 
     try:
-        user_table = get_available_table(bind_engine, "User")
+        user_table = get_available_table(db, bind_engine, "User")
     except:
         user_table = enriched_user.User
 

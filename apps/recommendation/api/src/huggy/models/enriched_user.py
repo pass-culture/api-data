@@ -31,16 +31,20 @@ class UserMv(User):
     }
 
 
-def get_available_table(engine, model_base) -> str:
+def check_table_is_empty(db, model_name):
+    table_is_empty = db.query(model_name).first() is None
+    return table_is_empty
+
+
+def get_available_table(db, engine, model_base) -> str:
     for suffix in ["", "Mv", "MvTmp", "MvOld"]:
         model = f"{model_base}{suffix}"
         try:
             table_name = eval(model).__tablename__
             result = inspect(engine).has_table(table_name)
+            table_is_empty = check_table_is_empty(db, eval(model))
             print(eval(model), result)
         except NameError:
             print(f"Model {model} is not defined")
-        if result is True:
+        if result is True and table_is_empty is False:
             return eval(model)
-    # print(f"{model_base} table does not exist in database.")
-    # return None
