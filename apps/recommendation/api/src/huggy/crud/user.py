@@ -1,9 +1,11 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
-from huggy.models import enriched_user
 from huggy.schemas.user import User
 from huggy.crud.iris import get_iris_from_coordinates
+import huggy.models.enriched_user as enriched_user
+from huggy.models.enriched_user import get_available_table
+from huggy.utils.database import bind_engine
 
 
 def get_user_profile(
@@ -13,26 +15,39 @@ def get_user_profile(
     an user. (age, number of bookings, number of clicks, number of favorites,
     amount of remaining deposit).
     """
-    user_profile = (
-        db.query(
-            enriched_user.User.user_deposit_creation_date
-            - enriched_user.User.user_birth_date,
-            func.coalesce(enriched_user.User.booking_cnt, 0),
-            func.coalesce(enriched_user.User.consult_offer, 0),
-            func.coalesce(enriched_user.User.has_added_offer_to_favorites, 0),
-            func.coalesce(
-                enriched_user.User.user_theoretical_remaining_credit,
-                enriched_user.User.user_deposit_initial_amount,
-            ),
-        )
-        .filter(enriched_user.User.user_id == user_id)
-        .first()
-    )
-
     if latitude and longitude:
         iris_id = get_iris_from_coordinates(db, latitude, longitude)
     else:
         iris_id = None
+
+    try:
+        user_table = get_available_table(bind_engine, "User")
+    except:
+        user_table = enriched_user.User
+
+    if user_table is None:
+        return User(
+            user_id=user_id,
+            longitude=longitude,
+            latitude=latitude,
+            found=False,
+            iris_id=iris_id,
+        )
+
+    user_profile = (
+        db.query(
+            user_table.user_deposit_creation_date - user_table.user_birth_date,
+            func.coalesce(user_table.booking_cnt, 0),
+            func.coalesce(user_table.consult_offer, 0),
+            func.coalesce(user_table.has_added_offer_to_favorites, 0),
+            func.coalesce(
+                user_table.user_theoretical_remaining_credit,
+                user_table.user_deposit_initial_amount,
+            ),
+        )
+        .filter(user_table.user_id == user_id)
+        .first()
+    )
 
     if user_profile:
 
