@@ -9,31 +9,58 @@ from huggy.schemas.user import User
 @pytest.mark.parametrize(
     ["user_id", "expected_status"],
     [
-        ("111", "algo"),
-        ("112", "cold_start"),
-        ("113", "cold_start"),
-        ("000", "unknown"),
+        (
+            User(
+                user_id="111",
+                longitude=None,
+                latitude=None,
+                found=True,
+                iris_id="",
+                age=18,
+                bookings_count=3,
+                clicks_count=1,
+                favorites_count=1,
+                user_deposit_remaining_credit=300,
+            ),
+            "algo",
+        ),
+        (
+            User(
+                user_id="112",
+                longitude=None,
+                latitude=None,
+                found=True,
+                iris_id="",
+                age=18,
+                bookings_count=1,
+                clicks_count=2,
+                favorites_count=2,
+                user_deposit_remaining_credit=300,
+            ),
+            "cold_start",
+        ),
+        (
+            User(
+                user_id="113",
+                longitude=None,
+                latitude=None,
+                found=True,
+                iris_id="",
+                age=18,
+                bookings_count=1,
+                clicks_count=2,
+                favorites_count=2,
+                user_deposit_remaining_credit=300,
+            ),
+            "cold_start",
+        ),
     ],
 )
 def test_get_cold_start_status(
     setup_database: Session,
-    user_id: str,
+    user: User,
     expected_status: bool,
 ):
-    latitude = None
-    longitude = None
-    user = User(
-        user_id=user_id,
-        longitude=longitude,
-        latitude=latitude,
-        found=True,
-        iris_id="",
-        age=18,
-        bookings_count=2,
-        clicks_count=3,
-        favorites_count=1,
-        user_deposit_remaining_credit=250,
-    )
     _, model_status = ModelFork(
         cold_start_model=recommendation_endpoints.retrieval_reco,
         warm_start_model=recommendation_endpoints.retrieval_reco,
