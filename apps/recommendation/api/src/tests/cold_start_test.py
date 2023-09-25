@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from huggy.core.model_selection.model_configuration import ModelFork
 from huggy.core.model_selection import recommendation_endpoints
-from huggy.crud.user import get_user_profile
+from huggy.schemas.user import User
 
 
 @pytest.mark.parametrize(
@@ -22,7 +22,18 @@ def test_get_cold_start_status(
 ):
     latitude = None
     longitude = None
-    user = get_user_profile(setup_database, user_id, latitude, longitude)
+    user = User(
+        user_id=user_id,
+        longitude=longitude,
+        latitude=latitude,
+        found=True,
+        iris_id="",
+        age=18,
+        bookings_count=2,
+        clicks_count=3,
+        favorites_count=1,
+        user_deposit_remaining_credit=250,
+    )
     _, model_status = ModelFork(
         cold_start_model=recommendation_endpoints.retrieval_reco,
         warm_start_model=recommendation_endpoints.retrieval_reco,

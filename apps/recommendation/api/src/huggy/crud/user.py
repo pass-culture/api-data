@@ -3,6 +3,7 @@ from sqlalchemy import func
 
 from huggy.schemas.user import User
 from huggy.crud.iris import get_iris_from_coordinates
+import huggy.models.enriched_user as enriched_user
 from huggy.models.enriched_user import get_available_table
 from huggy.utils.database import bind_engine
 
@@ -19,7 +20,10 @@ def get_user_profile(
     else:
         iris_id = None
 
-    user_table = get_available_table(bind_engine, "User")
+    try:
+        user_table = get_available_table(bind_engine, "User")
+    except:
+        user_table = enriched_user.User
 
     if user_table is None:
         return User(
