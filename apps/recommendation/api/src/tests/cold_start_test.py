@@ -7,7 +7,7 @@ from huggy.schemas.user import User
 
 
 @pytest.mark.parametrize(
-    ["user_id", "expected_status"],
+    ["user", "expected_status"],
     [
         (
             User(
