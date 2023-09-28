@@ -37,6 +37,7 @@ class PastSimilarOffers(Base):
     reco_filters = Column(PickleType)
     venue_iris_id = Column(Integer)
 
+
 class OfferContext(Base):
     """Database model of offer_context table.
     This table is used to log the context of the offer when it is recommended to an user."""
@@ -65,4 +66,3 @@ class OfferContext(Base):
     offer_item_score = Column(Float)
     offer_order = Column(Float)
     offer_venue_id = Column(String(256))
-

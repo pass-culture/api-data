@@ -7,6 +7,7 @@ import huggy.models.enriched_user as enriched_user
 from huggy.models.enriched_user import get_available_table
 from huggy.utils.database import bind_engine
 
+
 def get_user_profile(
     db: Session, user_id: str, latitude: float, longitude: float
 ) -> User:

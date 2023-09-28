@@ -60,7 +60,6 @@ def similar_offers(
 
     scoring = SimilarOffer(user, offer, playlist_params)
 
-
     offer_recommendations = scoring.get_scoring(db, call_id)
 
     log_extra_data = {
