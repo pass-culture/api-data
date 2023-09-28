@@ -13,7 +13,6 @@ from huggy.schemas.item import RecommendableItem
 
 from huggy.crud.offer import get_nearest_offers
 
-from huggy.utils.manage_output_offers import limit_offers
 from huggy.utils.env_vars import log_duration
 
 
@@ -35,7 +34,8 @@ class OfferScorer:
     def get_scoring(
         self,
         db: Session,
-        offer_limit: int = 20,
+        call_id,
+        offer_limit: int = 40,
     ) -> List[RecommendableOffer]:
         start = time.time()
 
@@ -67,12 +67,7 @@ class OfferScorer:
             start,
         )
 
-        # Limit the display of offers recommendations
-        user_recommendations = limit_offers(
-            offer_limit=offer_limit, list_offers=recommendable_offers
-        )
-
-        return user_recommendations
+        return recommendable_offers
 
     def get_recommendable_offers(
         self,

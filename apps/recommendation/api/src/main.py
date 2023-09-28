@@ -60,7 +60,7 @@ def similar_offers(
 
     scoring = SimilarOffer(user, offer, playlist_params)
 
-    offer_recommendations = scoring.get_scoring(db)
+    offer_recommendations = scoring.get_scoring(db, call_id)
 
     log_extra_data = {
         "user_id": user.user_id,
@@ -131,7 +131,7 @@ def similar_offers(
 
     scoring = SimilarOffer(user, offer, playlist_params)
 
-    offer_recommendations = scoring.get_scoring(db)
+    offer_recommendations = scoring.get_scoring(db, call_id)
 
     log_extra_data = {
         "user_id": user.user_id,
@@ -198,7 +198,7 @@ def playlist_recommendation(
 
     scoring = Recommendation(user, params_in=playlist_params)
 
-    user_recommendations = scoring.get_scoring(db)
+    user_recommendations = scoring.get_scoring(db, call_id)
 
     log_extra_data = {
         "user_id": user.user_id,
