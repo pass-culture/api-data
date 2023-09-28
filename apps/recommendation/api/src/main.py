@@ -222,7 +222,6 @@ def playlist_recommendation(
     )
 
     scoring.save_recommendation(db, user_recommendations, call_id)
-
     return jsonable_encoder(
         {
             "playlist_recommended_offers": user_recommendations,

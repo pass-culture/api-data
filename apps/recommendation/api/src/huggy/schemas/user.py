@@ -19,9 +19,9 @@ class User:
     latitude: float = None
     iris_id: str = None
     age: float = None
-    bookings_count: float = None
-    clicks_count: float = None
-    favorites_count: float = None
-    user_deposit_remaining_credit: float = None
+    bookings_count: float = 0
+    clicks_count: float = 0
+    favorites_count: float = 0
+    user_deposit_remaining_credit: float = 300
     found: bool = False
     is_geolocated: bool = None

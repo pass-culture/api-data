@@ -33,14 +33,14 @@ class PlaylistParams(BaseModel):
 
 
 class GetSimilarOfferPlaylistParams(PlaylistParams):
-    user_id: str
+    user_id: str = None
     categories: List[str] = Field(Query([]))
     subcategories: List[str] = Field(Query([]))
     offer_type_list: str = None  # useless in similar offer
 
 
 class PostSimilarOfferPlaylistParams(PlaylistParams):
-    user_id: str
+    user_id: str = None
     categories: List[str] = None
     subcategories: List[str] = None
     offer_type_list: str = None  # useless in similar offer
