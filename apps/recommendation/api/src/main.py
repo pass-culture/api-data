@@ -196,63 +196,52 @@ def playlist_recommendation(
 
     user = get_user_profile(db, user_id, latitude, longitude)
 
-    if user.found is True:
-        scoring = Recommendation(user, params_in=playlist_params)
+    scoring = Recommendation(user, params_in=playlist_params)
 
-        user_recommendations = scoring.get_scoring(db)
+    user_recommendations = scoring.get_scoring(db)
 
-        log_extra_data = {
-            "user_id": user.user_id,
-            "iris_id": user.iris_id,
-            "call_id": call_id,
-            "reco_origin": scoring.reco_origin,
-            # 'filters': playlist_params,
-            "retrieval_model_name": scoring.scorer.retrieval_endpoints[
-                0
-            ].model_display_name,
-            "retrieval_model_version": scoring.scorer.retrieval_endpoints[
-                0
-            ].model_version,
-            "retrieval_endpoint_name": scoring.scorer.retrieval_endpoints[
-                0
-            ].endpoint_name,
-            "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
-            "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
-            "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,
-            "recommended_offers": user_recommendations,
+    log_extra_data = {
+        "user_id": user.user_id,
+        "iris_id": user.iris_id,
+        "call_id": call_id,
+        "reco_origin": scoring.reco_origin,
+        # 'filters': playlist_params,
+        "retrieval_model_name": scoring.scorer.retrieval_endpoints[
+            0
+        ].model_display_name,
+        "retrieval_model_version": scoring.scorer.retrieval_endpoints[0].model_version,
+        "retrieval_endpoint_name": scoring.scorer.retrieval_endpoints[0].endpoint_name,
+        "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
+        "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
+        "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,
+        "recommended_offers": user_recommendations,
+    }
+
+    custom_logger.info(
+        f"Get recommendations for user {user.user_id}", extra=log_extra_data
+    )
+
+    scoring.save_recommendation(db, user_recommendations, call_id)
+    return jsonable_encoder(
+        {
+            "playlist_recommended_offers": user_recommendations,
+            "params": {
+                "reco_origin": scoring.reco_origin,
+                "retrieval_model_endpoint": scoring.scorer.retrieval_endpoints[
+                    0
+                ].endpoint_name,
+                "retrieval_model_name": scoring.scorer.retrieval_endpoints[
+                    0
+                ].model_display_name,
+                "retrieval_model_version": scoring.scorer.retrieval_endpoints[
+                    0
+                ].model_version,
+                "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
+                "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
+                "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,
+                "geo_located": user.is_geolocated,
+                # "filtered": input_reco.has_conditions if input_reco else False,
+                "call_id": call_id,
+            },
         }
-
-        custom_logger.info(
-            f"Get recommendations for user {user.user_id}", extra=log_extra_data
-        )
-
-        scoring.save_recommendation(db, user_recommendations, call_id)
-        return jsonable_encoder(
-            {
-                "playlist_recommended_offers": user_recommendations,
-                "params": {
-                    "reco_origin": scoring.reco_origin,
-                    "retrieval_model_endpoint": scoring.scorer.retrieval_endpoints[
-                        0
-                    ].endpoint_name,
-                    "retrieval_model_name": scoring.scorer.retrieval_endpoints[
-                        0
-                    ].model_display_name,
-                    "retrieval_model_version": scoring.scorer.retrieval_endpoints[
-                        0
-                    ].model_version,
-                    "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
-                    "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
-                    "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,
-                    "geo_located": user.is_geolocated,
-                    # "filtered": input_reco.has_conditions if input_reco else False,
-                    "call_id": call_id,
-                },
-            }
-        )
-
-    elif user.found is False:
-        print(f"User {user.user_id} not found in database")
-
-    else:
-        print(f"User profile for user {user.user_id} not computed")
+    )
