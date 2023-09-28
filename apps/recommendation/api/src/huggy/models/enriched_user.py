@@ -48,7 +48,7 @@ def check_table_is_empty(engine, table_name):
 
 
 def get_available_table(engine, model_base) -> str:
-    for suffix in ["", "Mv", "MvTmp", "MvOld"]:
+    for suffix in ["Mv", "MvTmp", "MvOld", ""]:
         model = f"{model_base}{suffix}"
         try:
             table_name = eval(model).__tablename__
