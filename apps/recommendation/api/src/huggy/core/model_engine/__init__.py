@@ -48,12 +48,12 @@ class ModelEngine(ABC):
             ranking_endpoint=self.model_params.ranking_endpoint,
         )
 
-    def get_scoring(self, db: Session) -> List[str]:
+    def get_scoring(self, db: Session, call_id) -> List[str]:
         """
         Returns a list of offer_id to be send to the user
         Depends of the scorer method.
         """
-        scored_offers = self.scorer.get_scoring(db)
+        scored_offers = self.scorer.get_scoring(db, call_id)
         if len(scored_offers) == 0:
             return []
 
@@ -79,7 +79,7 @@ class ModelEngine(ABC):
         self.save_context(
             db=db,
             offers=scored_offers,
-            call_id=self.user.call_id,
+            call_id=call_id,
             context=self.model_params.name,
             user=self.user,
         )
