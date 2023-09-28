@@ -35,7 +35,7 @@ class OfferScorer:
     def get_scoring(
         self,
         db: Session,
-        offer_limit: int = 20,
+        offer_limit: int = 40,
     ) -> List[RecommendableOffer]:
         start = time.time()
 
