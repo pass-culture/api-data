@@ -23,7 +23,6 @@ def to_days(dt: datetime):
         pass
     return None
 
-
 def to_float(x: float = None):
     try:
         if x is not None:
@@ -31,7 +30,6 @@ def to_float(x: float = None):
     except Exception as e:
         pass
     return None
-
 
 class RankingEndpoint(AbstractEndpoint):
     def init_input(self, user: User, params_in: PlaylistParams):
@@ -63,7 +61,6 @@ class ModelRankingEndpoint(RankingEndpoint):
     ) -> t.List[RecommendableOffer]:
         offers_list = []
         for row in recommendable_offers:
-
             offers_list.append(
                 {
                     "offer_id": row.offer_id,
@@ -112,3 +109,4 @@ class ModelRankingEndpoint(RankingEndpoint):
                 row.offer_output = current_score
         log_duration(f"ranking_endpoint {str(self.user.user_id)}", start)
         return sorted(recommendable_offers, key=lambda x: x.offer_output, reverse=True)
+

@@ -72,6 +72,7 @@ def get_non_recommendable_items(db: Session, user: User) -> List[str]:
 def get_nearest_offers(
     db: Session, user: User, recommendable_items: List[RecommendableItem]
 ) -> List[RecommendableOffer]:
+  
     start = time.time()
     offer_table = get_available_table(bind_engine, "RecommendableOffersRaw")
     log_duration(

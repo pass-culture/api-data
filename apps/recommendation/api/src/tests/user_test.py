@@ -22,3 +22,4 @@ ENV_SHORT_NAME = os.getenv("ENV_SHORT_NAME")
 #         assert (
 #             user.user_deposit_remaining_credit == expected_deposit
 #         ), f"remaining credit is right"
+

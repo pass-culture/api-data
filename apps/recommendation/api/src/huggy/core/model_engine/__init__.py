@@ -9,6 +9,7 @@ from huggy.utils.mixing import order_offers_by_score_and_diversify_features
 from huggy.schemas.offer import RecommendableOffer
 from huggy.models.past_recommended_offers import OfferContext
 import typing as t
+
 from huggy.utils.env_vars import (
     NUMBER_OF_RECOMMENDATIONS,
 )
@@ -54,6 +55,7 @@ class ModelEngine(ABC):
         Depends of the scorer method.
         """
         scored_offers = self.scorer.get_scoring(db, call_id)
+
         if len(scored_offers) == 0:
             return []
 
@@ -125,3 +127,4 @@ class ModelEngine(ABC):
                     )
                 )
             db.commit()
+
