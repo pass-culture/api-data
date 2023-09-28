@@ -20,19 +20,7 @@ def get_user_profile(
     else:
         iris_id = None
 
-    try:
-        user_table = get_available_table(db, bind_engine, "User")
-    except:
-        user_table = enriched_user.User
-
-    if user_table is None:
-        return User(
-            user_id=user_id,
-            longitude=longitude,
-            latitude=latitude,
-            found=False,
-            iris_id=iris_id,
-        )
+    user_table = get_available_table(bind_engine, "User")
 
     user_profile = (
         db.query(
@@ -50,7 +38,6 @@ def get_user_profile(
     )
 
     if user_profile:
-
         user = User(
             user_id=user_id,
             longitude=longitude,
