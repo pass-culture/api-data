@@ -1,5 +1,5 @@
 import pytest
-from pcreco.models.reco.parser import underscore_to_camel
+from huggy.schemas.playlist_params import underscore_to_camel
 
 
 class PlaylistParamsTest:
