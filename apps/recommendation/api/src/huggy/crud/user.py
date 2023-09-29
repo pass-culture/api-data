@@ -66,5 +66,4 @@ def get_user_profile(
                 iris_id=iris_id,
             )
 
-
     return user
