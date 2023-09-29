@@ -10,8 +10,10 @@ from huggy.schemas.user import User
 from huggy.schemas.item import Item, RecommendableItem
 
 from huggy.models.item_ids_mv import ItemIdsMv
-from huggy.models.recommendable_offers_raw import get_available_table
+
+# from huggy.models.recommendable_offers_raw import get_available_table
 from huggy.models.non_recommendable_items import NonRecommendableItems
+from huggy.models.recommendable_offers_raw import RecommendableOffersRawMv
 
 from huggy.crud.iris import get_iris_from_coordinates
 from huggy.utils.database import bind_engine
@@ -74,7 +76,8 @@ def get_nearest_offers(
 ) -> List[RecommendableOffer]:
 
     start = time.time()
-    offer_table = get_available_table(bind_engine, "RecommendableOffersRaw")
+    offer_table = RecommendableOffersRawMv
+    # offer_table = get_available_table(bind_engine, "RecommendableOffersRaw")
     log_duration(
         f"1. get_available_table {str(user.user_id)} offer_table: {str(offer_table)}",
         start,
