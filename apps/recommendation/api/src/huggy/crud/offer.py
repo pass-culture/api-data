@@ -10,8 +10,6 @@ from huggy.schemas.user import User
 from huggy.schemas.item import RecommendableItem
 
 from huggy.models.item_ids_mv import ItemIdsMv
-
-# from huggy.models.recommendable_offers_raw import get_available_table
 from huggy.models.non_recommendable_items import NonRecommendableItems
 from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
 

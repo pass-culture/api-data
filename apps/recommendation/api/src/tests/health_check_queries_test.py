@@ -2,7 +2,7 @@ import pytest
 
 from sqlalchemy import inspect
 from sqlalchemy.orm import Session
-from huggy.models.user import User
+from huggy.models.enriched_user import EnrichedUser
 from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
 
 
@@ -30,7 +30,7 @@ def test_tables_should_exist(
 @pytest.mark.parametrize(
     "base_db, expected_result",
     [
-        (User, "enriched_user_mv"),
+        (EnrichedUser, "enriched_user_mv"),
         (RecommendableOffersRaw, "recommendable_offers_raw_mv"),
     ],
 )

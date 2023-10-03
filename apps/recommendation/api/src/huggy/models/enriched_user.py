@@ -8,7 +8,7 @@ from sqlalchemy import (
 from huggy.utils.database import MaterializedBase, Base
 
 
-class User(MaterializedBase):
+class EnrichedUser(MaterializedBase):
     """
     Database model of enriched_user table.
     This table is used to get informations about the user calling the API.
@@ -27,13 +27,13 @@ class User(MaterializedBase):
     has_added_offer_to_favorites = Column(Integer)
 
 
-class EnrichedUserMv(User, Base):
+class EnrichedUserMv(EnrichedUser, Base):
     __tablename__ = "enriched_user_mv"
 
 
-class EnrichedUserMvTmp(User, Base):
+class EnrichedUserMvTmp(EnrichedUser, Base):
     __tablename__ = "enriched_user_mv_tmp"
 
 
-class EnrichedUserMvOld(User, Base):
+class EnrichedUserMvOld(EnrichedUser, Base):
     __tablename__ = "enriched_user_mv_old"
