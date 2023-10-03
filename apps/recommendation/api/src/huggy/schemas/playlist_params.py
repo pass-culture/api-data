@@ -36,6 +36,7 @@ class GetSimilarOfferPlaylistParams(PlaylistParams):
     user_id: str = None
     categories: List[str] = Field(Query([]))
     subcategories: List[str] = Field(Query([]))
+    gtl_ids: List[str] = Field(Query([]))
     offer_type_list: str = None  # useless in similar offer
 
 
@@ -43,10 +44,12 @@ class PostSimilarOfferPlaylistParams(PlaylistParams):
     user_id: str = None
     categories: List[str] = None
     subcategories: List[str] = None
+    gtl_ids: List[str] = None
     offer_type_list: str = None  # useless in similar offer
 
 
 class RecommendationPlaylistParams(PlaylistParams):
     categories: List[str] = None
     subcategories: List[str] = None
+    gtl_ids: List[str] = None
     offer_type_list: List[Dict] = None

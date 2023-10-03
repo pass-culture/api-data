@@ -17,6 +17,7 @@ def order_offers_by_score_and_diversify_features(
     shuffle_recommendation=None,
     feature="subcategory_id",
     nb_reco_display=NUMBER_OF_RECOMMENDATIONS,
+    is_books_mixed=False
 ) -> List[RecommendableOffer]:
     """
     Group offers by feature.
@@ -26,7 +27,7 @@ def order_offers_by_score_and_diversify_features(
     Return only the ids of these sorted offers.
     score_order_ascending is False, score = the higher the better
     """
-
+    diversified_offers = []
     if shuffle_recommendation:
         for recommendation in offers:
             setattr(recommendation, score_column, random.random())
@@ -34,8 +35,9 @@ def order_offers_by_score_and_diversify_features(
     offers_by_feature = _get_offers_grouped_by_feature(
         offers, feature
     )  # here we group offers by cat (and score)
-    offers_by_feature_length = np.sum([len(l) for l in offers_by_feature.values()])
-
+    books=[]
+    if "LIVRE_PAPIER" in offers_by_feature.keys():
+        books=offers_by_feature["LIVRE_PAPIER"]
     offers_by_feature_ordered_by_frequency = collections.OrderedDict(
         sorted(
             offers_by_feature.items(),
@@ -54,15 +56,30 @@ def order_offers_by_score_and_diversify_features(
             key=lambda k: getattr(k, score_column),
             reverse=score_order_ascending,
         )
-
-    diversified_offers = []
+    # is_books_mixed=False
+    # print("len(books): ",len(books))
+    if (not is_books_mixed) and (len(books)>0):
+        print("inside recursive run...")
+        is_books_mixed=True
+        ordered_books=order_offers_by_score_and_diversify_features(
+            books,
+            score_column="item_score",
+            score_order_ascending=False,
+            shuffle_recommendation=None,
+            feature="gtl_id",
+            nb_reco_display=10,
+            is_books_mixed=True)
+        ordered_books.reverse()
+        offers_by_feature_ordered_by_frequency["LIVRE_PAPIER"]=ordered_books
+    # print("traditional run...")
+    offers_by_feature_length = np.sum([len(l) for l in offers_by_feature.values()])
     while len(diversified_offers) != offers_by_feature_length:
         # here we pop one offer of eachsubcat
         for offer_feature in offers_by_feature_ordered_by_frequency.keys():
             if offers_by_feature_ordered_by_frequency[offer_feature]:
                 diversified_offers.append(
                     offers_by_feature_ordered_by_frequency[offer_feature].pop()
-                )
+                )        
         if len(diversified_offers) >= nb_reco_display:
             break
 
@@ -99,4 +116,4 @@ def _get_number_of_offers_and_max_score_by_feature(
         sum_score = max(
             [getattr(offer, score_column) for offer in feature_and_offers[1]]
         )
-    return sum_score
+    return sum_score,len(feature_and_offers[1])

@@ -147,6 +147,7 @@ def get_nearest_offers(
             offer_table.stock_beginning_date.label("stock_beginning_date"),
             offer_table.category.label("category"),
             offer_table.subcategory_id.label("subcategory_id"),
+            offer_table.subcategory_id.label("gtl_id"),
             offer_table.search_group_name.label("search_group_name"),
             offer_table.venue_latitude.label("venue_latitude"),
             offer_table.venue_longitude.label("venue_longitude"),
@@ -186,9 +187,10 @@ def get_nearest_offers(
                 stock_beginning_date=offer[7],
                 category=offer[8],
                 subcategory_id=offer[9],
-                search_group_name=offer[10],
-                venue_latitude=offer[11],
-                venue_longitude=offer[12],
+                gtl_id=offer[10],
+                search_group_name=offer[11],
+                venue_latitude=offer[12],
+                venue_longitude=offer[13],
                 item_score=[
                     reco for reco in recommendable_items if reco.item_id == offer[1]
                 ][0].item_score,

@@ -29,6 +29,7 @@ class Offer:
     stock_beginning_date: str = None
     category: str = None
     subcategory_id: str = None
+    gtl_id: str = None
     search_group_name: str = None
     found: bool = None
     is_geolocated: bool = None
@@ -43,6 +44,7 @@ class RecommendableOffer:
     booking_number: float
     category: str
     subcategory_id: str
+    gtl_id: str 
     stock_price: float
     offer_creation_date: str
     stock_beginning_date: str
