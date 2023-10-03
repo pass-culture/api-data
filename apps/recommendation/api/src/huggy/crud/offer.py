@@ -7,7 +7,7 @@ import time
 
 from huggy.schemas.offer import Offer, RecommendableOffer
 from huggy.schemas.user import User
-from huggy.schemas.item import Item, RecommendableItem
+from huggy.schemas.item import RecommendableItem
 
 from huggy.models.item_ids_mv import ItemIdsMv
 
@@ -16,7 +16,6 @@ from huggy.models.non_recommendable_items import NonRecommendableItems
 from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
 
 from huggy.crud.iris import get_iris_from_coordinates
-from huggy.utils.database import bind_engine
 from huggy.utils.env_vars import log_duration
 
 
