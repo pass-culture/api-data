@@ -20,7 +20,7 @@ def get_user_profile(
         iris_id = None
 
     if user_id is not None:
-        user_table = user_db.User.get_available_table(db)
+        user_table = user_db.User().get_available_table(db)
 
         user_profile = (
             db.query(
