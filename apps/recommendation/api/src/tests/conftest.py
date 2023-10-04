@@ -10,7 +10,7 @@ from typing import Any, Dict
 
 from huggy.models.non_recommendable_items import NonRecommendableItems
 from huggy.models.recommendable_offers_raw import RecommendableOffersRawMv
-from huggy.models.user import EnrichedUserMv
+from huggy.models.enriched_user import EnrichedUserMv
 from huggy.models.item_ids_mv import ItemIdsMv
 from huggy.utils.env_vars import DATA_GCP_TEST_POSTGRES_PORT
 
