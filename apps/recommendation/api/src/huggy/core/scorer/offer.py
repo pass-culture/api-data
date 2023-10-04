@@ -74,7 +74,6 @@ class OfferScorer:
         db: Session,
         recommendable_items: List[RecommendableItem],
     ) -> List[RecommendableOffer]:
-
         start = time.time()
         recommendable_offers = get_nearest_offers(db, self.user, recommendable_items)
         log_duration(
