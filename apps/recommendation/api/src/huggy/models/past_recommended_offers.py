@@ -40,7 +40,8 @@ class PastSimilarOffers(Base):
 
 class OfferContext(Base):
     """Database model of offer_context table.
-    This table is used to log the context of the offer when it is recommended to an user."""
+    This table is used to log the context of the offer when it is recommended to an user.
+    """
 
     __tablename__ = "offer_context"
     user_id = Column(String(256), primary_key=True)

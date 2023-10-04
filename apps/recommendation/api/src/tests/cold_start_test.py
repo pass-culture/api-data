@@ -22,7 +22,7 @@ from huggy.schemas.user import User
                 favorites_count=1,
                 user_deposit_remaining_credit=300,
             ),
-            "algo",
+            "algo_v2",
         ),
         (
             User(
@@ -37,7 +37,7 @@ from huggy.schemas.user import User
                 favorites_count=2,
                 user_deposit_remaining_credit=300,
             ),
-            "cold_start",
+            "cold_start_v2",
         ),
         (
             User(
@@ -52,7 +52,7 @@ from huggy.schemas.user import User
                 favorites_count=2,
                 user_deposit_remaining_credit=300,
             ),
-            "cold_start",
+            "cold_start_v2",
         ),
     ],
 )
