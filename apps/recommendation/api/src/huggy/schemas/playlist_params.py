@@ -27,6 +27,7 @@ class PlaylistParams(BaseModel):
     price_min: float = None
     is_reco_shuffled: bool = None
     is_digital: bool = True
+    submixing_feature_dict: dict = None
 
     class Config:
         alias_generator = underscore_to_camel

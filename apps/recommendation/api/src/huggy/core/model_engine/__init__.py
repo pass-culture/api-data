@@ -73,6 +73,7 @@ class ModelEngine(ABC):
                 shuffle_recommendation=diversification_params.is_reco_shuffled,
                 feature=diversification_params.mixing_features,
                 nb_reco_display=NUMBER_OF_RECOMMENDATIONS,
+                submixing_feature_dict=diversification_params.submixing_feature_dict,
             )
 
         scoring_size = min(len(scored_offers), NUMBER_OF_RECOMMENDATIONS)

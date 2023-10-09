@@ -112,7 +112,7 @@ mock_scored_offers = [
         category=None,
         subcategory_id="CINEMA",
         gtl_id=None,
-        stock_price=1,
+        stock_price=12,
         offer_creation_date=None,
         stock_beginning_date=None,
         search_group_name=None,
@@ -135,7 +135,30 @@ mock_scored_offers = [
         category=None,
         subcategory_id="CINEMA",
         gtl_id=None,
-        stock_price=1,
+        stock_price=6,
+        offer_creation_date=None,
+        stock_beginning_date=None,
+        search_group_name=None,
+        venue_latitude=None,
+        venue_longitude=None,
+        is_geolocated=0,
+        item_score=5,
+        item_rank=5,
+        query_order=None,
+        random=None,
+        offer_score=None,
+        offer_output=None,
+    ),
+    RecommendableOffer(
+        offer_id="item_7",
+        item_id="item_7",
+        venue_id=None,
+        user_distance=None,
+        booking_number=None,
+        category=None,
+        subcategory_id="CINEMA",
+        gtl_id=None,
+        stock_price=12,
         offer_creation_date=None,
         stock_beginning_date=None,
         search_group_name=None,
@@ -143,7 +166,7 @@ mock_scored_offers = [
         venue_longitude=None,
         is_geolocated=0,
         item_score=4,
-        item_rank=5,
+        item_rank=4,
         query_order=None,
         random=None,
         offer_score=None,
@@ -152,7 +175,15 @@ mock_scored_offers = [
 ]
 ## Reminder on diversification rule
 # output list is order by top score of the category, picking one in each category until reaching NbofRecommendations
-mock_expected_output = ["item_3", "item_4", "item_5", "item_2","item_6","item_1"]
+mock_expected_output = [
+    "item_3",
+    "item_4",
+    "item_5",
+    "item_2",
+    "item_6",
+    "item_1",
+    "item_7",
+]
 
 
 class DiversificationTest:
@@ -167,11 +198,15 @@ class DiversificationTest:
             shuffle_recommendation=None,
             feature="subcategory_id",
             nb_reco_display=20,
+            submixing_feature_dict={"LIVRE_PAPIER": "gtl_id", "CINEMA": "stock_price"},
         )
         ids = [x.offer_id for x in offers]
-        print("ids: ",ids)
-        logger.info(f"ids: {ids}")
+        print("ids: ", ids)
+        logger.info(f"orderded_ids: {ids}")
+        logger.info(f"mock_expected_output: {mock_expected_output}")
+
         assert_array_equal(
             mock_expected_output,
             ids,
         )
+        # assert False

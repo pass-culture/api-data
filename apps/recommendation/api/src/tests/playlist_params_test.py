@@ -1,12 +1,56 @@
 import os
 import pytest
 from huggy.schemas.playlist_params import PlaylistParams
+from huggy.core.model_engine.recommendation import Recommendation
+from huggy.schemas.user import User
 from huggy.utils.input_params import KeyValueInput
 
 ENV_SHORT_NAME = os.getenv("ENV_SHORT_NAME")
+from loguru import logger
 
 # TODO : update playlist params tests
-# class PlaylistParamsTest:
+class PlaylistParamsTest:
+    @pytest.mark.parametrize(
+        ["input_params"],
+        [
+            # ({"startDate": "2022-10-01"},),
+            (
+                {
+                    "submixing_feature_dict": {
+                        "LIVRE_PAPIER": "gtl_id",
+                        "CINEMA": "stock_price",
+                    }
+                },
+            )
+        ],
+        # ({"startDate": "2022-10-01"}, True),
+        # ({"isDuo": True}, True),
+    )
+    def test_diversfication_params(self, input_params):
+        logger.info(f"""input_params: {input_params}""")
+        logger.info(
+            f"""input_params["submixing_feature_dict"]: {input_params["submixing_feature_dict"]}"""
+        )
+        output_PlaylistParams = PlaylistParams.model_construct(
+            submixing_feature_dict=input_params["submixing_feature_dict"]
+        )
+        # user = User(
+        #         user_id="id1",
+        #         longitude=None,
+        #         latitude=None,
+        #         found=False,
+        #         iris_id=None,
+        #     )
+        # scoring = Recommendation(user, params_in=input_params)
+        # output_DiversificationParams=scoring.model_params.get_diversification_params()
+
+        assert (
+            output_PlaylistParams.submixing_feature_dict
+            == input_params["submixing_feature_dict"]
+        )
+        # assert output_DiversificationParams.submixing_feature_dict == input_params["submixing_feature_dict"]
+
+
 #     @pytest.mark.parametrize(
 #         ["input_params", "has_conditions"],
 #         [

@@ -65,5 +65,5 @@ def get_user_profile(
                 found=False,
                 iris_id=iris_id,
             )
-
+    # TODO: add case where user_id is none
     return user
