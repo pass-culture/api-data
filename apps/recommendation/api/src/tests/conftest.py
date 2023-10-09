@@ -9,18 +9,22 @@ from sqlalchemy.orm import sessionmaker, Session
 from typing import Any, Dict
 
 from huggy.models.non_recommendable_items import NonRecommendableItems
-from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
-from huggy.models.enriched_user import User
+from huggy.models.recommendable_offers_raw import RecommendableOffersRawMv
+from huggy.models.enriched_user import EnrichedUserMv
 from huggy.models.item_ids_mv import ItemIdsMv
+from huggy.utils.env_vars import DATA_GCP_TEST_POSTGRES_PORT
 
-DATA_GCP_TEST_POSTGRES_PORT = os.getenv("DATA_GCP_TEST_POSTGRES_PORT")
+import logging
+
+logger = logging.getLogger(__name__)
+
 DB_NAME = os.getenv("DB_NAME", "postgres")
 DEFAULT_IRIS_ID = "45327"
 
 TEST_DATABASE_CONFIG = {
     "user": "postgres",
     "password": "postgres",
-    "host": "127.0.0.1",
+    "host": "0.0.0.0",
     "port": DATA_GCP_TEST_POSTGRES_PORT,
     "database": DB_NAME,
 }
@@ -36,7 +40,6 @@ def app_config() -> Dict[str, Any]:
 
 
 def create_non_recommendable_items(engine):
-
     if inspect(engine).has_table(NonRecommendableItems.__tablename__):
         NonRecommendableItems.__table__.drop(engine)
     NonRecommendableItems.__table__.create(bind=engine)
@@ -273,12 +276,12 @@ def create_recommendable_offers_raw(engine):
         },
     ]
 
-    if inspect(engine).has_table(RecommendableOffersRaw.__tablename__):
-        RecommendableOffersRaw.__table__.drop(engine)
-    RecommendableOffersRaw.__table__.create(bind=engine)
+    if inspect(engine).has_table(RecommendableOffersRawMv.__tablename__):
+        RecommendableOffersRawMv.__table__.drop(engine)
+    RecommendableOffersRawMv.__table__.create(bind=engine)
 
     with engine.connect() as conn:
-        conn.execute(insert(RecommendableOffersRaw), data)
+        conn.execute(insert(RecommendableOffersRawMv), data)
         conn.commit()
         conn.close()
 
@@ -366,17 +369,17 @@ def create_enriched_user(engine):
             "has_added_offer_to_favorites": 4,
         },
     ]
-    if inspect(engine).has_table(User.__tablename__):
-        User.__table__.drop(engine)
-    User.__table__.create(bind=engine)
+    if inspect(engine).has_table(EnrichedUserMv.__tablename__):
+        EnrichedUserMv.__table__.drop(engine)
+    EnrichedUserMv.__table__.create(bind=engine)
 
     with engine.connect() as conn:
-        conn.execute(insert(User), data)
+        conn.execute(insert(EnrichedUserMv), data)
         conn.commit()
         conn.close()
 
 
-def create_qpi_answers(engine):
+def create_qpi_answers_mv(engine):
     qpi_answers = pd.DataFrame(
         {
             "user_id": ["111", "111", "112", "113", "114"],
@@ -479,21 +482,27 @@ def create_item_ids_mv(engine):
         conn.close()
 
 
-@pytest.fixture
-def setup_database(app_config: Dict[str, Any]) -> Session:
-    engine = create_engine(
+def get_engine():
+    return create_engine(
         f"postgresql+psycopg2://postgres:postgres@127.0.0.1:{DATA_GCP_TEST_POSTGRES_PORT}/{DB_NAME}"
     )
+
+
+@pytest.fixture
+def setup_database(app_config: Dict[str, Any]) -> Session:
+    logger.info("Set-up database...")
+    engine = get_engine()
     try:
         from huggy.utils.database import Base
 
         Base.metadata.drop_all(engine)
     except:
         pass
+
     create_recommendable_offers_raw(engine)
     create_non_recommendable_items(engine)
     create_enriched_user(engine)
-    create_qpi_answers(engine)
+    create_qpi_answers_mv(engine)
     create_past_recommended_offers(engine)
     create_iris_france(engine)
     create_item_ids_mv(engine)
@@ -505,26 +514,3 @@ def setup_database(app_config: Dict[str, Any]) -> Session:
         yield db
     finally:
         db.close()
-
-    # try:
-    #     connection.execute(
-    #         text("DROP MATERIALIZED VIEW IF EXISTS recommendable_offers_raw_mv CASCADE;")
-    #     )
-
-    #     connection.execute(
-    #         text("DROP MATERIALIZED VIEW IF EXISTS non_recommendable_offers CASCADE;")
-    #     )
-    #     connection.execute(
-    #         text("DROP MATERIALIZED VIEW IF EXISTS non_recommendable_items CASCADE;")
-    #     )
-
-    #     connection.execute(text("DROP TABLE IF EXISTS recommendable_offers_raw CASCADE;"))
-    #     connection.execute(
-    #         text("DROP TABLE IF EXISTS non_recommendable_offers_temporary_table CASCADE;")
-    #     )
-    #     connection.execute(text("DROP TABLE IF EXISTS enriched_user CASCADE;"))
-    #     connection.execute(text("DROP MATERIALIZED VIEW IF EXISTS enriched_user_mv CASCADE;"))
-    #     connection.execute(text("DROP TABLE IF EXISTS past_recommended_offers CASCADE ;"))
-    #     connection.execute(text("DROP TABLE IF EXISTS iris_france CASCADE;"))
-    # except:
-    #     pass

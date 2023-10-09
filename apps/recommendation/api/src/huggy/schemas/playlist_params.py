@@ -38,6 +38,10 @@ class GetSimilarOfferPlaylistParams(PlaylistParams):
     categories: List[str] = Field(Query([]))
     subcategories: List[str] = Field(Query([]))
     gtl_ids: List[str] = Field(Query([]))
+    gtl_l1: List[str] = Field(Query([]))
+    gtl_l2: List[str] = Field(Query([]))
+    gtl_l3: List[str] = Field(Query([]))
+    gtl_l4: List[str] = Field(Query([]))
     offer_type_list: str = None  # useless in similar offer
 
 
@@ -46,6 +50,10 @@ class PostSimilarOfferPlaylistParams(PlaylistParams):
     categories: List[str] = None
     subcategories: List[str] = None
     gtl_ids: List[str] = None
+    gtl_l1: List[str] = Field(Query([]))
+    gtl_l2: List[str] = Field(Query([]))
+    gtl_l3: List[str] = Field(Query([]))
+    gtl_l4: List[str] = Field(Query([]))
     offer_type_list: str = None  # useless in similar offer
 
 
@@ -53,4 +61,8 @@ class RecommendationPlaylistParams(PlaylistParams):
     categories: List[str] = None
     subcategories: List[str] = None
     gtl_ids: List[str] = None
+    gtl_l1: List[str] = Field(Query([]))
+    gtl_l2: List[str] = Field(Query([]))
+    gtl_l3: List[str] = Field(Query([]))
+    gtl_l4: List[str] = Field(Query([]))
     offer_type_list: List[Dict] = None

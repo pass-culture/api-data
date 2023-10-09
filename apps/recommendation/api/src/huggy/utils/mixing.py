@@ -74,7 +74,7 @@ def order_offers_by_score_and_diversify_features(
                 score_order_ascending=False,
                 shuffle_recommendation=None,
                 feature=submixing_feature_dict[subcat_to_mix],
-                nb_reco_display=len(submixed_data),
+                nb_reco_display=len(to_submixed_data[subcat_to_mix]),
                 is_submixing=is_submixing,
             )
             submixed_data.reverse()

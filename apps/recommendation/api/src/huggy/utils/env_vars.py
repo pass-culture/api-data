@@ -24,6 +24,8 @@ SQL_CONNECTION_NAME = os.environ.get(
     "SQL_CONNECTION_NAME",
     "passculture-data-ehp:europe-west1:cloudsql-recommendation-dev-ew1",
 )
+DATA_GCP_TEST_POSTGRES_PORT = os.getenv("DATA_GCP_TEST_POSTGRES_PORT")
+
 
 try:
     SQL_BASE_PASSWORD = access_secret(GCP_PROJECT, SQL_BASE_SECRET_ID)

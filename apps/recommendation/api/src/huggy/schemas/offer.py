@@ -45,6 +45,10 @@ class RecommendableOffer:
     category: str
     subcategory_id: str
     gtl_id: str
+    gtl_l1: str
+    gtl_l2: str
+    gtl_l3: str
+    gtl_l4: str
     stock_price: float
     offer_creation_date: str
     stock_beginning_date: str
