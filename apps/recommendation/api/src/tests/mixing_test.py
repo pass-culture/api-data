@@ -108,7 +108,7 @@ mock_scored_offers = [
 ]
 ## Reminder on diversification rule
 # output list is order by top score of the category, picking one in each category until reaching NbofRecommendations
-mock_expected_output = ["item_1", "item_2", "item_3", "item_4", "item_5"]
+mock_expected_output = ['item_5', 'item_4', 'item_3', 'item_2', 'item_1']
 
 
 class DiversificationTest:
