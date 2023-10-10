@@ -158,7 +158,6 @@ class RetrievalEndpoint(AbstractEndpoint):
         return [
             RecommendableItem(
                 item_id=r["item_id"],
-                item_score=float(r.get("score", r["idx"])),
                 item_rank=r["idx"],
             )
             for r in prediction_result.predictions

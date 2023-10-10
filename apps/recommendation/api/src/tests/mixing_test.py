@@ -25,10 +25,7 @@ mock_scored_offers = [
         venue_latitude=None,
         venue_longitude=None,
         is_geolocated=0,
-        item_score=1,
         item_rank=1,
-        query_order=None,
-        random=None,
         offer_score=None,
         offer_output=None,
     ),
@@ -47,10 +44,7 @@ mock_scored_offers = [
         venue_latitude=None,
         venue_longitude=None,
         is_geolocated=0,
-        item_score=2,
         item_rank=2,
-        query_order=None,
-        random=None,
         offer_score=None,
         offer_output=None,
     ),
@@ -69,10 +63,7 @@ mock_scored_offers = [
         venue_latitude=None,
         venue_longitude=None,
         is_geolocated=0,
-        item_score=3,
         item_rank=3,
-        query_order=None,
-        random=None,
         offer_score=None,
         offer_output=None,
     ),
@@ -91,10 +82,7 @@ mock_scored_offers = [
         venue_latitude=None,
         venue_longitude=None,
         is_geolocated=0,
-        item_score=1,
         item_rank=4,
-        query_order=None,
-        random=None,
         offer_score=None,
         offer_output=None,
     ),
@@ -113,17 +101,14 @@ mock_scored_offers = [
         venue_latitude=None,
         venue_longitude=None,
         is_geolocated=0,
-        item_score=2,
         item_rank=5,
-        query_order=None,
-        random=None,
         offer_score=None,
         offer_output=None,
     ),
 ]
 ## Reminder on diversification rule
 # output list is order by top score of the category, picking one in each category until reaching NbofRecommendations
-mock_expected_output = ["item_3", "item_5", "item_4", "item_2", "item_1"]
+mock_expected_output = ["item_1", "item_2", "item_3", "item_4", "item_5"]
 
 
 class DiversificationTest:
@@ -132,7 +117,7 @@ class DiversificationTest:
     ):
         offers = order_offers_by_score_and_diversify_features(
             mock_scored_offers,
-            score_column="item_score",
+            score_column="item_rank",
             score_order_ascending=False,
             shuffle_recommendation=None,
             feature="subcategory_id",

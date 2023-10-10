@@ -11,7 +11,7 @@ from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.offer import RecommendableOffer
 from huggy.schemas.item import RecommendableItem
 
-from huggy.crud.offer import get_nearest_offers
+from huggy.crud.offer import get_nearest_offers, get_non_recommendable_items
 
 from huggy.utils.env_vars import log_duration
 
@@ -35,7 +35,6 @@ class OfferScorer:
         self,
         db: Session,
         call_id,
-        offer_limit: int = 40,
     ) -> List[RecommendableOffer]:
         start = time.time()
 
@@ -75,16 +74,42 @@ class OfferScorer:
         recommendable_items: List[RecommendableItem],
     ) -> List[RecommendableOffer]:
         start = time.time()
-        recommendable_offers = get_nearest_offers(db, self.user, recommendable_items)
+        non_recommendable_items = get_non_recommendable_items(db, self.user)
+
+        recommendable_items_ids = {
+            item.item_id: item.item_rank
+            for item in recommendable_items
+            if item.item_id not in non_recommendable_items
+        }
+        recommendable_offers_db = get_nearest_offers(
+            db, self.user, recommendable_items_ids
+        )
         log_duration(
-            f"GLOBAL. get_nearest_offers {str(self.user.user_id)} offers : {len(recommendable_offers)}",
+            f"GLOBAL. get_nearest_offers {str(self.user.user_id)} offers : {len(recommendable_offers_db)}",
             start,
         )
-        size = len(recommendable_offers)
-
-        for i, recommendable_offer in enumerate(recommendable_offers):
-            recommendable_offer.offer_score = size - i
-            recommendable_offer.query_order = i
-            recommendable_offer.random = random.random()
+        size = len(recommendable_offers_db)
+        recommendable_offers = []
+        for i, ro in enumerate(recommendable_offers_db):
+            recommendable_offers.append(
+                RecommendableOffer(
+                    offer_id=ro.offer_id,
+                    item_id=ro.item_id,
+                    venue_id=ro.venue_id,
+                    user_distance=ro.user_distance,
+                    booking_number=ro.booking_number,
+                    stock_price=ro.stock_price,
+                    offer_creation_date=ro.offer_creation_date,
+                    stock_beginning_date=ro.stock_beginning_date,
+                    category=ro.category,
+                    subcategory_id=ro.subcategory_id,
+                    search_group_name=ro.search_group_name,
+                    venue_latitude=ro.venue_latitude,
+                    venue_longitude=ro.venue_longitude,
+                    is_geolocated=ro.is_geolocated,
+                    item_rank=recommendable_items_ids[ro.item_id],
+                    offer_score=size - i,
+                )
+            )
 
         return recommendable_offers

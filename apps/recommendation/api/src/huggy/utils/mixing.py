@@ -12,7 +12,7 @@ from huggy.utils.env_vars import (
 
 def order_offers_by_score_and_diversify_features(
     offers: List[RecommendableOffer],
-    score_column="item_score",
+    score_column="offer_score",
     score_order_ascending=False,
     shuffle_recommendation=None,
     feature="subcategory_id",

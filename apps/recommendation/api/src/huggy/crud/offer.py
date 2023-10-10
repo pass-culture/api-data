@@ -2,10 +2,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 from sqlalchemy.sql.expression import literal_column
 from geoalchemy2.elements import WKTElement
-from typing import List
+from typing import List, Dict
 import time
 
-from huggy.schemas.offer import Offer, RecommendableOffer
+from huggy.schemas.offer import Offer, RecommendableOffer, RecommendableOfferQuery
 from huggy.schemas.user import User
 from huggy.schemas.item import RecommendableItem
 
@@ -68,34 +68,10 @@ def get_non_recommendable_items(db: Session, user: User) -> List[str]:
 
 
 def get_nearest_offers(
-    db: Session, user: User, recommendable_items: List[RecommendableItem]
-) -> List[RecommendableOffer]:
-    start = time.time()
+    db: Session, user: User, recommendable_items_ids: Dict[str, float]
+) -> List[RecommendableOfferQuery]:
     offer_table = RecommendableOffersRaw().get_available_table(db)
-    log_duration(
-        f"1. get_available_table {str(user.user_id)} offer_table: {str(offer_table)}",
-        start,
-    )
 
-    start = time.time()
-    non_recommendable_items = get_non_recommendable_items(db, user)
-    log_duration(
-        f"2. get_non_recommendable_items {str(user.user_id)} non_recommendable_items : {non_recommendable_items}",
-        start,
-    )
-
-    start = time.time()
-    recommendable_items_ids = [
-        item.item_id
-        for item in recommendable_items
-        if item.item_id not in non_recommendable_items
-    ]
-    log_duration(
-        f"3. get_recommendable_items_ids {str(user.user_id)} recommendable_items_ids : {len(recommendable_items_ids)}",
-        start,
-    )
-
-    start = time.time()
     if user.latitude is not None and user.longitude is not None:
         # user_geolocated = True
         user_point = WKTElement(f"POINT({user.latitude} {user.longitude})")
@@ -113,7 +89,7 @@ def get_nearest_offers(
             0,
         ).label("user_distance")
     else:
-        user_distance = literal_column("0").label("user_distance")
+        user_distance = literal_column("NULL").label("user_distance")
 
     user_distance_condition = [offer_table.default_max_distance >= user_distance]
 
@@ -148,51 +124,15 @@ def get_nearest_offers(
             offer_table.is_geolocated.label("is_geolocated"),
             offer_rank,
         )
+        .filter(offer_table.item_id.in_(list(recommendable_items_ids.keys())))
         .filter(*user_distance_condition)
         .filter(*underage_condition)
-        .filter(offer_table.item_id.in_(recommendable_items_ids))
         .filter(offer_table.stock_price <= user.user_deposit_remaining_credit)
         .subquery()
     )
 
-    nearest_offers = (
-        db.query(nearest_offers_subquery)
+    return (
+        db.query(RecommendableOfferQuery, nearest_offers_subquery)
         .filter(nearest_offers_subquery.c.offer_rank == 1)
         .all()
     )
-
-    log_duration(
-        f"4. nearest_offers {str(user.user_id)} nearest_offers : {len(nearest_offers)}",
-        start,
-    )
-
-    start = time.time()
-    nearest_offers_result = []
-    for offer in nearest_offers:
-        nearest_offers_result.append(
-            RecommendableOffer(
-                offer_id=offer[0],
-                item_id=offer[1],
-                venue_id=offer[2],
-                user_distance=offer[3],
-                booking_number=offer[4],
-                stock_price=offer[5],
-                offer_creation_date=offer[6],
-                stock_beginning_date=offer[7],
-                category=offer[8],
-                subcategory_id=offer[9],
-                search_group_name=offer[10],
-                venue_latitude=offer[11],
-                venue_longitude=offer[12],
-                item_score=[
-                    reco for reco in recommendable_items if reco.item_id == offer[1]
-                ][0].item_score,
-            )
-        )
-
-    log_duration(
-        f"5. parse nearest_offers in list {str(user.user_id)} nearest_offers_result : {len(nearest_offers_result)}",
-        start,
-    )
-
-    return nearest_offers_result

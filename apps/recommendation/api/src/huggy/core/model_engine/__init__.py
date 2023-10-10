@@ -119,7 +119,7 @@ class ModelEngine(ABC):
                         offer_stock_beginning_date=o.stock_beginning_date,
                         offer_category=o.category,
                         offer_subcategory_id=o.subcategory_id,
-                        offer_item_score=o.item_score,
+                        offer_item_score=o.item_rank,
                         offer_order=o.offer_score,
                         offer_venue_id=o.venue_id,
                     )

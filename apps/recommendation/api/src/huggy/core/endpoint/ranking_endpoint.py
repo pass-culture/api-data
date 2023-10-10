@@ -99,15 +99,17 @@ class ModelRankingEndpoint(RankingEndpoint):
         )
         self.model_version = prediction_result.model_version
         self.model_display_name = prediction_result.model_display_name
-        # smallest = better (indices)
         prediction_dict = {
             r["offer_id"]: r["score"] for r in prediction_result.predictions
         }
-
+        ranked_offers = []
         for row in recommendable_offers:
             current_score = prediction_dict.get(row.offer_id, None)
             if current_score is not None:
                 row.offer_score = current_score
                 row.offer_output = current_score
-        log_duration(f"ranking_endpoint {str(self.user.user_id)}", start)
-        return sorted(recommendable_offers, key=lambda x: x.offer_output, reverse=True)
+                ranked_offers.append(row)
+        log_duration(
+            f"ranking_endpoint {str(self.user.user_id)} : {len(ranked_offers)}", start
+        )
+        return sorted(ranked_offers, key=lambda x: x.offer_output, reverse=True)
