@@ -44,8 +44,6 @@ class ModelConfiguration:
     scorer: offer_scorer.OfferScorer
     retrieval_endpoints: List[RetrievalEndpoint]
     ranking_endpoint: RankingEndpoint
-    ranking_order_query: str
-    ranking_limit_query: int
     diversification_params: DiversificationParams
 
     def get_diversification_params(

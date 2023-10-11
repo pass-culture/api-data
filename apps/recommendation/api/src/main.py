@@ -1,13 +1,14 @@
 from fastapi import Depends, FastAPI, Request
 from fastapi.logger import logger
 from fastapi.encoders import jsonable_encoder
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import uuid
 
 from huggy.schemas.playlist_params import (
     PostSimilarOfferPlaylistParams,
     GetSimilarOfferPlaylistParams,
-    RecommendationPlaylistParams,
+    PlaylistParams,
 )
 
 from huggy.core.model_engine.similar_offer import SimilarOffer
@@ -17,19 +18,24 @@ from huggy.crud.user import get_user_profile
 from huggy.crud.offer import get_offer_characteristics
 
 from huggy.utils.database import get_db
-from huggy.utils.env_vars import cloud_trace_context
-from huggy.utils.cloud_logging.setup import setup_logging
+from huggy.utils.env_vars import cloud_trace_context, call_id_trace_context
+from huggy.utils.cloud_logging import logger
+from huggy.utils.env_vars import CORS_ALLOWED_ORIGIN
 
-app = FastAPI(title="Passculture refacto reco API")
+
+app = FastAPI(title="passCulture - Recommendation")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ALLOWED_ORIGIN,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 async def setup_trace(request: Request):
-    custom_logger.info("Setting up trace..")
     if "x-cloud-trace-context" in request.headers:
         cloud_trace_context.set(request.headers.get("x-cloud-trace-context"))
-
-
-custom_logger = setup_logging()
 
 
 @app.get("/", dependencies=[Depends(setup_trace)])
@@ -52,6 +58,7 @@ def similar_offers(
     db: Session = Depends(get_db),
 ):
     call_id = str(uuid.uuid4())
+    call_id_trace_context.set(call_id)
 
     user = get_user_profile(db, playlist_params.user_id, latitude, longitude)
 
@@ -67,7 +74,6 @@ def similar_offers(
         "iris_id": user.iris_id,
         "call_id": call_id,
         "reco_origin": scoring.reco_origin,
-        # 'filters': playlist_params,
         "retrieval_model_name": scoring.scorer.retrieval_endpoints[
             0
         ].model_display_name,
@@ -79,7 +85,7 @@ def similar_offers(
         "recommended_offers": offer_recommendations,
     }
 
-    custom_logger.info(
+    logger.info(
         f"Get similar offer of offer_id {offer.offer_id} for user {user.user_id}",
         extra=log_extra_data,
     )
@@ -104,7 +110,6 @@ def similar_offers(
                 "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
                 "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,
                 "geo_located": user.is_geolocated,
-                # "filtered": input_reco.has_conditions if input_reco else False,
                 "call_id": call_id,
             },
         }
@@ -120,6 +125,7 @@ def similar_offers(
     db: Session = Depends(get_db),
 ):
     call_id = str(uuid.uuid4())
+    call_id_trace_context.set(call_id)
 
     user = get_user_profile(
         db, playlist_params.user_id, latitude, longitude
@@ -137,7 +143,6 @@ def similar_offers(
         "iris_id": user.iris_id,
         "call_id": call_id,
         "reco_origin": scoring.reco_origin,
-        # 'filters': playlist_params,
         "retrieval_model_name": scoring.scorer.retrieval_endpoints[
             0
         ].model_display_name,
@@ -149,9 +154,9 @@ def similar_offers(
         "recommended_offers": offer_recommendations,
     }
 
-    custom_logger.info(
+    logger.info(
         f"Get similar offer of offer_id {offer.offer_id} for user {user.user_id}",
-        extra=log_extra_data,
+        extra=jsonable_encoder(log_extra_data),
     )
 
     scoring.save_recommendation(db, offer_recommendations, call_id)
@@ -174,7 +179,6 @@ def similar_offers(
                 "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
                 "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,
                 "geo_located": user.is_geolocated,
-                # "filtered": input_reco.has_conditions if input_reco else False,
                 "call_id": call_id,
             },
         }
@@ -184,12 +188,13 @@ def similar_offers(
 @app.post("/playlist_recommendation/{user_id}", dependencies=[Depends(setup_trace)])
 def playlist_recommendation(
     user_id: str,
-    playlist_params: RecommendationPlaylistParams,
+    playlist_params: PlaylistParams,
     latitude: float = None,
     longitude: float = None,
     db: Session = Depends(get_db),
 ):
     call_id = str(uuid.uuid4())
+    call_id_trace_context.set(call_id)
 
     user = get_user_profile(db, user_id, latitude, longitude)
 
@@ -202,7 +207,6 @@ def playlist_recommendation(
         "iris_id": user.iris_id,
         "call_id": call_id,
         "reco_origin": scoring.reco_origin,
-        # 'filters': playlist_params,
         "retrieval_model_name": scoring.scorer.retrieval_endpoints[
             0
         ].model_display_name,
@@ -214,8 +218,9 @@ def playlist_recommendation(
         "recommended_offers": user_recommendations,
     }
 
-    custom_logger.info(
-        f"Get recommendations for user {user.user_id}", extra=log_extra_data
+    logger.info(
+        f"Get recommendations for user {user.user_id}",
+        extra=jsonable_encoder(log_extra_data),
     )
 
     scoring.save_recommendation(db, user_recommendations, call_id)
@@ -237,7 +242,6 @@ def playlist_recommendation(
                 "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
                 "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,
                 "geo_located": user.is_geolocated,
-                # "filtered": input_reco.has_conditions if input_reco else False,
                 "call_id": call_id,
             },
         }

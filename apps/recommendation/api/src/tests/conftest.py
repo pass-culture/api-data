@@ -34,7 +34,6 @@ TEST_DATABASE_CONFIG = {
 def app_config() -> Dict[str, Any]:
     return {
         "NUMBER_OF_RECOMMENDATIONS": 10,
-        "NUMBER_OF_PRESELECTED_OFFERS": 50,
         "MODEL_REGION": "model_region",
     }
 
@@ -490,7 +489,6 @@ def get_engine():
 
 @pytest.fixture
 def setup_database(app_config: Dict[str, Any]) -> Session:
-    logger.info("Set-up database...")
     engine = get_engine()
     try:
         from huggy.utils.database import Base

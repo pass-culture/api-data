@@ -1,7 +1,7 @@
 from fastapi import Query
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, Optional
 import re
 
 
@@ -18,15 +18,18 @@ def underscore_to_camel(name):
 class PlaylistParams(BaseModel):
     """Acceptable input in a API request for recommendations filters."""
 
-    model_endpoint: str = None
-    start_date: datetime = None
-    end_date: datetime = None
-    is_event: bool = None
-    is_duo: bool = None
-    price_max: float = None
-    price_min: float = None
-    is_reco_shuffled: bool = None
-    is_digital: bool = True
+    model_endpoint: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    is_event: Optional[bool] = None
+    is_duo: Optional[bool] = None
+    price_max: Optional[float] = None
+    price_min: Optional[float] = None
+    is_reco_shuffled: Optional[bool] = None
+    is_digital: Optional[bool] = None
+    categories: Optional[List[str]] = None
+    subcategories: Optional[List[str]] = None
+    offer_type_list: Optional[List[Dict]] = None
 
     class Config:
         alias_generator = underscore_to_camel
@@ -36,17 +39,7 @@ class GetSimilarOfferPlaylistParams(PlaylistParams):
     user_id: str = None
     categories: List[str] = Field(Query([]))
     subcategories: List[str] = Field(Query([]))
-    offer_type_list: str = None  # useless in similar offer
 
 
 class PostSimilarOfferPlaylistParams(PlaylistParams):
     user_id: str = None
-    categories: List[str] = None
-    subcategories: List[str] = None
-    offer_type_list: str = None  # useless in similar offer
-
-
-class RecommendationPlaylistParams(PlaylistParams):
-    categories: List[str] = None
-    subcategories: List[str] = None
-    offer_type_list: List[Dict] = None

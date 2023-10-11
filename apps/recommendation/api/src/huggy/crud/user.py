@@ -19,6 +19,14 @@ def get_user_profile(
     else:
         iris_id = None
 
+    user = User(
+        user_id=user_id,
+        longitude=longitude,
+        latitude=latitude,
+        found=False,
+        iris_id=iris_id,
+    )
+
     if user_id is not None:
         user_table = user_db.EnrichedUser().get_available_table(db)
 
@@ -50,14 +58,4 @@ def get_user_profile(
                 favorites_count=user_profile[3],
                 user_deposit_remaining_credit=user_profile[4],
             )
-
-        else:
-            user = User(
-                user_id=user_id,
-                longitude=longitude,
-                latitude=latitude,
-                found=False,
-                iris_id=iris_id,
-            )
-
     return user

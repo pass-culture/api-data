@@ -165,5 +165,5 @@ cython_debug/
 
 #Vscode workspace
 *.code-workspace
-
+.vscode
 .python-version

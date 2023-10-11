@@ -8,7 +8,7 @@ from huggy.utils.env_vars import API_LOCAL
 
 
 def setup_logging():
-    if API_LOCAL == "True":
+    if API_LOCAL == True:
         api_logger = logging.getLogger("uvicorn")
     else:
         client = google.cloud.logging.Client()

@@ -1,19 +1,14 @@
 from sqlalchemy.orm import Session
 from typing import List
-import time
-import random
-
 from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
 from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
-
+from huggy.utils.cloud_logging import logger
 from huggy.schemas.user import User
 from huggy.schemas.playlist_params import PlaylistParams
-from huggy.schemas.offer import RecommendableOffer
+from huggy.schemas.recommendable_offer import RecommendableOffer
 from huggy.schemas.item import RecommendableItem
 
-from huggy.crud.offer import get_nearest_offers
-
-from huggy.utils.env_vars import log_duration
+from huggy.crud.offer import get_nearest_offers, get_non_recommendable_items
 
 
 class OfferScorer:
@@ -35,25 +30,41 @@ class OfferScorer:
         self,
         db: Session,
         call_id,
-        offer_limit: int = 40,
     ) -> List[RecommendableOffer]:
-        start = time.time()
-
         prediction_items: List[RecommendableItem] = []
-
+        endpoints_stats = {}
         for endpoint in self.retrieval_endpoints:
-            prediction_items.extend(endpoint.model_score())
-        log_duration(
-            f"Retrieval: predicted_items for {self.user.user_id}: predicted_items -> {len(prediction_items)}",
-            start,
+            out = endpoint.model_score()
+            endpoints_stats[endpoint.endpoint_name] = len(out)
+            prediction_items.extend(out)
+
+        logger.info(
+            message=f"Retrieval: {self.user.user_id}: predicted_items -> {len(prediction_items)}",
+            extra={
+                "event_name": "retrieval",
+                "call_id": call_id,
+                "user_id": self.user.user_id,
+                "total_items": len(prediction_items),
+                "retrieval_endpoints": endpoints_stats,
+            },
         )
-        start = time.time()
+
         # nothing to score
         if len(prediction_items) == 0:
             return []
 
         # Transform items in offers
         recommendable_offers = self.get_recommendable_offers(db, prediction_items)
+
+        logger.info(
+            message=f"Recommendable Offers: {self.user.user_id}: recommendable_offers -> {len(recommendable_offers)}",
+            extra={
+                "event_name": "recommendable_offers",
+                "call_id": call_id,
+                "user_id": self.user.user_id,
+                "total_offers": len(recommendable_offers),
+            },
+        )
 
         # nothing to score
         if len(recommendable_offers) == 0:
@@ -62,9 +73,15 @@ class OfferScorer:
         recommendable_offers = self.ranking_endpoint.model_score(
             recommendable_offers=recommendable_offers
         )
-        log_duration(
-            f"Ranking: get_recommendable_offers for {self.user.user_id}: offers -> {len(recommendable_offers)}",
-            start,
+
+        logger.info(
+            message=f"Ranking Offers: {self.user.user_id}: ranking_endpoint -> {len(recommendable_offers)}",
+            extra={
+                "event_name": "ranking",
+                "call_id": call_id,
+                "user_id": self.user.user_id,
+                "total_offers": len(recommendable_offers),
+            },
         )
 
         return recommendable_offers
@@ -74,17 +91,22 @@ class OfferScorer:
         db: Session,
         recommendable_items: List[RecommendableItem],
     ) -> List[RecommendableOffer]:
-        start = time.time()
-        recommendable_offers = get_nearest_offers(db, self.user, recommendable_items)
-        log_duration(
-            f"GLOBAL. get_nearest_offers {str(self.user.user_id)} offers : {len(recommendable_offers)}",
-            start,
-        )
-        size = len(recommendable_offers)
+        non_recommendable_items = get_non_recommendable_items(db, self.user)
 
-        for i, recommendable_offer in enumerate(recommendable_offers):
-            recommendable_offer.offer_score = size - i
-            recommendable_offer.query_order = i
-            recommendable_offer.random = random.random()
+        recommendable_items_ids = {
+            item.item_id: item.item_rank
+            for item in recommendable_items
+            if item.item_id not in non_recommendable_items
+        }
+        recommendable_offers_db = get_nearest_offers(
+            db, self.user, recommendable_items_ids
+        )
+        recommendable_offers = []
+        for ro in recommendable_offers_db:
+            recommendable_offers.append(
+                RecommendableOffer(
+                    item_rank=recommendable_items_ids[ro.item_id], **ro.dict()
+                )
+            )
 
         return recommendable_offers

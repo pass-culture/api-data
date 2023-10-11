@@ -63,7 +63,7 @@ In case of emergency you still can deploy the api by hand:
 ```
 cd ~/apps/recommendation/api
 gcloud builds submit \
-  --tag eu.gcr.io/<PROJECT-ID>/data-gcp/<IMAGE-NAME> \
+  --tag eu.gcr.io/<PROJECT-ID>/data-gcp/<IMAGE-NAME>
 
 ```
 - PROJECT-ID : (passculture-data-\<env>)
