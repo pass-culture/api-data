@@ -34,7 +34,6 @@ TEST_DATABASE_CONFIG = {
 def app_config() -> Dict[str, Any]:
     return {
         "NUMBER_OF_RECOMMENDATIONS": 10,
-        "NUMBER_OF_PRESELECTED_OFFERS": 50,
         "MODEL_REGION": "model_region",
     }
 

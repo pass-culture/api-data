@@ -4,12 +4,10 @@ import contextvars
 
 from huggy.utils.secrets import access_secret
 
+# GLOBAL
 GCP_PROJECT = os.environ.get("GCP_PROJECT", "passculture-data-ehp")
 ENV_SHORT_NAME = os.environ.get("ENV_SHORT_NAME", "dev")
-NUMBER_OF_RECOMMENDATIONS = 40
-NUMBER_OF_PRESELECTED_OFFERS = 50 if not os.environ.get("CI") else 3
-DEFAULT_SIMILAR_OFFER_MODEL = os.environ.get("DEFAULT_SIMILAR_OFFER_MODEL", "default")
-DEFAULT_RECO_MODEL = os.environ.get("DEFAULT_RECO_MODEL", "default")
+CORS_ALLOWED_ORIGIN = os.environ.get("CORS_ALLOWED_ORIGIN", "*")
 API_LOCAL = os.environ.get("API_LOCAL", False) == True
 # SQL
 SQL_BASE = os.environ.get("SQL_BASE", "cloudsql-recommendation-dev-ew1")
@@ -37,6 +35,11 @@ SQL_HOST = os.environ.get("SQL_HOST")
 cloud_trace_context = contextvars.ContextVar("cloud_trace_context", default="")
 call_id_trace_context = contextvars.ContextVar("call_id_context", default="")
 http_request_context = contextvars.ContextVar("http_request_context", default=dict({}))
+
+# config
+DEFAULT_SIMILAR_OFFER_MODEL = os.environ.get("DEFAULT_SIMILAR_OFFER_MODEL", "default")
+DEFAULT_RECO_MODEL = os.environ.get("DEFAULT_RECO_MODEL", "default")
+NUMBER_OF_RECOMMENDATIONS = 40
 
 
 class MixingFeatures(Enum):

@@ -144,7 +144,10 @@ class RetrievalEndpoint(AbstractEndpoint):
             params.append(ListParams(label="offer_type_domain", values=domain))
             params.append(ListParams(label="offer_type_label", values=label))
 
-        return {"$and": {k: v for d in params for k, v in d.filter().items()}}
+        filters = {"$and": {k: v for d in params for k, v in d.filter().items()}}
+        logger.info("retrieval_endpoint : get_params", extra=filters)
+
+        return filters
 
     def model_score(self) -> t.List[RecommendableItem]:
         instances = self.get_instance(self.size)

@@ -1,6 +1,7 @@
 from fastapi import Depends, FastAPI, Request
 from fastapi.logger import logger
 from fastapi.encoders import jsonable_encoder
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 import uuid
 
@@ -19,8 +20,17 @@ from huggy.crud.offer import get_offer_characteristics
 from huggy.utils.database import get_db
 from huggy.utils.env_vars import cloud_trace_context, call_id_trace_context
 from huggy.utils.cloud_logging import logger
+from huggy.utils.env_vars import CORS_ALLOWED_ORIGIN
 
-app = FastAPI(title="Passculture refacto reco API")
+
+app = FastAPI(title="passCulture - Recommendation")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ALLOWED_ORIGIN,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 async def setup_trace(request: Request):
