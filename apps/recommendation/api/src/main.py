@@ -156,7 +156,7 @@ def similar_offers(
 
     logger.info(
         f"Get similar offer of offer_id {offer.offer_id} for user {user.user_id}",
-        extra=log_extra_data,
+        extra=jsonable_encoder(log_extra_data),
     )
 
     scoring.save_recommendation(db, offer_recommendations, call_id)
@@ -218,7 +218,10 @@ def playlist_recommendation(
         "recommended_offers": user_recommendations,
     }
 
-    logger.info(f"Get recommendations for user {user.user_id}", extra=log_extra_data)
+    logger.info(
+        f"Get recommendations for user {user.user_id}",
+        extra=jsonable_encoder(log_extra_data),
+    )
 
     scoring.save_recommendation(db, user_recommendations, call_id)
     return jsonable_encoder(

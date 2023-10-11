@@ -145,7 +145,7 @@ class RetrievalEndpoint(AbstractEndpoint):
             params.append(ListParams(label="offer_type_label", values=label))
 
         filters = {"$and": {k: v for d in params for k, v in d.filter().items()}}
-        logger.info("retrieval_endpoint : get_params", extra=filters)
+        logger.info("retrieval_endpoint : get_params", extra=jsonable_encoder(filters))
 
         return filters
 
