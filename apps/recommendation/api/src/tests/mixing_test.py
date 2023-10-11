@@ -70,7 +70,7 @@ mock_scored_offers = [
     RankedOffer(
         offer_id="item_4",
         item_id="item_4",
-        venue_id=None,
+        venue_id="123",
         user_distance=None,
         booking_number=0,
         category="SPECTACLE",
