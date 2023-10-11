@@ -6,14 +6,12 @@ from huggy.schemas.user import User
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.core.model_selection.model_configuration import ModelConfiguration
 from huggy.utils.mixing import order_offers_by_score_and_diversify_features
-from huggy.schemas.offer import RecommendableOffer
+from huggy.schemas.recommendable_offer import RankedOffer
 from huggy.models.past_recommended_offers import OfferContext
 import typing as t
 from huggy.utils.env_vars import (
     NUMBER_OF_RECOMMENDATIONS,
 )
-
-from loguru import logger
 from huggy.core.scorer.offer import OfferScorer
 from sqlalchemy.orm import Session
 
@@ -60,9 +58,6 @@ class ModelEngine(ABC):
         diversification_params = self.model_params.get_diversification_params(
             self.params_in
         )
-        logger.info(
-            f"{self.user.user_id}: get_scoring -> diversification active: {diversification_params.is_active}, shuffle: {diversification_params.is_reco_shuffled}, mixing key: {diversification_params.mixing_features}"
-        )
 
         # apply diversification filter
         if diversification_params.is_active:
@@ -89,7 +84,7 @@ class ModelEngine(ABC):
     def save_context(
         self,
         db: Session,
-        offers: t.List[RecommendableOffer],
+        offers: t.List[RankedOffer],
         call_id: str,
         context: str,
         user: User,

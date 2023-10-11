@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
 import datetime
-import time
 import pytz
 
 from huggy.schemas.user import User
@@ -13,8 +12,6 @@ from huggy.core.model_selection.model_configuration import ModelConfiguration
 from huggy.core.model_selection import (
     select_reco_model_params,
 )
-
-from huggy.utils.env_vars import log_duration
 
 
 class Recommendation(ModelEngine):
@@ -29,7 +26,6 @@ class Recommendation(ModelEngine):
 
     def save_recommendation(self, db: Session, recommendations, call_id) -> None:
         if len(recommendations) > 0:
-            start = time.time()
             date = datetime.datetime.now(pytz.utc)
             for reco in recommendations:
                 reco_offer = PastRecommendedOffers(
@@ -40,10 +36,8 @@ class Recommendation(ModelEngine):
                     reco_origin=self.reco_origin,
                     model_name=self.scorer.retrieval_endpoints[0].model_display_name,
                     model_version=self.scorer.retrieval_endpoints[0].model_version,
-                    # reco_filters=json.dumps(self.params_in.json_input),
                     call_id=call_id,
                     user_iris_id=self.user.iris_id,
                 )
                 db.add(reco_offer)
             db.commit()
-            log_duration(f"save_recommendations for {self.user.user_id}", start)

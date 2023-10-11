@@ -2,6 +2,7 @@ from google.cloud import aiplatform
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value
 from google.api_core.exceptions import DeadlineExceeded
+from huggy.utils.cloud_logging import logger
 from typing import Dict, List, Union
 from cachetools import cached, TTLCache
 from dataclasses import dataclass

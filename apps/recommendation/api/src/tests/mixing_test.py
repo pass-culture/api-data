@@ -3,14 +3,14 @@ from numpy.testing import assert_array_equal
 from huggy.utils.mixing import (
     order_offers_by_score_and_diversify_features,
 )
-from huggy.schemas.offer import RecommendableOffer
+from huggy.schemas.recommendable_offer import RankedOffer
 
 
 ENV_SHORT_NAME = os.getenv("ENV_SHORT_NAME")
 SHUFFLE_RECOMMENDATION = os.getenv("SHUFFLE_RECOMMENDATION", False)
 
 mock_scored_offers = [
-    RecommendableOffer(
+    RankedOffer(
         offer_id="item_1",
         item_id="item_1",
         venue_id=None,
@@ -29,7 +29,7 @@ mock_scored_offers = [
         offer_score=None,
         offer_output=None,
     ),
-    RecommendableOffer(
+    RankedOffer(
         offer_id="item_2",
         item_id="item_2",
         venue_id=None,
@@ -48,7 +48,7 @@ mock_scored_offers = [
         offer_score=None,
         offer_output=None,
     ),
-    RecommendableOffer(
+    RankedOffer(
         offer_id="item_3",
         item_id="item_3",
         venue_id=None,
@@ -67,7 +67,7 @@ mock_scored_offers = [
         offer_score=None,
         offer_output=None,
     ),
-    RecommendableOffer(
+    RankedOffer(
         offer_id="item_4",
         item_id="item_4",
         venue_id=None,
@@ -86,7 +86,7 @@ mock_scored_offers = [
         offer_score=None,
         offer_output=None,
     ),
-    RecommendableOffer(
+    RankedOffer(
         offer_id="item_5",
         item_id="item_5",
         venue_id=None,

@@ -7,8 +7,6 @@ from huggy.core.model_selection.model_configuration import (
     diversification_off,
 )
 
-RANKING_LIMIT = 50
-
 retrieval_offer = ModelConfiguration(
     name="similar_offer_model",
     description="""""",

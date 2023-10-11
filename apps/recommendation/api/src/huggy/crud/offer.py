@@ -3,18 +3,17 @@ from sqlalchemy import func, and_
 from sqlalchemy.sql.expression import literal_column
 from geoalchemy2.elements import WKTElement
 from typing import List, Dict
-import time
+from huggy.utils.cloud_logging import logger
+from pydantic import parse_obj_as
+from huggy.schemas.offer import Offer
+from huggy.schemas.recommendable_offer import RecommendableOfferDB
 
-from huggy.schemas.offer import Offer, RecommendableOffer, RecommendableOfferQuery
 from huggy.schemas.user import User
-from huggy.schemas.item import RecommendableItem
-
-from huggy.models.item_ids_mv import ItemIdsMv
+from huggy.models.item_ids_mv import ItemIdsMv, ItemIds
 from huggy.models.non_recommendable_items import NonRecommendableItems
 from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
 
 from huggy.crud.iris import get_iris_from_coordinates
-from huggy.utils.env_vars import log_duration
 
 
 def get_offer_characteristics(
@@ -24,9 +23,7 @@ def get_offer_characteristics(
     Return : List[item_id,  number of booking associated].
     """
     offer_characteristics = (
-        db.query(ItemIdsMv.item_id, ItemIdsMv.booking_number)
-        .filter(ItemIdsMv.offer_id == offer_id)
-        .first()
+        db.query(ItemIdsMv).filter(ItemIdsMv.offer_id == offer_id).first()
     )
 
     if latitude and longitude:
@@ -34,15 +31,16 @@ def get_offer_characteristics(
     else:
         iris_id = None
 
-    if offer_characteristics:
+    if offer_characteristics is not None:
+        offer_characteristics: ItemIds = parse_obj_as(ItemIds, offer_characteristics)
         offer = Offer(
             offer_id=offer_id,
             latitude=latitude,
             longitude=longitude,
             iris_id=iris_id,
             is_geolocated=True if iris_id else False,
-            item_id=offer_characteristics[0],
-            booking_number=offer_characteristics[1],
+            item_id=offer_characteristics.item_id,
+            booking_number=offer_characteristics.booking_number,
             found=True,
         )
     else:
@@ -69,11 +67,13 @@ def get_non_recommendable_items(db: Session, user: User) -> List[str]:
 
 def get_nearest_offers(
     db: Session, user: User, recommendable_items_ids: Dict[str, float]
-) -> List[RecommendableOfferQuery]:
+) -> List[RecommendableOfferDB]:
     offer_table = RecommendableOffersRaw().get_available_table(db)
 
+    user_distance_condition = []
+    user_distance = literal_column("NULL").label("user_distance")
+    # user_geolocated = True
     if user.latitude is not None and user.longitude is not None:
-        # user_geolocated = True
         user_point = WKTElement(f"POINT({user.latitude} {user.longitude})")
 
         user_distance = func.coalesce(
@@ -88,10 +88,14 @@ def get_nearest_offers(
             ),
             0,
         ).label("user_distance")
-    else:
-        user_distance = literal_column("NULL").label("user_distance")
+        user_distance_condition.append(
+            offer_table.default_max_distance >= user_distance
+        )
 
-    user_distance_condition = [offer_table.default_max_distance >= user_distance]
+    underage_condition = []
+    # is_underage_recommendable = True
+    if user.age and user.age < 18:
+        underage_condition.append(offer_table.is_underage_recommendable)
 
     offer_rank = (
         func.row_number()
@@ -101,10 +105,6 @@ def get_nearest_offers(
         )
         .label("offer_rank")
     )
-
-    underage_condition = []
-    if user.age and user.age < 18:
-        underage_condition.append(offer_table.is_underage_recommendable)
 
     nearest_offers_subquery = (
         db.query(
@@ -131,8 +131,10 @@ def get_nearest_offers(
         .subquery()
     )
 
-    return (
-        db.query(RecommendableOfferQuery, nearest_offers_subquery)
+    results = (
+        db.query(nearest_offers_subquery)
         .filter(nearest_offers_subquery.c.offer_rank == 1)
         .all()
     )
+
+    return parse_obj_as(List[RecommendableOfferDB], results)

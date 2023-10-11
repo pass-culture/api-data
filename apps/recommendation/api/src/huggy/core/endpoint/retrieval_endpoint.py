@@ -1,5 +1,5 @@
 from datetime import datetime
-import time
+
 from dataclasses import dataclass
 import typing as t
 from abc import abstractmethod
@@ -12,7 +12,8 @@ from huggy.schemas.item import RecommendableItem
 from huggy.core.endpoint import AbstractEndpoint
 
 from huggy.utils.vertex_ai import endpoint_score
-from huggy.utils.env_vars import log_duration
+from huggy.utils.cloud_logging import logger
+from fastapi.encoders import jsonable_encoder
 
 
 @dataclass
@@ -84,6 +85,9 @@ class RetrievalEndpoint(AbstractEndpoint):
         pass
 
     def get_params(self):
+        logger.info(
+            "retrieval_endpoint : get_params", extra=jsonable_encoder(self.params_in)
+        )
         params = []
 
         if not self.is_geolocated:
@@ -143,9 +147,7 @@ class RetrievalEndpoint(AbstractEndpoint):
         return {"$and": {k: v for d in params for k, v in d.filter().items()}}
 
     def model_score(self) -> t.List[RecommendableItem]:
-        start = time.time()
         instances = self.get_instance(self.size)
-        log_duration(f"retrieval_endpoint {instances}", start)
         prediction_result = endpoint_score(
             instances=instances,
             endpoint_name=self.endpoint_name,
@@ -153,7 +155,6 @@ class RetrievalEndpoint(AbstractEndpoint):
         )
         self.model_version = prediction_result.model_version
         self.model_display_name = prediction_result.model_display_name
-        log_duration("retrieval_endpoint", start)
         # smallest = better (cosine similarity or inner_product)
         return [
             RecommendableItem(
