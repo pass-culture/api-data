@@ -6,7 +6,7 @@ from abc import abstractmethod
 
 from huggy.schemas.offer import Offer
 from huggy.schemas.playlist_params import PlaylistParams
-from huggy.schemas.user import User
+from huggy.schemas.user import UserContext
 from huggy.schemas.item import RecommendableItem
 
 from huggy.core.endpoint import AbstractEndpoint
@@ -74,7 +74,7 @@ class EqParams:
 
 
 class RetrievalEndpoint(AbstractEndpoint):
-    def init_input(self, user: User, params_in: PlaylistParams):
+    def init_input(self, user: UserContext, params_in: PlaylistParams):
         self.user = user
         self.params_in = params_in
         self.user_input = str(self.user.user_id)
@@ -86,7 +86,7 @@ class RetrievalEndpoint(AbstractEndpoint):
 
     def get_params(self):
         logger.info(
-            "retrieval_endpoint : get_params", extra=jsonable_encoder(self.params_in)
+            "retrieval_endpoint : params_in", extra=jsonable_encoder(self.params_in)
         )
         params = []
 
@@ -145,7 +145,7 @@ class RetrievalEndpoint(AbstractEndpoint):
             params.append(ListParams(label="offer_type_label", values=label))
 
         filters = {"$and": {k: v for d in params for k, v in d.filter().items()}}
-        logger.info("retrieval_endpoint : get_params", extra=jsonable_encoder(filters))
+        logger.info("retrieval_endpoint : filters", extra=jsonable_encoder(filters))
 
         return filters
 
@@ -190,7 +190,7 @@ class RecommendationRetrievalEndpoint(RetrievalEndpoint):
 
 
 class OfferRetrievalEndpoint(RetrievalEndpoint):
-    def init_input(self, user: User, offer: Offer, params_in: PlaylistParams):
+    def init_input(self, user: UserContext, offer: Offer, params_in: PlaylistParams):
         self.user = user
         self.offer = offer
         self.item_id = str(self.offer.item_id)

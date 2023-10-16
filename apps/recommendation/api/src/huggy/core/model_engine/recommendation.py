@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 import datetime
 import pytz
 
-from huggy.schemas.user import User
+from huggy.schemas.user import UserContext
 from huggy.schemas.playlist_params import PlaylistParams
 
 from huggy.models.past_recommended_offers import PastRecommendedOffers
@@ -16,7 +16,7 @@ from huggy.core.model_selection import (
 
 class Recommendation(ModelEngine):
     def get_model_configuration(
-        self, user: User, params_in: PlaylistParams
+        self, user: UserContext, params_in: PlaylistParams
     ) -> ModelConfiguration:
         model_params, reco_origin = select_reco_model_params(
             params_in.model_endpoint, user

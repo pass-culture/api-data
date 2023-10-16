@@ -3,7 +3,7 @@ from typing import List
 import datetime
 import pytz
 
-from huggy.schemas.user import User
+from huggy.schemas.user import UserContext
 from huggy.schemas.offer import Offer
 from huggy.schemas.playlist_params import PlaylistParams
 
@@ -17,12 +17,12 @@ from huggy.models.past_recommended_offers import PastSimilarOffers
 
 
 class SimilarOffer(ModelEngine):
-    def __init__(self, user: User, offer: Offer, params_in: PlaylistParams):
+    def __init__(self, user: UserContext, offer: Offer, params_in: PlaylistParams):
         self.offer = offer
         super().__init__(user=user, params_in=params_in)
 
     def get_model_configuration(
-        self, user: User, params_in: PlaylistParams
+        self, user: UserContext, params_in: PlaylistParams
     ) -> ModelConfiguration:
         model_params, reco_origin = select_sim_model_params(
             params_in.model_endpoint, offer=self.offer

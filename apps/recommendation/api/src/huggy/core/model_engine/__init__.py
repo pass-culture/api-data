@@ -2,7 +2,7 @@ from typing import List
 import datetime
 import pytz
 from abc import ABC, abstractmethod
-from huggy.schemas.user import User
+from huggy.schemas.user import UserContext
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.core.model_selection.model_configuration import ModelConfiguration
 from huggy.utils.mixing import order_offers_by_score_and_diversify_features
@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 
 class ModelEngine(ABC):
-    def __init__(self, user: User, params_in: PlaylistParams):
+    def __init__(self, user: UserContext, params_in: PlaylistParams):
         self.user = user
         self.params_in = params_in
         # Get model (cold_start or algo)
@@ -26,7 +26,7 @@ class ModelEngine(ABC):
 
     @abstractmethod
     def get_model_configuration(
-        self, user: User, params_in: PlaylistParams
+        self, user: UserContext, params_in: PlaylistParams
     ) -> ModelConfiguration:
         pass
 
@@ -87,7 +87,7 @@ class ModelEngine(ABC):
         offers: t.List[RankedOffer],
         call_id: str,
         context: str,
-        user: User,
+        user: UserContext,
     ) -> None:
         if len(offers) > 0:
             date = datetime.datetime.now(pytz.utc)
@@ -103,8 +103,8 @@ class ModelEngine(ABC):
                         user_favorites_count=user.favorites_count,
                         user_deposit_remaining_credit=user.user_deposit_remaining_credit,
                         user_iris_id=user.iris_id,
-                        user_latitude=user.latitude,
-                        user_longitude=user.longitude,
+                        user_latitude=None,
+                        user_longitude=None,
                         offer_user_distance=o.user_distance,
                         offer_id=o.offer_id,
                         offer_item_id=o.item_id,

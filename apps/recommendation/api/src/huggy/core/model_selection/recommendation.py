@@ -8,7 +8,7 @@ import huggy.core.model_selection.endpoint.user_retrieval as user_retrieval
 import huggy.core.model_selection.endpoint.user_ranking as user_ranking
 
 retrieval_filter = ModelConfiguration(
-    name="recommendation_filter",
+    name="recommendation_filter_v2",
     description="""""",
     scorer=offer_scorer.OfferScorer,
     diversification_params=diversification_on,
@@ -18,7 +18,7 @@ retrieval_filter = ModelConfiguration(
 
 
 retrieval_reco = ModelConfiguration(
-    name="recommendation_user",
+    name="recommendation_user_v2",
     description="""""",
     scorer=offer_scorer.OfferScorer,
     diversification_params=diversification_on,
@@ -30,7 +30,7 @@ retrieval_reco = ModelConfiguration(
 )
 
 retrieval_filter_version_b = ModelConfiguration(
-    name="recommendation_filter",
+    name="recommendation_filter_v2",
     description="""""",
     scorer=offer_scorer.OfferScorer,
     diversification_params=diversification_on,
@@ -39,7 +39,7 @@ retrieval_filter_version_b = ModelConfiguration(
 )
 
 retrieval_reco_version_b = ModelConfiguration(
-    name="recommendation_user",
+    name="recommendation_user_v2",
     description="""""",
     scorer=offer_scorer.OfferScorer,
     diversification_params=diversification_on,

@@ -14,13 +14,15 @@ from huggy.schemas.playlist_params import (
 from huggy.core.model_engine.similar_offer import SimilarOffer
 from huggy.core.model_engine.recommendation import Recommendation
 
-from huggy.crud.user import get_user_profile
+from huggy.crud.user import UserContextDB
+
 from huggy.crud.offer import get_offer_characteristics
 
 from huggy.utils.database import get_db
 from huggy.utils.env_vars import cloud_trace_context, call_id_trace_context
 from huggy.utils.cloud_logging import logger
 from huggy.utils.env_vars import CORS_ALLOWED_ORIGIN
+from huggy.utils.exception import ExceptionHandlerMiddleware
 
 
 app = FastAPI(title="passCulture - Recommendation")
@@ -31,6 +33,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(ExceptionHandlerMiddleware)
 
 
 async def setup_trace(request: Request):
@@ -60,7 +64,9 @@ def similar_offers(
     call_id = str(uuid.uuid4())
     call_id_trace_context.set(call_id)
 
-    user = get_user_profile(db, playlist_params.user_id, latitude, longitude)
+    user = UserContextDB().get_user_context(
+        db, playlist_params.user_id, latitude, longitude
+    )
 
     offer = get_offer_characteristics(db, offer_id, latitude, longitude)
 
@@ -127,7 +133,7 @@ def similar_offers(
     call_id = str(uuid.uuid4())
     call_id_trace_context.set(call_id)
 
-    user = get_user_profile(
+    user = UserContextDB().get_user_context(
         db, playlist_params.user_id, latitude, longitude
     )  # corriger pour avoir la latitude / longitude de l'user (et non de la venue)
 
@@ -196,7 +202,7 @@ def playlist_recommendation(
     call_id = str(uuid.uuid4())
     call_id_trace_context.set(call_id)
 
-    user = get_user_profile(db, user_id, latitude, longitude)
+    user = UserContextDB().get_user_context(db, user_id, latitude, longitude)
 
     scoring = Recommendation(user, params_in=playlist_params)
 

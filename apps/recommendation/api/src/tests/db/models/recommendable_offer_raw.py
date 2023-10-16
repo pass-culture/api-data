@@ -1,20 +1,14 @@
 from sqlalchemy import Column, String, Integer, Float, DateTime
 from sqlalchemy.types import Boolean
-from huggy.utils.database import MaterializedBase, Base
-from geoalchemy2 import Geography
+from huggy.utils.database import Base
 
 
-class RecommendableOffersRaw(MaterializedBase):
+class FakeRecommendableOffersRaw(Base):
     """
-    Database model of recommendable_offers table.
+    Fake Database model of recommendable_offers table.
     """
 
-    def materialized_tables(self):
-        return [
-            RecommendableOffersRawMv,
-            RecommendableOffersRawMvTmp,
-            RecommendableOffersRawMvOld,
-        ]
+    __tablename__ = "recommendable_offer_raw"
 
     offer_id = Column(String(256), primary_key=True)
     item_id = Column(String(256))
@@ -37,18 +31,5 @@ class RecommendableOffersRaw(MaterializedBase):
     is_underage_recommendable = Column(Boolean)
     venue_latitude = Column(Float)
     venue_longitude = Column(Float)
-    venue_geo = Column(Geography(geometry_type="POINT", srid=4326))
     default_max_distance = Column(Integer)
     unique_id = Column(String(256))
-
-
-class RecommendableOffersRawMv(RecommendableOffersRaw, Base):
-    __tablename__ = "recommendable_offers_raw_mv"
-
-
-class RecommendableOffersRawMvTmp(RecommendableOffersRaw, Base):
-    __tablename__ = "recommendable_offers_raw_mv_tmp"
-
-
-class RecommendableOffersRawMvOld(RecommendableOffersRaw, Base):
-    __tablename__ = "recommendable_offers_raw_mv_old"

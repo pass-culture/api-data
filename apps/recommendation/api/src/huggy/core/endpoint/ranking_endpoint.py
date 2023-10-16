@@ -1,9 +1,10 @@
 from datetime import datetime
 from abc import abstractmethod
 import typing as t
-from huggy.schemas.user import User
+from huggy.schemas.user import UserContext
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.recommendable_offer import RecommendableOffer, RankedOffer
+from fastapi.encoders import jsonable_encoder
 
 from huggy.core.endpoint import AbstractEndpoint
 
@@ -30,7 +31,7 @@ def to_float(x: float = None):
 
 
 class RankingEndpoint(AbstractEndpoint):
-    def init_input(self, user: User, params_in: PlaylistParams):
+    def init_input(self, user: UserContext, params_in: PlaylistParams):
         self.user = user
         self.user_input = str(self.user.user_id)
         self.params_in = params_in
@@ -116,15 +117,17 @@ class ModelRankingEndpoint(RankingEndpoint):
         if len(not_found) > 0:
             logger.warn(
                 f"ranking_endpoint, offer not found",
-                extra={
-                    "event_name": "ranking",
-                    "event_details": "offer not found",
-                    "user_id": self.user.user_id,
-                    "total_not_found": len(not_found),
-                    "total_recommendable_offers": len(recommendable_offers),
-                    "total_ranked_offers": len(ranked_offers),
-                    "not_found": [x.dict() for x in not_found],
-                },
+                extra=jsonable_encoder(
+                    {
+                        "event_name": "ranking",
+                        "event_details": "offer not found",
+                        "user_id": self.user.user_id,
+                        "total_not_found": len(not_found),
+                        "total_recommendable_offers": len(recommendable_offers),
+                        "total_ranked_offers": len(ranked_offers),
+                        "not_found": [x.dict() for x in not_found],
+                    }
+                ),
             )
 
         logger.info(

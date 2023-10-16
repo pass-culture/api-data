@@ -5,7 +5,7 @@ from huggy.core.model_selection.model_configuration import (
     ModelFork,
 )
 
-from huggy.schemas.user import User
+from huggy.schemas.user import UserContext
 from huggy.schemas.offer import Offer
 
 from huggy.utils.env_vars import (
@@ -75,7 +75,9 @@ SIMILAR_OFFER_ENDPOINTS = {
 }
 
 
-def select_reco_model_params(model_endpoint: str, user: User) -> ModelConfiguration:
+def select_reco_model_params(
+    model_endpoint: str, user: UserContext
+) -> ModelConfiguration:
     """Choose the model to apply Recommendation based on user interaction"""
     if model_endpoint not in list(RECOMMENDATION_ENDPOINTS.keys()):
         model_endpoint = DEFAULT_RECO_MODEL

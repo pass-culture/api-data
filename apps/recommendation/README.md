@@ -16,7 +16,7 @@ pyenv install 3.9
 Create a virtual env
 ```sh 
 pyenv virtualenv 3.9 reco_fastapi
-pyenv local reco_fastapi
+pyenv shell reco_fastapi
 ```
 
 ```sh 
@@ -29,12 +29,12 @@ pip3 install -r requirements.txt
 Set up a testdb :
 ```sh
 export DATA_GCP_TEST_POSTGRES_PORT=5432
-export DB_NAME="postgres"
+export DB_NAME="db"
 docker-compose up -d testdb  
 ```
 ```sh
 cd ~/apps/recommendation/
-pyenv local reco_fastapi
+pyenv shell reco_fastapi
 pytest
 ```
 
