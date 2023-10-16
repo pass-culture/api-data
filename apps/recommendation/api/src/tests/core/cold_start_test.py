@@ -1,16 +1,14 @@
 import pytest
-from sqlalchemy.orm import Session
-
 from huggy.core.model_selection.model_configuration import ModelFork
 from huggy.core.model_selection import recommendation_endpoints
-from huggy.schemas.user import User
+from huggy.schemas.user import UserContext
 
 
 @pytest.mark.parametrize(
     ["user", "expected_status"],
     [
         (
-            User(
+            UserContext(
                 user_id="111",
                 longitude=None,
                 latitude=None,
@@ -25,7 +23,7 @@ from huggy.schemas.user import User
             "algo_v2",
         ),
         (
-            User(
+            UserContext(
                 user_id="112",
                 longitude=None,
                 latitude=None,
@@ -40,7 +38,7 @@ from huggy.schemas.user import User
             "cold_start_v2",
         ),
         (
-            User(
+            UserContext(
                 user_id="113",
                 longitude=None,
                 latitude=None,
@@ -57,8 +55,7 @@ from huggy.schemas.user import User
     ],
 )
 def test_get_cold_start_status(
-    setup_database: Session,
-    user: User,
+    user: UserContext,
     expected_status: bool,
 ):
     _, model_status = ModelFork(

@@ -8,7 +8,7 @@ from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
 
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.offer import Offer
-from huggy.schemas.user import User
+from huggy.schemas.user import UserContext
 
 
 @dataclass
@@ -72,8 +72,8 @@ class ModelFork:
     clicks_count: int = 25
     favorites_count: int = None
 
-    def get_user_status(self, user: User):
-        """Get model status based on User interactions"""
+    def get_user_status(self, user: UserContext):
+        """Get model status based on UserContext interactions"""
         if not user.found:
             return copy.deepcopy(self.cold_start_model), "unknown_v2"
 

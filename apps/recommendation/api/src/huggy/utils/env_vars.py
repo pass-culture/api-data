@@ -20,7 +20,7 @@ SQL_CONNECTION_NAME = os.environ.get(
     "SQL_CONNECTION_NAME",
     "passculture-data-ehp:europe-west1:cloudsql-recommendation-dev-ew1",
 )
-DATA_GCP_TEST_POSTGRES_PORT = os.getenv("DATA_GCP_TEST_POSTGRES_PORT")
+DATA_GCP_TEST_POSTGRES_PORT = os.getenv("DATA_GCP_TEST_POSTGRES_PORT", 5432)
 
 
 try:
@@ -30,6 +30,7 @@ except:
 
 SQL_PORT = os.environ.get("SQL_PORT")
 SQL_HOST = os.environ.get("SQL_HOST")
+DB_NAME = "db"
 
 # logger
 cloud_trace_context = contextvars.ContextVar("cloud_trace_context", default="")

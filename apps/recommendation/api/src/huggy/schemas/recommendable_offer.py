@@ -3,8 +3,19 @@ from pydantic import BaseModel
 from datetime import datetime
 
 
-class RecommendableOfferDB(BaseModel):
-    """ORM model for RecommendableOffer"""
+class OfferDistance(BaseModel):
+    offer_id: str
+    user_distance: float
+
+    class Config:
+        orm_mode = True
+
+
+class RecommendableOfferRawDB(BaseModel):
+    """
+    ORM model for RecommendableOfferRaw database query.
+    This is used only as a db query output of crud.recommendable_offer queries.
+    """
 
     offer_id: str
     item_id: str
@@ -25,14 +36,20 @@ class RecommendableOfferDB(BaseModel):
         orm_mode = True
 
 
-class RecommendableOffer(RecommendableOfferDB):
-    """Recommendable Offer object"""
+class RecommendableOffer(RecommendableOfferRawDB):
+    """
+    Recommendable Offer object based on RecommendableOfferDB model
+    Contains the scored item_rank from a Retrieval Model.
+    """
 
     item_rank: int
 
 
 class RankedOffer(RecommendableOffer):
-    """Scored Offer"""
+    """
+    Ranked Recommendable Offer object based on RecommendableOffer model
+    Contains the scoring of a Ranking Model.
+    """
 
     offer_output: float  # final output
     offer_score: float  # higher = better

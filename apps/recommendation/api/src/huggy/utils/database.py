@@ -12,6 +12,7 @@ from huggy.utils.env_vars import (
     SQL_PORT,
     API_LOCAL,
     DATA_GCP_TEST_POSTGRES_PORT,
+    DB_NAME,
 )
 
 
@@ -20,7 +21,6 @@ query = {}
 
 def get_engine():
     if API_LOCAL is True:
-        DB_NAME = "postgres"
         return create_engine(
             f"postgresql+psycopg2://postgres:postgres@localhost:{DATA_GCP_TEST_POSTGRES_PORT}/{DB_NAME}"
         )
@@ -64,7 +64,7 @@ class MaterializedBase:
                     return obj
             except NameError:
                 print(f"Model {obj} is not defined")
-        raise Exception(f"Tables :  {', '.join(table_name)} not found.")
+        raise Exception(f"Tables :  {', '.join(table_names)} not found.")
 
 
 def get_db():

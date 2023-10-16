@@ -8,7 +8,7 @@ from huggy.core.model_selection.model_configuration import (
 )
 
 retrieval_offer = ModelConfiguration(
-    name="similar_offer_model",
+    name="similar_offer_model_v2",
     description="""""",
     scorer=offer_scorer.OfferScorer,
     diversification_params=diversification_off,
@@ -20,7 +20,7 @@ retrieval_offer = ModelConfiguration(
 )
 
 retrieval_offer_version_b = ModelConfiguration(
-    name="similar_offer_model",
+    name="similar_offer_model_v2",
     description="""""",
     scorer=offer_scorer.OfferScorer,
     diversification_params=diversification_off,
@@ -33,7 +33,7 @@ retrieval_offer_version_b = ModelConfiguration(
 
 
 retrieval_cs_offer = ModelConfiguration(
-    name="similar_cold_start_offer_model",
+    name="similar_cold_start_offer_model_v2",
     description="""""",
     scorer=offer_scorer.OfferScorer,
     diversification_params=diversification_off,
@@ -45,7 +45,7 @@ retrieval_cs_offer = ModelConfiguration(
 )
 
 retrieval_filter = ModelConfiguration(
-    name="similar_offer_filter",
+    name="similar_offer_filter_v2",
     description="""""",
     scorer=offer_scorer.OfferScorer,
     diversification_params=diversification_off,

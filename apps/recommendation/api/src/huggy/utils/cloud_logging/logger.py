@@ -11,3 +11,8 @@ class CustomLogger:
         log_entry = {"message": message, "extra": extra}
         logger.warn(log_entry)
         return
+
+    def debug(self, message=None, extra=None):
+        log_entry = {"message": message, "extra": extra}
+        logger.debug(log_entry)
+        return

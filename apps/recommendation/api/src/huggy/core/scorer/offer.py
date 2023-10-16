@@ -3,18 +3,19 @@ from typing import List
 from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
 from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
 from huggy.utils.cloud_logging import logger
-from huggy.schemas.user import User
+from huggy.schemas.user import UserContext
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.recommendable_offer import RecommendableOffer
 from huggy.schemas.item import RecommendableItem
 
-from huggy.crud.offer import get_nearest_offers, get_non_recommendable_items
+from huggy.crud.recommendable_offer import RecommendableOffer as RecommendableOfferDB
+from huggy.crud.non_recommendable_offer import get_non_recommendable_items
 
 
 class OfferScorer:
     def __init__(
         self,
-        user: User,
+        user: UserContext,
         params_in: PlaylistParams,
         retrieval_endpoints: List[RetrievalEndpoint],
         ranking_endpoint: RankingEndpoint,
@@ -98,7 +99,7 @@ class OfferScorer:
             for item in recommendable_items
             if item.item_id not in non_recommendable_items
         }
-        recommendable_offers_db = get_nearest_offers(
+        recommendable_offers_db = RecommendableOfferDB().get_nearest_offers(
             db, self.user, recommendable_items_ids
         )
         recommendable_offers = []
