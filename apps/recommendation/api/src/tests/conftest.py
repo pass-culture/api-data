@@ -20,23 +20,15 @@ from huggy.models.recommendable_offers_raw import (
     RecommendableOffersRawMvOld,
     RecommendableOffersRawMvTmp,
 )
-from huggy.utils.database import get_table_names
-from tests.db.utils import clean_db
+from huggy.utils.database import get_engine
+from tests.db.utils import clean_db, create_db
+from huggy.utils.env_vars import (
+    DB_NAME,
+)
 
 logger = logging.getLogger(__name__)
 
 import asyncio
-
-from huggy.utils.env_vars import (
-    API_LOCAL,
-    DATA_GCP_TEST_POSTGRES_PORT,
-    DB_NAME,
-    SQL_BASE,
-    SQL_BASE_PASSWORD,
-    SQL_BASE_USER,
-    SQL_HOST,
-    SQL_PORT,
-)
 from tests.db import (
     create_enriched_user_mv,
     create_enriched_user_mv_old,
@@ -70,13 +62,8 @@ def app_config() -> Dict[str, Any]:
     return {}
 
 
-DB_NAME = "postgres"
-
-
 def get_session():
-    DB_URL = f"postgresql+asyncpg://postgres:postgres@localhost:{DATA_GCP_TEST_POSTGRES_PORT}/{DB_NAME}"
-
-    conn = create_async_engine(DB_URL)
+    conn = get_engine(local=True)
     AsyncSessionLocal = sessionmaker(conn, expire_on_commit=False, class_=AsyncSession)
     return AsyncSessionLocal()
 

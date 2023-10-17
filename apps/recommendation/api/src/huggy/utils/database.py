@@ -20,8 +20,8 @@ from huggy.utils.env_vars import (
 query = {}
 
 
-def get_engine():
-    if API_LOCAL:
+def get_engine(local=API_LOCAL):
+    if local:
         return create_async_engine(
             f"postgresql+asyncpg://postgres:postgres@localhost:{DATA_GCP_TEST_POSTGRES_PORT}/{DB_NAME}"
         )
@@ -47,6 +47,8 @@ def get_engine():
 
 Base = declarative_base()
 
+AsyncSessionLocal = None
+
 
 class MaterializedBase:
     @abstractmethod
@@ -67,11 +69,12 @@ class MaterializedBase:
 
 
 async def get_db() -> AsyncSession:
-    AsyncSessionLocal = sessionmaker(
-        bind=get_engine(),
-        expire_on_commit=False,
-        class_=AsyncSession,
-    )
+    if AsyncSessionLocal is None:
+        AsyncSessionLocal = sessionmaker(
+            bind=get_engine(),
+            expire_on_commit=False,
+            class_=AsyncSession,
+        )
     async with AsyncSessionLocal() as session:
         yield session
 
