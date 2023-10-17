@@ -1,5 +1,5 @@
-from sqlalchemy import Column, String, Integer
 from geoalchemy2 import Geometry
+from sqlalchemy import Column, Integer, String
 
 from huggy.utils.database import Base
 

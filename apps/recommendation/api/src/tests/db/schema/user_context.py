@@ -1,18 +1,18 @@
-from tests.db.schema.user import (
-    user_profile_unknown,
-    user_profile_null,
-    user_profile_111,
-    user_profile_118,
-    user_profile_117,
-)
+from huggy.schemas.user import UserContext
 from tests.db.schema.iris import (
-    iris_paris_chatelet,
-    iris_unknown,
-    iris_nok,
     iris_marseille_cours_julien,
     iris_marseille_vieux_port,
+    iris_nok,
+    iris_paris_chatelet,
+    iris_unknown,
 )
-from huggy.schemas.user import UserContext
+from tests.db.schema.user import (
+    user_profile_111,
+    user_profile_117,
+    user_profile_118,
+    user_profile_null,
+    user_profile_unknown,
+)
 
 user_context_unknown_paris = UserContext(
     found=False,

@@ -1,17 +1,14 @@
-from sqlalchemy.orm import Session
 import datetime
+
 import pytz
-
-from huggy.schemas.user import UserContext
-from huggy.schemas.playlist_params import PlaylistParams
-
-from huggy.models.past_recommended_offers import PastRecommendedOffers
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from huggy.core.model_engine import ModelEngine
+from huggy.core.model_selection import select_reco_model_params
 from huggy.core.model_selection.model_configuration import ModelConfiguration
-from huggy.core.model_selection import (
-    select_reco_model_params,
-)
+from huggy.models.past_recommended_offers import PastRecommendedOffers
+from huggy.schemas.playlist_params import PlaylistParams
+from huggy.schemas.user import UserContext
 
 
 class Recommendation(ModelEngine):
@@ -24,7 +21,7 @@ class Recommendation(ModelEngine):
         self.reco_origin = reco_origin
         return model_params
 
-    def save_recommendation(self, db: Session, recommendations, call_id) -> None:
+    def save_recommendation(self, db: AsyncSession, recommendations, call_id) -> None:
         if len(recommendations) > 0:
             date = datetime.datetime.now(pytz.utc)
             for reco in recommendations:

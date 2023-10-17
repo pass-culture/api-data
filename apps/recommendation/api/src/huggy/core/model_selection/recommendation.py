@@ -1,11 +1,10 @@
+import huggy.core.model_selection.endpoint.user_ranking as user_ranking
+import huggy.core.model_selection.endpoint.user_retrieval as user_retrieval
 import huggy.core.scorer.offer as offer_scorer
-
 from huggy.core.model_selection.model_configuration import (
     ModelConfiguration,
     diversification_on,
 )
-import huggy.core.model_selection.endpoint.user_retrieval as user_retrieval
-import huggy.core.model_selection.endpoint.user_ranking as user_ranking
 
 retrieval_filter = ModelConfiguration(
     name="recommendation_filter_v2",

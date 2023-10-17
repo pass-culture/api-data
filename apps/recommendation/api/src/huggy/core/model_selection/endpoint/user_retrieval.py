@@ -1,9 +1,8 @@
-from huggy.core.model_selection.endpoint import RetrievalEndpointName
-
 from huggy.core.endpoint.retrieval_endpoint import (
-    RecommendationRetrievalEndpoint,
     FilterRetrievalEndpoint,
+    RecommendationRetrievalEndpoint,
 )
+from huggy.core.model_selection.endpoint import RetrievalEndpointName
 
 filter_retrieval_endpoint = FilterRetrievalEndpoint(
     endpoint_name=RetrievalEndpointName.recommendation_user_retrieval,

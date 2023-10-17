@@ -1,5 +1,6 @@
-from sqlalchemy import Column, String, Integer, Float, DateTime
+from sqlalchemy import Column, DateTime, Float, Integer, String
 from sqlalchemy.types import Boolean
+
 from huggy.utils.database import Base
 
 
@@ -10,7 +11,7 @@ class FakeRecommendableOffersRaw(Base):
 
     __tablename__ = "recommendable_offer_raw"
 
-    offer_id = Column(String(256), primary_key=True)
+    offer_id = Column(String(256))
     item_id = Column(String(256))
     product_id = Column(String(256))
     category = Column(String(256))
@@ -32,4 +33,4 @@ class FakeRecommendableOffersRaw(Base):
     venue_latitude = Column(Float)
     venue_longitude = Column(Float)
     default_max_distance = Column(Integer)
-    unique_id = Column(String(256))
+    unique_id = Column(String(256), primary_key=True)

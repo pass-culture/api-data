@@ -1,10 +1,11 @@
+import traceback
 from traceback import print_exception
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+
 from huggy.utils.cloud_logging import logger
-import traceback
 
 
 class ExceptionHandlerMiddleware(BaseHTTPMiddleware):

@@ -1,15 +1,16 @@
-from sqlalchemy.orm import Session
 from typing import List
-from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
 from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
-from huggy.utils.cloud_logging import logger
-from huggy.schemas.user import UserContext
+from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
+from huggy.crud.non_recommendable_offer import get_non_recommendable_items
+from huggy.crud.recommendable_offer import RecommendableOffer as RecommendableOfferDB
+from huggy.schemas.item import RecommendableItem
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.recommendable_offer import RecommendableOffer
-from huggy.schemas.item import RecommendableItem
-
-from huggy.crud.recommendable_offer import RecommendableOffer as RecommendableOfferDB
-from huggy.crud.non_recommendable_offer import get_non_recommendable_items
+from huggy.schemas.user import UserContext
+from huggy.utils.cloud_logging import logger
 
 
 class OfferScorer:
@@ -27,15 +28,15 @@ class OfferScorer:
         self.retrieval_endpoints = retrieval_endpoints
         self.ranking_endpoint = ranking_endpoint
 
-    def get_scoring(
+    async def get_scoring(
         self,
-        db: Session,
+        db: AsyncSession,
         call_id,
     ) -> List[RecommendableOffer]:
         prediction_items: List[RecommendableItem] = []
         endpoints_stats = {}
         for endpoint in self.retrieval_endpoints:
-            out = endpoint.model_score()
+            out = await endpoint.model_score()
             endpoints_stats[endpoint.endpoint_name] = len(out)
             prediction_items.extend(out)
 
@@ -55,7 +56,7 @@ class OfferScorer:
             return []
 
         # Transform items in offers
-        recommendable_offers = self.get_recommendable_offers(db, prediction_items)
+        recommendable_offers = await self.get_recommendable_offers(db, prediction_items)
 
         logger.info(
             message=f"Recommendable Offers: {self.user.user_id}: recommendable_offers -> {len(recommendable_offers)}",
@@ -71,7 +72,7 @@ class OfferScorer:
         if len(recommendable_offers) == 0:
             return []
 
-        recommendable_offers = self.ranking_endpoint.model_score(
+        recommendable_offers = await self.ranking_endpoint.model_score(
             recommendable_offers=recommendable_offers
         )
 
@@ -87,19 +88,19 @@ class OfferScorer:
 
         return recommendable_offers
 
-    def get_recommendable_offers(
+    async def get_recommendable_offers(
         self,
-        db: Session,
+        db: AsyncSession,
         recommendable_items: List[RecommendableItem],
     ) -> List[RecommendableOffer]:
-        non_recommendable_items = get_non_recommendable_items(db, self.user)
+        non_recommendable_items = await get_non_recommendable_items(db, self.user)
 
         recommendable_items_ids = {
             item.item_id: item.item_rank
             for item in recommendable_items
             if item.item_id not in non_recommendable_items
         }
-        recommendable_offers_db = RecommendableOfferDB().get_nearest_offers(
+        recommendable_offers_db = await RecommendableOfferDB().get_nearest_offers(
             db, self.user, recommendable_items_ids
         )
         recommendable_offers = []

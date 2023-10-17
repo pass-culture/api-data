@@ -1,7 +1,6 @@
 import enum
-from huggy.utils.env_vars import (
-    ENV_SHORT_NAME,
-)
+
+from huggy.utils.env_vars import ENV_SHORT_NAME
 
 
 class RetrievalEndpointName(enum.Enum):

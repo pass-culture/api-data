@@ -1,7 +1,6 @@
-import huggy.core.scorer.offer as offer_scorer
-
 import huggy.core.model_selection.endpoint.offer_retrieval as offer_retrieval
 import huggy.core.model_selection.endpoint.user_ranking as user_ranking
+import huggy.core.scorer.offer as offer_scorer
 from huggy.core.model_selection.model_configuration import (
     ModelConfiguration,
     diversification_off,

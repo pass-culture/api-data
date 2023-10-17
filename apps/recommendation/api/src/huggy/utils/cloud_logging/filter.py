@@ -1,10 +1,11 @@
 import logging
+
 from google.cloud.logging_v2.handlers import CloudLoggingFilter
 
 from huggy.utils.env_vars import (
-    http_request_context,
-    cloud_trace_context,
     call_id_trace_context,
+    cloud_trace_context,
+    http_request_context,
 )
 
 

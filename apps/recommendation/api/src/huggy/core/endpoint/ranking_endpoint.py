@@ -1,15 +1,15 @@
-from datetime import datetime
-from abc import abstractmethod
 import typing as t
-from huggy.schemas.user import UserContext
-from huggy.schemas.playlist_params import PlaylistParams
-from huggy.schemas.recommendable_offer import RecommendableOffer, RankedOffer
+from abc import abstractmethod
+from datetime import datetime
+
 from fastapi.encoders import jsonable_encoder
 
 from huggy.core.endpoint import AbstractEndpoint
-
-from huggy.utils.vertex_ai import endpoint_score
+from huggy.schemas.playlist_params import PlaylistParams
+from huggy.schemas.recommendable_offer import RankedOffer, RecommendableOffer
+from huggy.schemas.user import UserContext
 from huggy.utils.cloud_logging import logger
+from huggy.utils.vertex_ai import endpoint_score
 
 
 def to_days(dt: datetime):
@@ -37,7 +37,7 @@ class RankingEndpoint(AbstractEndpoint):
         self.params_in = params_in
 
     @abstractmethod
-    def model_score(
+    async def model_score(
         self, recommendable_offers: t.List[RecommendableOffer]
     ) -> t.List[RankedOffer]:
         pass
@@ -46,7 +46,7 @@ class RankingEndpoint(AbstractEndpoint):
 class DummyRankingEndpoint(RankingEndpoint):
     """Return the same list"""
 
-    def model_score(
+    async def model_score(
         self, recommendable_offers: t.List[RecommendableOffer]
     ) -> t.List[RankedOffer]:
         return recommendable_offers
@@ -82,11 +82,11 @@ class ModelRankingEndpoint(RankingEndpoint):
             )
         return offers_list
 
-    def model_score(
+    async def model_score(
         self, recommendable_offers: t.List[RecommendableOffer]
     ) -> t.List[RankedOffer]:
         instances = self.get_instance(recommendable_offers)
-        prediction_result = endpoint_score(
+        prediction_result = await endpoint_score(
             instances=instances, endpoint_name=self.endpoint_name
         )
         self.model_version = prediction_result.model_version

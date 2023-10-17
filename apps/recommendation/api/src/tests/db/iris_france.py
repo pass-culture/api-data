@@ -1,16 +1,16 @@
+import logging
+
 import pandas as pd
 from sqlalchemy import text
 
-
-import logging
+from tests.db.utils import create_table_from_df
 
 logger = logging.getLogger(__name__)
 
 
-# CREATE EXTENSION postgis;
-def create_iris_france(engine):
+async def create_iris_france(session):
     iris_france = pd.read_csv("./src/tests/static/iris_france_tests.csv")
-    iris_france.to_sql("iris_france", con=engine, if_exists="replace", index=False)
+    await create_table_from_df(session, iris_france, "iris_france")
     sql = """
         
         ALTER TABLE public.iris_france
@@ -18,6 +18,6 @@ def create_iris_france(engine):
         USING ST_SetSRID(shape::Geometry, 4326);
         """
 
-    with engine.connect() as conn:
-        conn.execute(text(sql))
-        conn.close()
+    async with session.bind.connect() as conn:
+        await conn.execute(text(sql))
+        await conn.close()

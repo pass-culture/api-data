@@ -1,23 +1,24 @@
+import typing as t
+
 from huggy.schemas.recommendable_offer import RecommendableOfferRawDB
+from tests.db.schema.iris import (
+    iris_marseille_cours_julien,
+    iris_marseille_vieux_port,
+    iris_nok,
+    iris_paris_chatelet,
+)
 from tests.db.schema.offer import (
+    book_offer_marseille_cours_julien,
+    book_offer_paris,
+    manga_book_offer_cours_julien_marseille,
+    manga_book_offer_paris,
+    manga_book_offer_vieux_port_marseille,
+    movie_offer_high_price_paris,
     movie_offer_no_geolocated,
     movie_offer_paris,
     movie_offer_underage_paris,
-    movie_offer_high_price_paris,
     spectacle_offer_paris,
-    book_offer_paris,
-    manga_book_offer_paris,
-    book_offer_marseille_cours_julien,
-    manga_book_offer_cours_julien_marseille,
-    manga_book_offer_vieux_port_marseille,
 )
-from tests.db.schema.iris import (
-    iris_paris_chatelet,
-    iris_nok,
-    iris_marseille_vieux_port,
-    iris_marseille_cours_julien,
-)
-import typing as t
 
 
 def to_items(offers: RecommendableOfferRawDB) -> t.List[str]:

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, DateTime, Float
+from sqlalchemy import Column, DateTime, Float, Integer, String
 from sqlalchemy.types import PickleType
 
 from huggy.utils.database import Base

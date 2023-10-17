@@ -1,17 +1,9 @@
 import huggy.core.model_selection.recommendation as recommendation_endpoints
 import huggy.core.model_selection.similar_offer as similar_offer_endpoints
-from huggy.core.model_selection.model_configuration import (
-    ModelConfiguration,
-    ModelFork,
-)
-
-from huggy.schemas.user import UserContext
+from huggy.core.model_selection.model_configuration import ModelConfiguration, ModelFork
 from huggy.schemas.offer import Offer
-
-from huggy.utils.env_vars import (
-    DEFAULT_RECO_MODEL,
-    DEFAULT_SIMILAR_OFFER_MODEL,
-)
+from huggy.schemas.user import UserContext
+from huggy.utils.env_vars import DEFAULT_RECO_MODEL, DEFAULT_SIMILAR_OFFER_MODEL
 
 RECOMMENDATION_ENDPOINTS = {
     # Default endpoint

@@ -1,16 +1,18 @@
-from tests.db.schema.iris import (
-    iris_paris_chatelet,
-    iris_nok,
-    iris_marseille_vieux_port,
-    iris_marseille_cours_julien,
-    IrisTestExample,
-)
-from huggy.schemas.recommendable_offer import RecommendableOfferRawDB
-from tests.utils.distance import haversine_distance
-from pydantic import BaseModel, validator, Field
-from datetime import datetime, timedelta
-from uuid import uuid4, UUID
 import typing as t
+from datetime import datetime, timedelta
+from uuid import uuid4
+
+from pydantic import BaseModel, Field, validator
+
+from huggy.schemas.recommendable_offer import RecommendableOfferRawDB
+from huggy.utils.distance import haversine_distance
+from tests.db.schema.iris import (
+    IrisTestExample,
+    iris_marseille_cours_julien,
+    iris_marseille_vieux_port,
+    iris_nok,
+    iris_paris_chatelet,
+)
 
 
 class RecommendableOffersRawExample(BaseModel):
@@ -34,7 +36,7 @@ class RecommendableOffersRawExample(BaseModel):
     is_underage_recommendable: bool = False
     venue_latitude: t.Optional[float] = None
     venue_longitude: t.Optional[float] = None
-    unique_id: UUID = Field(default_factory=uuid4)
+    unique_id: str = Field(default_factory=lambda: str(uuid4()))
     default_max_distance: float = 50_000  # 50 KM
 
     def to_context(self, iris_context: IrisTestExample):

@@ -1,64 +1,57 @@
-from sqlalchemy import inspect, insert, text
+import logging
+
+from sqlalchemy import insert, inspect, text
+
+from huggy.models.item_ids_mv import ItemIdsMv
 from huggy.models.recommendable_offers_raw import (
     RecommendableOffersRawMv,
-    RecommendableOffersRawMvTmp,
     RecommendableOffersRawMvOld,
+    RecommendableOffersRawMvTmp,
 )
 from tests.db.models.recommendable_offer_raw import FakeRecommendableOffersRaw
-from huggy.models.item_ids_mv import ItemIdsMv
 from tests.db.schema.offer import raw_data
-import logging
-from huggy.utils.database import Base
+from tests.db.utils import create_model
 
 logger = logging.getLogger(__name__)
 
 
-def create_fake_mv(engine, table_name):
+async def create_fake_mv(session, table_name):
     raw_table_name = FakeRecommendableOffersRaw.__tablename__
     sql = f"""
         CREATE TABLE {table_name} AS
         SELECT *, ST_SetSRID(ST_MakePoint(ro.venue_longitude, ro.venue_latitude), 4326)::geography as venue_geo  
         FROM {raw_table_name} ro;
     """
-    with engine.connect() as conn:
-        conn.execute(text(sql))
-        conn.commit()
-        conn.close()
+    async with session.bind.connect() as conn:
+        await conn.execute(text(sql))
+        await conn.commit()
 
 
-def create_recommendable_offers_raw(engine):
-    if inspect(engine).has_table(FakeRecommendableOffersRaw.__tablename__):
-        FakeRecommendableOffersRaw.__table__.drop(engine)
-    FakeRecommendableOffersRaw.__table__.create(bind=engine)
+async def create_recommendable_offers_raw(session):
+    await create_model(session, FakeRecommendableOffersRaw)
 
-    with engine.connect() as conn:
-        conn.execute(insert(FakeRecommendableOffersRaw), raw_data)
-        conn.commit()
-        conn.close()
+    async with session.bind.connect() as conn:
+        await conn.execute(insert(FakeRecommendableOffersRaw), raw_data)
+        await conn.commit()
 
 
-def create_recommendable_offers_raw_mv(engine):
+async def create_recommendable_offers_raw_mv(session):
     table_name = RecommendableOffersRawMv.__tablename__
-    if inspect(engine).has_table(table_name):
-        RecommendableOffersRawMv.__table__.drop(engine)
-    create_fake_mv(engine, table_name)
+    await create_fake_mv(session, table_name)
 
 
-def create_recommendable_offers_raw_mv_tmp(engine):
+async def create_recommendable_offers_raw_mv_tmp(session):
     table_name = RecommendableOffersRawMvTmp.__tablename__
-    if inspect(engine).has_table(table_name):
-        RecommendableOffersRawMvTmp.__table__.drop(engine)
-    create_fake_mv(engine, table_name)
+    await create_fake_mv(session, table_name)
 
 
-def create_recommendable_offers_raw_mv_old(engine):
+async def create_recommendable_offers_raw_mv_old(session):
     table_name = RecommendableOffersRawMvOld.__tablename__
-    if inspect(engine).has_table(table_name):
-        RecommendableOffersRawMvOld.__table__.drop(engine)
-    create_fake_mv(engine, table_name)
+    await create_fake_mv(session, table_name)
 
 
-def create_item_ids_mv(engine):
+async def create_item_ids_mv(session):
+    await create_model(session, ItemIdsMv)
     item_ids = [
         {
             "item_id": x["item_id"],
@@ -67,11 +60,8 @@ def create_item_ids_mv(engine):
         }
         for x in raw_data
     ]
-    if inspect(engine).has_table(ItemIdsMv.__tablename__):
-        ItemIdsMv.__table__.drop(engine)
-    ItemIdsMv.__table__.create(bind=engine)
 
-    with engine.connect() as conn:
-        conn.execute(insert(ItemIdsMv), item_ids)
-        conn.commit()
-        conn.close()
+    async with session.bind.connect() as conn:
+        await conn.execute(insert(ItemIdsMv), item_ids)
+        await conn.commit()
+        await conn.close()

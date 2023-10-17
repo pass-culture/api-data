@@ -1,19 +1,19 @@
-from typing import List
 import datetime
-import pytz
-from abc import ABC, abstractmethod
-from huggy.schemas.user import UserContext
-from huggy.schemas.playlist_params import PlaylistParams
-from huggy.core.model_selection.model_configuration import ModelConfiguration
-from huggy.utils.mixing import order_offers_by_score_and_diversify_features
-from huggy.schemas.recommendable_offer import RankedOffer
-from huggy.models.past_recommended_offers import OfferContext
 import typing as t
-from huggy.utils.env_vars import (
-    NUMBER_OF_RECOMMENDATIONS,
-)
+from abc import ABC, abstractmethod
+from typing import List
+
+import pytz
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from huggy.core.model_selection.model_configuration import ModelConfiguration
 from huggy.core.scorer.offer import OfferScorer
-from sqlalchemy.orm import Session
+from huggy.models.past_recommended_offers import OfferContext
+from huggy.schemas.playlist_params import PlaylistParams
+from huggy.schemas.recommendable_offer import RankedOffer
+from huggy.schemas.user import UserContext
+from huggy.utils.env_vars import NUMBER_OF_RECOMMENDATIONS
+from huggy.utils.mixing import order_offers_by_score_and_diversify_features
 
 
 class ModelEngine(ABC):
@@ -46,7 +46,7 @@ class ModelEngine(ABC):
             ranking_endpoint=self.model_params.ranking_endpoint,
         )
 
-    def get_scoring(self, db: Session, call_id) -> List[str]:
+    def get_scoring(self, db: AsyncSession, call_id) -> List[str]:
         """
         Returns a list of offer_id to be send to the user
         Depends of the scorer method.
@@ -83,7 +83,7 @@ class ModelEngine(ABC):
 
     def save_context(
         self,
-        db: Session,
+        db: AsyncSession,
         offers: t.List[RankedOffer],
         call_id: str,
         context: str,

@@ -1,9 +1,8 @@
-from huggy.core.model_selection.endpoint import RetrievalEndpointName
-
 from huggy.core.endpoint.retrieval_endpoint import (
-    OfferRetrievalEndpoint,
     OfferFilterRetrievalEndpoint,
+    OfferRetrievalEndpoint,
 )
+from huggy.core.model_selection.endpoint import RetrievalEndpointName
 
 RETRIEVAL_LIMIT = 500
 

@@ -1,20 +1,21 @@
-import pytest
+import logging
 import os
-from sqlalchemy.orm import Session
+
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
 from huggy.crud.user import UserContextDB
 from huggy.schemas.user import UserProfileDB
-from tests.db.schema.iris import iris_paris_chatelet, iris_nok, IrisTestExample
+from tests.db.schema.iris import IrisTestExample, iris_nok, iris_paris_chatelet
 from tests.db.schema.user import (
-    user_profile_unknown,
-    user_profile_null,
     user_profile_111,
     user_profile_112,
     user_profile_113,
-    user_profile_118,
     user_profile_117,
+    user_profile_118,
+    user_profile_null,
+    user_profile_unknown,
 )
-
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -32,15 +33,16 @@ class UserTest:
             (user_profile_null, True),
         ],
     )
-    def test_get_user_profile(
-        self, setup_default_database: Session, user: UserProfileDB, found: bool
+    async def test_get_user_profile(
+        self, setup_default_database: AsyncSession, user: UserProfileDB, found: bool
     ):
-        result_user = UserContextDB().get_user_profile(
+        result_user = await UserContextDB().get_user_profile(
             setup_default_database, user.user_id
         )
         result_found = result_user is not None
         assert found == result_found, "user was found in DB"
         if found:
+            assert result_user.user_id == user.user_id, f"user_id is right"
             assert result_user.age == user.age, f"age is right"
             assert (
                 result_user.user_deposit_remaining_credit
@@ -55,7 +57,6 @@ class UserTest:
             assert (
                 result_user.favorites_count == user.favorites_count
             ), f"favorites_count is right"
-            assert result_user.user_id == user.user_id, f"user_id is right"
 
     @pytest.mark.parametrize(
         ["user", "iris", "found"],
@@ -66,15 +67,15 @@ class UserTest:
             (user_profile_unknown, iris_paris_chatelet, False),
         ],
     )
-    def test_get(
+    async def test_get(
         self,
-        setup_default_database: Session,
+        setup_default_database: AsyncSession,
         user: UserProfileDB,
         iris: IrisTestExample,
         found: bool,
     ):
         geolocated = iris.iris_id is not None
-        result_user = UserContextDB().get_user_context(
+        result_user = await UserContextDB().get_user_context(
             setup_default_database,
             user_id=user.user_id,
             latitude=iris.latitude,

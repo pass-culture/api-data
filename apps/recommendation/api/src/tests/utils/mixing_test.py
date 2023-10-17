@@ -1,13 +1,9 @@
 import os
+
 from numpy.testing import assert_array_equal
-from huggy.utils.mixing import (
-    order_offers_by_score_and_diversify_features,
-)
+
 from huggy.schemas.recommendable_offer import RankedOffer
-
-
-ENV_SHORT_NAME = os.getenv("ENV_SHORT_NAME")
-SHUFFLE_RECOMMENDATION = os.getenv("SHUFFLE_RECOMMENDATION", False)
+from huggy.utils.mixing import order_offers_by_score_and_diversify_features
 
 mock_scored_offers = [
     RankedOffer(

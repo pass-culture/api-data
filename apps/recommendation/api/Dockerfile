@@ -12,4 +12,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY ./src .
 COPY ./src/huggy ./huggy
 EXPOSE 8080
-CMD exec gunicorn -k uvicorn.workers.UvicornWorker --bind :8080 --workers 1 --threads 10 --preload --timeout 0 main:app
+CMD exec gunicorn -k uvicorn.workers.UvicornWorker --bind :8080 --workers 2 --threads 5 --preload --timeout 0 main:app
