@@ -7,6 +7,7 @@ from sqlalchemy import engine, insert, inspect, text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
+from huggy.database.utils import get_engine
 from huggy.models.enriched_user import (
     EnrichedUserMv,
     EnrichedUserMvOld,
@@ -20,15 +21,12 @@ from huggy.models.recommendable_offers_raw import (
     RecommendableOffersRawMvOld,
     RecommendableOffersRawMvTmp,
 )
-from huggy.utils.database import get_engine
 from tests.db.utils import clean_db, create_db
-from huggy.utils.env_vars import (
-    DB_NAME,
-)
 
 logger = logging.getLogger(__name__)
 
 import asyncio
+
 from tests.db import (
     create_enriched_user_mv,
     create_enriched_user_mv_old,

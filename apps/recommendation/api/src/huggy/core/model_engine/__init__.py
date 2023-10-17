@@ -46,12 +46,12 @@ class ModelEngine(ABC):
             ranking_endpoint=self.model_params.ranking_endpoint,
         )
 
-    def get_scoring(self, db: AsyncSession, call_id) -> List[str]:
+    async def get_scoring(self, db: AsyncSession, call_id) -> List[str]:
         """
         Returns a list of offer_id to be send to the user
         Depends of the scorer method.
         """
-        scored_offers = self.scorer.get_scoring(db, call_id)
+        scored_offers = await self.scorer.get_scoring(db, call_id)
         if len(scored_offers) == 0:
             return []
 
@@ -71,7 +71,7 @@ class ModelEngine(ABC):
             )
 
         scoring_size = min(len(scored_offers), NUMBER_OF_RECOMMENDATIONS)
-        self.save_context(
+        await self.save_context(
             db=db,
             offers=scored_offers,
             call_id=call_id,
@@ -81,7 +81,7 @@ class ModelEngine(ABC):
 
         return [offer.offer_id for offer in scored_offers][:scoring_size]
 
-    def save_context(
+    async def save_context(
         self,
         db: AsyncSession,
         offers: t.List[RankedOffer],
@@ -91,32 +91,33 @@ class ModelEngine(ABC):
     ) -> None:
         if len(offers) > 0:
             date = datetime.datetime.now(pytz.utc)
-            for o in offers:
-                db.add(
-                    OfferContext(
-                        call_id=call_id,
-                        context=context,
-                        date=date,
-                        user_id=user.user_id,
-                        user_bookings_count=user.bookings_count,
-                        user_clicks_count=user.clicks_count,
-                        user_favorites_count=user.favorites_count,
-                        user_deposit_remaining_credit=user.user_deposit_remaining_credit,
-                        user_iris_id=user.iris_id,
-                        user_latitude=None,
-                        user_longitude=None,
-                        offer_user_distance=o.user_distance,
-                        offer_id=o.offer_id,
-                        offer_item_id=o.item_id,
-                        offer_booking_number=o.booking_number,
-                        offer_stock_price=o.stock_price,
-                        offer_creation_date=o.offer_creation_date,
-                        offer_stock_beginning_date=o.stock_beginning_date,
-                        offer_category=o.category,
-                        offer_subcategory_id=o.subcategory_id,
-                        offer_item_score=o.item_rank,
-                        offer_order=o.offer_score,
-                        offer_venue_id=o.venue_id,
+            async with db.bind.connect() as conn:
+                for o in offers:
+                    await conn.add(
+                        OfferContext(
+                            call_id=call_id,
+                            context=context,
+                            date=date,
+                            user_id=user.user_id,
+                            user_bookings_count=user.bookings_count,
+                            user_clicks_count=user.clicks_count,
+                            user_favorites_count=user.favorites_count,
+                            user_deposit_remaining_credit=user.user_deposit_remaining_credit,
+                            user_iris_id=user.iris_id,
+                            user_latitude=None,
+                            user_longitude=None,
+                            offer_user_distance=o.user_distance,
+                            offer_id=o.offer_id,
+                            offer_item_id=o.item_id,
+                            offer_booking_number=o.booking_number,
+                            offer_stock_price=o.stock_price,
+                            offer_creation_date=o.offer_creation_date,
+                            offer_stock_beginning_date=o.stock_beginning_date,
+                            offer_category=o.category,
+                            offer_subcategory_id=o.subcategory_id,
+                            offer_item_score=o.item_rank,
+                            offer_order=o.offer_score,
+                            offer_venue_id=o.venue_id,
+                        )
                     )
-                )
-            db.commit()
+                await conn.commit()

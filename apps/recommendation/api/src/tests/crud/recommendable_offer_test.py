@@ -117,7 +117,7 @@ recommendable_offers_test_pool_paris = [
         "description": """
             users: 18 YO user 30€ credit, geolocated Paris.
             items: Geolocated Books items.
-            expected: books geolocated.
+            expected: books geolocated < 30.
         """,
         "user": user_context_118_paris,
         "items": items_books_paris_below_30_euros,

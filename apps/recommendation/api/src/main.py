@@ -10,13 +10,13 @@ from huggy.core.model_engine.recommendation import Recommendation
 from huggy.core.model_engine.similar_offer import SimilarOffer
 from huggy.crud.offer import Offer
 from huggy.crud.user import UserContextDB
+from huggy.database.session import get_db
 from huggy.schemas.playlist_params import (
     GetSimilarOfferPlaylistParams,
     PlaylistParams,
     PostSimilarOfferPlaylistParams,
 )
 from huggy.utils.cloud_logging import logger
-from huggy.utils.database import get_db
 from huggy.utils.env_vars import (
     CORS_ALLOWED_ORIGIN,
     call_id_trace_context,

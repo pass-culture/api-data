@@ -1,6 +1,6 @@
 from sqlalchemy import Column, DateTime, Float, Integer, String
 
-from huggy.utils.database import Base, MaterializedBase
+from huggy.database.base import Base, MaterializedBase
 
 
 class EnrichedUser(MaterializedBase):

@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from sqlalchemy import Column, Integer, String
 
-from huggy.utils.database import Base
+from huggy.database.base import Base
 
 
 class ItemIdsMv(Base):

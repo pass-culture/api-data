@@ -21,20 +21,25 @@ class Recommendation(ModelEngine):
         self.reco_origin = reco_origin
         return model_params
 
-    def save_recommendation(self, db: AsyncSession, recommendations, call_id) -> None:
+    async def save_recommendation(
+        self, db: AsyncSession, recommendations, call_id
+    ) -> None:
         if len(recommendations) > 0:
             date = datetime.datetime.now(pytz.utc)
-            for reco in recommendations:
-                reco_offer = PastRecommendedOffers(
-                    userid=self.user.user_id,
-                    offerid=reco,
-                    date=date,
-                    group_id=self.model_params.name,
-                    reco_origin=self.reco_origin,
-                    model_name=self.scorer.retrieval_endpoints[0].model_display_name,
-                    model_version=self.scorer.retrieval_endpoints[0].model_version,
-                    call_id=call_id,
-                    user_iris_id=self.user.iris_id,
-                )
-                db.add(reco_offer)
-            db.commit()
+            async with db.bind.connect() as conn:
+                for reco in recommendations:
+                    reco_offer = PastRecommendedOffers(
+                        userid=self.user.user_id,
+                        offerid=reco,
+                        date=date,
+                        group_id=self.model_params.name,
+                        reco_origin=self.reco_origin,
+                        model_name=self.scorer.retrieval_endpoints[
+                            0
+                        ].model_display_name,
+                        model_version=self.scorer.retrieval_endpoints[0].model_version,
+                        call_id=call_id,
+                        user_iris_id=self.user.iris_id,
+                    )
+                    await conn.add(reco_offer)
+                await conn.commit()

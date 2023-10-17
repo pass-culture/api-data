@@ -1,7 +1,7 @@
 from sqlalchemy import Column, DateTime, Float, Integer, String
 from sqlalchemy.types import PickleType
 
-from huggy.utils.database import Base
+from huggy.database.base import Base
 
 
 class PastRecommendedOffers(Base):

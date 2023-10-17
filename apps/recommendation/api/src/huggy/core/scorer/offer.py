@@ -1,3 +1,9 @@
+import asyncio
+import itertools
+import random
+import time
+import typing as t
+from concurrent.futures import ProcessPoolExecutor
 from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -28,17 +34,35 @@ class OfferScorer:
         self.retrieval_endpoints = retrieval_endpoints
         self.ranking_endpoint = ranking_endpoint
 
-    async def get_scoring(
-        self,
-        db: AsyncSession,
-        call_id,
-    ) -> List[RecommendableOffer]:
+    async def loop_score(self) -> t.List[RecommendableItem]:
         prediction_items: List[RecommendableItem] = []
         endpoints_stats = {}
         for endpoint in self.retrieval_endpoints:
             out = await endpoint.model_score()
             endpoints_stats[endpoint.endpoint_name] = len(out)
             prediction_items.extend(out)
+
+        return prediction_items
+
+    async def parallel_score(self):
+        loop = asyncio.get_event_loop()
+        with ProcessPoolExecutor(len(self.retrieval_endpoints)) as pool:
+            tasks = [
+                loop.run_in_executor(pool, endpoint.model_score)
+                for endpoint in self.retrieval_endpoints
+            ]
+            results = await asyncio.gather(*tasks)
+            return list(itertools.chain.from_iterable(results))
+
+    async def get_scoring(
+        self,
+        db: AsyncSession,
+        call_id,
+    ) -> List[RecommendableOffer]:
+        if len(self.retrieval_endpoints) > 1:
+            prediction_items = await self.parallel_score()
+        else:
+            prediction_items = await self.loop_score()
 
         logger.info(
             message=f"Retrieval: {self.user.user_id}: predicted_items -> {len(prediction_items)}",
@@ -47,7 +71,7 @@ class OfferScorer:
                 "call_id": call_id,
                 "user_id": self.user.user_id,
                 "total_items": len(prediction_items),
-                "retrieval_endpoints": endpoints_stats,
+                "total_endpoints": len(self.retrieval_endpoints),
             },
         )
 

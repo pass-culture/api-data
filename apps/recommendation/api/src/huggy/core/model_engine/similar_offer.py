@@ -2,18 +2,19 @@ import datetime
 from typing import List
 
 import pytz
+from sqlalchemy.ext.asyncio import AsyncSession
 
+import huggy.schemas.offer as o
 from huggy.core.model_engine import ModelEngine
 from huggy.core.model_selection import select_sim_model_params
 from huggy.core.model_selection.model_configuration import ModelConfiguration
 from huggy.models.past_recommended_offers import PastSimilarOffers
-from huggy.schemas.offer import Offer
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
 
 
 class SimilarOffer(ModelEngine):
-    def __init__(self, user: UserContext, offer: Offer, params_in: PlaylistParams):
+    def __init__(self, user: UserContext, offer: o.Offer, params_in: PlaylistParams):
         self.offer = offer
         super().__init__(user=user, params_in=params_in)
 
@@ -26,7 +27,7 @@ class SimilarOffer(ModelEngine):
         self.reco_origin = reco_origin
         return model_params
 
-    async def get_scorer(self):
+    def get_scorer(self):
         # init input
         for endpoint in self.model_params.retrieval_endpoints:
             endpoint.init_input(
@@ -35,7 +36,7 @@ class SimilarOffer(ModelEngine):
         self.model_params.ranking_endpoint.init_input(
             user=self.user, params_in=self.params_in
         )
-        return await self.model_params.scorer(
+        return self.model_params.scorer(
             user=self.user,
             params_in=self.params_in,
             model_params=self.model_params,
@@ -53,17 +54,20 @@ class SimilarOffer(ModelEngine):
     ) -> None:
         if len(recommendations) > 0:
             date = datetime.datetime.now(pytz.utc)
-            for reco in recommendations:
-                reco_offer = PastSimilarOffers(
-                    user_id=self.user.user_id,
-                    origin_offer_id=self.offer.offer_id,
-                    offer_id=reco,
-                    date=date,
-                    group_id=self.model_params.name,
-                    model_name=self.scorer.retrieval_endpoints[0].model_display_name,
-                    model_version=self.scorer.retrieval_endpoints[0].model_version,
-                    call_id=call_id,
-                    venue_iris_id=self.offer.iris_id,
-                )
-                await db.add(reco_offer)
-            await db.commit()
+            async with db.bind.connect() as conn:
+                for reco in recommendations:
+                    reco_offer = PastSimilarOffers(
+                        user_id=self.user.user_id,
+                        origin_offer_id=self.offer.offer_id,
+                        offer_id=reco,
+                        date=date,
+                        group_id=self.model_params.name,
+                        model_name=self.scorer.retrieval_endpoints[
+                            0
+                        ].model_display_name,
+                        model_version=self.scorer.retrieval_endpoints[0].model_version,
+                        call_id=call_id,
+                        venue_iris_id=self.offer.iris_id,
+                    )
+                    await conn.add(reco_offer)
+                await conn.commit()
