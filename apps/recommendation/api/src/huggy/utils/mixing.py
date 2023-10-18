@@ -1,26 +1,24 @@
 import collections
-from typing import Dict, List, Tuple
-import numpy as np
 import random
+from typing import Dict, List, Tuple
+
+import numpy as np
 from loguru import logger
 
-from huggy.schemas.offer import RecommendableOffer
-
-from huggy.utils.env_vars import (
-    NUMBER_OF_RECOMMENDATIONS,
-)
+from huggy.schemas.recommendable_offer import RankedOffer
+from huggy.utils.env_vars import NUMBER_OF_RECOMMENDATIONS
 
 
 def order_offers_by_score_and_diversify_features(
-    offers: List[RecommendableOffer],
-    score_column="item_score",
+    offers: List[RankedOffer],
+    score_column="offer_score",
     score_order_ascending=False,
     shuffle_recommendation=None,
     feature="subcategory_id",
     nb_reco_display=NUMBER_OF_RECOMMENDATIONS,
     is_submixing=False,
     submixing_feature_dict=None,
-) -> List[RecommendableOffer]:
+) -> List[RankedOffer]:
     """
     Group offers by feature.
     Order offer groups by decreasing number of offers in each group and decreasing maximal score.
@@ -95,7 +93,7 @@ def order_offers_by_score_and_diversify_features(
 
 
 def _get_offers_grouped_by_feature(
-    offers: List[RecommendableOffer], feature="subcategory_id"
+    offers: List[RankedOffer], feature="subcategory_id"
 ) -> Dict:
     offers_by_feature = dict()
     product_ids = set()

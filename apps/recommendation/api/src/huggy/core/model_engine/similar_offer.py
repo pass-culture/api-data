@@ -1,31 +1,26 @@
-from sqlalchemy.orm import Session
-from typing import List
 import datetime
-import time
+import typing as t
+from typing import List
+
 import pytz
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from huggy.schemas.user import User
-from huggy.schemas.offer import Offer
-from huggy.schemas.playlist_params import PlaylistParams
-
+import huggy.schemas.offer as o
 from huggy.core.model_engine import ModelEngine
+from huggy.core.model_selection import select_sim_model_params
 from huggy.core.model_selection.model_configuration import ModelConfiguration
-from huggy.core.model_selection import (
-    select_sim_model_params,
-)
-
 from huggy.models.past_recommended_offers import PastSimilarOffers
-
-from huggy.utils.env_vars import log_duration
+from huggy.schemas.playlist_params import PlaylistParams
+from huggy.schemas.user import UserContext
 
 
 class SimilarOffer(ModelEngine):
-    def __init__(self, user: User, offer: Offer, params_in: PlaylistParams):
+    def __init__(self, user: UserContext, offer: o.Offer, params_in: PlaylistParams):
         self.offer = offer
         super().__init__(user=user, params_in=params_in)
 
     def get_model_configuration(
-        self, user: User, params_in: PlaylistParams
+        self, user: UserContext, params_in: PlaylistParams
     ) -> ModelConfiguration:
         model_params, reco_origin = select_sim_model_params(
             params_in.model_endpoint, offer=self.offer
@@ -50,28 +45,28 @@ class SimilarOffer(ModelEngine):
             ranking_endpoint=self.model_params.ranking_endpoint,
         )
 
-    def get_scoring(self, db: Session, call_id) -> List[str]:
+    async def get_scoring(self, db: AsyncSession, call_id) -> List[str]:
         if self.offer.item_id is None:
             return []
-        return super().get_scoring(db, call_id)
+        return await super().get_scoring(db, call_id)
 
-    def save_recommendation(self, db: Session, recommendations, call_id) -> None:
+    async def save_recommendation(
+        self, session: AsyncSession, recommendations: t.List[str], call_id: str
+    ) -> None:
         if len(recommendations) > 0:
-            start = time.time()
             date = datetime.datetime.now(pytz.utc)
+
             for reco in recommendations:
                 reco_offer = PastSimilarOffers(
-                    user_id=self.user.user_id,
-                    origin_offer_id=self.offer.offer_id,
-                    offer_id=reco,
+                    user_id=int(self.user.user_id),
+                    origin_offer_id=int(self.offer.offer_id),
+                    offer_id=int(reco),
                     date=date,
                     group_id=self.model_params.name,
                     model_name=self.scorer.retrieval_endpoints[0].model_display_name,
                     model_version=self.scorer.retrieval_endpoints[0].model_version,
-                    # reco_filters=json.dumps(self.params_in.json_input),
                     call_id=call_id,
                     venue_iris_id=self.offer.iris_id,
                 )
-                db.add(reco_offer)
-            db.commit()
-            log_duration(f"save_recommendations for {self.user.user_id}", start)
+                session.add(reco_offer)
+            await session.commit()

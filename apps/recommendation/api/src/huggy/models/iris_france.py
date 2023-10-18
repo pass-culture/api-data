@@ -1,7 +1,7 @@
-from sqlalchemy import Column, String, Integer
 from geoalchemy2 import Geometry
+from sqlalchemy import Column, Integer, String
 
-from huggy.utils.database import Base
+from huggy.database.base import Base
 
 
 class IrisFrance(Base):
@@ -10,6 +10,6 @@ class IrisFrance(Base):
 
     __tablename__ = "iris_france"
     id = Column(Integer, primary_key=True)
-    irisCode = Column(Integer)
+    iriscode = Column(Integer)
     centroid = Column(String(256))
     shape = Column(Geometry("POLYGON"))

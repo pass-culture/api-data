@@ -1,18 +1,15 @@
-import time
-from datetime import datetime
-from abc import abstractmethod
 import typing as t
+from abc import abstractmethod
+from datetime import datetime
 
-from huggy.schemas.user import User
-from huggy.schemas.playlist_params import PlaylistParams
-from huggy.schemas.offer import RecommendableOffer
+from fastapi.encoders import jsonable_encoder
 
 from huggy.core.endpoint import AbstractEndpoint
-
+from huggy.schemas.playlist_params import PlaylistParams
+from huggy.schemas.recommendable_offer import RankedOffer, RecommendableOffer
+from huggy.schemas.user import UserContext
+from huggy.utils.cloud_logging import logger
 from huggy.utils.vertex_ai import endpoint_score
-from huggy.utils.env_vars import (
-    log_duration,
-)
 
 
 def to_days(dt: datetime):
@@ -34,7 +31,7 @@ def to_float(x: float = None):
 
 
 class RankingEndpoint(AbstractEndpoint):
-    def init_input(self, user: User, params_in: PlaylistParams):
+    def init_input(self, user: UserContext, params_in: PlaylistParams):
         self.user = user
         self.user_input = str(self.user.user_id)
         self.params_in = params_in
@@ -42,7 +39,7 @@ class RankingEndpoint(AbstractEndpoint):
     @abstractmethod
     def model_score(
         self, recommendable_offers: t.List[RecommendableOffer]
-    ) -> t.List[RecommendableOffer]:
+    ) -> t.List[RankedOffer]:
         pass
 
 
@@ -51,7 +48,7 @@ class DummyRankingEndpoint(RankingEndpoint):
 
     def model_score(
         self, recommendable_offers: t.List[RecommendableOffer]
-    ) -> t.List[RecommendableOffer]:
+    ) -> t.List[RankedOffer]:
         return recommendable_offers
 
 
@@ -60,7 +57,7 @@ class ModelRankingEndpoint(RankingEndpoint):
 
     def get_instance(
         self, recommendable_offers: t.List[RecommendableOffer]
-    ) -> t.List[RecommendableOffer]:
+    ) -> t.List[RankedOffer]:
         offers_list = []
         for row in recommendable_offers:
             offers_list.append(
@@ -87,27 +84,53 @@ class ModelRankingEndpoint(RankingEndpoint):
 
     def model_score(
         self, recommendable_offers: t.List[RecommendableOffer]
-    ) -> t.List[RecommendableOffer]:
-        start = time.time()
+    ) -> t.List[RankedOffer]:
         instances = self.get_instance(recommendable_offers)
         prediction_result = endpoint_score(
             instances=instances, endpoint_name=self.endpoint_name
         )
-        log_duration(
-            f"ranking_endpoint {str(self.user.user_id)} offers : {len(recommendable_offers)}",
-            start,
-        )
         self.model_version = prediction_result.model_version
         self.model_display_name = prediction_result.model_display_name
-        # smallest = better (indices)
         prediction_dict = {
-            r["offer_id"]: r["score"] for r in prediction_result.predictions
+            str(r["offer_id"]): r["score"] for r in prediction_result.predictions
         }
+        logger.info(
+            f"ranking_endpoint {str(self.user.user_id)} offers : {len(recommendable_offers)}",
+            extra=prediction_dict,
+        )
 
+        ranked_offers = []
+        not_found = []
         for row in recommendable_offers:
-            current_score = prediction_dict.get(row.offer_id, None)
+            current_score = prediction_dict.get(str(row.offer_id), None)
             if current_score is not None:
-                row.offer_score = current_score
-                row.offer_output = current_score
-        log_duration(f"ranking_endpoint {str(self.user.user_id)}", start)
-        return sorted(recommendable_offers, key=lambda x: x.offer_output, reverse=True)
+                ranked_offers.append(
+                    RankedOffer(
+                        offer_score=current_score,
+                        offer_output=current_score,
+                        **row.dict(),
+                    )
+                )
+            else:
+                not_found.append(row)
+
+        if len(not_found) > 0:
+            logger.warn(
+                f"ranking_endpoint, offer not found",
+                extra=jsonable_encoder(
+                    {
+                        "event_name": "ranking",
+                        "event_details": "offer not found",
+                        "user_id": self.user.user_id,
+                        "total_not_found": len(not_found),
+                        "total_recommendable_offers": len(recommendable_offers),
+                        "total_ranked_offers": len(ranked_offers),
+                        "not_found": [x.dict() for x in not_found],
+                    }
+                ),
+            )
+
+        logger.info(
+            f"ranking_endpoint {str(self.user.user_id)} out : {len(ranked_offers)}"
+        )
+        return sorted(ranked_offers, key=lambda x: x.offer_output, reverse=True)

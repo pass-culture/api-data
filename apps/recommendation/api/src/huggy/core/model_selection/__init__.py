@@ -1,19 +1,9 @@
-from loguru import logger
-
 import huggy.core.model_selection.recommendation as recommendation_endpoints
 import huggy.core.model_selection.similar_offer as similar_offer_endpoints
-from huggy.core.model_selection.model_configuration import (
-    ModelConfiguration,
-    ModelFork,
-)
-
-from huggy.schemas.user import User
+from huggy.core.model_selection.model_configuration import ModelConfiguration, ModelFork
 from huggy.schemas.offer import Offer
-
-from huggy.utils.env_vars import (
-    DEFAULT_RECO_MODEL,
-    DEFAULT_SIMILAR_OFFER_MODEL,
-)
+from huggy.schemas.user import UserContext
+from huggy.utils.env_vars import DEFAULT_RECO_MODEL, DEFAULT_SIMILAR_OFFER_MODEL
 
 RECOMMENDATION_ENDPOINTS = {
     # Default endpoint
@@ -77,11 +67,12 @@ SIMILAR_OFFER_ENDPOINTS = {
 }
 
 
-def select_reco_model_params(model_endpoint: str, user: User) -> ModelConfiguration:
+def select_reco_model_params(
+    model_endpoint: str, user: UserContext
+) -> ModelConfiguration:
     """Choose the model to apply Recommendation based on user interaction"""
     if model_endpoint not in list(RECOMMENDATION_ENDPOINTS.keys()):
         model_endpoint = DEFAULT_RECO_MODEL
-    logger.info(f"{user.user_id}: reco_endpoint {model_endpoint}")
     model_fork = RECOMMENDATION_ENDPOINTS[model_endpoint]
     return model_fork.get_user_status(user=user)
 
@@ -90,6 +81,5 @@ def select_sim_model_params(model_endpoint: str, offer: Offer) -> ModelConfigura
     """Choose the model to apply for Similar Offers based on offer interaction"""
     if model_endpoint not in list(SIMILAR_OFFER_ENDPOINTS.keys()):
         model_endpoint = DEFAULT_SIMILAR_OFFER_MODEL
-    logger.info(f"{offer.offer_id}: sim_offer_endpoint {model_endpoint}")
     model_fork = SIMILAR_OFFER_ENDPOINTS[model_endpoint]
     return model_fork.get_offer_status(offer=offer)

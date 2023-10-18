@@ -16,7 +16,7 @@ pyenv install 3.9
 Create a virtual env
 ```sh 
 pyenv virtualenv 3.9 reco_fastapi
-pyenv local reco_fastapi
+pyenv shell reco_fastapi
 ```
 
 ```sh 
@@ -29,13 +29,25 @@ pip3 install -r requirements.txt
 Set up a testdb :
 ```sh
 export DATA_GCP_TEST_POSTGRES_PORT=5432
-export DB_NAME="postgres"
+export DB_NAME="db"
 docker-compose up -d testdb  
 ```
 ```sh
 cd ~/apps/recommendation/
-pyenv local reco_fastapi
+pyenv shell reco_fastapi
 pytest
+```
+
+In case you have some troubles to run tests 
+
+Connect to db, create db database, add postgis extension
+```sh 
+docker exec -it <docker_id> /bin/sh
+psql -U postgres
+
+create database db
+\c db; 
+create extension postgis;
 ```
 
 ### Run it locally
@@ -63,7 +75,7 @@ In case of emergency you still can deploy the api by hand:
 ```
 cd ~/apps/recommendation/api
 gcloud builds submit \
-  --tag eu.gcr.io/<PROJECT-ID>/data-gcp/<IMAGE-NAME> \
+  --tag eu.gcr.io/<PROJECT-ID>/data-gcp/<IMAGE-NAME>
 
 ```
 - PROJECT-ID : (passculture-data-\<env>)

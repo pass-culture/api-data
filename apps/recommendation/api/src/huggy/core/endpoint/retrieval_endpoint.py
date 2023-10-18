@@ -1,18 +1,17 @@
-from datetime import datetime
-import time
-from dataclasses import dataclass
 import typing as t
 from abc import abstractmethod
+from dataclasses import dataclass
+from datetime import datetime
 
-from huggy.schemas.offer import Offer
-from huggy.schemas.playlist_params import PlaylistParams
-from huggy.schemas.user import User
-from huggy.schemas.item import RecommendableItem
+from fastapi.encoders import jsonable_encoder
 
 from huggy.core.endpoint import AbstractEndpoint
-
+from huggy.schemas.item import RecommendableItem
+from huggy.schemas.offer import Offer
+from huggy.schemas.playlist_params import PlaylistParams
+from huggy.schemas.user import UserContext
+from huggy.utils.cloud_logging import logger
 from huggy.utils.vertex_ai import endpoint_score
-from huggy.utils.env_vars import log_duration
 
 
 @dataclass
@@ -73,7 +72,7 @@ class EqParams:
 
 
 class RetrievalEndpoint(AbstractEndpoint):
-    def init_input(self, user: User, params_in: PlaylistParams):
+    def init_input(self, user: UserContext, params_in: PlaylistParams):
         self.user = user
         self.params_in = params_in
         self.user_input = str(self.user.user_id)
@@ -84,6 +83,10 @@ class RetrievalEndpoint(AbstractEndpoint):
         pass
 
     def get_params(self):
+        logger.debug(
+            f"retrieval_endpoint : params_in {self.endpoint_name}",
+            extra=jsonable_encoder(self.params_in),
+        )
         params = []
 
         if not self.is_geolocated:
@@ -136,22 +139,29 @@ class RetrievalEndpoint(AbstractEndpoint):
         params.append(ListParams(label="gtl_l3", values=self.params_in.gtl_l3))
         params.append(ListParams(label="gtl_l4", values=self.params_in.gtl_l4))
 
-        params.append(EqParams(label="is_duo", value=self.params_in.is_duo))
+        params.append(EqParams(label="offer_is_duo", value=self.params_in.is_duo))
 
         if self.params_in.offer_type_list is not None:
             label, domain = [], []
-            for type in self.params_in.offer_type_list:
-                domain.append(list(type.keys())[0])
-                label.append(list(type.values())[0])
+            for kv in self.params_in.offer_type_list:
+                key = kv.get("key", None)
+                val = kv.get("value", None)
+                if key is not None and val is not None:
+                    domain.append(key)
+                    label.append(val)
             params.append(ListParams(label="offer_type_domain", values=domain))
             params.append(ListParams(label="offer_type_label", values=label))
 
-        return {"$and": {k: v for d in params for k, v in d.filter().items()}}
+        filters = {"$and": {k: v for d in params for k, v in d.filter().items()}}
+        logger.debug(
+            f"retrieval_endpoint : {self.endpoint_name} filters",
+            extra=jsonable_encoder(filters),
+        )
+
+        return filters
 
     def model_score(self) -> t.List[RecommendableItem]:
-        start = time.time()
         instances = self.get_instance(self.size)
-        log_duration(f"retrieval_endpoint {instances}", start)
         prediction_result = endpoint_score(
             instances=instances,
             endpoint_name=self.endpoint_name,
@@ -159,12 +169,10 @@ class RetrievalEndpoint(AbstractEndpoint):
         )
         self.model_version = prediction_result.model_version
         self.model_display_name = prediction_result.model_display_name
-        log_duration("retrieval_endpoint", start)
         # smallest = better (cosine similarity or inner_product)
         return [
             RecommendableItem(
                 item_id=r["item_id"],
-                item_score=float(r.get("score", r["idx"])),
                 item_rank=r["idx"],
             )
             for r in prediction_result.predictions
@@ -193,7 +201,7 @@ class RecommendationRetrievalEndpoint(RetrievalEndpoint):
 
 
 class OfferRetrievalEndpoint(RetrievalEndpoint):
-    def init_input(self, user: User, offer: Offer, params_in: PlaylistParams):
+    def init_input(self, user: UserContext, offer: Offer, params_in: PlaylistParams):
         self.user = user
         self.offer = offer
         self.item_id = str(self.offer.item_id)

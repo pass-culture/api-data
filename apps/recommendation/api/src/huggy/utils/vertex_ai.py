@@ -1,14 +1,16 @@
+import concurrent.futures
+from dataclasses import dataclass
+from functools import partial
+from typing import Dict, List, Union
+
+import grpc
+from cachetools import TTLCache, cached
+from google.api_core.exceptions import DeadlineExceeded
 from google.cloud import aiplatform
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value
-from google.api_core.exceptions import DeadlineExceeded
-from typing import Dict, List, Union
-from cachetools import cached, TTLCache
-from dataclasses import dataclass
-import concurrent.futures
-from functools import partial
-import grpc
 
+from huggy.utils.cloud_logging import logger
 from huggy.utils.env_vars import GCP_PROJECT
 
 
@@ -20,7 +22,7 @@ class PredictionResult:
     model_display_name: str
 
 
-@cached(cache=TTLCache(maxsize=1024, ttl=120))
+@cached(cache=TTLCache(maxsize=1024, ttl=300))
 def get_model(endpoint_name, location):
     return __get_model(endpoint_name, location)
 
@@ -41,17 +43,6 @@ def __get_model(endpoint_name, location):
 def get_client(api_endpoint):
     client_options = {"api_endpoint": api_endpoint}
     return aiplatform.gapic.PredictionServiceClient(client_options=client_options)
-
-
-def parallel_endpoint_score(endpoint_name, instances):
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        func = partial(endpoint_score, endpoint_name)
-        futures = [executor.submit(func, inst) for inst in instances]
-        results = [
-            future.result() for future in concurrent.futures.as_completed(futures)
-        ]
-
-    return results
 
 
 def endpoint_score(endpoint_name, instances, fallback_endpoints=[]) -> PredictionResult:
@@ -95,7 +86,7 @@ def __predict_model(
 
         try:
             model_params = get_model(endpoint_name, location)
-        # TODO fix this
+
         except:
             model_params = __get_model(endpoint_name, location)
 

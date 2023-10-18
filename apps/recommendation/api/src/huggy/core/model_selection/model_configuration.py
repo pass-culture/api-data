@@ -1,14 +1,13 @@
+import copy
 from dataclasses import dataclass
 from typing import List
-import copy
 
 import huggy.core.scorer.offer as offer_scorer
-from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
 from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
-
-from huggy.schemas.playlist_params import PlaylistParams
+from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
 from huggy.schemas.offer import Offer
-from huggy.schemas.user import User
+from huggy.schemas.playlist_params import PlaylistParams
+from huggy.schemas.user import UserContext
 
 
 @dataclass
@@ -47,8 +46,6 @@ class ModelConfiguration:
     scorer: offer_scorer.OfferScorer
     retrieval_endpoints: List[RetrievalEndpoint]
     ranking_endpoint: RankingEndpoint
-    ranking_order_query: str
-    ranking_limit_query: int
     diversification_params: DiversificationParams
 
     def get_diversification_params(
@@ -57,9 +54,6 @@ class ModelConfiguration:
         """
         Overwrite default params
         """
-        # if params_in.is_reco_mixed is not None:
-        #     self.diversification_params.is_active = params_in.is_reco_mixed
-
         if params_in.is_reco_shuffled is not None:
             self.diversification_params.is_reco_shuffled = params_in.is_reco_shuffled
 
@@ -82,8 +76,8 @@ class ModelFork:
     clicks_count: int = 25
     favorites_count: int = None
 
-    def get_user_status(self, user: User):
-        """Get model status based on User interactions"""
+    def get_user_status(self, user: UserContext):
+        """Get model status based on UserContext interactions"""
         if not user.found:
             return copy.deepcopy(self.cold_start_model), "unknown_v2"
 
