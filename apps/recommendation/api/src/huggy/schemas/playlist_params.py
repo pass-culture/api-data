@@ -1,9 +1,9 @@
+import re
+from datetime import datetime
+from typing import Dict, List, Optional
+
 from fastapi import Query
 from pydantic import BaseModel, Field
-from datetime import datetime
-from typing import List, Dict, Optional
-import re
-
 
 under_pat = re.compile(r"_([a-z])")
 

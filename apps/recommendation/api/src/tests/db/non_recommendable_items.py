@@ -1,20 +1,19 @@
-from sqlalchemy import inspect, insert
+from sqlalchemy import insert
 
 from huggy.models.non_recommendable_items import NonRecommendableItems
+from tests.db.utils import create_model
 
 
-def create_non_recommendable_items(engine):
-    if inspect(engine).has_table(NonRecommendableItems.__tablename__):
-        NonRecommendableItems.__table__.drop(engine)
-    NonRecommendableItems.__table__.create(bind=engine)
+async def create_non_recommendable_items(session):
+    await create_model(session, NonRecommendableItems)
 
-    with engine.connect() as conn:
-        conn.execute(
+    async with session.bind.connect() as conn:
+        await conn.execute(
             insert(NonRecommendableItems),
             [
                 {"user_id": "111", "item_id": "isbn-1"},
                 {"user_id": "112", "item_id": "isbn-3"},
             ],
         )
-        conn.commit()
-        conn.close()
+        await conn.commit()
+        await conn.close()

@@ -1,43 +1,44 @@
-import pytest
+import logging
 import os
-from sqlalchemy.orm import Session
 import typing as t
-from huggy.schemas.user import UserContext
-from huggy.schemas.recommendable_offer import RecommendableOfferRawDB, OfferDistance
+
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
 from huggy.crud.recommendable_offer import RecommendableOffer as RecommendableOfferDB
-from tests.utils.distance import haversine_distance
+from huggy.schemas.recommendable_offer import OfferDistance, RecommendableOffer
+from huggy.schemas.user import UserContext
+from huggy.utils.distance import haversine_distance
 from tests.db.schema.iris import (
     iris_marseille_cours_julien,
     iris_marseille_vieux_port,
     iris_paris_chatelet,
 )
-from tests.db.schema.user_context import (
-    user_context_unknown_paris,
-    user_context_null_nok,
-    user_context_111_paris,
-    user_context_111_unknown,
-    user_context_118_paris,
-    user_context_117_paris,
-    user_context_111_vieux_port_marseille,
-    user_context_111_cours_julien_marseille,
-)
 from tests.db.schema.offer_context import (
-    items_paris,
     items_all,
-    items_no_geolocated,
+    items_books_marseille,
     items_books_paris_below_30_euros,
-    offers_books_paris_30_euros,
-    offers_paris,
+    items_no_geolocated,
+    items_paris,
     offers_below_30_euros,
+    offers_books_nearest_cours_julien_marseille,
+    offers_books_nearest_vieux_port_marseille,
+    offers_books_paris_30_euros,
     offers_no_geolocated,
+    offers_paris,
     offers_underage_and_below_30_euros,
     offers_underage_books_paris_30_euros,
-    items_books_marseille,
-    offers_books_nearest_vieux_port_marseille,
-    offers_books_nearest_cours_julien_marseille,
 )
-
-import logging
+from tests.db.schema.user_context import (
+    user_context_111_cours_julien_marseille,
+    user_context_111_paris,
+    user_context_111_unknown,
+    user_context_111_vieux_port_marseille,
+    user_context_117_paris,
+    user_context_118_paris,
+    user_context_null_nok,
+    user_context_unknown_paris,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +117,7 @@ recommendable_offers_test_pool_paris = [
         "description": """
             users: 18 YO user 30€ credit, geolocated Paris.
             items: Geolocated Books items.
-            expected: books geolocated.
+            expected: books geolocated < 30.
         """,
         "user": user_context_118_paris,
         "items": items_books_paris_below_30_euros,
@@ -208,13 +209,15 @@ class RecommendableOfferTest:
         "pool",
         recommendable_offers_test_pool_paris + recommendable_offers_test_pool_marseille,
     )
-    def test_get_recommendable_offer(self, setup_default_database: Session, pool: dict):
+    async def test_get_recommendable_offer(
+        self, setup_default_database: AsyncSession, pool: dict
+    ):
         user: UserContext = pool["user"]
         items: t.List[str] = pool["items"]
         items = {x: 0 for x in items}
-        expected_offers: t.List[RecommendableOfferRawDB] = pool["expected_offers"]
+        expected_offers: t.List[RecommendableOffer] = pool["expected_offers"]
         description = pool["description"]
-        result_offers = RecommendableOfferDB().get_nearest_offers(
+        result_offers = await RecommendableOfferDB().get_nearest_offers(
             setup_default_database, user=user, recommendable_items_ids=items
         )
         expected_offers_ids = sorted([x.offer_id for x in expected_offers])
@@ -229,12 +232,14 @@ class RecommendableOfferTest:
         """
 
     @pytest.mark.parametrize("pool", offers_distance_pool)
-    def test_offer_distance(self, setup_default_database: Session, pool: dict):
+    async def test_offer_distance(
+        self, setup_default_database: AsyncSession, pool: dict
+    ):
         user: UserContext = pool["user"]
         offer_list: t.List[str] = pool["offers"]
         expected_offers: t.List[OfferDistance] = pool["expected_offers"]
 
-        result_offers = RecommendableOfferDB().get_user_offer_distance(
+        result_offers = await RecommendableOfferDB().get_user_offer_distance(
             setup_default_database, user=user, offer_list=offer_list
         )
         result_offers = sorted(result_offers, key=lambda x: x.offer_id, reverse=True)

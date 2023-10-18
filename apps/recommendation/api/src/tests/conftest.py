@@ -1,37 +1,44 @@
+import logging
 import os
-import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
 from typing import Any, Dict
-from huggy.utils.env_vars import DATA_GCP_TEST_POSTGRES_PORT, DB_NAME
-from tests.db import (
-    create_non_recommendable_items,
-    create_enriched_user_mv,
-    create_enriched_user_mv_old,
-    create_enriched_user_mv_tmp,
-    create_item_ids_mv,
-    create_recommendable_offers_raw,
-    create_recommendable_offers_raw_mv,
-    create_recommendable_offers_raw_mv_tmp,
-    create_recommendable_offers_raw_mv_old,
-    create_iris_france,
-)
-from sqlalchemy import inspect, text
-from huggy.models.item_ids_mv import ItemIdsMv
-from huggy.models.recommendable_offers_raw import (
-    RecommendableOffersRawMv,
-    RecommendableOffersRawMvOld,
-    RecommendableOffersRawMvTmp,
-)
-from huggy.models.non_recommendable_items import NonRecommendableItems
+
+import pytest
+from sqlalchemy import engine, insert, inspect, text
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker
+
+from huggy.database.utils import get_engine
 from huggy.models.enriched_user import (
     EnrichedUserMv,
     EnrichedUserMvOld,
     EnrichedUserMvTmp,
 )
 from huggy.models.iris_france import IrisFrance
+from huggy.models.item_ids_mv import ItemIdsMv
+from huggy.models.non_recommendable_items import NonRecommendableItems
+from huggy.models.recommendable_offers_raw import (
+    RecommendableOffersRawMv,
+    RecommendableOffersRawMvOld,
+    RecommendableOffersRawMvTmp,
+)
+from tests.db.utils import clean_db, create_db
 
-import logging
+logger = logging.getLogger(__name__)
+
+import asyncio
+
+from tests.db import (
+    create_enriched_user_mv,
+    create_enriched_user_mv_old,
+    create_enriched_user_mv_tmp,
+    create_iris_france,
+    create_item_ids_mv,
+    create_non_recommendable_items,
+    create_recommendable_offers_raw,
+    create_recommendable_offers_raw_mv,
+    create_recommendable_offers_raw_mv_old,
+    create_recommendable_offers_raw_mv_tmp,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -53,84 +60,59 @@ def app_config() -> Dict[str, Any]:
     return {}
 
 
-def get_engine():
-    engine = create_engine(
-        f"postgresql+psycopg2://postgres:postgres@127.0.0.1:{DATA_GCP_TEST_POSTGRES_PORT}/{DB_NAME}"
-    )
-    return engine
+def get_session():
+    conn = get_engine(local=True)
+    AsyncSessionLocal = sessionmaker(conn, expire_on_commit=False, class_=AsyncSession)
+    return AsyncSessionLocal()
 
 
-def clean_db(engine, models=MODELS):
-    logger.debug("Cleaning all tables...")
-    for model in models:
-        if inspect(engine).has_table(model.__tablename__):
-            logger.debug(f"Removing... {model.__tablename__}")
-            model.__table__.drop(engine)
-
-
-@pytest.fixture()
-def setup_empty_database(app_config: Dict[str, Any]) -> Session:
-    engine = get_engine()
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+@pytest.fixture(scope="session")
+def event_loop():
+    loop = asyncio.get_event_loop()
+    yield loop
+    loop.close()
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_default_database() -> Session:
-    engine = get_engine()
-    clean_db(engine)
-    create_recommendable_offers_raw(engine)
-    create_recommendable_offers_raw_mv(engine)
-    create_recommendable_offers_raw_mv_tmp(engine)
-    create_recommendable_offers_raw_mv_old(engine)
-
-    create_enriched_user_mv(engine)
-    create_enriched_user_mv_tmp(engine)
-    create_enriched_user_mv_old(engine)
-
-    create_non_recommendable_items(engine)
-
-    create_iris_france(engine)
-    create_item_ids_mv(engine)
-
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-    db = SessionLocal()
+async def setup_default_database() -> AsyncSession:
+    session = get_session()
+    await clean_db(session, models=MODELS)
+    await create_recommendable_offers_raw(session)
+    await create_recommendable_offers_raw_mv(session)
+    await create_recommendable_offers_raw_mv_tmp(session)
+    await create_recommendable_offers_raw_mv_old(session)
+    await create_enriched_user_mv(session)
+    await create_enriched_user_mv_tmp(session)
+    await create_enriched_user_mv_old(session)
+    await create_non_recommendable_items(session)
+    await create_iris_france(session)
+    await create_item_ids_mv(session)
     try:
-        yield db
+        yield session
     finally:
-        db.close()
+        await session.close()
 
 
 @pytest.fixture()
-def drop_mv_database(app_config: Dict[str, Any]) -> Session:
+async def drop_mv_database(app_config: Dict[str, Any]) -> AsyncSession:
     """Removes the enriched_user_mv and recommendable_offers_raw_mv in order to test the switch."""
-    engine = get_engine()
-    clean_db(engine=engine, models=[EnrichedUserMv, RecommendableOffersRawMv])
-
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-    db = SessionLocal()
+    session = get_session()
+    await clean_db(session, models=[EnrichedUserMv, RecommendableOffersRawMv])
     try:
-        yield db
+        yield session
     finally:
         # recreate
-        create_enriched_user_mv(engine)
-        create_recommendable_offers_raw_mv(engine)
-        db.close()
+        await create_enriched_user_mv(session)
+        await create_recommendable_offers_raw_mv(session)
+        await session.close()
 
 
 @pytest.fixture()
-def drop_mv_and_tmp_database(app_config: Dict[str, Any]) -> Session:
+async def drop_mv_and_tmp_database(app_config: Dict[str, Any]) -> AsyncSession:
     """Removes the enriched_user_(mv and tmp) and recommendable_offers_raw_(mv and tmp) in order to test the switch."""
-    engine = get_engine()
-    clean_db(
-        engine=engine,
+    session = get_session()
+    await clean_db(
+        session,
         models=[
             EnrichedUserMv,
             EnrichedUserMvTmp,
@@ -138,15 +120,19 @@ def drop_mv_and_tmp_database(app_config: Dict[str, Any]) -> Session:
             RecommendableOffersRawMvTmp,
         ],
     )
-
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-    db = SessionLocal()
     try:
-        yield db
+        yield session
     finally:
-        create_enriched_user_mv(engine)
-        create_recommendable_offers_raw_mv(engine)
-        create_enriched_user_mv_tmp(engine)
-        create_recommendable_offers_raw_mv_tmp(engine)
-        db.close()
+        await create_enriched_user_mv(session)
+        await create_recommendable_offers_raw_mv(session)
+        await create_enriched_user_mv_tmp(session)
+        await create_recommendable_offers_raw_mv_tmp(session)
+
+
+@pytest.fixture()
+async def setup_empty_database(app_config: Dict[str, Any]) -> AsyncSession:
+    session = get_session()
+    try:
+        yield session
+    finally:
+        await session.close()

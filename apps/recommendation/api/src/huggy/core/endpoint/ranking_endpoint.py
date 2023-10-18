@@ -1,15 +1,15 @@
-from datetime import datetime
-from abc import abstractmethod
 import typing as t
-from huggy.schemas.user import UserContext
-from huggy.schemas.playlist_params import PlaylistParams
-from huggy.schemas.recommendable_offer import RecommendableOffer, RankedOffer
+from abc import abstractmethod
+from datetime import datetime
+
 from fastapi.encoders import jsonable_encoder
 
 from huggy.core.endpoint import AbstractEndpoint
-
-from huggy.utils.vertex_ai import endpoint_score
+from huggy.schemas.playlist_params import PlaylistParams
+from huggy.schemas.recommendable_offer import RankedOffer, RecommendableOffer
+from huggy.schemas.user import UserContext
 from huggy.utils.cloud_logging import logger
+from huggy.utils.vertex_ai import endpoint_score
 
 
 def to_days(dt: datetime):

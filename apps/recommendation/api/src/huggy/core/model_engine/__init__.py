@@ -1,19 +1,19 @@
-from typing import List
 import datetime
-import pytz
-from abc import ABC, abstractmethod
-from huggy.schemas.user import UserContext
-from huggy.schemas.playlist_params import PlaylistParams
-from huggy.core.model_selection.model_configuration import ModelConfiguration
-from huggy.utils.mixing import order_offers_by_score_and_diversify_features
-from huggy.schemas.recommendable_offer import RankedOffer
-from huggy.models.past_recommended_offers import OfferContext
 import typing as t
-from huggy.utils.env_vars import (
-    NUMBER_OF_RECOMMENDATIONS,
-)
+from abc import ABC, abstractmethod
+from typing import List
+
+import pytz
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from huggy.core.model_selection.model_configuration import ModelConfiguration
 from huggy.core.scorer.offer import OfferScorer
-from sqlalchemy.orm import Session
+from huggy.models.past_recommended_offers import OfferContext
+from huggy.schemas.playlist_params import PlaylistParams
+from huggy.schemas.recommendable_offer import RankedOffer
+from huggy.schemas.user import UserContext
+from huggy.utils.env_vars import NUMBER_OF_RECOMMENDATIONS
+from huggy.utils.mixing import order_offers_by_score_and_diversify_features
 
 
 class ModelEngine(ABC):
@@ -46,12 +46,12 @@ class ModelEngine(ABC):
             ranking_endpoint=self.model_params.ranking_endpoint,
         )
 
-    def get_scoring(self, db: Session, call_id) -> List[str]:
+    async def get_scoring(self, db: AsyncSession, call_id) -> List[str]:
         """
         Returns a list of offer_id to be send to the user
         Depends of the scorer method.
         """
-        scored_offers = self.scorer.get_scoring(db, call_id)
+        scored_offers = await self.scorer.get_scoring(db, call_id)
         if len(scored_offers) == 0:
             return []
 
@@ -71,8 +71,8 @@ class ModelEngine(ABC):
             )
 
         scoring_size = min(len(scored_offers), NUMBER_OF_RECOMMENDATIONS)
-        self.save_context(
-            db=db,
+        await self.save_context(
+            session=db,
             offers=scored_offers,
             call_id=call_id,
             context=self.model_params.name,
@@ -81,9 +81,9 @@ class ModelEngine(ABC):
 
         return [offer.offer_id for offer in scored_offers][:scoring_size]
 
-    def save_context(
+    async def save_context(
         self,
-        db: Session,
+        session: AsyncSession,
         offers: t.List[RankedOffer],
         call_id: str,
         context: str,
@@ -92,7 +92,7 @@ class ModelEngine(ABC):
         if len(offers) > 0:
             date = datetime.datetime.now(pytz.utc)
             for o in offers:
-                db.add(
+                session.add(
                     OfferContext(
                         call_id=call_id,
                         context=context,
@@ -119,4 +119,4 @@ class ModelEngine(ABC):
                         offer_venue_id=o.venue_id,
                     )
                 )
-            db.commit()
+            await session.commit()

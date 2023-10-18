@@ -1,6 +1,7 @@
 import pytest
-from huggy.core.model_selection.model_configuration import ModelFork
+
 from huggy.core.model_selection import recommendation_endpoints
+from huggy.core.model_selection.model_configuration import ModelFork
 from huggy.schemas.user import UserContext
 
 

@@ -1,7 +1,6 @@
-from sqlalchemy import Column, String, Integer, DateTime, Float
-from sqlalchemy.types import PickleType
+from sqlalchemy import JSON, Column, DateTime, Float, Integer, String
 
-from huggy.utils.database import Base
+from huggy.database.base import Base
 
 
 class PastRecommendedOffers(Base):
@@ -9,16 +8,17 @@ class PastRecommendedOffers(Base):
     This table is used to log the offers recommended to an user."""
 
     __tablename__ = "past_recommended_offers"
-    call_id = Column(String(256), primary_key=True)
-    userid = Column(String(256), primary_key=True)
-    offerid = Column(String(256), primary_key=True)
+    id = Column(Integer, primary_key=True)
+    call_id = Column(String(256))
+    userid = Column(Integer)
+    offerid = Column(Integer)
     date = Column(DateTime(timezone=True))
     group_id = Column(String(256))
     reco_origin = Column(String(256))
     model_name = Column(String(256))
     model_version = Column(String(256))
-    reco_filters = Column(PickleType)
-    user_iris_id = Column(Integer)
+    reco_filters = Column(JSON)
+    user_iris_id = Column(String(256))
 
 
 class PastSimilarOffers(Base):
@@ -26,16 +26,17 @@ class PastSimilarOffers(Base):
     This table is used to log the offers recommended to an user."""
 
     __tablename__ = "past_similar_offers"
-    call_id = Column(String(256), primary_key=True)
-    user_id = Column(String(256), primary_key=True)
-    offer_id = Column(String(256), primary_key=True)
-    origin_offer_id = Column(String(256))
+    id = Column(Integer, primary_key=True)
+    call_id = Column(String(256))
+    user_id = Column(Integer)
+    offer_id = Column(Integer)
+    origin_offer_id = Column(Integer)
     date = Column(DateTime(timezone=True))
     group_id = Column(String(256))
     model_name = Column(String(256))
     model_version = Column(String(256))
-    reco_filters = Column(PickleType)
-    venue_iris_id = Column(Integer)
+    reco_filters = Column(JSON)
+    venue_iris_id = Column(String(256))
 
 
 class OfferContext(Base):
@@ -44,16 +45,17 @@ class OfferContext(Base):
     """
 
     __tablename__ = "offer_context"
-    user_id = Column(String(256), primary_key=True)
-    offer_id = Column(String(256), primary_key=True)
-    call_id = Column(String(256), primary_key=True)
+    id = Column(Integer, primary_key=True)
+    user_id = Column(String(256))
+    offer_id = Column(String(256))
+    call_id = Column(String(256))
     context = Column(String(256))
     date = Column(DateTime(timezone=True))
     user_bookings_count = Column(Float)
     user_clicks_count = Column(Float)
     user_favorites_count = Column(Float)
     user_deposit_remaining_credit = Column(Float)
-    user_iris_id = Column(Integer)
+    user_iris_id = Column(String(256))
     user_latitude = Column(Float)
     user_longitude = Column(Float)
     offer_user_distance = Column(Float)

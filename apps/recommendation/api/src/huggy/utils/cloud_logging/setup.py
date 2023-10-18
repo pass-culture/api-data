@@ -2,6 +2,7 @@ import logging
 
 import google.cloud.logging
 from fastapi.logger import logger
+
 from huggy.utils.cloud_logging.filter import GoogleCloudLogFilter
 from huggy.utils.cloud_logging.logger import CustomLogger
 from huggy.utils.env_vars import API_LOCAL

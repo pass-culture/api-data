@@ -1,6 +1,6 @@
+import contextvars
 import os
 from enum import Enum
-import contextvars
 
 from huggy.utils.secrets import access_secret
 
@@ -20,17 +20,24 @@ SQL_CONNECTION_NAME = os.environ.get(
     "SQL_CONNECTION_NAME",
     "passculture-data-ehp:europe-west1:cloudsql-recommendation-dev-ew1",
 )
+
 DATA_GCP_TEST_POSTGRES_PORT = os.getenv("DATA_GCP_TEST_POSTGRES_PORT", 5432)
-
-
-try:
-    SQL_BASE_PASSWORD = access_secret(GCP_PROJECT, SQL_BASE_SECRET_ID)
-except:
-    SQL_BASE_PASSWORD = os.environ.get("SQL_BASE_PASSWORD", "postgres")
-
+SQL_BASE_PASSWORD = os.environ.get("SQL_BASE_PASSWORD", "postgres")
 SQL_PORT = os.environ.get("SQL_PORT")
 SQL_HOST = os.environ.get("SQL_HOST")
 DB_NAME = "db"
+
+if not API_LOCAL:
+    try:
+        SQL_BASE_PASSWORD = access_secret(GCP_PROJECT, SQL_BASE_SECRET_ID)
+    except:
+        pass
+
+API_TOKEN_SECRET_ID = os.environ.get("API_TOKEN_SECRET_ID")
+try:
+    API_TOKEN = access_secret(GCP_PROJECT, API_TOKEN_SECRET_ID)
+except:
+    API_TOKEN = "api_token"
 
 # logger
 cloud_trace_context = contextvars.ContextVar("cloud_trace_context", default="")

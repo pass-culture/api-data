@@ -1,15 +1,18 @@
 import pytest
-
 from sqlalchemy import inspect, text
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from huggy.database.utils import check_table_exists
 from huggy.models.enriched_user import EnrichedUser
 from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
 
 
-def test_extensions(setup_empty_database: Session):
-    results = setup_empty_database.execute(
-        text("SELECT extname FROM pg_extension WHERE extname = 'postgis';")
-    ).fetchone()
+async def test_extensions(setup_empty_database: AsyncSession):
+    async with setup_empty_database.bind.connect() as conn:
+        results = await conn.execute(
+            text("SELECT extname FROM pg_extension WHERE extname = 'postgis';")
+        )
+        results.fetchone()
     assert results is not None
 
 
@@ -23,12 +26,12 @@ def test_extensions(setup_empty_database: Session):
         ("item_ids_mv", True),
     ],
 )
-def test_tables_should_exist(
-    setup_default_database: Session, table_name: str, expected_result: bool
+async def test_tables_should_exist(
+    setup_default_database: AsyncSession, table_name: str, expected_result: bool
 ):
     """This test should return all available tables in default context."""
-    engine = setup_default_database.get_bind()
-    result = inspect(engine).has_table(table_name)
+    result = await check_table_exists(setup_default_database, table_name)
+
     # assert result is not None
     assert result is expected_result
 
@@ -42,12 +45,11 @@ def test_tables_should_exist(
         ("recommendable_offers_raw_mv_tmp", True),
     ],
 )
-def only_tmp_tables_should_exist(
-    setup_tmp_database: Session, table_name: str, expected_result: bool
+async def only_tmp_tables_should_exist(
+    setup_tmp_database: AsyncSession, table_name: str, expected_result: bool
 ):
     """This test should return only available tables in tmp database context."""
-    engine = setup_tmp_database.get_bind()
-    result = inspect(engine).has_table(table_name)
+    result = await check_table_exists(setup_tmp_database, table_name)
     assert result is expected_result
 
 
@@ -58,9 +60,11 @@ def only_tmp_tables_should_exist(
         (RecommendableOffersRaw, "recommendable_offers_raw_mv"),
     ],
 )
-def test_materialized_views(setup_default_database: Session, base_db, expected_result):
+async def test_materialized_views(
+    setup_default_database: AsyncSession, base_db, expected_result
+):
     """This test should return the default tables."""
-    table = base_db().get_available_table(setup_default_database)
+    table = await base_db().get_available_table(setup_default_database)
     assert table.__tablename__ == expected_result
 
 
@@ -71,11 +75,14 @@ def test_materialized_views(setup_default_database: Session, base_db, expected_r
         (RecommendableOffersRaw, "recommendable_offers_raw_mv_tmp"),
     ],
 )
-def test_materialized_tmp_views(
-    setup_default_database: Session, drop_mv_database: Session, base_db, expected_result
+async def test_materialized_tmp_views(
+    setup_default_database: AsyncSession,
+    drop_mv_database: AsyncSession,
+    base_db,
+    expected_result,
 ):
     """This test should return tmp table only."""
-    table = base_db().get_available_table(setup_default_database)
+    table = await base_db().get_available_table(setup_default_database)
     assert table.__tablename__ == expected_result
 
 
@@ -86,12 +93,12 @@ def test_materialized_tmp_views(
         (RecommendableOffersRaw, "recommendable_offers_raw_mv_old"),
     ],
 )
-def test_materialized_old_views(
-    setup_default_database: Session,
-    drop_mv_and_tmp_database: Session,
+async def test_materialized_old_views(
+    setup_default_database: AsyncSession,
+    drop_mv_and_tmp_database: AsyncSession,
     base_db,
     expected_result,
 ):
     """This test shloud return the old tables only."""
-    table = base_db().get_available_table(setup_default_database)
+    table = await base_db().get_available_table(setup_default_database)
     assert table.__tablename__ == expected_result

@@ -1,19 +1,25 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_
-from sqlalchemy.sql.expression import literal_column
-from typing import List, Dict
+from typing import Dict, List
+
 from pydantic import parse_obj_as
-from huggy.schemas.recommendable_offer import RecommendableOfferRawDB, OfferDistance
-from huggy.schemas.user import UserContext
+from sqlalchemy import String, and_, func, or_, select, text
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.expression import literal_column
+
+import huggy.schemas.recommendable_offer as r_o
 from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
+from huggy.schemas.user import UserContext
 
 
 class RecommendableOffer:
-    def get_nearest_offers(
-        self, db: Session, user: UserContext, recommendable_items_ids: Dict[str, float]
-    ) -> List[RecommendableOfferRawDB]:
+    async def get_nearest_offers(
+        self,
+        db: AsyncSession,
+        user: UserContext,
+        recommendable_items_ids: Dict[str, float],
+        limit: int = 150,
+    ) -> List[r_o.RecommendableOffer]:
         offer_table: RecommendableOffersRaw = (
-            RecommendableOffersRaw().get_available_table(db)
+            await RecommendableOffersRaw().get_available_table(db)
         )
 
         user_distance_condition = []
@@ -45,8 +51,10 @@ class RecommendableOffer:
             .label("offer_rank")
         )
 
+        recommendable_items = self.get_items(recommendable_items_ids)
+
         nearest_offers_subquery = (
-            db.query(
+            select(
                 offer_table.offer_id.label("offer_id"),
                 offer_table.item_id.label("item_id"),
                 offer_table.venue_id.label("venue_id"),
@@ -61,40 +69,48 @@ class RecommendableOffer:
                 offer_table.venue_latitude.label("venue_latitude"),
                 offer_table.venue_longitude.label("venue_longitude"),
                 offer_table.is_geolocated.label("is_geolocated"),
+                recommendable_items.c.item_rank.label("item_rank"),
                 offer_rank,
             )
-            .filter(offer_table.item_id.in_(list(recommendable_items_ids.keys())))
-            .filter(*user_distance_condition)
-            .filter(*underage_condition)
-            .filter(offer_table.stock_price <= user.user_deposit_remaining_credit)
+            .join(
+                recommendable_items,
+                offer_table.item_id == recommendable_items.c.item_id,
+            )
+            .where(*user_distance_condition)
+            .where(*underage_condition)
+            .where(offer_table.stock_price <= user.user_deposit_remaining_credit)
+            .order_by(recommendable_items.c.item_rank.asc())
+            .limit(limit)
             .subquery()
         )
 
         results = (
-            db.query(nearest_offers_subquery)
-            .filter(nearest_offers_subquery.c.offer_rank == 1)
-            .all()
-        )
+            await db.execute(
+                select(nearest_offers_subquery).where(
+                    nearest_offers_subquery.c.offer_rank == 1
+                ),
+            )
+        ).fetchall()
 
-        return parse_obj_as(List[RecommendableOfferRawDB], results)
+        return parse_obj_as(List[r_o.RecommendableOffer], results)
 
-    def get_user_offer_distance(
-        self, db: Session, user: UserContext, offer_list: List[str]
-    ) -> List[OfferDistance]:
+    async def get_user_offer_distance(
+        self, db: AsyncSession, user: UserContext, offer_list: List[str]
+    ) -> List[r_o.OfferDistance]:
         offer_table: RecommendableOffersRaw = (
-            RecommendableOffersRaw().get_available_table(db)
+            await RecommendableOffersRaw().get_available_table(db)
         )
         user_distance = self.get_st_distance(user, offer_table)
 
         results = (
-            db.query(
-                offer_table.offer_id.label("offer_id"),
-                user_distance.label("user_distance"),
+            await db.execute(
+                select(
+                    offer_table.offer_id.label("offer_id"),
+                    user_distance.label("user_distance"),
+                ).where(offer_table.offer_id.in_(list(offer_list)))
             )
-            .filter(offer_table.offer_id.in_(list(offer_list)))
-            .all()
-        )
-        return parse_obj_as(List[OfferDistance], results)
+        ).fetchall()
+        return parse_obj_as(List[r_o.OfferDistance], results)
 
     def get_st_distance(self, user: UserContext, offer_table: RecommendableOffersRaw):
         if user.is_geolocated:
@@ -106,3 +122,22 @@ class RecommendableOffer:
             )
         else:
             return literal_column("NULL").label("user_distance")
+
+    def get_items(self, recommendable_items_ids: Dict[str, float]):
+        arr_sql = ",".join(
+            [f"('{k}'::VARCHAR, {v}::INT)" for k, v in recommendable_items_ids.items()]
+        )
+
+        return (
+            text(
+                f"""
+
+                    SELECT s.item_id, s.item_rank
+                    FROM unnest(ARRAY[{arr_sql}]) 
+                    AS s(item_id VARCHAR, item_rank INT)
+                
+            """
+            )
+            .columns(item_id=String, item_rank=String)
+            .cte("ranked_items")
+        )

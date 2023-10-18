@@ -1,13 +1,12 @@
+import copy
 from dataclasses import dataclass
 from typing import List
-import copy
 
 import huggy.core.scorer.offer as offer_scorer
-from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
 from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
-
-from huggy.schemas.playlist_params import PlaylistParams
+from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
 from huggy.schemas.offer import Offer
+from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
 
 
@@ -52,14 +51,8 @@ class ModelConfiguration:
         """
         Overwrite default params
         """
-        # if params_in.is_reco_mixed is not None:
-        #     self.diversification_params.is_active = params_in.is_reco_mixed
-
         if params_in.is_reco_shuffled is not None:
             self.diversification_params.is_reco_shuffled = params_in.is_reco_shuffled
-
-        # if params_in.mixing_features is not None:
-        #     self.diversification_params.mixing_features = params_in.mixing_features
 
         return self.diversification_params
 

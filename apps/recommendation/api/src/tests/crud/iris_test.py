@@ -1,16 +1,17 @@
-import pytest
+import logging
 
-from huggy.crud.iris import get_iris_from_coordinates
-from sqlalchemy.orm import Session
+import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from huggy.crud.iris import Iris
 from tests.db.schema.iris import (
-    iris_paris_chatelet,
-    iris_nok,
-    iris_unknown,
+    IrisTestExample,
     iris_marseille_cours_julien,
     iris_marseille_vieux_port,
-    IrisTestExample,
+    iris_nok,
+    iris_paris_chatelet,
+    iris_unknown,
 )
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -22,14 +23,14 @@ logger = logging.getLogger(__name__)
         iris_nok,  # none
         iris_unknown,  # unknown
         iris_marseille_cours_julien,
-        iris_marseille_cours_julien,
+        iris_marseille_vieux_port,
     ],
 )
-def test_get_iris_from_coordinates(
-    setup_default_database: Session, irises: IrisTestExample
+async def test_get_iris_from_coordinates(
+    setup_default_database: AsyncSession, irises: IrisTestExample
 ):
     """This test should return the right expected_iris_id given a latitude and longitude."""
-    iris_id = get_iris_from_coordinates(
+    iris_id = await Iris().get_iris_from_coordinates(
         setup_default_database,
         latitude=irises.latitude,
         longitude=irises.longitude,

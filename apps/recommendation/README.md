@@ -38,6 +38,18 @@ pyenv shell reco_fastapi
 pytest
 ```
 
+In case you have some troubles to run tests 
+
+Connect to db, create db database, add postgis extension
+```sh 
+docker exec -it <docker_id> /bin/sh
+psql -U postgres
+
+create database db
+\c db; 
+create extension postgis;
+```
+
 ### Run it locally
 
 ```sh

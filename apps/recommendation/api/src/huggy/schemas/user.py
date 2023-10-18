@@ -1,5 +1,6 @@
-from pydantic import BaseModel, validator
 import typing as t
+
+from pydantic import BaseModel, validator
 
 
 class UserInput(BaseModel):

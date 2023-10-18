@@ -1,29 +1,29 @@
-from fastapi import Depends, FastAPI, Request
-from fastapi.logger import logger
-from fastapi.encoders import jsonable_encoder
-from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
 import uuid
 
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.logger import logger
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from huggy.core.model_engine.recommendation import Recommendation
+from huggy.core.model_engine.similar_offer import SimilarOffer
+from huggy.crud.offer import Offer
+from huggy.crud.user import UserContextDB
+from huggy.database.session import get_db
 from huggy.schemas.playlist_params import (
-    PostSimilarOfferPlaylistParams,
     GetSimilarOfferPlaylistParams,
     PlaylistParams,
+    PostSimilarOfferPlaylistParams,
 )
-
-from huggy.core.model_engine.similar_offer import SimilarOffer
-from huggy.core.model_engine.recommendation import Recommendation
-
-from huggy.crud.user import UserContextDB
-
-from huggy.crud.offer import get_offer_characteristics
-
-from huggy.utils.database import get_db
-from huggy.utils.env_vars import cloud_trace_context, call_id_trace_context
 from huggy.utils.cloud_logging import logger
-from huggy.utils.env_vars import CORS_ALLOWED_ORIGIN
+from huggy.utils.env_vars import (
+    API_TOKEN,
+    CORS_ALLOWED_ORIGIN,
+    call_id_trace_context,
+    cloud_trace_context,
+)
 from huggy.utils.exception import ExceptionHandlerMiddleware
-
 
 app = FastAPI(title="passCulture - Recommendation")
 app.add_middleware(
@@ -34,6 +34,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 app.add_middleware(ExceptionHandlerMiddleware)
 
 
@@ -42,37 +43,49 @@ async def setup_trace(request: Request):
         cloud_trace_context.set(request.headers.get("x-cloud-trace-context"))
 
 
+async def check_token(request: Request):
+    if request.query_params.get("token", None) != API_TOKEN:
+        raise HTTPException(status_code=401, detail="Not authorized")
+
+
+async def get_call_id():
+    call_id = str(uuid.uuid4())
+    call_id_trace_context.set(call_id)
+    return call_id
+
+
 @app.get("/", dependencies=[Depends(setup_trace)])
-def read_root():
+async def read_root():
     logger.info("Welcome to the recommendation API!")
     return "Welcome to the recommendation API!"
 
 
 @app.get("/check")
-def check():
+async def check():
     return "OK"
 
 
-@app.post("/similar_offers/{offer_id}", dependencies=[Depends(setup_trace)])
-def similar_offers(
+@app.post(
+    "/similar_offers/{offer_id}",
+    dependencies=[Depends(setup_trace), Depends(check_token)],
+)
+async def similar_offers(
     offer_id: str,
     playlist_params: PostSimilarOfferPlaylistParams,
     latitude: float = None,  # venue_latitude
     longitude: float = None,  # venue_longitude
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
+    call_id: str = Depends(get_call_id),
 ):
-    call_id = str(uuid.uuid4())
-    call_id_trace_context.set(call_id)
-
-    user = UserContextDB().get_user_context(
+    user = await UserContextDB().get_user_context(
         db, playlist_params.user_id, latitude, longitude
     )
 
-    offer = get_offer_characteristics(db, offer_id, latitude, longitude)
+    offer = await Offer().get_offer_characteristics(db, offer_id, latitude, longitude)
 
     scoring = SimilarOffer(user, offer, playlist_params)
 
-    offer_recommendations = scoring.get_scoring(db, call_id)
+    offer_recommendations = await scoring.get_scoring(db, call_id)
 
     log_extra_data = {
         "user_id": user.user_id,
@@ -96,7 +109,7 @@ def similar_offers(
         extra=log_extra_data,
     )
 
-    scoring.save_recommendation(db, offer_recommendations, call_id)
+    await scoring.save_recommendation(db, offer_recommendations, call_id)
 
     return jsonable_encoder(
         {
@@ -122,26 +135,27 @@ def similar_offers(
     )
 
 
-@app.get("/similar_offers/{offer_id}", dependencies=[Depends(setup_trace)])
-def similar_offers(
+@app.get(
+    "/similar_offers/{offer_id}",
+    dependencies=[Depends(setup_trace), Depends(check_token)],
+)
+async def similar_offers(
     offer_id: str,
     playlist_params: GetSimilarOfferPlaylistParams = Depends(),
     latitude: float = None,  # venue_latitude
     longitude: float = None,  # venue_longitude
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
+    call_id: str = Depends(get_call_id),
 ):
-    call_id = str(uuid.uuid4())
-    call_id_trace_context.set(call_id)
-
-    user = UserContextDB().get_user_context(
+    user = await UserContextDB().get_user_context(
         db, playlist_params.user_id, latitude, longitude
     )  # corriger pour avoir la latitude / longitude de l'user (et non de la venue)
 
-    offer = get_offer_characteristics(db, offer_id, latitude, longitude)
+    offer = await Offer().get_offer_characteristics(db, offer_id, latitude, longitude)
 
     scoring = SimilarOffer(user, offer, playlist_params)
 
-    offer_recommendations = scoring.get_scoring(db, call_id)
+    offer_recommendations = await scoring.get_scoring(db, call_id)
 
     log_extra_data = {
         "user_id": user.user_id,
@@ -165,7 +179,7 @@ def similar_offers(
         extra=jsonable_encoder(log_extra_data),
     )
 
-    scoring.save_recommendation(db, offer_recommendations, call_id)
+    await scoring.save_recommendation(db, offer_recommendations, call_id)
 
     return jsonable_encoder(
         {
@@ -191,22 +205,26 @@ def similar_offers(
     )
 
 
-@app.post("/playlist_recommendation/{user_id}", dependencies=[Depends(setup_trace)])
-def playlist_recommendation(
+@app.post(
+    "/playlist_recommendation/{user_id}",
+    dependencies=[Depends(setup_trace), Depends(check_token)],
+)
+async def playlist_recommendation(
     user_id: str,
     playlist_params: PlaylistParams,
     latitude: float = None,
     longitude: float = None,
-    db: Session = Depends(get_db),
+    modelEnpoint: str = None,
+    db: AsyncSession = Depends(get_db),
+    call_id: str = Depends(get_call_id),
 ):
-    call_id = str(uuid.uuid4())
-    call_id_trace_context.set(call_id)
-
-    user = UserContextDB().get_user_context(db, user_id, latitude, longitude)
+    user = await UserContextDB().get_user_context(db, user_id, latitude, longitude)
+    if modelEnpoint is not None:
+        playlist_params.model_endpoint = modelEnpoint
 
     scoring = Recommendation(user, params_in=playlist_params)
 
-    user_recommendations = scoring.get_scoring(db, call_id)
+    user_recommendations = await scoring.get_scoring(db, call_id)
 
     log_extra_data = {
         "user_id": user.user_id,
@@ -229,7 +247,7 @@ def playlist_recommendation(
         extra=jsonable_encoder(log_extra_data),
     )
 
-    scoring.save_recommendation(db, user_recommendations, call_id)
+    await scoring.save_recommendation(db, user_recommendations, call_id)
     return jsonable_encoder(
         {
             "playlist_recommended_offers": user_recommendations,

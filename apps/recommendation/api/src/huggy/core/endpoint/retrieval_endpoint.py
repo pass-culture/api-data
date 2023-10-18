@@ -1,19 +1,17 @@
-from datetime import datetime
-
-from dataclasses import dataclass
 import typing as t
 from abc import abstractmethod
+from dataclasses import dataclass
+from datetime import datetime
 
+from fastapi.encoders import jsonable_encoder
+
+from huggy.core.endpoint import AbstractEndpoint
+from huggy.schemas.item import RecommendableItem
 from huggy.schemas.offer import Offer
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
-from huggy.schemas.item import RecommendableItem
-
-from huggy.core.endpoint import AbstractEndpoint
-
-from huggy.utils.vertex_ai import endpoint_score
 from huggy.utils.cloud_logging import logger
-from fastapi.encoders import jsonable_encoder
+from huggy.utils.vertex_ai import endpoint_score
 
 
 @dataclass
@@ -85,8 +83,9 @@ class RetrievalEndpoint(AbstractEndpoint):
         pass
 
     def get_params(self):
-        logger.info(
-            "retrieval_endpoint : params_in", extra=jsonable_encoder(self.params_in)
+        logger.debug(
+            f"retrieval_endpoint : params_in {self.endpoint_name}",
+            extra=jsonable_encoder(self.params_in),
         )
         params = []
 
@@ -138,14 +137,20 @@ class RetrievalEndpoint(AbstractEndpoint):
 
         if self.params_in.offer_type_list is not None:
             label, domain = [], []
-            for type in self.params_in.offer_type_list:
-                domain.append(list(type.keys())[0])
-                label.append(list(type.values())[0])
+            for kv in self.params_in.offer_type_list:
+                key = kv.get("key", None)
+                val = kv.get("value", None)
+                if key is not None and val is not None:
+                    domain.append(key)
+                    label.append(val)
             params.append(ListParams(label="offer_type_domain", values=domain))
             params.append(ListParams(label="offer_type_label", values=label))
 
         filters = {"$and": {k: v for d in params for k, v in d.filter().items()}}
-        logger.info("retrieval_endpoint : filters", extra=jsonable_encoder(filters))
+        logger.debug(
+            f"retrieval_endpoint : {self.endpoint_name} filters",
+            extra=jsonable_encoder(filters),
+        )
 
         return filters
 

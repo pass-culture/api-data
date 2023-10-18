@@ -1,13 +1,11 @@
 import collections
-from typing import Dict, List, Tuple
-import numpy as np
 import random
+from typing import Dict, List, Tuple
+
+import numpy as np
 
 from huggy.schemas.recommendable_offer import RankedOffer
-
-from huggy.utils.env_vars import (
-    NUMBER_OF_RECOMMENDATIONS,
-)
+from huggy.utils.env_vars import NUMBER_OF_RECOMMENDATIONS
 
 
 def order_offers_by_score_and_diversify_features(
