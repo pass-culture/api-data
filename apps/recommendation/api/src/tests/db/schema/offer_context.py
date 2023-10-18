@@ -1,6 +1,6 @@
 import typing as t
 
-from huggy.schemas.recommendable_offer import RecommendableOfferRawDB
+from huggy.schemas.recommendable_offer import RecommendableOffer
 from tests.db.schema.iris import (
     iris_marseille_cours_julien,
     iris_marseille_vieux_port,
@@ -21,7 +21,7 @@ from tests.db.schema.offer import (
 )
 
 
-def to_items(offers: RecommendableOfferRawDB) -> t.List[str]:
+def to_items(offers: RecommendableOffer) -> t.List[str]:
     return list(set([x.item_id for x in offers]))
 
 

@@ -1,10 +1,11 @@
+import random
 import typing as t
 from datetime import datetime, timedelta
 from uuid import uuid4
 
 from pydantic import BaseModel, Field, validator
 
-from huggy.schemas.recommendable_offer import RecommendableOfferRawDB
+from huggy.schemas.recommendable_offer import RecommendableOffer
 from huggy.utils.distance import haversine_distance
 from tests.db.schema.iris import (
     IrisTestExample,
@@ -46,7 +47,7 @@ class RecommendableOffersRawExample(BaseModel):
             iris_context.latitude,
             iris_context.longitude,
         )
-        return RecommendableOfferRawDB(
+        return RecommendableOffer(
             offer_id=self.offer_id,
             item_id=self.item_id,
             venue_id=self.venue_id,
@@ -61,6 +62,7 @@ class RecommendableOffersRawExample(BaseModel):
             venue_latitude=self.venue_latitude,
             venue_longitude=self.venue_longitude,
             is_geolocated=self.is_geolocated,
+            item_rank=random.randint(1, 100),
         )
 
 

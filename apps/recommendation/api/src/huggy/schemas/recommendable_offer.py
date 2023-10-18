@@ -12,7 +12,7 @@ class OfferDistance(BaseModel):
         orm_mode = True
 
 
-class RecommendableOfferRawDB(BaseModel):
+class RecommendableOffer(BaseModel):
     """
     ORM model for RecommendableOfferRaw database query.
     This is used only as a db query output of crud.recommendable_offer queries.
@@ -32,18 +32,10 @@ class RecommendableOfferRawDB(BaseModel):
     venue_latitude: t.Optional[float]
     venue_longitude: t.Optional[float]
     is_geolocated: t.Optional[bool]
+    item_rank: int
 
     class Config:
         orm_mode = True
-
-
-class RecommendableOffer(RecommendableOfferRawDB):
-    """
-    Recommendable Offer object based on RecommendableOfferDB model
-    Contains the scored item_rank from a Retrieval Model.
-    """
-
-    item_rank: int
 
 
 class RankedOffer(RecommendableOffer):

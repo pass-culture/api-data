@@ -14,6 +14,7 @@ retrieval_offer = ModelConfiguration(
     retrieval_endpoints=[
         offer_retrieval.offer_retrieval_endpoint,
         offer_retrieval.semantic_offer_retrieval_endpoint,
+        offer_retrieval.offer_filter_retrieval_endpoint,
     ],
     ranking_endpoint=user_ranking.user_ranking_endpoint,
 )

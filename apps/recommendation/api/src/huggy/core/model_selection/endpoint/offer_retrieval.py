@@ -4,7 +4,7 @@ from huggy.core.endpoint.retrieval_endpoint import (
 )
 from huggy.core.model_selection.endpoint import RetrievalEndpointName
 
-RETRIEVAL_LIMIT = 500
+RETRIEVAL_LIMIT = 250
 
 
 offer_retrieval_endpoint = OfferRetrievalEndpoint(
@@ -17,7 +17,7 @@ offer_retrieval_endpoint = OfferRetrievalEndpoint(
 
 offer_filter_retrieval_endpoint = OfferFilterRetrievalEndpoint(
     endpoint_name=RetrievalEndpointName.recommendation_user_retrieval,
-    size=RETRIEVAL_LIMIT,
+    size=150,
     fallback_endpoints=[RetrievalEndpointName.recommendation_user_retrieval_version_b],
 )
 

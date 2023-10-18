@@ -1,6 +1,6 @@
 import typing as t
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from huggy.models.non_recommendable_items import NonRecommendableItems
@@ -16,7 +16,7 @@ async def get_non_recommendable_items(
                 NonRecommendableItems.user_id == user.user_id
             )
         )
-    ).fetchone()
+    ).fetchall()
 
     return [
         recommendable_item.item_id for recommendable_item in non_recommendable_items

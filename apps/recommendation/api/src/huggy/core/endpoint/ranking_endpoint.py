@@ -37,7 +37,7 @@ class RankingEndpoint(AbstractEndpoint):
         self.params_in = params_in
 
     @abstractmethod
-    async def model_score(
+    def model_score(
         self, recommendable_offers: t.List[RecommendableOffer]
     ) -> t.List[RankedOffer]:
         pass
@@ -46,7 +46,7 @@ class RankingEndpoint(AbstractEndpoint):
 class DummyRankingEndpoint(RankingEndpoint):
     """Return the same list"""
 
-    async def model_score(
+    def model_score(
         self, recommendable_offers: t.List[RecommendableOffer]
     ) -> t.List[RankedOffer]:
         return recommendable_offers
@@ -82,11 +82,11 @@ class ModelRankingEndpoint(RankingEndpoint):
             )
         return offers_list
 
-    async def model_score(
+    def model_score(
         self, recommendable_offers: t.List[RecommendableOffer]
     ) -> t.List[RankedOffer]:
         instances = self.get_instance(recommendable_offers)
-        prediction_result = await endpoint_score(
+        prediction_result = endpoint_score(
             instances=instances, endpoint_name=self.endpoint_name
         )
         self.model_version = prediction_result.model_version

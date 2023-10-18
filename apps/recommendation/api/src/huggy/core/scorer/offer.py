@@ -6,7 +6,7 @@ import typing as t
 from concurrent.futures import ProcessPoolExecutor
 from typing import List
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
 from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
@@ -38,7 +38,7 @@ class OfferScorer:
         prediction_items: List[RecommendableItem] = []
         endpoints_stats = {}
         for endpoint in self.retrieval_endpoints:
-            out = await endpoint.model_score()
+            out = endpoint.model_score()
             endpoints_stats[endpoint.endpoint_name] = len(out)
             prediction_items.extend(out)
 
@@ -52,7 +52,7 @@ class OfferScorer:
                 for endpoint in self.retrieval_endpoints
             ]
             results = await asyncio.gather(*tasks)
-            return list(itertools.chain.from_iterable(results))
+        return list(itertools.chain.from_iterable(results))
 
     async def get_scoring(
         self,
@@ -96,7 +96,7 @@ class OfferScorer:
         if len(recommendable_offers) == 0:
             return []
 
-        recommendable_offers = await self.ranking_endpoint.model_score(
+        recommendable_offers = self.ranking_endpoint.model_score(
             recommendable_offers=recommendable_offers
         )
 
@@ -124,15 +124,7 @@ class OfferScorer:
             for item in recommendable_items
             if item.item_id not in non_recommendable_items
         }
-        recommendable_offers_db = await RecommendableOfferDB().get_nearest_offers(
+        recommendable_offers = await RecommendableOfferDB().get_nearest_offers(
             db, self.user, recommendable_items_ids
         )
-        recommendable_offers = []
-        for ro in recommendable_offers_db:
-            recommendable_offers.append(
-                RecommendableOffer(
-                    item_rank=recommendable_items_ids[ro.item_id], **ro.dict()
-                )
-            )
-
         return recommendable_offers

@@ -1,4 +1,5 @@
 import datetime
+import typing as t
 from typing import List
 
 import pytz
@@ -18,7 +19,7 @@ class SimilarOffer(ModelEngine):
         self.offer = offer
         super().__init__(user=user, params_in=params_in)
 
-    async def get_model_configuration(
+    def get_model_configuration(
         self, user: UserContext, params_in: PlaylistParams
     ) -> ModelConfiguration:
         model_params, reco_origin = select_sim_model_params(
@@ -50,24 +51,22 @@ class SimilarOffer(ModelEngine):
         return await super().get_scoring(db, call_id)
 
     async def save_recommendation(
-        self, db: AsyncSession, recommendations, call_id
+        self, session: AsyncSession, recommendations: t.List[str], call_id: str
     ) -> None:
         if len(recommendations) > 0:
             date = datetime.datetime.now(pytz.utc)
-            async with db.bind.connect() as conn:
-                for reco in recommendations:
-                    reco_offer = PastSimilarOffers(
-                        user_id=self.user.user_id,
-                        origin_offer_id=self.offer.offer_id,
-                        offer_id=reco,
-                        date=date,
-                        group_id=self.model_params.name,
-                        model_name=self.scorer.retrieval_endpoints[
-                            0
-                        ].model_display_name,
-                        model_version=self.scorer.retrieval_endpoints[0].model_version,
-                        call_id=call_id,
-                        venue_iris_id=self.offer.iris_id,
-                    )
-                    await conn.add(reco_offer)
-                await conn.commit()
+
+            for reco in recommendations:
+                reco_offer = PastSimilarOffers(
+                    user_id=int(self.user.user_id),
+                    origin_offer_id=int(self.offer.offer_id),
+                    offer_id=int(reco),
+                    date=date,
+                    group_id=self.model_params.name,
+                    model_name=self.scorer.retrieval_endpoints[0].model_display_name,
+                    model_version=self.scorer.retrieval_endpoints[0].model_version,
+                    call_id=call_id,
+                    venue_iris_id=self.offer.iris_id,
+                )
+                session.add(reco_offer)
+            await session.commit()

@@ -72,7 +72,7 @@ class ModelEngine(ABC):
 
         scoring_size = min(len(scored_offers), NUMBER_OF_RECOMMENDATIONS)
         await self.save_context(
-            db=db,
+            session=db,
             offers=scored_offers,
             call_id=call_id,
             context=self.model_params.name,
@@ -83,7 +83,7 @@ class ModelEngine(ABC):
 
     async def save_context(
         self,
-        db: AsyncSession,
+        session: AsyncSession,
         offers: t.List[RankedOffer],
         call_id: str,
         context: str,
@@ -91,33 +91,32 @@ class ModelEngine(ABC):
     ) -> None:
         if len(offers) > 0:
             date = datetime.datetime.now(pytz.utc)
-            async with db.bind.connect() as conn:
-                for o in offers:
-                    await conn.add(
-                        OfferContext(
-                            call_id=call_id,
-                            context=context,
-                            date=date,
-                            user_id=user.user_id,
-                            user_bookings_count=user.bookings_count,
-                            user_clicks_count=user.clicks_count,
-                            user_favorites_count=user.favorites_count,
-                            user_deposit_remaining_credit=user.user_deposit_remaining_credit,
-                            user_iris_id=user.iris_id,
-                            user_latitude=None,
-                            user_longitude=None,
-                            offer_user_distance=o.user_distance,
-                            offer_id=o.offer_id,
-                            offer_item_id=o.item_id,
-                            offer_booking_number=o.booking_number,
-                            offer_stock_price=o.stock_price,
-                            offer_creation_date=o.offer_creation_date,
-                            offer_stock_beginning_date=o.stock_beginning_date,
-                            offer_category=o.category,
-                            offer_subcategory_id=o.subcategory_id,
-                            offer_item_score=o.item_rank,
-                            offer_order=o.offer_score,
-                            offer_venue_id=o.venue_id,
-                        )
+            for o in offers:
+                session.add(
+                    OfferContext(
+                        call_id=call_id,
+                        context=context,
+                        date=date,
+                        user_id=user.user_id,
+                        user_bookings_count=user.bookings_count,
+                        user_clicks_count=user.clicks_count,
+                        user_favorites_count=user.favorites_count,
+                        user_deposit_remaining_credit=user.user_deposit_remaining_credit,
+                        user_iris_id=user.iris_id,
+                        user_latitude=None,
+                        user_longitude=None,
+                        offer_user_distance=o.user_distance,
+                        offer_id=o.offer_id,
+                        offer_item_id=o.item_id,
+                        offer_booking_number=o.booking_number,
+                        offer_stock_price=o.stock_price,
+                        offer_creation_date=o.offer_creation_date,
+                        offer_stock_beginning_date=o.stock_beginning_date,
+                        offer_category=o.category,
+                        offer_subcategory_id=o.subcategory_id,
+                        offer_item_score=o.item_rank,
+                        offer_order=o.offer_score,
+                        offer_venue_id=o.venue_id,
                     )
-                await conn.commit()
+                )
+            await session.commit()

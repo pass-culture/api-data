@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.logger import logger
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,6 +18,7 @@ from huggy.schemas.playlist_params import (
 )
 from huggy.utils.cloud_logging import logger
 from huggy.utils.env_vars import (
+    API_TOKEN,
     CORS_ALLOWED_ORIGIN,
     call_id_trace_context,
     cloud_trace_context,
@@ -33,12 +34,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 app.add_middleware(ExceptionHandlerMiddleware)
 
 
 async def setup_trace(request: Request):
     if "x-cloud-trace-context" in request.headers:
         cloud_trace_context.set(request.headers.get("x-cloud-trace-context"))
+
+
+async def check_token(request: Request):
+    if request.query_params.get("token", None) != API_TOKEN:
+        raise HTTPException(status_code=401, detail="Not authorized")
 
 
 async def get_call_id():
@@ -58,7 +65,10 @@ async def check():
     return "OK"
 
 
-@app.post("/similar_offers/{offer_id}", dependencies=[Depends(setup_trace)])
+@app.post(
+    "/similar_offers/{offer_id}",
+    dependencies=[Depends(setup_trace), Depends(check_token)],
+)
 async def similar_offers(
     offer_id: str,
     playlist_params: PostSimilarOfferPlaylistParams,
@@ -125,7 +135,10 @@ async def similar_offers(
     )
 
 
-@app.get("/similar_offers/{offer_id}", dependencies=[Depends(setup_trace)])
+@app.get(
+    "/similar_offers/{offer_id}",
+    dependencies=[Depends(setup_trace), Depends(check_token)],
+)
 async def similar_offers(
     offer_id: str,
     playlist_params: GetSimilarOfferPlaylistParams = Depends(),
@@ -192,16 +205,22 @@ async def similar_offers(
     )
 
 
-@app.post("/playlist_recommendation/{user_id}", dependencies=[Depends(setup_trace)])
+@app.post(
+    "/playlist_recommendation/{user_id}",
+    dependencies=[Depends(setup_trace), Depends(check_token)],
+)
 async def playlist_recommendation(
     user_id: str,
     playlist_params: PlaylistParams,
     latitude: float = None,
     longitude: float = None,
+    modelEnpoint: str = None,
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):
     user = await UserContextDB().get_user_context(db, user_id, latitude, longitude)
+    if modelEnpoint is not None:
+        playlist_params.model_endpoint = modelEnpoint
 
     scoring = Recommendation(user, params_in=playlist_params)
 

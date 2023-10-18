@@ -137,9 +137,12 @@ class RetrievalEndpoint(AbstractEndpoint):
 
         if self.params_in.offer_type_list is not None:
             label, domain = [], []
-            for type in self.params_in.offer_type_list:
-                domain.append(list(type.keys())[0])
-                label.append(list(type.values())[0])
+            for kv in self.params_in.offer_type_list:
+                key = kv.get("key", None)
+                val = kv.get("value", None)
+                if key is not None and val is not None:
+                    domain.append(key)
+                    label.append(val)
             params.append(ListParams(label="offer_type_domain", values=domain))
             params.append(ListParams(label="offer_type_label", values=label))
 
@@ -151,9 +154,9 @@ class RetrievalEndpoint(AbstractEndpoint):
 
         return filters
 
-    async def model_score(self) -> t.List[RecommendableItem]:
+    def model_score(self) -> t.List[RecommendableItem]:
         instances = self.get_instance(self.size)
-        prediction_result = await endpoint_score(
+        prediction_result = endpoint_score(
             instances=instances,
             endpoint_name=self.endpoint_name,
             fallback_endpoints=self.fallback_endpoints,

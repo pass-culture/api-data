@@ -45,11 +45,9 @@ def get_client(api_endpoint):
     return aiplatform.gapic.PredictionServiceClient(client_options=client_options)
 
 
-async def endpoint_score(
-    endpoint_name, instances, fallback_endpoints=[]
-) -> PredictionResult:
+def endpoint_score(endpoint_name, instances, fallback_endpoints=[]) -> PredictionResult:
     for endpoint in [endpoint_name] + fallback_endpoints:
-        response = await __predict_model(
+        response = __predict_model(
             endpoint_name=endpoint,
             location="europe-west1",
             instances=instances,
@@ -67,7 +65,7 @@ async def endpoint_score(
     return prediction_result
 
 
-async def __predict_model(
+def __predict_model(
     endpoint_name: str,
     instances: Union[Dict, List[Dict]],
     location: str = "europe-west1",
@@ -88,7 +86,7 @@ async def __predict_model(
 
         try:
             model_params = get_model(endpoint_name, location)
-        # TODO fix this
+
         except:
             model_params = __get_model(endpoint_name, location)
 

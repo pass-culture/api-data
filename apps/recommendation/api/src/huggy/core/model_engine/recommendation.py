@@ -1,7 +1,8 @@
 import datetime
+import typing as t
 
 import pytz
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from huggy.core.model_engine import ModelEngine
 from huggy.core.model_selection import select_reco_model_params
@@ -22,24 +23,22 @@ class Recommendation(ModelEngine):
         return model_params
 
     async def save_recommendation(
-        self, db: AsyncSession, recommendations, call_id
+        self, session: AsyncSession, recommendations: t.List[str], call_id: str
     ) -> None:
         if len(recommendations) > 0:
             date = datetime.datetime.now(pytz.utc)
-            async with db.bind.connect() as conn:
-                for reco in recommendations:
-                    reco_offer = PastRecommendedOffers(
-                        userid=self.user.user_id,
-                        offerid=reco,
-                        date=date,
-                        group_id=self.model_params.name,
-                        reco_origin=self.reco_origin,
-                        model_name=self.scorer.retrieval_endpoints[
-                            0
-                        ].model_display_name,
-                        model_version=self.scorer.retrieval_endpoints[0].model_version,
-                        call_id=call_id,
-                        user_iris_id=self.user.iris_id,
-                    )
-                    await conn.add(reco_offer)
-                await conn.commit()
+
+            for reco in recommendations:
+                reco_offer = PastRecommendedOffers(
+                    userid=int(self.user.user_id),
+                    offerid=int(reco),
+                    date=date,
+                    group_id=self.model_params.name,
+                    reco_origin=self.reco_origin,
+                    model_name=self.scorer.retrieval_endpoints[0].model_display_name,
+                    model_version=self.scorer.retrieval_endpoints[0].model_version,
+                    call_id=call_id,
+                    user_iris_id=self.user.iris_id,
+                )
+                session.add(reco_offer)
+            await session.commit()
