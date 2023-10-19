@@ -18,8 +18,8 @@ class RecommendableOffer:
         recommendable_items_ids: Dict[str, float],
         limit: int = 150,
     ) -> List[r_o.RecommendableOffer]:
-        offer_table: RecommendableOffersRaw = (
-            await RecommendableOffersRaw().get_available_table(db)
+        offer_table: RecommendableOffersRaw = await RecommendableOffersRaw().get_available_table(
+            db
         )
 
         user_distance_condition = []
@@ -79,9 +79,9 @@ class RecommendableOffer:
                 recommendable_items,
                 offer_table.item_id == recommendable_items.c.item_id,
             )
+            .where(*user_distance_condition)
             .where(*underage_condition)
             .where(offer_table.stock_price <= user.user_deposit_remaining_credit)
-            .where(*user_distance_condition)
             .subquery()
         )
 
@@ -99,8 +99,8 @@ class RecommendableOffer:
     async def get_user_offer_distance(
         self, db: AsyncSession, user: UserContext, offer_list: List[str]
     ) -> List[r_o.OfferDistance]:
-        offer_table: RecommendableOffersRaw = (
-            await RecommendableOffersRaw().get_available_table(db)
+        offer_table: RecommendableOffersRaw = await RecommendableOffersRaw().get_available_table(
+            db
         )
         user_distance = self.get_st_distance(user, offer_table)
 
@@ -116,12 +116,8 @@ class RecommendableOffer:
 
     def get_st_distance(self, user: UserContext, offer_table: RecommendableOffersRaw):
         if user.is_geolocated:
-            user_point = func.ST_GeographyFromText(
-                f"POINT({user.longitude} {user.latitude})"
-            )
-            return func.ST_Distance(user_point, offer_table.venue_geo).label(
-                "user_distance"
-            )
+            user_point = func.ST_GeographyFromText(f"POINT({user.longitude} {user.latitude})")
+            return func.ST_Distance(user_point, offer_table.venue_geo).label("user_distance")
         else:
             return literal_column("NULL").label("user_distance")
 
