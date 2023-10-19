@@ -13,7 +13,7 @@ mock_scored_offers = [
         user_distance=None,
         booking_number=0,
         category="LIVRES",
-        subcategory_id="LIVRES",
+        subcategory_id="LIVRE_PAPIER",
         stock_price=12.99,
         offer_creation_date=None,
         stock_beginning_date=None,
@@ -37,7 +37,7 @@ mock_scored_offers = [
         user_distance=None,
         booking_number=0,
         category="LIVRES",
-        subcategory_id="LIVRES",
+        subcategory_id="LIVRE_PAPIER",
         stock_price=12.99,
         offer_creation_date=None,
         stock_beginning_date=None,
@@ -61,7 +61,7 @@ mock_scored_offers = [
         user_distance=None,
         booking_number=0,
         category="LIVRE",
-        subcategory_id="LIVRE",
+        subcategory_id="LIVRE_PAPIER",
         stock_price=12.99,
         offer_creation_date=None,
         stock_beginning_date=None,
@@ -129,7 +129,13 @@ mock_scored_offers = [
 ]
 ## Reminder on diversification rule
 # output list is order by top score of the category, picking one in each category until reaching NbofRecommendations
-mock_expected_diversification_output = ["item_5", "item_4", "item_3", "item_2", "item_1"]
+mock_expected_diversification_output = [
+    "item_5",
+    "item_4",
+    "item_3",
+    "item_2",
+    "item_1",
+]
 mock_expected_submixing_output = ["item_5", "item_4", "item_3", "item_2", "item_1"]
 
 
@@ -139,7 +145,7 @@ class DiversificationTest:
     ):
         offers = order_offers_by_score_and_diversify_features(
             mock_scored_offers,
-            score_column="item_rank",
+            score_column="offer_score",
             score_order_ascending=False,
             shuffle_recommendation=None,
             feature="subcategory_id",
@@ -150,12 +156,13 @@ class DiversificationTest:
             mock_expected_diversification_output,
             ids,
         )
+
     def test_diversification_custom_submixing_feature(
         self,
     ):
         offers = order_offers_by_score_and_diversify_features(
             mock_scored_offers,
-            score_column="item_rank",
+            score_column="offer_score",
             score_order_ascending=False,
             shuffle_recommendation=None,
             feature="subcategory_id",

@@ -2,7 +2,6 @@ import uuid
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
-from fastapi.logger import logger
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -156,6 +155,10 @@ async def similar_offers(
     scoring = SimilarOffer(user, offer, playlist_params)
 
     offer_recommendations = await scoring.get_scoring(db, call_id)
+    # fallback to reco
+    if len(offer_recommendations) == 0:
+        scoring = Recommendation(user, params_in=playlist_params)
+        offer_recommendations = await scoring.get_scoring(db, call_id)
 
     log_extra_data = {
         "user_id": user.user_id,

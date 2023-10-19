@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import declarative_base
 
 from huggy.database.utils import check_table_exists
+from aiocache import cached, Cache
 
 Base = declarative_base()
 
@@ -14,6 +15,7 @@ class MaterializedBase:
     def materialized_tables(self) -> t.List[Base]:
         pass
 
+    @cached(ttl=30, cache=Cache.MEMORY)
     async def get_available_table(self, session: AsyncSession) -> Base:
         table_names = []
         for obj in self.materialized_tables():

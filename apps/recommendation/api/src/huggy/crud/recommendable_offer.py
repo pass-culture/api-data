@@ -29,7 +29,10 @@ class RecommendableOffer:
         if user.is_geolocated:
             user_distance_condition.append(
                 or_(
-                    user_distance <= offer_table.default_max_distance,
+                    and_(
+                        offer_table.is_geolocated == True,
+                        user_distance <= offer_table.default_max_distance,
+                    ),
                     offer_table.is_geolocated == False,
                 )
             )
@@ -39,14 +42,14 @@ class RecommendableOffer:
 
         underage_condition = []
         # is_underage_recommendable = True
-        if user.age and user.age < 18:
+        if user.age is not None and user.age < 18:
             underage_condition.append(offer_table.is_underage_recommendable)
 
         offer_rank = (
             func.row_number()
             .over(
                 partition_by=offer_table.item_id,
-                order_by=and_(user_distance.asc(), offer_table.stock_price.asc()),
+                order_by=and_(user_distance.asc()),
             )
             .label("offer_rank")
         )
@@ -66,6 +69,11 @@ class RecommendableOffer:
                 offer_table.category.label("category"),
                 offer_table.subcategory_id.label("subcategory_id"),
                 offer_table.search_group_name.label("search_group_name"),
+                offer_table.gtl_id.label("gtl_id"),
+                offer_table.gtl_label_level_1.label("gtl_label_level_1"),
+                offer_table.gtl_label_level_2.label("gtl_label_level_2"),
+                offer_table.gtl_label_level_3.label("gtl_label_level_3"),
+                offer_table.gtl_label_level_4.label("gtl_label_level_4"),
                 offer_table.venue_latitude.label("venue_latitude"),
                 offer_table.venue_longitude.label("venue_longitude"),
                 offer_table.is_geolocated.label("is_geolocated"),
@@ -79,20 +87,44 @@ class RecommendableOffer:
             .where(*user_distance_condition)
             .where(*underage_condition)
             .where(offer_table.stock_price <= user.user_deposit_remaining_credit)
-            .order_by(recommendable_items.c.item_rank.asc())
-            .limit(limit)
             .subquery()
         )
 
         results = (
             await db.execute(
-                select(nearest_offers_subquery).where(
-                    nearest_offers_subquery.c.offer_rank == 1
-                ),
+                select(nearest_offers_subquery)
+                .where(nearest_offers_subquery.c.offer_rank == 1)
+                .order_by(nearest_offers_subquery.c.item_rank.asc())
+                .limit(limit)
             )
         ).fetchall()
-
-        return parse_obj_as(List[r_o.RecommendableOffer], results)
+        keys = [
+            "offer_id",
+            "item_id",
+            "venue_id",
+            "user_distance",
+            "booking_number",
+            "stock_price",
+            "offer_creation_date",
+            "stock_beginning_date",
+            "category",
+            "subcategory_id",
+            "search_group_name",
+            "gtl_id",
+            "gtl_l1",
+            "gtl_l2",
+            "gtl_l3",
+            "gtl_l4",
+            "venue_latitude",
+            "venue_longitude",
+            "is_geolocated",
+            "item_rank",
+        ]
+        # user_profile = user_profile.tolist()
+        results_dicts = []
+        for result in results:
+            results_dicts.append(dict(zip(keys, result)))
+        return parse_obj_as(List[r_o.RecommendableOffer], results_dicts)
 
     async def get_user_offer_distance(
         self, db: AsyncSession, user: UserContext, offer_list: List[str]
@@ -110,7 +142,14 @@ class RecommendableOffer:
                 ).where(offer_table.offer_id.in_(list(offer_list)))
             )
         ).fetchall()
-        return parse_obj_as(List[r_o.OfferDistance], results)
+        keys = [
+            "offer_id",
+            "user_distance",
+        ]
+        results_dicts = []
+        for result in results:
+            results_dicts.append(dict(zip(keys, result)))
+        return parse_obj_as(List[r_o.OfferDistance], results_dicts)
 
     def get_st_distance(self, user: UserContext, offer_table: RecommendableOffersRaw):
         if user.is_geolocated:

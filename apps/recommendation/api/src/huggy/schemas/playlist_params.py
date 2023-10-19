@@ -1,9 +1,10 @@
 import re
 from datetime import datetime
 from typing import Dict, List, Optional
-
+from dateutil.parser import parse
 from fastapi import Query
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, validator
+from pydantic.alias_generators import to_camel
 
 under_pat = re.compile(r"_([a-z])")
 
@@ -17,7 +18,8 @@ def underscore_to_camel(name):
 
 class PlaylistParams(BaseModel):
     """Acceptable input in a API request for recommendations filters."""
-    
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
     model_endpoint: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
@@ -34,51 +36,25 @@ class PlaylistParams(BaseModel):
     gtl_l1: Optional[List[str]] = None
     gtl_l2: Optional[List[str]] = None
     gtl_l3: Optional[List[str]] = None
-    gtl_l4: Optional[List[str]]= None
+    gtl_l4: Optional[List[str]] = None
     submixing_feature_dict: Optional[dict] = None
-    
+
     @validator("start_date", "end_date", pre=True)
     def parse_datetime(cls, value):
         if value is not None:
-            datetime_formats = [
-                "%Y-%m-%d",
-                "%Y-%m-%dT%H:%M:%S",
-                "%Y-%m-%dT%H:%M:%S.%f",
-                "%Y-%m-%dT%H:%M:%S%z",
-                "%Y-%m-%dT%H:%M:%S.%f%z" 
-            ]
-
-            for datetime_format in datetime_formats:
-                try:
-                    return datetime.strptime(value, datetime_format)
-                except ValueError:
-                    pass
-
-            raise ValueError("Datetime format not recognized.")
+            try:
+                return parse(value)
+            except ValueError:
+                raise ValueError("Datetime format not recognized.")
         return None
-    class Config:
-        alias_generator = underscore_to_camel
 
 
 class GetSimilarOfferPlaylistParams(PlaylistParams):
-    user_id: str = None
-    categories: List[str] = Field(Query([]))
-    subcategories: List[str] = Field(Query([]))
-    gtl_ids: List[str] = Field(Query([]))
-    gtl_l1: List[str] = Field(Query([]))
-    gtl_l2: List[str] = Field(Query([]))
-    gtl_l3: List[str] = Field(Query([]))
-    gtl_l4: List[str] = Field(Query([]))
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    user_id: Optional[str] = Field(Query(None))
+    categories: Optional[List[str]] = Field(Query([]))
+    subcategories: Optional[List[str]] = Field(Query([]))
 
 
 class PostSimilarOfferPlaylistParams(PlaylistParams):
     user_id: str = None
-    categories: List[str] = None
-    subcategories: List[str] = None
-    offer_type_list: str = None  # useless in similar offer
-
-
-class RecommendationPlaylistParams(PlaylistParams):
-    categories: List[str] = None
-    subcategories: List[str] = None
-    offer_type_list: List[Dict] = None

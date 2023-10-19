@@ -82,6 +82,16 @@ class UserContextDB:
                     ).where(user_table.user_id == user_id)
                 )
             ).fetchone()
+            keys = [
+                "user_id",
+                "age",
+                "bookings_count",
+                "clicks_count",
+                "favorites_count",
+                "user_deposit_remaining_credit",
+            ]
+            # user_profile = user_profile.tolist()
             if user_profile is not None:
-                return parse_obj_as(user_sh.UserProfileDB, user_profile)
+                dictionary = dict(zip(keys, user_profile))
+                return parse_obj_as(user_sh.UserProfileDB, dictionary)
         return None

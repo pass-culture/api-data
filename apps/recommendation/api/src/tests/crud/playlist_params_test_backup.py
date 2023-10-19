@@ -8,6 +8,7 @@ from huggy.utils.input_params import KeyValueInput
 ENV_SHORT_NAME = os.getenv("ENV_SHORT_NAME")
 from loguru import logger
 
+
 # TODO : update playlist params tests
 class PlaylistParamsTest:
     @pytest.mark.parametrize(

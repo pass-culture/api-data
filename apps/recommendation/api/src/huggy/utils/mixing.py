@@ -68,7 +68,7 @@ def order_offers_by_score_and_diversify_features(
             print(f"feature: {submixing_feature_dict[subcat_to_mix]}")
             submixed_data = order_offers_by_score_and_diversify_features(
                 to_submixed_data[subcat_to_mix],
-                score_column="item_score",
+                score_column="offer_score",
                 score_order_ascending=False,
                 shuffle_recommendation=None,
                 feature=submixing_feature_dict[subcat_to_mix],

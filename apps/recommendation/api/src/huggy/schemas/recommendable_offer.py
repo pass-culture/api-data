@@ -20,17 +20,17 @@ class RecommendableOffer(BaseModel):
 
     offer_id: str
     item_id: str
-    venue_id: str
+    venue_id: t.Optional[str]
     user_distance: t.Optional[float]
     booking_number: float
     category: str
     subcategory_id: str
     search_group_name: str
-    gtl_ids: t.Optional[str]
-    gtl_l1: t.Optional[str]
-    gtl_l2: t.Optional[str]
-    gtl_l3: t.Optional[str]
-    gtl_l4: t.Optional[str]
+    gtl_id: t.Optional[str] = None
+    gtl_l1: t.Optional[str] = None
+    gtl_l2: t.Optional[str] = None
+    gtl_l3: t.Optional[str] = None
+    gtl_l4: t.Optional[str] = None
     stock_price: float
     offer_creation_date: t.Optional[datetime]
     stock_beginning_date: t.Optional[datetime]
