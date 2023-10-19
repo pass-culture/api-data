@@ -2,7 +2,6 @@ import uuid
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.encoders import jsonable_encoder
-from fastapi.logger import logger
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -77,9 +76,7 @@ async def similar_offers(
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):
-    user = await UserContextDB().get_user_context(
-        db, playlist_params.user_id, latitude, longitude
-    )
+    user = await UserContextDB().get_user_context(db, playlist_params.user_id, latitude, longitude)
 
     offer = await Offer().get_offer_characteristics(db, offer_id, latitude, longitude)
 
@@ -93,9 +90,7 @@ async def similar_offers(
         "iris_id": user.iris_id,
         "call_id": call_id,
         "reco_origin": scoring.reco_origin,
-        "retrieval_model_name": scoring.scorer.retrieval_endpoints[
-            0
-        ].model_display_name,
+        "retrieval_model_name": scoring.scorer.retrieval_endpoints[0].model_display_name,
         "retrieval_model_version": scoring.scorer.retrieval_endpoints[0].model_version,
         "retrieval_endpoint_name": scoring.scorer.retrieval_endpoints[0].endpoint_name,
         "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
@@ -116,15 +111,9 @@ async def similar_offers(
             "results": offer_recommendations,
             "params": {
                 "reco_origin": scoring.reco_origin,
-                "retrieval_model_endpoint": scoring.scorer.retrieval_endpoints[
-                    0
-                ].endpoint_name,
-                "retrieval_model_name": scoring.scorer.retrieval_endpoints[
-                    0
-                ].model_display_name,
-                "retrieval_model_version": scoring.scorer.retrieval_endpoints[
-                    0
-                ].model_version,
+                "retrieval_model_endpoint": scoring.scorer.retrieval_endpoints[0].endpoint_name,
+                "retrieval_model_name": scoring.scorer.retrieval_endpoints[0].model_display_name,
+                "retrieval_model_version": scoring.scorer.retrieval_endpoints[0].model_version,
                 "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
                 "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
                 "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,
@@ -156,6 +145,10 @@ async def similar_offers(
     scoring = SimilarOffer(user, offer, playlist_params)
 
     offer_recommendations = await scoring.get_scoring(db, call_id)
+    # fallback to reco
+    if len(offer_recommendations) == 0:
+        scoring = Recommendation(user, params_in=playlist_params)
+        offer_recommendations = await scoring.get_scoring(db, call_id)
 
     log_extra_data = {
         "user_id": user.user_id,
@@ -163,9 +156,7 @@ async def similar_offers(
         "iris_id": user.iris_id,
         "call_id": call_id,
         "reco_origin": scoring.reco_origin,
-        "retrieval_model_name": scoring.scorer.retrieval_endpoints[
-            0
-        ].model_display_name,
+        "retrieval_model_name": scoring.scorer.retrieval_endpoints[0].model_display_name,
         "retrieval_model_version": scoring.scorer.retrieval_endpoints[0].model_version,
         "retrieval_endpoint_name": scoring.scorer.retrieval_endpoints[0].endpoint_name,
         "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
@@ -186,15 +177,9 @@ async def similar_offers(
             "results": offer_recommendations,
             "params": {
                 "reco_origin": scoring.reco_origin,
-                "retrieval_model_endpoint": scoring.scorer.retrieval_endpoints[
-                    0
-                ].endpoint_name,
-                "retrieval_model_name": scoring.scorer.retrieval_endpoints[
-                    0
-                ].model_display_name,
-                "retrieval_model_version": scoring.scorer.retrieval_endpoints[
-                    0
-                ].model_version,
+                "retrieval_model_endpoint": scoring.scorer.retrieval_endpoints[0].endpoint_name,
+                "retrieval_model_name": scoring.scorer.retrieval_endpoints[0].model_display_name,
+                "retrieval_model_version": scoring.scorer.retrieval_endpoints[0].model_version,
                 "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
                 "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
                 "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,
@@ -231,9 +216,7 @@ async def playlist_recommendation(
         "iris_id": user.iris_id,
         "call_id": call_id,
         "reco_origin": scoring.reco_origin,
-        "retrieval_model_name": scoring.scorer.retrieval_endpoints[
-            0
-        ].model_display_name,
+        "retrieval_model_name": scoring.scorer.retrieval_endpoints[0].model_display_name,
         "retrieval_model_version": scoring.scorer.retrieval_endpoints[0].model_version,
         "retrieval_endpoint_name": scoring.scorer.retrieval_endpoints[0].endpoint_name,
         "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
@@ -253,15 +236,9 @@ async def playlist_recommendation(
             "playlist_recommended_offers": user_recommendations,
             "params": {
                 "reco_origin": scoring.reco_origin,
-                "retrieval_model_endpoint": scoring.scorer.retrieval_endpoints[
-                    0
-                ].endpoint_name,
-                "retrieval_model_name": scoring.scorer.retrieval_endpoints[
-                    0
-                ].model_display_name,
-                "retrieval_model_version": scoring.scorer.retrieval_endpoints[
-                    0
-                ].model_version,
+                "retrieval_model_endpoint": scoring.scorer.retrieval_endpoints[0].endpoint_name,
+                "retrieval_model_name": scoring.scorer.retrieval_endpoints[0].model_display_name,
+                "retrieval_model_version": scoring.scorer.retrieval_endpoints[0].model_version,
                 "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
                 "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
                 "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,

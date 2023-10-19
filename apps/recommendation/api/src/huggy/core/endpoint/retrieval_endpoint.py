@@ -93,7 +93,7 @@ class RetrievalEndpoint(AbstractEndpoint):
             params.append(EqParams(label="is_geolocated", value=float(0.0)))
 
         if self.user.age and self.user.age < 18:
-            params.append(EqParams(label="is_underage_recommendable", value=1))
+            params.append(EqParams(label="is_underage_recommendable", value=float(1)))
 
         # dates filter
         if self.params_in.start_date is not None or self.params_in.end_date is not None:
@@ -154,12 +154,13 @@ class RetrievalEndpoint(AbstractEndpoint):
 
         return filters
 
-    def model_score(self) -> t.List[RecommendableItem]:
+    async def model_score(self) -> t.List[RecommendableItem]:
         instances = self.get_instance(self.size)
-        prediction_result = endpoint_score(
+        prediction_result = await endpoint_score(
             instances=instances,
             endpoint_name=self.endpoint_name,
             fallback_endpoints=self.fallback_endpoints,
+            cached=self.cached,
         )
         self.model_version = prediction_result.model_version
         self.model_display_name = prediction_result.model_display_name

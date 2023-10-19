@@ -28,7 +28,6 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
                     "details": {
                         "content": {
                             "error": e.__class__.__name__,
-                            "messages": e.args,
                             "trace": tb,
                         }
                     }

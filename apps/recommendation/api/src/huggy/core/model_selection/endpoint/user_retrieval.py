@@ -12,6 +12,7 @@ filter_retrieval_endpoint = FilterRetrievalEndpoint(
     fallback_endpoints=[
         RetrievalEndpointName.recommendation_user_retrieval_version_b,
     ],
+    cached=True,
 )
 
 recommendation_retrieval_endpoint = RecommendationRetrievalEndpoint(
@@ -27,6 +28,7 @@ filter_retrieval_version_b_endpoint = FilterRetrievalEndpoint(
     fallback_endpoints=[
         RetrievalEndpointName.recommendation_user_retrieval,
     ],
+    cached=True,
 )
 
 recommendation_retrieval_version_b_endpoint = RecommendationRetrievalEndpoint(
