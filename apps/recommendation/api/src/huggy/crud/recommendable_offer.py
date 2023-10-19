@@ -29,7 +29,10 @@ class RecommendableOffer:
         if user.is_geolocated:
             user_distance_condition.append(
                 or_(
-                    user_distance <= offer_table.default_max_distance,
+                    and_(
+                        offer_table.is_geolocated == True,
+                        user_distance <= offer_table.default_max_distance,
+                    ),
                     offer_table.is_geolocated == False,
                 )
             )
@@ -39,14 +42,14 @@ class RecommendableOffer:
 
         underage_condition = []
         # is_underage_recommendable = True
-        if user.age and user.age < 18:
+        if user.age is not None and user.age < 18:
             underage_condition.append(offer_table.is_underage_recommendable)
 
         offer_rank = (
             func.row_number()
             .over(
                 partition_by=offer_table.item_id,
-                order_by=and_(user_distance.asc(), offer_table.stock_price.asc()),
+                order_by=and_(user_distance.asc()),
             )
             .label("offer_rank")
         )
@@ -79,16 +82,15 @@ class RecommendableOffer:
             .where(*user_distance_condition)
             .where(*underage_condition)
             .where(offer_table.stock_price <= user.user_deposit_remaining_credit)
-            .order_by(recommendable_items.c.item_rank.asc())
-            .limit(limit)
             .subquery()
         )
 
         results = (
             await db.execute(
-                select(nearest_offers_subquery).where(
-                    nearest_offers_subquery.c.offer_rank == 1
-                ),
+                select(nearest_offers_subquery)
+                .where(nearest_offers_subquery.c.offer_rank == 1)
+                .order_by(nearest_offers_subquery.c.item_rank.asc())
+                .limit(limit)
             )
         ).fetchall()
 

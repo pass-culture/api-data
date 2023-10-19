@@ -2,7 +2,9 @@ from abc import ABC
 
 
 class AbstractEndpoint(ABC):
-    def __init__(self, endpoint_name: str, size, fallback_endpoints=[]) -> None:
+    def __init__(
+        self, endpoint_name: str, size, fallback_endpoints=[], cached: bool = False
+    ) -> None:
         """
         endpoint_name : Default endpoint
         fallback_endpoints : List of endpoints to retry in case no results or timeout error
@@ -12,3 +14,4 @@ class AbstractEndpoint(ABC):
         self.fallback_endpoints = [str(x.value) for x in fallback_endpoints]
         self.model_version = None
         self.model_display_name = None
+        self.cached = cached
