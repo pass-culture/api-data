@@ -44,7 +44,7 @@ jobs:
       API_NAME: recommendation
       API_SOURCE_PATH: "apps/recommendation/api"
       TARGET_ENV: ${{ needs.setup-job.outputs.env_name }}
-      API_SERVICE_NAME: "api-recommendation"
+      API_SERVICE_NAME: "apireco"
     secrets:
       GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       ARTIFACT_REGISTRY_SERVICE_ACCOUNT: ${{ secrets.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
