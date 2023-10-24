@@ -27,6 +27,10 @@ class RecommendableOffersRawExample(BaseModel):
     offer_type_label: str
     venue_id: str
     name: str
+    gtl_l1: str = None
+    gtl_l2: str = None
+    gtl_l3: str = None
+    gtl_l4: str = None
     is_numerical: bool = False
     is_national: bool = False
     is_geolocated: bool = False

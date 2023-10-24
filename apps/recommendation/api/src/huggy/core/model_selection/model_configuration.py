@@ -17,6 +17,7 @@ class DiversificationParams:
     mixing_features: str
     order_column: str
     order_ascending: bool
+    submixing_feature_dict: dict
 
 
 diversification_on = DiversificationParams(
@@ -25,6 +26,7 @@ diversification_on = DiversificationParams(
     mixing_features="search_group_name",
     order_column="offer_score",
     order_ascending=False,
+    submixing_feature_dict=None,
 )
 
 diversification_off = DiversificationParams(
@@ -33,6 +35,7 @@ diversification_off = DiversificationParams(
     mixing_features="search_group_name",
     order_column="offer_score",
     order_ascending=False,
+    submixing_feature_dict=None,
 )
 
 
@@ -53,6 +56,14 @@ class ModelConfiguration:
         """
         if params_in.is_reco_shuffled is not None:
             self.diversification_params.is_reco_shuffled = params_in.is_reco_shuffled
+
+        # if params_in.mixing_features is not None:
+        #     self.diversification_params.mixing_features = params_in.mixing_features
+
+        if params_in.submixing_feature_dict is not None:
+            self.diversification_params.submixing_feature_dict = (
+                params_in.submixing_feature_dict
+            )
 
         return self.diversification_params
 

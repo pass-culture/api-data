@@ -130,10 +130,17 @@ class RetrievalEndpoint(AbstractEndpoint):
             ListParams(label="search_group_name", values=self.params_in.categories)
         )
         # subcategory_id
+        # dropna in case
         params.append(
             ListParams(label="subcategory_id", values=self.params_in.subcategories)
         )
-        params.append(EqParams(label="is_duo", value=self.params_in.is_duo))
+        params.append(ListParams(label="gtl_id", values=self.params_in.gtl_ids))
+        params.append(ListParams(label="gtl_l1", values=self.params_in.gtl_l1))
+        params.append(ListParams(label="gtl_l2", values=self.params_in.gtl_l2))
+        params.append(ListParams(label="gtl_l3", values=self.params_in.gtl_l3))
+        params.append(ListParams(label="gtl_l4", values=self.params_in.gtl_l4))
+
+        params.append(EqParams(label="offer_is_duo", value=self.params_in.is_duo))
 
         if self.params_in.offer_type_list is not None:
             label, domain = [], []

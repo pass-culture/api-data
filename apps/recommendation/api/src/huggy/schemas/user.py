@@ -15,10 +15,10 @@ class UserProfileDB(BaseModel):
     """ORM model from the crud.enriched_user base."""
 
     user_id: t.Optional[str] = "-1"
-    age: t.Optional[int] = 18
-    bookings_count: t.Optional[float] = 0
-    clicks_count: t.Optional[float] = 0
-    favorites_count: t.Optional[float] = 0
+    age: t.Optional[float] = 18
+    bookings_count: t.Optional[int] = 0
+    clicks_count: t.Optional[int] = 0
+    favorites_count: t.Optional[int] = 0
     user_deposit_remaining_credit: t.Optional[float] = 300
 
     class Config:
