@@ -6,7 +6,7 @@ from huggy.schemas.user import UserProfileDB
 
 # all values are null
 user_profile_null = UserProfileDB(
-    user_id=-1,
+    user_id="-1",
     age=18,
     bookings_count=0,
     clicks_count=0,
@@ -17,7 +17,7 @@ user_profile_null = UserProfileDB(
 
 # not in database
 user_profile_unknown = UserProfileDB(
-    user_id=-111,
+    user_id="-111",
     age=18,
     bookings_count=0,
     clicks_count=0,
@@ -28,7 +28,7 @@ user_profile_unknown = UserProfileDB(
 
 
 user_profile_111 = UserProfileDB(
-    user_id=111,
+    user_id="111",
     age=18,
     bookings_count=3,
     clicks_count=1,
@@ -38,7 +38,7 @@ user_profile_111 = UserProfileDB(
 )
 
 user_profile_112 = UserProfileDB(
-    user_id=112,
+    user_id="112",
     age=18,
     bookings_count=1,
     clicks_count=2,
@@ -48,7 +48,7 @@ user_profile_112 = UserProfileDB(
 )
 
 user_profile_113 = UserProfileDB(
-    user_id=113,
+    user_id="113",
     age=18,
     bookings_count=1,
     clicks_count=2,
@@ -58,7 +58,7 @@ user_profile_113 = UserProfileDB(
 )
 
 user_profile_114 = UserProfileDB(
-    user_id=114,
+    user_id="114",
     age=18,
     bookings_count=3,
     clicks_count=3,
@@ -68,7 +68,7 @@ user_profile_114 = UserProfileDB(
 )
 
 user_profile_115 = UserProfileDB(
-    user_id=115,
+    user_id="115",
     age=15,
     bookings_count=3,
     clicks_count=3,
@@ -78,7 +78,7 @@ user_profile_115 = UserProfileDB(
 )
 
 user_profile_116 = UserProfileDB(
-    user_id=116,
+    user_id="116",
     age=16,
     bookings_count=4,
     clicks_count=4,
@@ -88,7 +88,7 @@ user_profile_116 = UserProfileDB(
 )
 
 user_profile_117 = UserProfileDB(
-    user_id=117,
+    user_id="117",
     age=17,
     bookings_count=4,
     clicks_count=4,
@@ -98,7 +98,7 @@ user_profile_117 = UserProfileDB(
 )
 
 user_profile_118 = UserProfileDB(
-    user_id=118,
+    user_id="118",
     age=18,
     bookings_count=4,
     clicks_count=4,
@@ -109,7 +109,7 @@ user_profile_118 = UserProfileDB(
 
 # user should not have -5 years old.
 user_profile_wrong_age = UserProfileDB(
-    user_id=120,
+    user_id="120",
     age=18,
     bookings_count=0,
     clicks_count=0,

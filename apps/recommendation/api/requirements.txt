@@ -1,10 +1,10 @@
-fastapi==0.95.1
+fastapi==0.104.0
 uvicorn==0.22.0
 fastapi-versioning==0.10.0
 fastapi-cloud-logging==1.1.0
 sqlalchemy==2.0.18
 geoalchemy2==0.14.0
-pydantic
+pydantic==2.4.2
 psycopg2-binary==2.9.7
 pytz==2023.3
 asyncpg==0.28.0
@@ -17,3 +17,4 @@ pandas==2.1.0
 pytest-cov==2.10.1
 pytest-asyncio
 aiocache
+python-dateutil

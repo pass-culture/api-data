@@ -20,6 +20,7 @@ pyenv shell reco_fastapi
 ```
 
 ```sh 
+cd apps/recommendation/api/
 pip3 install -r requirements.txt
 ```
 
@@ -30,10 +31,10 @@ Set up a testdb :
 ```sh
 export DATA_GCP_TEST_POSTGRES_PORT=5432
 export DB_NAME="db"
-docker-compose up -d testdb  
+docker-compose up -d testdb
 ```
 ```sh
-cd ~/apps/recommendation/
+cd apps/recommendation/
 pyenv shell reco_fastapi
 pytest
 ```
@@ -53,7 +54,7 @@ create extension postgis;
 ### Run it locally
 
 ```sh
-cd ~/apps/recommendation/api/src
+cd apps/recommendation/api/src
 uvicorn main:app --reload
 ```
 

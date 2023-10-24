@@ -3,6 +3,7 @@ import random
 from typing import Dict, List, Tuple
 
 import numpy as np
+from loguru import logger
 
 from huggy.schemas.recommendable_offer import RankedOffer
 from huggy.utils.env_vars import NUMBER_OF_RECOMMENDATIONS
@@ -15,6 +16,8 @@ def order_offers_by_score_and_diversify_features(
     shuffle_recommendation=None,
     feature="subcategory_id",
     nb_reco_display=NUMBER_OF_RECOMMENDATIONS,
+    is_submixing=False,
+    submixing_feature_dict=None,
 ) -> List[RankedOffer]:
     """
     Group offers by feature.
@@ -24,7 +27,7 @@ def order_offers_by_score_and_diversify_features(
     Return only the ids of these sorted offers.
     score_order_ascending is False, score = the higher the better
     """
-
+    diversified_offers = []
     if shuffle_recommendation:
         for recommendation in offers:
             setattr(recommendation, score_column, random.random())
@@ -32,8 +35,13 @@ def order_offers_by_score_and_diversify_features(
     offers_by_feature = _get_offers_grouped_by_feature(
         offers, feature
     )  # here we group offers by cat (and score)
-    offers_by_feature_length = np.sum([len(l) for l in offers_by_feature.values()])
 
+    to_submixed_data = {}
+    if submixing_feature_dict is not None:
+        for submixed_subcat in submixing_feature_dict.keys():
+            to_submixed_data[submixed_subcat] = offers_by_feature[submixed_subcat]
+    # if "LIVRE_PAPIER" in offers_by_feature.keys():
+    #     books=offers_by_feature["LIVRE_PAPIER"]
     offers_by_feature_ordered_by_frequency = collections.OrderedDict(
         sorted(
             offers_by_feature.items(),
@@ -52,8 +60,25 @@ def order_offers_by_score_and_diversify_features(
             key=lambda k: getattr(k, score_column),
             reverse=score_order_ascending,
         )
-
-    diversified_offers = []
+    if (not is_submixing) and (len(to_submixed_data) > 0):
+        print("inside recursive run...")
+        is_submixing = True
+        for subcat_to_mix in to_submixed_data.keys():
+            print(f"subcat_to_mix: {subcat_to_mix}")
+            print(f"feature: {submixing_feature_dict[subcat_to_mix]}")
+            submixed_data = order_offers_by_score_and_diversify_features(
+                to_submixed_data[subcat_to_mix],
+                score_column="offer_score",
+                score_order_ascending=False,
+                shuffle_recommendation=None,
+                feature=submixing_feature_dict[subcat_to_mix],
+                nb_reco_display=len(to_submixed_data[subcat_to_mix]),
+                is_submixing=is_submixing,
+            )
+            submixed_data.reverse()
+            offers_by_feature_ordered_by_frequency[subcat_to_mix] = submixed_data
+    # print("traditional run...")
+    offers_by_feature_length = np.sum([len(l) for l in offers_by_feature.values()])
     while len(diversified_offers) != offers_by_feature_length:
         # here we pop one offer of eachsubcat
         for offer_feature in offers_by_feature_ordered_by_frequency.keys():
@@ -97,4 +122,4 @@ def _get_number_of_offers_and_max_score_by_feature(
         sum_score = max(
             [getattr(offer, score_column) for offer in feature_and_offers[1]]
         )
-    return sum_score
+    return sum_score, len(feature_and_offers[1])
