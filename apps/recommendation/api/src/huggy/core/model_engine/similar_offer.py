@@ -15,9 +15,11 @@ from huggy.schemas.user import UserContext
 
 
 class SimilarOffer(ModelEngine):
-    def __init__(self, user: UserContext, offer: o.Offer, params_in: PlaylistParams):
+    def __init__(
+        self, user: UserContext, offer: o.Offer, params_in: PlaylistParams, call_id: str
+    ):
         self.offer = offer
-        super().__init__(user=user, params_in=params_in)
+        super().__init__(user=user, params_in=params_in, call_id=call_id)
 
     def get_model_configuration(
         self, user: UserContext, params_in: PlaylistParams
@@ -32,10 +34,13 @@ class SimilarOffer(ModelEngine):
         # init input
         for endpoint in self.model_params.retrieval_endpoints:
             endpoint.init_input(
-                user=self.user, offer=self.offer, params_in=self.params_in
+                user=self.user,
+                offer=self.offer,
+                params_in=self.params_in,
+                call_id=self.call_id,
             )
         self.model_params.ranking_endpoint.init_input(
-            user=self.user, params_in=self.params_in
+            user=self.user, params_in=self.params_in, call_id=self.call_id
         )
         return self.model_params.scorer(
             user=self.user,
@@ -45,13 +50,13 @@ class SimilarOffer(ModelEngine):
             ranking_endpoint=self.model_params.ranking_endpoint,
         )
 
-    async def get_scoring(self, db: AsyncSession, call_id) -> List[str]:
+    async def get_scoring(self, db: AsyncSession) -> List[str]:
         if self.offer.item_id is None:
             return []
-        return await super().get_scoring(db, call_id)
+        return await super().get_scoring(db)
 
     async def save_recommendation(
-        self, session: AsyncSession, recommendations: t.List[str], call_id: str
+        self, session: AsyncSession, recommendations: t.List[str]
     ) -> None:
         if len(recommendations) > 0:
             date = datetime.datetime.now(pytz.utc)
@@ -65,7 +70,7 @@ class SimilarOffer(ModelEngine):
                     group_id=self.model_params.name,
                     model_name=self.scorer.retrieval_endpoints[0].model_display_name,
                     model_version=self.scorer.retrieval_endpoints[0].model_version,
-                    call_id=call_id,
+                    call_id=self.call_id,
                     venue_iris_id=self.offer.iris_id,
                 )
                 session.add(reco_offer)

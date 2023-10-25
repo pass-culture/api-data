@@ -70,6 +70,7 @@ async def check():
 )
 async def similar_offers(
     offer_id: str,
+    token: str,
     playlist_params: PostSimilarOfferPlaylistParams,
     latitude: float = None,  # venue_latitude
     longitude: float = None,  # venue_longitude
@@ -82,9 +83,9 @@ async def similar_offers(
 
     offer = await Offer().get_offer_characteristics(db, offer_id, latitude, longitude)
 
-    scoring = SimilarOffer(user, offer, playlist_params)
+    scoring = SimilarOffer(user, offer, playlist_params, call_id=call_id)
 
-    offer_recommendations = await scoring.get_scoring(db, call_id)
+    offer_recommendations = await scoring.get_scoring(db)
 
     log_extra_data = {
         "user_id": user.user_id,
@@ -108,7 +109,7 @@ async def similar_offers(
         extra=log_extra_data,
     )
 
-    await scoring.save_recommendation(db, offer_recommendations, call_id)
+    await scoring.save_recommendation(db, offer_recommendations)
 
     return jsonable_encoder(
         {
@@ -140,6 +141,7 @@ async def similar_offers(
 )
 async def similar_offers(
     offer_id: str,
+    token: str,
     playlist_params: GetSimilarOfferPlaylistParams = Depends(),
     latitude: float = None,  # venue_latitude
     longitude: float = None,  # venue_longitude
@@ -152,13 +154,13 @@ async def similar_offers(
 
     offer = await Offer().get_offer_characteristics(db, offer_id, latitude, longitude)
 
-    scoring = SimilarOffer(user, offer, playlist_params)
+    scoring = SimilarOffer(user, offer, playlist_params, call_id=call_id)
 
-    offer_recommendations = await scoring.get_scoring(db, call_id)
+    offer_recommendations = await scoring.get_scoring(db)
     # fallback to reco
     if len(offer_recommendations) == 0:
         scoring = Recommendation(user, params_in=playlist_params)
-        offer_recommendations = await scoring.get_scoring(db, call_id)
+        offer_recommendations = await scoring.get_scoring(db)
 
     log_extra_data = {
         "user_id": user.user_id,
@@ -182,7 +184,7 @@ async def similar_offers(
         extra=jsonable_encoder(log_extra_data),
     )
 
-    await scoring.save_recommendation(db, offer_recommendations, call_id)
+    await scoring.save_recommendation(db, offer_recommendations)
 
     return jsonable_encoder(
         {
@@ -214,6 +216,7 @@ async def similar_offers(
 )
 async def playlist_recommendation(
     user_id: str,
+    token: str,
     playlist_params: PlaylistParams,
     latitude: float = None,
     longitude: float = None,
@@ -225,9 +228,9 @@ async def playlist_recommendation(
     if modelEnpoint is not None:
         playlist_params.model_endpoint = modelEnpoint
 
-    scoring = Recommendation(user, params_in=playlist_params)
+    scoring = Recommendation(user, params_in=playlist_params, call_id=call_id)
 
-    user_recommendations = await scoring.get_scoring(db, call_id)
+    user_recommendations = await scoring.get_scoring(db)
 
     log_extra_data = {
         "user_id": user.user_id,
@@ -250,7 +253,7 @@ async def playlist_recommendation(
         extra=jsonable_encoder(log_extra_data),
     )
 
-    await scoring.save_recommendation(db, user_recommendations, call_id)
+    await scoring.save_recommendation(db, user_recommendations)
     return jsonable_encoder(
         {
             "playlist_recommended_offers": user_recommendations,

@@ -3,8 +3,9 @@ from datetime import datetime
 from typing import Dict, List, Optional
 from dateutil.parser import parse
 from fastapi import Query
-from pydantic import BaseModel, ConfigDict, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
+from pydantic_core.core_schema import ValidationInfo
 
 under_pat = re.compile(r"_([a-z])")
 
@@ -39,8 +40,8 @@ class PlaylistParams(BaseModel):
     gtl_l4: Optional[List[str]] = None
     submixing_feature_dict: Optional[dict] = None
 
-    @validator("start_date", "end_date", pre=True)
-    def parse_datetime(cls, value):
+    @field_validator("start_date", "end_date", mode="before")
+    def parse_datetime(cls, value, info: ValidationInfo) -> datetime:
         if value is not None:
             try:
                 return parse(value)
