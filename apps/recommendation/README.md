@@ -55,6 +55,7 @@ create extension postgis;
 
 ```sh
 cd apps/recommendation/api/src
+export API_LOCAL=1
 uvicorn main:app --reload
 ```
 

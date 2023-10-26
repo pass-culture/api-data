@@ -18,6 +18,7 @@ from huggy.schemas.playlist_params import (
 from huggy.utils.cloud_logging import logger
 from huggy.utils.env_vars import (
     API_TOKEN,
+    API_LOCAL,
     CORS_ALLOWED_ORIGIN,
     call_id_trace_context,
     cloud_trace_context,
@@ -43,6 +44,8 @@ async def setup_trace(request: Request):
 
 
 async def check_token(request: Request):
+    if API_LOCAL:
+        return True
     if request.query_params.get("token", None) != API_TOKEN:
         raise HTTPException(status_code=401, detail="Not authorized")
 
@@ -70,8 +73,8 @@ async def check():
 )
 async def similar_offers(
     offer_id: str,
-    token: str,
     playlist_params: PostSimilarOfferPlaylistParams,
+    token: str = None,
     latitude: float = None,  # venue_latitude
     longitude: float = None,  # venue_longitude
     db: AsyncSession = Depends(get_db),
@@ -141,8 +144,8 @@ async def similar_offers(
 )
 async def similar_offers(
     offer_id: str,
-    token: str,
     playlist_params: GetSimilarOfferPlaylistParams = Depends(),
+    token: str = None,
     latitude: float = None,  # venue_latitude
     longitude: float = None,  # venue_longitude
     db: AsyncSession = Depends(get_db),
@@ -216,8 +219,8 @@ async def similar_offers(
 )
 async def playlist_recommendation(
     user_id: str,
-    token: str,
     playlist_params: PlaylistParams,
+    token: str,
     latitude: float = None,
     longitude: float = None,
     modelEnpoint: str = None,

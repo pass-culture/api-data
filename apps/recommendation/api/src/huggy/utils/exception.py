@@ -14,13 +14,13 @@ class NotAuthorized(Exception):
 
 
 class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
+    def dispatch(self, request: Request, call_next):
         try:
             return call_next(request)
         except NotAuthorized as e:
             raise HTTPException(status_code=401, detail="Not authorized")
         except RuntimeError as exc:
-            if str(exc) == "No response returned." and await request.is_disconnected():
+            if str(exc) == "No response returned." and request.is_disconnected():
                 return Response(status_code=HTTPStatus.NO_CONTENT)
             raise
         except Exception as e:

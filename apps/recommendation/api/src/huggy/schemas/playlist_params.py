@@ -20,7 +20,9 @@ def underscore_to_camel(name):
 class PlaylistParams(BaseModel):
     """Acceptable input in a API request for recommendations filters."""
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    model_config = ConfigDict(
+        alias_generator=to_camel, populate_by_name=True, protected_namespaces=()
+    )
     model_endpoint: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
