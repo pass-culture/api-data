@@ -23,7 +23,7 @@ class Recommendation(ModelEngine):
         return model_params
 
     async def save_recommendation(
-        self, session: AsyncSession, recommendations: t.List[str], call_id: str
+        self, session: AsyncSession, recommendations: t.List[str]
     ) -> None:
         if len(recommendations) > 0:
             date = datetime.datetime.now(pytz.utc)
@@ -37,7 +37,7 @@ class Recommendation(ModelEngine):
                     reco_origin=self.reco_origin,
                     model_name=self.scorer.retrieval_endpoints[0].model_display_name,
                     model_version=self.scorer.retrieval_endpoints[0].model_version,
-                    call_id=call_id,
+                    call_id=self.call_id,
                     user_iris_id=self.user.iris_id,
                 )
                 session.add(reco_offer)

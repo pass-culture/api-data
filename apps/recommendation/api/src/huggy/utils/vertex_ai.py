@@ -147,7 +147,7 @@ async def __predict_model(
                 endpoint=model_params["endpoint_path"],
                 instances=instances,
                 parameters=parameters,
-                timeout=2,
+                timeout=1,
             )
         except DeadlineExceeded:
             timeout_error = {

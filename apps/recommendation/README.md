@@ -55,6 +55,7 @@ create extension postgis;
 
 ```sh
 cd apps/recommendation/api/src
+export API_LOCAL=1
 uvicorn main:app --reload
 ```
 
@@ -85,7 +86,7 @@ gcloud builds submit \
 **2:** Deploy
 
 ```
-cd ~/apps/recommendation/api
+cd apps/recommendation/api
 
 gcloud run deploy <SERVICE> \
 --image <IMAGE>:latest \

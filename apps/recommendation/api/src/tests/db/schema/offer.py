@@ -285,4 +285,4 @@ data_classes = [
 ]
 
 
-raw_data = [x.dict() for x in data_classes]
+raw_data = [x.model_dump() for x in data_classes]
