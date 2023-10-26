@@ -9,7 +9,7 @@ class OfferDistance(BaseModel):
     user_distance: float
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class RecommendableOffer(BaseModel):
@@ -40,7 +40,7 @@ class RecommendableOffer(BaseModel):
     item_rank: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class RankedOffer(RecommendableOffer):

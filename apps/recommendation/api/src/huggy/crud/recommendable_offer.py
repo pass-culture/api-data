@@ -1,10 +1,10 @@
 from typing import Dict, List
 
-from pydantic import parse_obj_as
+from pydantic import TypeAdapter
 from sqlalchemy import String, and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import literal_column
-
+from fastapi.logger import logger
 import huggy.schemas.recommendable_offer as r_o
 from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
 from huggy.schemas.user import UserContext
@@ -98,33 +98,7 @@ class RecommendableOffer:
                 .limit(limit)
             )
         ).fetchall()
-        keys = [
-            "offer_id",
-            "item_id",
-            "venue_id",
-            "user_distance",
-            "booking_number",
-            "stock_price",
-            "offer_creation_date",
-            "stock_beginning_date",
-            "category",
-            "subcategory_id",
-            "search_group_name",
-            "gtl_id",
-            "gtl_l1",
-            "gtl_l2",
-            "gtl_l3",
-            "gtl_l4",
-            "venue_latitude",
-            "venue_longitude",
-            "is_geolocated",
-            "item_rank",
-        ]
-        # user_profile = user_profile.tolist()
-        results_dicts = []
-        for result in results:
-            results_dicts.append(dict(zip(keys, result)))
-        return parse_obj_as(List[r_o.RecommendableOffer], results_dicts)
+        return TypeAdapter(List[r_o.RecommendableOffer]).validate_python(results)
 
     async def get_user_offer_distance(
         self, db: AsyncSession, user: UserContext, offer_list: List[str]
@@ -142,14 +116,7 @@ class RecommendableOffer:
                 ).where(offer_table.offer_id.in_(list(offer_list)))
             )
         ).fetchall()
-        keys = [
-            "offer_id",
-            "user_distance",
-        ]
-        results_dicts = []
-        for result in results:
-            results_dicts.append(dict(zip(keys, result)))
-        return parse_obj_as(List[r_o.OfferDistance], results_dicts)
+        return TypeAdapter(List[r_o.OfferDistance]).validate_python(results)
 
     def get_st_distance(self, user: UserContext, offer_table: RecommendableOffersRaw):
         if user.is_geolocated:

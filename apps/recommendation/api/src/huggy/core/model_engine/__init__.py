@@ -17,9 +17,10 @@ from huggy.utils.mixing import order_offers_by_score_and_diversify_features
 
 
 class ModelEngine(ABC):
-    def __init__(self, user: UserContext, params_in: PlaylistParams):
+    def __init__(self, user: UserContext, params_in: PlaylistParams, call_id: str):
         self.user = user
         self.params_in = params_in
+        self.call_id = call_id
         # Get model (cold_start or algo)
         self.model_params = self.get_model_configuration(user, params_in)
         self.scorer = self.get_scorer()
@@ -33,9 +34,11 @@ class ModelEngine(ABC):
     def get_scorer(self) -> OfferScorer:
         # init user_input
         for endpoint in self.model_params.retrieval_endpoints:
-            endpoint.init_input(user=self.user, params_in=self.params_in)
+            endpoint.init_input(
+                user=self.user, params_in=self.params_in, call_id=self.call_id
+            )
         self.model_params.ranking_endpoint.init_input(
-            user=self.user, params_in=self.params_in
+            user=self.user, params_in=self.params_in, call_id=self.call_id
         )
         # get scorer
         return self.model_params.scorer(
@@ -46,12 +49,12 @@ class ModelEngine(ABC):
             ranking_endpoint=self.model_params.ranking_endpoint,
         )
 
-    async def get_scoring(self, db: AsyncSession, call_id) -> List[str]:
+    async def get_scoring(self, db: AsyncSession) -> List[str]:
         """
         Returns a list of offer_id to be send to the user
         Depends of the scorer method.
         """
-        scored_offers = await self.scorer.get_scoring(db, call_id)
+        scored_offers = await self.scorer.get_scoring(db, self.call_id)
         if len(scored_offers) == 0:
             return []
 
@@ -75,7 +78,6 @@ class ModelEngine(ABC):
         await self.save_context(
             session=db,
             offers=scored_offers,
-            call_id=call_id,
             context=self.model_params.name,
             user=self.user,
         )
@@ -86,7 +88,6 @@ class ModelEngine(ABC):
         self,
         session: AsyncSession,
         offers: t.List[RankedOffer],
-        call_id: str,
         context: str,
         user: UserContext,
     ) -> None:
@@ -95,7 +96,7 @@ class ModelEngine(ABC):
             for o in offers:
                 session.add(
                     OfferContext(
-                        call_id=call_id,
+                        call_id=self.call_id,
                         context=context,
                         date=date,
                         user_id=user.user_id,

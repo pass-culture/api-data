@@ -48,7 +48,7 @@ class OfferScorer:
             prediction_items.extend(out)
 
         logger.info(
-            message=f"Retrieval: {self.user.user_id}: predicted_items -> {len(prediction_items)}",
+            msg=f"Retrieval: {self.user.user_id}: predicted_items -> {len(prediction_items)}",
             extra={
                 "event_name": "retrieval",
                 "call_id": call_id,
@@ -67,7 +67,7 @@ class OfferScorer:
         recommendable_offers = await self.get_recommendable_offers(db, prediction_items)
 
         logger.info(
-            message=f"Recommendable Offers: {self.user.user_id}: recommendable_offers -> {len(recommendable_offers)}",
+            msg=f"Recommendable Offers: {self.user.user_id}: recommendable_offers -> {len(recommendable_offers)}",
             extra={
                 "event_name": "recommendable_offers",
                 "call_id": call_id,
@@ -85,7 +85,7 @@ class OfferScorer:
         )
 
         logger.info(
-            message=f"Ranking Offers: {self.user.user_id}: ranking_endpoint -> {len(recommendable_offers)}",
+            msg=f"Ranking Offers: {self.user.user_id}: ranking_endpoint -> {len(recommendable_offers)}",
             extra={
                 "event_name": "ranking",
                 "call_id": call_id,

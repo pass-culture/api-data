@@ -31,9 +31,10 @@ def to_float(x: float = None):
 
 
 class RankingEndpoint(AbstractEndpoint):
-    def init_input(self, user: UserContext, params_in: PlaylistParams):
+    def init_input(self, user: UserContext, params_in: PlaylistParams, call_id: str):
         self.user = user
         self.user_input = str(self.user.user_id)
+        self.call_id = call_id
         self.params_in = params_in
 
     @abstractmethod
@@ -108,7 +109,7 @@ class ModelRankingEndpoint(RankingEndpoint):
                     RankedOffer(
                         offer_score=current_score,
                         offer_output=current_score,
-                        **row.dict(),
+                        **row.model_dump(),
                     )
                 )
             else:
