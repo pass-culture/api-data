@@ -1,6 +1,7 @@
 from huggy.core.endpoint.retrieval_endpoint import (
     OfferFilterRetrievalEndpoint,
     OfferRetrievalEndpoint,
+    OfferSemanticRetrievalEndpoint,
 )
 from huggy.core.model_selection.endpoint import RetrievalEndpointName
 
@@ -23,7 +24,7 @@ offer_filter_retrieval_endpoint = OfferFilterRetrievalEndpoint(
     cached=True,
 )
 
-semantic_offer_retrieval_endpoint = OfferRetrievalEndpoint(
+semantic_offer_retrieval_endpoint = OfferSemanticRetrievalEndpoint(
     endpoint_name=RetrievalEndpointName.recommendation_semantic_retrieval,
     size=RETRIEVAL_LIMIT,
     cached=True,

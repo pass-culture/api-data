@@ -224,6 +224,18 @@ class OfferRetrievalEndpoint(RetrievalEndpoint):
         }
 
 
+class OfferSemanticRetrievalEndpoint(OfferRetrievalEndpoint):
+    def get_instance(self, size: int):
+        return {
+            "model_type": "similar_offer",
+            "offer_id": str(self.item_id),
+            "size": size,
+            "params": self.get_params(),
+            "call_id": self.call_id,
+            "prefilter": 0,  # not prefilter
+        }
+
+
 class OfferFilterRetrievalEndpoint(OfferRetrievalEndpoint):
     def get_instance(self, size: int):
         return {

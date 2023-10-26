@@ -86,7 +86,7 @@ gcloud builds submit \
 **2:** Deploy
 
 ```
-cd ~/apps/recommendation/api
+cd apps/recommendation/api
 
 gcloud run deploy <SERVICE> \
 --image <IMAGE>:latest \
