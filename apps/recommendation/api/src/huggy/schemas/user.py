@@ -1,6 +1,7 @@
 import typing as t
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
+from pydantic_core.core_schema import ValidationInfo
 
 
 class UserInput(BaseModel):
@@ -23,38 +24,30 @@ class UserProfileDB(BaseModel):
 
     class Config:
         validate_assignment = True
-        orm_mode = True
+        from_attributes = True
 
-    @validator("user_deposit_remaining_credit")
-    def set_user_deposit_remaining_credit(cls, var):
+    @field_validator("user_deposit_remaining_credit")
+    def set_user_deposit_remaining_credit(cls, var, info: ValidationInfo) -> int:
         if var is None:
             return 300
         if var < 0:
             return 300
         return var
 
-    @validator("favorites_count")
-    def set_favorites_count(cls, var):
+    @field_validator("favorites_count", "bookings_count", "clicks_count")
+    def set_count(cls, var, info: ValidationInfo) -> int:
         return var or 0
 
-    @validator("bookings_count")
-    def set_bookings_count(cls, var):
-        return var or 0
-
-    @validator("clicks_count")
-    def set_clicks_count(cls, var):
-        return var or 0
-
-    @validator("age")
-    def set_age(cls, var):
+    @field_validator("age")
+    def set_age(cls, var, info: ValidationInfo) -> int:
         if var is None:
             return 18
         if var < 0:
             return 18
         return var
 
-    @validator("user_id")
-    def set_user_id(cls, var):
+    @field_validator("user_id")
+    def set_user_id(cls, var, info: ValidationInfo) -> int:
         if var is None:
             return "-1"
         return var

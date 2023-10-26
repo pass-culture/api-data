@@ -1,10 +1,9 @@
 import logging
 import typing as t
 
-from pydantic import parse_obj_as
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from pydantic import TypeAdapter
 import huggy.models.enriched_user as user_db
 import huggy.schemas.user as user_sh
 from huggy.crud.iris import Iris
@@ -82,16 +81,6 @@ class UserContextDB:
                     ).where(user_table.user_id == user_id)
                 )
             ).fetchone()
-            keys = [
-                "user_id",
-                "age",
-                "bookings_count",
-                "clicks_count",
-                "favorites_count",
-                "user_deposit_remaining_credit",
-            ]
-            # user_profile = user_profile.tolist()
             if user_profile is not None:
-                dictionary = dict(zip(keys, user_profile))
-                return parse_obj_as(user_sh.UserProfileDB, dictionary)
+                return TypeAdapter(user_sh.UserProfileDB).validate_python(user_profile)
         return None

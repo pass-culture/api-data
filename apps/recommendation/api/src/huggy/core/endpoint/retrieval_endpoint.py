@@ -72,8 +72,9 @@ class EqParams:
 
 
 class RetrievalEndpoint(AbstractEndpoint):
-    def init_input(self, user: UserContext, params_in: PlaylistParams):
+    def init_input(self, user: UserContext, params_in: PlaylistParams, call_id: str):
         self.user = user
+        self.call_id = call_id
         self.params_in = params_in
         self.user_input = str(self.user.user_id)
         self.is_geolocated = self.user.is_geolocated
@@ -185,10 +186,9 @@ class FilterRetrievalEndpoint(RetrievalEndpoint):
     def get_instance(self, size: int):
         return {
             "model_type": "filter",
-            "order_by": "booking_number",
-            "ascending": False,
             "size": size,
             "params": self.get_params(),
+            "call_id": self.call_id,
         }
 
 
@@ -199,13 +199,17 @@ class RecommendationRetrievalEndpoint(RetrievalEndpoint):
             "user_id": str(self.user.user_id),
             "size": size,
             "params": self.get_params(),
+            "call_id": self.call_id,
         }
 
 
 class OfferRetrievalEndpoint(RetrievalEndpoint):
-    def init_input(self, user: UserContext, offer: Offer, params_in: PlaylistParams):
+    def init_input(
+        self, user: UserContext, offer: Offer, params_in: PlaylistParams, call_id: str
+    ):
         self.user = user
         self.offer = offer
+        self.call_id = call_id
         self.item_id = str(self.offer.item_id)
         self.params_in = params_in
         self.is_geolocated = self.offer.is_geolocated
@@ -216,6 +220,7 @@ class OfferRetrievalEndpoint(RetrievalEndpoint):
             "offer_id": str(self.item_id),
             "size": size,
             "params": self.get_params(),
+            "call_id": self.call_id,
         }
 
 
@@ -223,8 +228,7 @@ class OfferFilterRetrievalEndpoint(OfferRetrievalEndpoint):
     def get_instance(self, size: int):
         return {
             "model_type": "filter",
-            "order_by": "booking_number",
-            "ascending": False,
             "size": size,
             "params": self.get_params(),
+            "call_id": self.call_id,
         }
