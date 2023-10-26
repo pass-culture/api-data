@@ -189,6 +189,8 @@ class FilterRetrievalEndpoint(RetrievalEndpoint):
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,
+            "prefilter": 0,  # not prefilter
+            "debug": 0,
         }
 
 
@@ -200,6 +202,7 @@ class RecommendationRetrievalEndpoint(RetrievalEndpoint):
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,
+            "debug": 0,
         }
 
 
@@ -221,6 +224,7 @@ class OfferRetrievalEndpoint(RetrievalEndpoint):
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,
+            "debug": 0,
         }
 
 
@@ -233,6 +237,7 @@ class OfferSemanticRetrievalEndpoint(OfferRetrievalEndpoint):
             "params": self.get_params(),
             "call_id": self.call_id,
             "prefilter": 0,  # not prefilter
+            "debug": 0,
         }
 
 
@@ -243,4 +248,6 @@ class OfferFilterRetrievalEndpoint(OfferRetrievalEndpoint):
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,
+            "prefilter": 0,  # not prefilter
+            "debug": 0,
         }
