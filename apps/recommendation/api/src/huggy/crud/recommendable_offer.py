@@ -4,7 +4,6 @@ from pydantic import TypeAdapter
 from sqlalchemy import String, and_, func, or_, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import literal_column
-from fastapi.logger import logger
 import huggy.schemas.recommendable_offer as r_o
 from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
 from huggy.schemas.user import UserContext
@@ -16,7 +15,7 @@ class RecommendableOffer:
         db: AsyncSession,
         user: UserContext,
         recommendable_items_ids: Dict[str, float],
-        limit: int = 150,
+        limit: int = 100,
     ) -> List[r_o.RecommendableOffer]:
         offer_table: RecommendableOffersRaw = (
             await RecommendableOffersRaw().get_available_table(db)
@@ -28,31 +27,18 @@ class RecommendableOffer:
         # Take all the offers near the user AND non geolocated offers
         if user.is_geolocated:
             user_distance_condition.append(
-                or_(
-                    and_(
-                        offer_table.is_geolocated == True,
-                        user_distance <= offer_table.default_max_distance,
-                    ),
-                    offer_table.is_geolocated == False,
+                text(
+                    " NOT offers.is_geolocated OR ( offers.is_geolocated AND offers.user_distance < offers.default_max_distance) "
                 )
             )
         # Else, take only non geolocated offers
         else:
-            user_distance_condition.append(offer_table.is_geolocated == False)
+            user_distance_condition.append(text("NOT offers.is_geolocated"))
 
         underage_condition = []
         # is_underage_recommendable = True
         if user.age is not None and user.age < 18:
             underage_condition.append(offer_table.is_underage_recommendable)
-
-        offer_rank = (
-            func.row_number()
-            .over(
-                partition_by=offer_table.item_id,
-                order_by=and_(user_distance.asc()),
-            )
-            .label("offer_rank")
-        )
 
         recommendable_items = self.get_items(recommendable_items_ids)
 
@@ -63,6 +49,7 @@ class RecommendableOffer:
                 offer_table.venue_id.label("venue_id"),
                 user_distance,
                 offer_table.booking_number.label("booking_number"),
+                offer_table.default_max_distance.label("default_max_distance"),
                 offer_table.stock_price.label("stock_price"),
                 offer_table.offer_creation_date.label("offer_creation_date"),
                 offer_table.stock_beginning_date.label("stock_beginning_date"),
@@ -78,23 +65,36 @@ class RecommendableOffer:
                 offer_table.venue_longitude.label("venue_longitude"),
                 offer_table.is_geolocated.label("is_geolocated"),
                 recommendable_items.c.item_rank.label("item_rank"),
-                offer_rank,
             )
             .join(
                 recommendable_items,
                 offer_table.item_id == recommendable_items.c.item_id,
             )
-            .where(*user_distance_condition)
             .where(*underage_condition)
             .where(offer_table.stock_price <= user.user_deposit_remaining_credit)
-            .subquery()
+            .subquery(name="offers")
+        )
+
+        offer_rank = (
+            func.row_number()
+            .over(
+                partition_by=text("offers.item_id"),
+                order_by=text("offers.user_distance ASC"),
+            )
+            .label("offer_rank")
+        )
+
+        rank_subquery = (
+            select(nearest_offers_subquery, offer_rank)
+            .where(*user_distance_condition)
+            .subquery(name="rank")
         )
 
         results = (
             await db.execute(
-                select(nearest_offers_subquery)
-                .where(nearest_offers_subquery.c.offer_rank == 1)
-                .order_by(nearest_offers_subquery.c.item_rank.asc())
+                select(rank_subquery)
+                .where(rank_subquery.c.offer_rank == 1)
+                .order_by(rank_subquery.c.item_rank.asc())
                 .limit(limit)
             )
         ).fetchall()
@@ -141,7 +141,6 @@ class RecommendableOffer:
                     SELECT s.item_id, s.item_rank
                     FROM unnest(ARRAY[{arr_sql}]) 
                     AS s(item_id VARCHAR, item_rank INT)
-                
             """
             )
             .columns(item_id=String, item_rank=String)

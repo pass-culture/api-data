@@ -50,18 +50,11 @@ async def endpoint_score(
     endpoint_name, instances, fallback_endpoints=[], cached=False
 ) -> PredictionResult:
     for endpoint in [endpoint_name] + fallback_endpoints:
-        if cached:
-            response = await cached_predict_model(
-                endpoint_name=endpoint,
-                location="europe-west1",
-                instances=instances,
-            )
-        else:
-            response = await predict_model(
-                endpoint_name=endpoint,
-                location="europe-west1",
-                instances=instances,
-            )
+        response = await predict_model(
+            endpoint_name=endpoint,
+            location="europe-west1",
+            instances=instances,
+        )
         prediction_result = PredictionResult(
             status=response["status"],
             predictions=response["predictions"],
@@ -69,23 +62,13 @@ async def endpoint_score(
             model_version=response["model_version_id"],
         )
         # if we have results, return, else fallback_endpoints
-        if len(response["predictions"]) > 0:
+        if prediction_result.status == "success":
             return prediction_result
     # default
     return prediction_result
 
 
 async def predict_model(
-    endpoint_name: str,
-    instances: Union[Dict, List[Dict]],
-    location: str = "europe-west1",
-    api_endpoint: str = "europe-west1-aiplatform.googleapis.com",
-):
-    return await __predict_model(endpoint_name, instances, location, api_endpoint)
-
-
-@cached(ttl=600, cache=Cache.MEMORY)
-async def cached_predict_model(
     endpoint_name: str,
     instances: Union[Dict, List[Dict]],
     location: str = "europe-west1",
