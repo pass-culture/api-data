@@ -47,7 +47,7 @@ class OfferScorer:
             endpoints_stats[endpoint.endpoint_name] = len(out)
             prediction_items.extend(out)
 
-        logger.info(
+        logger.debug(
             f"Retrieval: {self.user.user_id}: predicted_items -> {len(prediction_items)}",
             extra={
                 "event_name": "retrieval",
@@ -66,7 +66,7 @@ class OfferScorer:
         # Transform items in offers
         recommendable_offers = await self.get_recommendable_offers(db, prediction_items)
 
-        logger.info(
+        logger.debug(
             f"Recommendable Offers: {self.user.user_id}: recommendable_offers -> {len(recommendable_offers)}",
             extra={
                 "event_name": "recommendable_offers",
@@ -84,7 +84,7 @@ class OfferScorer:
             recommendable_offers=recommendable_offers
         )
 
-        logger.info(
+        logger.debug(
             f"Ranking Offers: {self.user.user_id}: ranking_endpoint -> {len(recommendable_offers)}",
             extra={
                 "event_name": "ranking",

@@ -21,7 +21,7 @@ from huggy.schemas.user import UserContext
                 favorites_count=1,
                 user_deposit_remaining_credit=300,
             ),
-            "algo_v2",
+            "algo",
         ),
         (
             UserContext(
@@ -36,7 +36,7 @@ from huggy.schemas.user import UserContext
                 favorites_count=2,
                 user_deposit_remaining_credit=300,
             ),
-            "cold_start_v2",
+            "cold_start",
         ),
         (
             UserContext(
@@ -51,7 +51,7 @@ from huggy.schemas.user import UserContext
                 favorites_count=2,
                 user_deposit_remaining_credit=300,
             ),
-            "cold_start_v2",
+            "cold_start",
         ),
     ],
 )

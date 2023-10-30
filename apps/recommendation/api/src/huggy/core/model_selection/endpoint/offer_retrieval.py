@@ -19,7 +19,7 @@ offer_retrieval_endpoint = OfferRetrievalEndpoint(
 
 offer_filter_retrieval_endpoint = OfferFilterRetrievalEndpoint(
     endpoint_name=RetrievalEndpointName.recommendation_user_retrieval,
-    size=150,
+    size=RETRIEVAL_LIMIT,
     fallback_endpoints=[RetrievalEndpointName.recommendation_user_retrieval_version_b],
     cached=True,
 )

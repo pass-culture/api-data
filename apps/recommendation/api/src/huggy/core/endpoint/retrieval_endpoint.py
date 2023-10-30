@@ -131,7 +131,6 @@ class RetrievalEndpoint(AbstractEndpoint):
             ListParams(label="search_group_name", values=self.params_in.categories)
         )
         # subcategory_id
-        # dropna in case
         params.append(
             ListParams(label="subcategory_id", values=self.params_in.subcategories)
         )
@@ -235,7 +234,6 @@ class OfferSemanticRetrievalEndpoint(OfferRetrievalEndpoint):
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,
-            "prefilter": 0,  # not prefilter
             "debug": 0,
         }
 
