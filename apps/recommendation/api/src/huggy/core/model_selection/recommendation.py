@@ -7,7 +7,7 @@ from huggy.core.model_selection.model_configuration import (
 )
 
 retrieval_filter = ModelConfiguration(
-    name="recommendation_filter_v2",
+    name="recommendation_filter",
     description="""""",
     scorer=offer_scorer.OfferScorer,
     diversification_params=diversification_on,
@@ -17,7 +17,7 @@ retrieval_filter = ModelConfiguration(
 
 
 retrieval_reco = ModelConfiguration(
-    name="recommendation_user_v2",
+    name="recommendation_user",
     description="""""",
     scorer=offer_scorer.OfferScorer,
     diversification_params=diversification_on,
@@ -29,7 +29,7 @@ retrieval_reco = ModelConfiguration(
 )
 
 retrieval_filter_version_b = ModelConfiguration(
-    name="recommendation_filter_v2",
+    name="recommendation_filter",
     description="""""",
     scorer=offer_scorer.OfferScorer,
     diversification_params=diversification_on,
@@ -38,7 +38,7 @@ retrieval_filter_version_b = ModelConfiguration(
 )
 
 retrieval_reco_version_b = ModelConfiguration(
-    name="recommendation_user_v2",
+    name="recommendation_user",
     description="""""",
     scorer=offer_scorer.OfferScorer,
     diversification_params=diversification_on,

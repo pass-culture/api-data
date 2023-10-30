@@ -95,7 +95,7 @@ class ModelRankingEndpoint(RankingEndpoint):
         prediction_dict = {
             str(r["offer_id"]): r["score"] for r in prediction_result.predictions
         }
-        logger.info(
+        logger.debug(
             f"ranking_endpoint {str(self.user.user_id)} offers : {len(recommendable_offers)}",
             extra=prediction_dict,
         )
@@ -131,7 +131,7 @@ class ModelRankingEndpoint(RankingEndpoint):
                 ),
             )
 
-        logger.info(
+        logger.debug(
             f"ranking_endpoint {str(self.user.user_id)} out : {len(ranked_offers)}"
         )
         return sorted(ranked_offers, key=lambda x: x.offer_output, reverse=True)

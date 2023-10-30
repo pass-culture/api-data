@@ -50,8 +50,8 @@ def get_engine(local=API_LOCAL):
                 port=SQL_PORT,
                 query={},
             ),
-            pool_size=5,
-            max_overflow=15,
+            pool_size=10,
+            max_overflow=20,
             pool_timeout=30,
             pool_recycle=1800,
         )

@@ -79,26 +79,26 @@ class ModelFork:
     def get_user_status(self, user: UserContext):
         """Get model status based on UserContext interactions"""
         if not user.found:
-            return copy.deepcopy(self.cold_start_model), "unknown_v2"
+            return copy.deepcopy(self.cold_start_model), "unknown"
 
         if self.favorites_count is not None:
             if user.favorites_count >= self.favorites_count:
-                return copy.deepcopy(self.warm_start_model), "algo_v2"
+                return copy.deepcopy(self.warm_start_model), "algo"
 
         if self.bookings_count is not None:
             if user.bookings_count >= self.bookings_count:
-                return copy.deepcopy(self.warm_start_model), "algo_v2"
+                return copy.deepcopy(self.warm_start_model), "algo"
 
         if self.clicks_count is not None:
             if user.clicks_count >= self.clicks_count:
-                return copy.deepcopy(self.warm_start_model), "algo_v2"
-        return copy.deepcopy(self.cold_start_model), "cold_start_v2"
+                return copy.deepcopy(self.warm_start_model), "algo"
+        return copy.deepcopy(self.cold_start_model), "cold_start"
 
     def get_offer_status(self, offer: Offer):
         """Get model status based on Offer interactions"""
         if not offer.found:
-            return copy.deepcopy(self.cold_start_model), "unknown_v2"
+            return copy.deepcopy(self.cold_start_model), "unknown"
         if self.bookings_count is not None:
             if offer.booking_number >= self.bookings_count:
-                return copy.deepcopy(self.warm_start_model), "algo_v2"
-        return copy.deepcopy(self.cold_start_model), "cold_start_v2"
+                return copy.deepcopy(self.warm_start_model), "algo"
+        return copy.deepcopy(self.cold_start_model), "cold_start"
