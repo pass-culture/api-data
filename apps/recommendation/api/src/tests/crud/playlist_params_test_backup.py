@@ -28,10 +28,6 @@ class PlaylistParamsTest:
         # ({"isDuo": True}, True),
     )
     def test_diversfication_params(self, input_params):
-        logger.info(f"""input_params: {input_params}""")
-        logger.info(
-            f"""input_params["submixing_feature_dict"]: {input_params["submixing_feature_dict"]}"""
-        )
         output_PlaylistParams = PlaylistParams.model_construct(
             submixing_feature_dict=input_params["submixing_feature_dict"]
         )
