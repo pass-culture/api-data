@@ -27,7 +27,7 @@ gtl_filter = ModelConfiguration(
         mixing_features="search_group_name",
         order_column="offer_score",
         order_ascending=False,
-        submixing_feature_dict={"LIVRE_PAPIER": "gtl_id"},
+        submixing_feature_dict={"LIVRES": "gtl_id"},
     ),
     retrieval_endpoints=[user_retrieval.filter_retrieval_endpoint],
     ranking_endpoint=user_ranking.user_ranking_endpoint,
@@ -43,7 +43,7 @@ gtl_reco = ModelConfiguration(
         mixing_features="search_group_name",
         order_column="offer_score",
         order_ascending=False,
-        submixing_feature_dict={"LIVRE_PAPIER": "gtl_id"},
+        submixing_feature_dict={"LIVRES": "gtl_id"},
     ),
     retrieval_endpoints=[
         user_retrieval.filter_retrieval_endpoint,
