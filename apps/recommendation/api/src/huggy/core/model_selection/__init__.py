@@ -14,6 +14,20 @@ RECOMMENDATION_ENDPOINTS = {
         clicks_count=25,
         favorites_count=None,
     ),
+    "top_offers:gtl": ModelFork(
+        warm_start_model=recommendation_endpoints.gtl_filter,
+        cold_start_model=recommendation_endpoints.gtl_filter,
+        bookings_count=None,
+        clicks_count=None,
+        favorites_count=None,
+    ),
+    "algo:gtl": ModelFork(
+        warm_start_model=recommendation_endpoints.gtl_reco,
+        cold_start_model=recommendation_endpoints.gtl_filter,
+        bookings_count=2,
+        clicks_count=25,
+        favorites_count=None,
+    ),
     "version_b": ModelFork(
         warm_start_model=recommendation_endpoints.retrieval_reco_version_b,
         cold_start_model=recommendation_endpoints.retrieval_filter_version_b,
