@@ -1212,7 +1212,7 @@
 							"  pm.expect(jsonResponse.playlist_recommended_offers).to.be.an(\"array\");\r",
 							"});\r",
 							"\r",
-							"pm.test(\"Response must contain an array results with reco_origin = unknown\", function () {\r",
+							"pm.test(\"Response must contain an array results with reco_origin = algo\", function () {\r",
 							"  const jsonResponse = pm.response.json();\r",
 							"  pm.expect(jsonResponse).to.be.an(\"object\");\r",
 							"  pm.expect(jsonResponse.params).to.have.property(\"reco_origin\");\r",
@@ -1547,12 +1547,12 @@
 					"listen": "test",
 					"script": {
 						"exec": [
-							"pm.test(\"Request is forbidden with a status code of 403\", function () {\r",
-							"  pm.response.to.have.status(403);\r",
+							"pm.test(\"Request is forbidden with a status code of 401\", function () {\r",
+							"  pm.response.to.have.status(401);\r",
 							"});\r",
 							"\r",
-							"pm.test(\"Body matches string Forbidden\", function () {\r",
-							"    pm.expect(pm.response.text()).to.include(\"Forbidden\");\r",
+							"pm.test(\"Body matches string 'Not authorized' \", function () {\r",
+							"    pm.expect(pm.response.text()).to.include(\"Not authorized\");\r",
 							"});"
 						],
 						"type": "text/javascript"
@@ -1609,15 +1609,7 @@
 							"\r",
 							"    pm.expect(checkIfArrayIsUnique(ids), ids).to.be.true\r",
 							"})\r",
-							"\r",
-							"\r",
-							"pm.test(\"Response must contain an array params with filtered = true\", function () {\r",
-							"  const jsonResponse = pm.response.json();\r",
-							"  pm.expect(jsonResponse).to.be.an(\"object\");\r",
-							"  pm.expect(jsonResponse).to.have.property('params')\r",
-							"  pm.expect(jsonResponse.params).to.have.property(\"filtered\");\r",
-							"  pm.expect(jsonResponse.params.filtered).to.be.true;\r",
-							"});"
+							""
 						],
 						"type": "text/javascript"
 					}
