@@ -89,7 +89,10 @@ async def similar_offers(
     scoring = SimilarOffer(user, offer, playlist_params, call_id=call_id)
 
     offer_recommendations = await scoring.get_scoring(db)
-
+    # fallback to reco
+    if len(offer_recommendations) == 0:
+        scoring = Recommendation(user, params_in=playlist_params, call_id=call_id)
+        offer_recommendations = await scoring.get_scoring(db)
     log_extra_data = {
         "user_id": user.user_id,
         "offer_id": offer.offer_id,
