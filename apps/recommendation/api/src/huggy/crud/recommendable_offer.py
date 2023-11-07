@@ -15,7 +15,7 @@ class RecommendableOffer:
         db: AsyncSession,
         user: UserContext,
         recommendable_items_ids: Dict[str, float],
-        limit: int = 150,
+        limit: int = 250,
     ) -> List[r_o.RecommendableOffer]:
         offer_table: RecommendableOffersRaw = (
             await RecommendableOffersRaw().get_available_table(db)

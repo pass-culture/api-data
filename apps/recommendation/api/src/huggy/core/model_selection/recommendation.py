@@ -17,7 +17,7 @@ retrieval_filter = ModelConfiguration(
 )
 
 
-gtl_filter = ModelConfiguration(
+gtl_id_filter = ModelConfiguration(
     name="recommendation_filter",
     description="""""",
     scorer=offer_scorer.OfferScorer,
@@ -33,7 +33,7 @@ gtl_filter = ModelConfiguration(
     ranking_endpoint=user_ranking.user_ranking_endpoint,
 )
 
-gtl_reco = ModelConfiguration(
+gtl_id_reco = ModelConfiguration(
     name="recommendation_user",
     description="""""",
     scorer=offer_scorer.OfferScorer,
@@ -44,6 +44,113 @@ gtl_reco = ModelConfiguration(
         order_column="offer_score",
         order_ascending=False,
         submixing_feature_dict={"LIVRES": "gtl_id"},
+    ),
+    retrieval_endpoints=[
+        user_retrieval.filter_retrieval_endpoint,
+        user_retrieval.recommendation_retrieval_endpoint,
+    ],
+    ranking_endpoint=user_ranking.user_ranking_endpoint,
+)
+
+gtl_l2_filter = ModelConfiguration(
+    name="recommendation_filter",
+    description="""""",
+    scorer=offer_scorer.OfferScorer,
+    diversification_params=DiversificationParams(
+        is_active=True,
+        is_reco_shuffled=True,
+        mixing_features="search_group_name",
+        order_column="offer_score",
+        order_ascending=False,
+        submixing_feature_dict={"LIVRES": "gtl_l2"},
+    ),
+    retrieval_endpoints=[user_retrieval.filter_retrieval_endpoint],
+    ranking_endpoint=user_ranking.user_ranking_endpoint,
+)
+
+gtl_l2_reco = ModelConfiguration(
+    name="recommendation_user",
+    description="""""",
+    scorer=offer_scorer.OfferScorer,
+    diversification_params=DiversificationParams(
+        is_active=True,
+        is_reco_shuffled=True,
+        mixing_features="search_group_name",
+        order_column="offer_score",
+        order_ascending=False,
+        submixing_feature_dict={"LIVRES": "gtl_l2"},
+    ),
+    retrieval_endpoints=[
+        user_retrieval.filter_retrieval_endpoint,
+        user_retrieval.recommendation_retrieval_endpoint,
+    ],
+    ranking_endpoint=user_ranking.user_ranking_endpoint,
+)
+
+
+gtl_l3_filter = ModelConfiguration(
+    name="recommendation_filter",
+    description="""""",
+    scorer=offer_scorer.OfferScorer,
+    diversification_params=DiversificationParams(
+        is_active=True,
+        is_reco_shuffled=True,
+        mixing_features="search_group_name",
+        order_column="offer_score",
+        order_ascending=False,
+        submixing_feature_dict={"LIVRES": "gtl_l3"},
+    ),
+    retrieval_endpoints=[user_retrieval.filter_retrieval_endpoint],
+    ranking_endpoint=user_ranking.user_ranking_endpoint,
+)
+
+gtl_l3_reco = ModelConfiguration(
+    name="recommendation_user",
+    description="""""",
+    scorer=offer_scorer.OfferScorer,
+    diversification_params=DiversificationParams(
+        is_active=True,
+        is_reco_shuffled=True,
+        mixing_features="search_group_name",
+        order_column="offer_score",
+        order_ascending=False,
+        submixing_feature_dict={"LIVRES": "gtl_l3"},
+    ),
+    retrieval_endpoints=[
+        user_retrieval.filter_retrieval_endpoint,
+        user_retrieval.recommendation_retrieval_endpoint,
+    ],
+    ranking_endpoint=user_ranking.user_ranking_endpoint,
+)
+
+
+gtl_l4_filter = ModelConfiguration(
+    name="recommendation_filter",
+    description="""""",
+    scorer=offer_scorer.OfferScorer,
+    diversification_params=DiversificationParams(
+        is_active=True,
+        is_reco_shuffled=True,
+        mixing_features="search_group_name",
+        order_column="offer_score",
+        order_ascending=False,
+        submixing_feature_dict={"LIVRES": "gtl_l4"},
+    ),
+    retrieval_endpoints=[user_retrieval.filter_retrieval_endpoint],
+    ranking_endpoint=user_ranking.user_ranking_endpoint,
+)
+
+gtl_l4_reco = ModelConfiguration(
+    name="recommendation_user",
+    description="""""",
+    scorer=offer_scorer.OfferScorer,
+    diversification_params=DiversificationParams(
+        is_active=True,
+        is_reco_shuffled=True,
+        mixing_features="search_group_name",
+        order_column="offer_score",
+        order_ascending=False,
+        submixing_feature_dict={"LIVRES": "gtl_l4"},
     ),
     retrieval_endpoints=[
         user_retrieval.filter_retrieval_endpoint,
