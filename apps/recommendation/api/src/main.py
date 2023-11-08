@@ -89,7 +89,10 @@ async def similar_offers(
     scoring = SimilarOffer(user, offer, playlist_params, call_id=call_id)
 
     offer_recommendations = await scoring.get_scoring(db)
-
+    # fallback to reco
+    if len(offer_recommendations) == 0:
+        scoring = Recommendation(user, params_in=playlist_params, call_id=call_id)
+        offer_recommendations = await scoring.get_scoring(db)
     log_extra_data = {
         "user_id": user.user_id,
         "offer_id": offer.offer_id,
@@ -223,13 +226,13 @@ async def playlist_recommendation(
     token: str,
     latitude: float = None,
     longitude: float = None,
-    modelEnpoint: str = None,
+    modelEndpoint: str = None,
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):
     user = await UserContextDB().get_user_context(db, user_id, latitude, longitude)
-    if modelEnpoint is not None:
-        playlist_params.model_endpoint = modelEnpoint
+    if modelEndpoint is not None:
+        playlist_params.model_endpoint = modelEndpoint
 
     scoring = Recommendation(user, params_in=playlist_params, call_id=call_id)
 
