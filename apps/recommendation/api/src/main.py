@@ -86,17 +86,25 @@ async def similar_offers(
 
     offer = await Offer().get_offer_characteristics(db, offer_id, latitude, longitude)
 
-    scoring = SimilarOffer(user, offer, playlist_params, call_id=call_id)
+    scoring = (
+        SimilarOffer(
+            user, offer, playlist_params, call_id=call_id, context="similar_offer"
+        ),
+    )
 
     offer_recommendations = await scoring.get_scoring(db)
     # fallback to reco
     if len(offer_recommendations) == 0:
-        scoring = Recommendation(user, params_in=playlist_params, call_id=call_id)
+        scoring = Recommendation(
+            user,
+            params_in=playlist_params,
+            call_id=call_id,
+            context="recommendation_fallback",
+        )
         offer_recommendations = await scoring.get_scoring(db)
     log_extra_data = {
         "user_id": user.user_id,
         "offer_id": offer.offer_id,
-        "iris_id": user.iris_id,
         "call_id": call_id,
         "reco_origin": scoring.reco_origin,
         "retrieval_model_name": scoring.scorer.retrieval_endpoints[
@@ -160,18 +168,24 @@ async def similar_offers(
 
     offer = await Offer().get_offer_characteristics(db, offer_id, latitude, longitude)
 
-    scoring = SimilarOffer(user, offer, playlist_params, call_id=call_id)
+    scoring = SimilarOffer(
+        user, offer, playlist_params, call_id=call_id, context="similar_offer"
+    )
 
     offer_recommendations = await scoring.get_scoring(db)
     # fallback to reco
     if len(offer_recommendations) == 0:
-        scoring = Recommendation(user, params_in=playlist_params, call_id=call_id)
+        scoring = Recommendation(
+            user,
+            params_in=playlist_params,
+            call_id=call_id,
+            context="recommendation_fallback",
+        )
         offer_recommendations = await scoring.get_scoring(db)
 
     log_extra_data = {
         "user_id": user.user_id,
         "offer_id": offer.offer_id,
-        "iris_id": user.iris_id,
         "call_id": call_id,
         "reco_origin": scoring.reco_origin,
         "retrieval_model_name": scoring.scorer.retrieval_endpoints[
@@ -234,7 +248,9 @@ async def playlist_recommendation(
     if modelEndpoint is not None:
         playlist_params.model_endpoint = modelEndpoint
 
-    scoring = Recommendation(user, params_in=playlist_params, call_id=call_id)
+    scoring = Recommendation(
+        user, params_in=playlist_params, call_id=call_id, context="recommendation"
+    )
 
     user_recommendations = await scoring.get_scoring(db)
 
