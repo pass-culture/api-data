@@ -44,10 +44,11 @@ async def setup_trace(request: Request):
 
 
 async def check_token(request: Request):
-    if API_LOCAL:
-        return True
-    if request.query_params.get("token", None) != API_TOKEN:
-        raise HTTPException(status_code=401, detail="Not authorized")
+    # if API_LOCAL:
+    #    return True
+    # if request.query_params.get("token", None) != API_TOKEN:
+    #    raise HTTPException(status_code=401, detail="Not authorized")
+    return True
 
 
 async def get_call_id():
