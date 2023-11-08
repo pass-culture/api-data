@@ -86,10 +86,8 @@ async def similar_offers(
 
     offer = await Offer().get_offer_characteristics(db, offer_id, latitude, longitude)
 
-    scoring = (
-        SimilarOffer(
-            user, offer, playlist_params, call_id=call_id, context="similar_offer"
-        ),
+    scoring = SimilarOffer(
+        user, offer, playlist_params, call_id=call_id, context="similar_offer"
     )
 
     offer_recommendations = await scoring.get_scoring(db)
