@@ -34,6 +34,7 @@ jobs:
           POSTGRES_PASS: postgres
           POSTGRES_USER: postgres
           POSTGRES_DBNAME: db
+          API_LOCAL: ${{ vars.API_LOCAL }}
         # Set health checks to wait until postgres has started
         options: >-
           --health-cmd pg_isready
@@ -58,6 +59,7 @@ jobs:
          PG_HOST: "localhost"
          DB_NAME: "db"
          DATA_GCP_TEST_POSTGRES_PORT: 5432
+         API_LOCAL: ${{ vars.API_LOCAL }}
          PYTHONPATH: $PYTHONPATH:~/data-gcp/apps/recommendation/api
         run:  |
           pytest --cov
