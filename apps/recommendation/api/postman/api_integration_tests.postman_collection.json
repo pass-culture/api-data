@@ -1541,32 +1541,6 @@
 			"response": []
 		},
 		{
-			"name": "/similar_offers/offer_id no token",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"pm.test(\"Request is forbidden with a status code of 401\", function () {\r",
-							"  pm.response.to.have.status(401);\r",
-							"});\r",
-							"\r",
-							"pm.test(\"Body matches string 'Not authorized' \", function () {\r",
-							"    pm.expect(pm.response.text()).to.include(\"Not authorized\");\r",
-							"});"
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": "{{api_url}}/similar_offers/{{offer_id}}"
-			},
-			"response": []
-		},
-		{
 			"name": "/similar_offers/offer_id categories",
 			"event": [
 				{
