@@ -171,15 +171,16 @@ async def similar_offers(
     )
 
     offer_recommendations = await scoring.get_scoring(db)
+    # TODO : fix : remove temporary fallback
     # fallback to reco
-    if len(offer_recommendations) == 0:
-        scoring = Recommendation(
-            user,
-            params_in=playlist_params,
-            call_id=call_id,
-            context="recommendation_fallback",
-        )
-        offer_recommendations = await scoring.get_scoring(db)
+    # if len(offer_recommendations) == 0:
+    #    scoring = Recommendation(
+    #        user,
+    #        params_in=playlist_params,
+    #        call_id=call_id,
+    #        context="recommendation_fallback",
+    #    )
+    #    offer_recommendations = await scoring.get_scoring(db)
 
     log_extra_data = {
         "user_id": user.user_id,
