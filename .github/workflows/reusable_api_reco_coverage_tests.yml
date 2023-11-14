@@ -61,4 +61,5 @@ jobs:
          API_LOCAL: 1
          PYTHONPATH: $PYTHONPATH:~/data-gcp/apps/recommendation/api
         run:  |
+          export API_LOCAL=1
           pytest --cov
