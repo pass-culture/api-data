@@ -7,7 +7,7 @@ from huggy.utils.secrets import access_secret
 GCP_PROJECT = os.environ.get("GCP_PROJECT", "passculture-data-ehp")
 ENV_SHORT_NAME = os.environ.get("ENV_SHORT_NAME", "dev")
 CORS_ALLOWED_ORIGIN = os.environ.get("CORS_ALLOWED_ORIGIN", "*")
-API_LOCAL = bool(os.environ.get("API_LOCAL", False)) == True
+API_LOCAL = bool(os.environ.get("API_LOCAL", 0)) == True
 # SQL
 SQL_BASE = os.environ.get("SQL_BASE", "cloudsql-recommendation-dev-ew1")
 

@@ -18,7 +18,7 @@ on:
 
 env:
   DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
-  API_LOCAL: ${{ vars.API_LOCAL }}
+  API_LOCAL: 1
   API_RECO_SECRET_NAME: ${{ vars.API_RECO_SECRET_NAME }}
 
 jobs:
