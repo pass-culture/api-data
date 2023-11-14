@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import List
 
 import pytz
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from huggy.core.model_selection.model_configuration import ModelConfiguration
 from huggy.core.scorer.offer import OfferScorer
@@ -17,13 +17,16 @@ from huggy.utils.mixing import order_offers_by_score_and_diversify_features
 
 
 class ModelEngine(ABC):
-    def __init__(self, user: UserContext, params_in: PlaylistParams, call_id: str):
+    def __init__(
+        self, user: UserContext, params_in: PlaylistParams, call_id: str, context: str
+    ):
         self.user = user
         self.params_in = params_in
         self.call_id = call_id
         # Get model (cold_start or algo)
         self.model_params = self.get_model_configuration(user, params_in)
         self.scorer = self.get_scorer()
+        self.context = context
 
     @abstractmethod
     def get_model_configuration(
@@ -78,7 +81,7 @@ class ModelEngine(ABC):
         await self.save_context(
             session=db,
             offers=scored_offers,
-            context=self.model_params.name,
+            context=self.context,
             user=self.user,
         )
 

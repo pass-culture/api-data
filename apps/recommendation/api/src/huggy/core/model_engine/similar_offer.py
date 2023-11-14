@@ -16,10 +16,17 @@ from huggy.schemas.user import UserContext
 
 class SimilarOffer(ModelEngine):
     def __init__(
-        self, user: UserContext, offer: o.Offer, params_in: PlaylistParams, call_id: str
+        self,
+        user: UserContext,
+        offer: o.Offer,
+        params_in: PlaylistParams,
+        call_id: str,
+        context: str,
     ):
         self.offer = offer
-        super().__init__(user=user, params_in=params_in, call_id=call_id)
+        super().__init__(
+            user=user, params_in=params_in, call_id=call_id, context=context
+        )
 
     def get_model_configuration(
         self, user: UserContext, params_in: PlaylistParams

@@ -58,6 +58,8 @@ jobs:
          PG_HOST: "localhost"
          DB_NAME: "db"
          DATA_GCP_TEST_POSTGRES_PORT: 5432
+         API_LOCAL: 1
          PYTHONPATH: $PYTHONPATH:~/data-gcp/apps/recommendation/api
         run:  |
+          export API_LOCAL=1
           pytest --cov
