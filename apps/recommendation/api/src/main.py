@@ -116,8 +116,8 @@ async def similar_offers(
     offer_id: str,
     playlist_params: p.PostSimilarOfferPlaylistParams,
     token: str = None,
-    latitude: float = None,  # venue_latitude
-    longitude: float = None,  # venue_longitude
+    latitude: float = None,  # TODO feat: PC-25775
+    longitude: float = None,  # TODO feat: PC-25775
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):
@@ -139,8 +139,8 @@ async def similar_offers(
     offer_id: str,
     playlist_params: p.GetSimilarOfferPlaylistParams = Depends(),
     token: str = None,
-    latitude: float = None,  # venue_latitude
-    longitude: float = None,  # venue_longitude
+    latitude: float = None,  # TODO feat: PC-25775
+    longitude: float = None,  # TODO feat: PC-25775
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):

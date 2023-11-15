@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import huggy.schemas.offer as o
 from huggy.crud.iris import Iris
 from huggy.models.item_ids_mv import ItemIdsMv
+from huggy.utils.cloud_logging import logger
 
 
 class Offer:
@@ -31,7 +32,8 @@ class Offer:
         offer_characteristics = await self.get_item(db, offer_id)
         latitude = offer_characteristics.venue_latitude
         longitude = offer_characteristics.venue_longitude
-        if latitude and longitude:
+        if latitude is not None and longitude is not None:
+            logger.info("Offer location found !")
             iris_id = await Iris().get_iris_from_coordinates(
                 db, latitude=latitude, longitude=longitude
             )
