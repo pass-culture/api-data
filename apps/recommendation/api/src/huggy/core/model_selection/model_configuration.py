@@ -19,6 +19,15 @@ class DiversificationParams:
     order_ascending: bool
     submixing_feature_dict: dict
 
+    async def to_dict(self):
+        return {
+            "is_active": self.is_active,
+            "is_reco_shuffled": self.is_reco_shuffled,
+            "mixing_features": self.mixing_features,
+            "order_column": self.order_column,
+            "order_ascending": self.order_ascending,
+        }
+
 
 diversification_on = DiversificationParams(
     is_active=True,
@@ -66,6 +75,13 @@ class ModelConfiguration:
             )
 
         return self.diversification_params
+
+    async def to_dict(self):
+        return {
+            "name": self.name,
+            "description": self.description,
+            "diversification_params": await self.diversification_params.to_dict(),
+        }
 
 
 @dataclass

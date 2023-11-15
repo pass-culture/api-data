@@ -13,6 +13,7 @@ from huggy.schemas.item import RecommendableItem
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.recommendable_offer import RecommendableOffer
 from huggy.schemas.user import UserContext
+from huggy.schemas.offer import Offer
 from huggy.utils.cloud_logging import logger
 
 
@@ -24,17 +25,25 @@ class OfferScorer:
         retrieval_endpoints: List[RetrievalEndpoint],
         ranking_endpoint: RankingEndpoint,
         model_params,
+        offer: t.Optional[Offer] = None,
     ):
         self.user = user
+        self.offer = offer
         self.model_params = model_params
         self.params_in = params_in
         self.retrieval_endpoints = retrieval_endpoints
         self.ranking_endpoint = ranking_endpoint
 
+    async def to_dict(self):
+        return {
+            "retrievals": [await x.to_dict() for x in self.retrieval_endpoints],
+            "ranking": [await x.to_dict() for x in self.ranking_endpoint],
+        }
+
     async def get_scoring(
         self,
         db: AsyncSession,
-        call_id,
+        call_id: str,
     ) -> List[RecommendableOffer]:
         prediction_items: List[RecommendableItem] = []
         endpoints_stats = {}
@@ -109,6 +118,6 @@ class OfferScorer:
             if item.item_id not in non_recommendable_items
         }
         recommendable_offers = await RecommendableOfferDB().get_nearest_offers(
-            db, self.user, recommendable_items_ids
+            db, self.user, recommendable_items_ids, offer=self.offer
         )
         return recommendable_offers

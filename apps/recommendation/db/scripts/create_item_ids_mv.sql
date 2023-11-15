@@ -7,17 +7,20 @@ OR REPLACE FUNCTION get_item_ids() RETURNS TABLE (
     offer_id varchar,
     item_id varchar,
     booking_number int
-) AS $body$ BEGIN RETURN QUERY
+) AS $ body $ BEGIN RETURN QUERY
 SELECT
-    distinct ro.offer_id
-    ,ro.item_id
-    ,ro.booking_number
+    distinct ro.offer_id,
+    ro.item_id,
+    ro.booking_number,
+    ro.is_sensitive,
+    ro.venue_latitude,
+    ro.venue_longitude
 FROM
     public.recommendable_offers_raw ro;
 
 END;
 
-$body$ LANGUAGE plpgsql;
+$ body $ LANGUAGE plpgsql;
 
 DROP MATERIALIZED VIEW IF EXISTS item_ids_mv;
 

@@ -51,12 +51,37 @@ class PlaylistParams(BaseModel):
                 raise ValueError("Datetime format not recognized.")
         return None
 
+    def playlist_type(self):
+        if len(self.categories) > 1:
+            return "multipleCategoriesRecommendations"
+        if len(self.categories) == 1:
+            return "singleCategoryRecommendations"
+        if len(self.subcategories) > 1:
+            return "multipleSubCategoriesRecommendations"
+        if len(self.subcategories) == 1:
+            return "singleSubCategoryRecommendations"
+        return "GenericRecommendations"
+
+    async def to_dict(self):
+        return self.dict()
+
 
 class GetSimilarOfferPlaylistParams(PlaylistParams):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
     user_id: Optional[str] = Field(Query(None))
     categories: Optional[List[str]] = Field(Query([]))
     subcategories: Optional[List[str]] = Field(Query([]))
+
+    def playlist_type(self):
+        if len(self.categories) > 1:
+            return "otherCategoriesSimilarOffers"
+        if len(self.subcategories) > 1:
+            return "otherSubCategoriesSimilarOffers"
+        if len(self.categories) == 1:
+            return "sameCategorySimilarOffers"
+        if len(self.subcategories) == 1:
+            return "sameSubCategorySimilarOffers"
+        return "GenericSimilarOffers"
 
 
 class PostSimilarOfferPlaylistParams(PlaylistParams):

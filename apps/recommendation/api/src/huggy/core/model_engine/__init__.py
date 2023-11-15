@@ -2,13 +2,13 @@ import datetime
 import typing as t
 from abc import ABC, abstractmethod
 from typing import List
-
+from fastapi.encoders import jsonable_encoder
 import pytz
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from huggy.core.model_selection.model_configuration import ModelConfiguration
 from huggy.core.scorer.offer import OfferScorer
-from huggy.models.past_recommended_offers import OfferContext
+from huggy.models.past_recommended_offers import PastOfferContext
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.recommendable_offer import RankedOffer
 from huggy.schemas.user import UserContext
@@ -27,6 +27,7 @@ class ModelEngine(ABC):
         self.model_params = self.get_model_configuration(user, params_in)
         self.scorer = self.get_scorer()
         self.context = context
+        self.reco_origin = "unknown"
 
     @abstractmethod
     def get_model_configuration(
@@ -50,6 +51,7 @@ class ModelEngine(ABC):
             model_params=self.model_params,
             retrieval_endpoints=self.model_params.retrieval_endpoints,
             ranking_endpoint=self.model_params.ranking_endpoint,
+            offer=None,
         )
 
     async def get_scoring(self, db: AsyncSession) -> List[str]:
@@ -98,9 +100,10 @@ class ModelEngine(ABC):
             date = datetime.datetime.now(pytz.utc)
             for o in offers:
                 session.add(
-                    OfferContext(
+                    PastOfferContext(
                         call_id=self.call_id,
                         context=context,
+                        contexte_extra_data={},
                         date=date,
                         user_id=user.user_id,
                         user_bookings_count=user.bookings_count,
@@ -108,9 +111,12 @@ class ModelEngine(ABC):
                         user_favorites_count=user.favorites_count,
                         user_deposit_remaining_credit=user.user_deposit_remaining_credit,
                         user_iris_id=user.iris_id,
+                        user_is_geolocated=user.is_geolocated,
                         user_latitude=None,
                         user_longitude=None,
+                        user_extra_data={},
                         offer_user_distance=o.user_distance,
+                        offer_is_geolocated=o.is_geolocated,
                         offer_id=o.offer_id,
                         offer_item_id=o.item_id,
                         offer_booking_number=o.booking_number,
@@ -119,9 +125,22 @@ class ModelEngine(ABC):
                         offer_stock_beginning_date=o.stock_beginning_date,
                         offer_category=o.category,
                         offer_subcategory_id=o.subcategory_id,
+                        offer_item_rank=o.item_rank,
                         offer_item_score=o.item_rank,
                         offer_order=o.offer_score,
                         offer_venue_id=o.venue_id,
+                        offer_extra_data={},
                     )
                 )
             await session.commit()
+
+    async def log_extra_data(self):
+        return jsonable_encoder(
+            {
+                "reco_origin": self.reco_origin,
+                "context": self.context,
+                "model_params": await self.model_params.to_dict(),
+                "params_in": await self.params_in.to_dict(),
+                "scorer": await self.scorer.to_dict(),
+            }
+        )
