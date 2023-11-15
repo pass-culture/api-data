@@ -8,13 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from huggy.core.model_engine.recommendation import Recommendation
 from huggy.core.model_engine.similar_offer import SimilarOffer
 from huggy.crud.offer import Offer
+import huggy.schemas.offer as o
+import huggy.schemas.user as u
 from huggy.crud.user import UserContextDB
 from huggy.database.session import get_db
-from huggy.schemas.playlist_params import (
-    GetSimilarOfferPlaylistParams,
-    PlaylistParams,
-    PostSimilarOfferPlaylistParams,
-)
+import huggy.schemas.playlist_params as p
 from huggy.utils.cloud_logging import logger
 from huggy.utils.env_vars import (
     API_TOKEN,
@@ -67,59 +65,35 @@ async def check():
     return "OK"
 
 
-@app.post(
-    "/similar_offers/{offer_id}",
-    dependencies=[Depends(setup_trace), Depends(check_token)],
-)
-async def similar_offers(
+async def __similar_offers(
+    db: AsyncSession,
     offer_id: str,
-    playlist_params: PostSimilarOfferPlaylistParams,
-    token: str = None,
-    latitude: float = None,  # venue_latitude
-    longitude: float = None,  # venue_longitude
-    db: AsyncSession = Depends(get_db),
-    call_id: str = Depends(get_call_id),
+    playlist_params: p.PlaylistParams,
+    latitude: float,
+    longitude: float,
+    call_id: str,
 ):
+    offer_recommendations = []
     user = await UserContextDB().get_user_context(
         db, playlist_params.user_id, latitude, longitude
     )
 
-    offer = await Offer().get_offer_characteristics(db, offer_id, latitude, longitude)
+    offer = await Offer().get_offer_characteristics(db, offer_id)
 
     scoring = SimilarOffer(
         user, offer, playlist_params, call_id=call_id, context="similar_offer"
     )
-
-    offer_recommendations = await scoring.get_scoring(db)
-    # fallback to reco
-    if len(offer_recommendations) == 0:
-        scoring = Recommendation(
-            user,
-            params_in=playlist_params,
-            call_id=call_id,
-            context="recommendation_fallback",
-        )
+    if not offer.is_sensitive:
         offer_recommendations = await scoring.get_scoring(db)
-    log_extra_data = {
-        "user_id": user.user_id,
-        "offer_id": offer.offer_id,
-        "call_id": call_id,
-        "reco_origin": scoring.reco_origin,
-        "retrieval_model_name": scoring.scorer.retrieval_endpoints[
-            0
-        ].model_display_name,
-        "retrieval_model_version": scoring.scorer.retrieval_endpoints[0].model_version,
-        "retrieval_endpoint_name": scoring.scorer.retrieval_endpoints[0].endpoint_name,
-        "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
-        "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
-        "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,
-        "recommended_offers": offer_recommendations,
-    }
-
-    logger.info(
-        f"Get similar offer of offer_id {offer.offer_id} for user {user.user_id}",
-        extra=log_extra_data,
-    )
+        # fallback to reco
+        if len(offer_recommendations) == 0:
+            scoring = Recommendation(
+                user,
+                params_in=playlist_params,
+                call_id=call_id,
+                context="recommendation_fallback",
+            )
+            offer_recommendations = await scoring.get_scoring(db)
 
     await scoring.save_recommendation(db, offer_recommendations)
 
@@ -128,22 +102,32 @@ async def similar_offers(
             "results": offer_recommendations,
             "params": {
                 "reco_origin": scoring.reco_origin,
-                "retrieval_model_endpoint": scoring.scorer.retrieval_endpoints[
-                    0
-                ].endpoint_name,
-                "retrieval_model_name": scoring.scorer.retrieval_endpoints[
-                    0
-                ].model_display_name,
-                "retrieval_model_version": scoring.scorer.retrieval_endpoints[
-                    0
-                ].model_version,
-                "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
-                "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
-                "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,
-                "geo_located": user.is_geolocated,
                 "call_id": call_id,
             },
         }
+    )
+
+
+@app.post(
+    "/similar_offers/{offer_id}",
+    dependencies=[Depends(setup_trace), Depends(check_token)],
+)
+async def similar_offers(
+    offer_id: str,
+    playlist_params: p.PostSimilarOfferPlaylistParams,
+    token: str = None,
+    latitude: float = None,  # TODO feat: PC-25775
+    longitude: float = None,  # TODO feat: PC-25775
+    db: AsyncSession = Depends(get_db),
+    call_id: str = Depends(get_call_id),
+):
+    return await __similar_offers(
+        db,
+        offer_id=offer_id,
+        playlist_params=playlist_params,
+        latitude=latitude,
+        longitude=longitude,
+        call_id=call_id,
     )
 
 
@@ -153,79 +137,20 @@ async def similar_offers(
 )
 async def similar_offers(
     offer_id: str,
-    playlist_params: GetSimilarOfferPlaylistParams = Depends(),
+    playlist_params: p.GetSimilarOfferPlaylistParams = Depends(),
     token: str = None,
-    latitude: float = None,  # venue_latitude
-    longitude: float = None,  # venue_longitude
+    latitude: float = None,  # TODO feat: PC-25775
+    longitude: float = None,  # TODO feat: PC-25775
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):
-    user = await UserContextDB().get_user_context(
-        db, playlist_params.user_id, latitude, longitude
-    )  # corriger pour avoir la latitude / longitude de l'user (et non de la venue)
-
-    offer = await Offer().get_offer_characteristics(db, offer_id, latitude, longitude)
-
-    scoring = SimilarOffer(
-        user, offer, playlist_params, call_id=call_id, context="similar_offer"
-    )
-
-    offer_recommendations = await scoring.get_scoring(db)
-    # TODO : fix : remove temporary fallback
-    # fallback to reco
-    # if len(offer_recommendations) == 0:
-    #    scoring = Recommendation(
-    #        user,
-    #        params_in=playlist_params,
-    #        call_id=call_id,
-    #        context="recommendation_fallback",
-    #    )
-    #    offer_recommendations = await scoring.get_scoring(db)
-
-    log_extra_data = {
-        "user_id": user.user_id,
-        "offer_id": offer.offer_id,
-        "call_id": call_id,
-        "reco_origin": scoring.reco_origin,
-        "retrieval_model_name": scoring.scorer.retrieval_endpoints[
-            0
-        ].model_display_name,
-        "retrieval_model_version": scoring.scorer.retrieval_endpoints[0].model_version,
-        "retrieval_endpoint_name": scoring.scorer.retrieval_endpoints[0].endpoint_name,
-        "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
-        "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
-        "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,
-        "recommended_offers": offer_recommendations,
-    }
-
-    logger.info(
-        f"Get similar offer of offer_id {offer.offer_id} for user {user.user_id}",
-        extra=jsonable_encoder(log_extra_data),
-    )
-
-    await scoring.save_recommendation(db, offer_recommendations)
-
-    return jsonable_encoder(
-        {
-            "results": offer_recommendations,
-            "params": {
-                "reco_origin": scoring.reco_origin,
-                "retrieval_model_endpoint": scoring.scorer.retrieval_endpoints[
-                    0
-                ].endpoint_name,
-                "retrieval_model_name": scoring.scorer.retrieval_endpoints[
-                    0
-                ].model_display_name,
-                "retrieval_model_version": scoring.scorer.retrieval_endpoints[
-                    0
-                ].model_version,
-                "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
-                "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
-                "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,
-                "geo_located": user.is_geolocated,
-                "call_id": call_id,
-            },
-        }
+    return await __similar_offers(
+        db,
+        offer_id=offer_id,
+        playlist_params=playlist_params,
+        latitude=latitude,
+        longitude=longitude,
+        call_id=call_id,
     )
 
 
@@ -235,7 +160,7 @@ async def similar_offers(
 )
 async def playlist_recommendation(
     user_id: str,
-    playlist_params: PlaylistParams,
+    playlist_params: p.PlaylistParams,
     token: str,
     latitude: float = None,
     longitude: float = None,
@@ -253,46 +178,12 @@ async def playlist_recommendation(
 
     user_recommendations = await scoring.get_scoring(db)
 
-    log_extra_data = {
-        "user_id": user.user_id,
-        "iris_id": user.iris_id,
-        "call_id": call_id,
-        "reco_origin": scoring.reco_origin,
-        "retrieval_model_name": scoring.scorer.retrieval_endpoints[
-            0
-        ].model_display_name,
-        "retrieval_model_version": scoring.scorer.retrieval_endpoints[0].model_version,
-        "retrieval_endpoint_name": scoring.scorer.retrieval_endpoints[0].endpoint_name,
-        "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
-        "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
-        "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,
-        "recommended_offers": user_recommendations,
-    }
-
-    logger.info(
-        f"Get recommendations for user {user.user_id}",
-        extra=jsonable_encoder(log_extra_data),
-    )
-
     await scoring.save_recommendation(db, user_recommendations)
     return jsonable_encoder(
         {
             "playlist_recommended_offers": user_recommendations,
             "params": {
                 "reco_origin": scoring.reco_origin,
-                "retrieval_model_endpoint": scoring.scorer.retrieval_endpoints[
-                    0
-                ].endpoint_name,
-                "retrieval_model_name": scoring.scorer.retrieval_endpoints[
-                    0
-                ].model_display_name,
-                "retrieval_model_version": scoring.scorer.retrieval_endpoints[
-                    0
-                ].model_version,
-                "ranking_model_name": scoring.scorer.ranking_endpoint.model_display_name,
-                "ranking_model_version": scoring.scorer.ranking_endpoint.model_version,
-                "ranking_endpoint_name": scoring.scorer.ranking_endpoint.endpoint_name,
-                "geo_located": user.is_geolocated,
                 "call_id": call_id,
             },
         }

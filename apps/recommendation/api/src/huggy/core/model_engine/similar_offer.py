@@ -55,6 +55,7 @@ class SimilarOffer(ModelEngine):
             model_params=self.model_params,
             retrieval_endpoints=self.model_params.retrieval_endpoints,
             ranking_endpoint=self.model_params.ranking_endpoint,
+            offer=self.offer,
         )
 
     async def get_scoring(self, db: AsyncSession) -> List[str]:
@@ -65,6 +66,7 @@ class SimilarOffer(ModelEngine):
     async def save_recommendation(
         self, session: AsyncSession, recommendations: t.List[str]
     ) -> None:
+        playlist_type = self.params_in.playlist_type()
         if len(recommendations) > 0:
             date = datetime.datetime.now(pytz.utc)
 
@@ -74,11 +76,12 @@ class SimilarOffer(ModelEngine):
                     origin_offer_id=int(self.offer.offer_id),
                     offer_id=int(reco),
                     date=date,
-                    group_id=self.model_params.name,
-                    model_name=self.scorer.retrieval_endpoints[0].model_display_name,
+                    group_id=playlist_type,
+                    model_name=self.model_params.name,
                     model_version=self.scorer.retrieval_endpoints[0].model_version,
                     call_id=self.call_id,
                     venue_iris_id=self.offer.iris_id,
+                    reco_filters=await self.log_extra_data(),
                 )
                 session.add(reco_offer)
             await session.commit()

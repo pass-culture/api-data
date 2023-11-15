@@ -29,6 +29,7 @@ pip3 install -r requirements.txt
 
 Set up a testdb :
 ```sh
+cd apps/recommendation/api/
 export DATA_GCP_TEST_POSTGRES_PORT=5432
 export DB_NAME="db"
 docker-compose up -d testdb
@@ -43,6 +44,7 @@ In case you have some troubles to run tests
 
 Connect to db, create db database, add postgis extension
 ```sh 
+
 docker exec -it <docker_id> /bin/sh
 psql -U postgres
 
@@ -97,3 +99,15 @@ gcloud run deploy <SERVICE> \
 ```
 - SERVICE : Service Name (api-recommendation-\<env>)
 - IMAGE : Docker image (eu.gcr.io/passculture-data-\<env>/data-gcp/api-recommendation)
+
+
+**Staging**
+```sh
+gcloud builds submit --tag eu.gcr.io/passculture-data-ehp/data-gcp/apireco-stg 
+
+gcloud run deploy apireco-stg \
+--image eu.gcr.io/passculture-data-ehp/data-gcp/apireco-stg:latest \
+--region europe-west1 \
+--allow-unauthenticated \
+--platform managed
+```
