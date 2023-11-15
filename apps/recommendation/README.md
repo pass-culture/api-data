@@ -29,6 +29,7 @@ pip3 install -r requirements.txt
 
 Set up a testdb :
 ```sh
+cd apps/recommendation/api/
 export DATA_GCP_TEST_POSTGRES_PORT=5432
 export DB_NAME="db"
 docker-compose up -d testdb
@@ -43,6 +44,7 @@ In case you have some troubles to run tests
 
 Connect to db, create db database, add postgis extension
 ```sh 
+
 docker exec -it <docker_id> /bin/sh
 psql -U postgres
 

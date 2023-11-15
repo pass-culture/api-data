@@ -133,7 +133,7 @@ class RecommendableOffer:
             return func.ST_Distance(user_point, offer_table.venue_geo).label(
                 "user_distance"
             )
-        elif offer.is_geolocated:
+        elif offer is not None and offer.is_geolocated:
             offer_point = func.ST_GeographyFromText(
                 f"POINT({offer.longitude} {offer.latitude})"
             )
