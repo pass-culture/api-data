@@ -28,7 +28,7 @@ class Recommendation(ModelEngine):
         if len(recommendations) > 0:
             date = datetime.datetime.now(pytz.utc)
 
-            playlist_type = self.params_in.categories
+            playlist_type = self.params_in.playlist_type()
 
             for reco in recommendations:
                 reco_offer = PastRecommendedOffers(

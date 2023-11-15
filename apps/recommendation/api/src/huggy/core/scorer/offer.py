@@ -37,7 +37,7 @@ class OfferScorer:
     async def to_dict(self):
         return {
             "retrievals": [await x.to_dict() for x in self.retrieval_endpoints],
-            "ranking": [await x.to_dict() for x in self.ranking_endpoint],
+            "ranking": await self.ranking_endpoint.to_dict(),
         }
 
     async def get_scoring(

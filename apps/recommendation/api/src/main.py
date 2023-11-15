@@ -144,7 +144,7 @@ async def similar_offers(
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):
-    await __similar_offers(
+    return await __similar_offers(
         db,
         offer_id=offer_id,
         playlist_params=playlist_params,

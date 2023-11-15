@@ -6,21 +6,25 @@ CREATE
 OR REPLACE FUNCTION get_item_ids() RETURNS TABLE (
     offer_id varchar,
     item_id varchar,
-    booking_number int
-) AS $ body $ BEGIN RETURN QUERY
-SELECT
-    distinct ro.offer_id,
-    ro.item_id,
-    ro.booking_number,
-    ro.is_sensitive,
-    ro.venue_latitude,
-    ro.venue_longitude
-FROM
-    public.recommendable_offers_raw ro;
+    booking_number int,
+    is_sensitive bool,
+    venue_latitude decimal,
+    venue_longitude decimal
+) AS $body$ BEGIN
+    RETURN QUERY
+    SELECT
+        distinct ro.offer_id,
+        ro.item_id,
+        ro.booking_number,
+        ro.is_sensitive,
+        ro.venue_latitude,
+        ro.venue_longitude
+    FROM
+        recommendable_offers_raw ro;
 
 END;
 
-$ body $ LANGUAGE plpgsql;
+$body$ LANGUAGE plpgsql;
 
 DROP MATERIALIZED VIEW IF EXISTS item_ids_mv;
 
@@ -30,6 +34,6 @@ SELECT
 from
     get_item_ids() WITH NO DATA;
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_item_ids_mv ON public.item_ids_mv USING btree (offer_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_item_ids_mv ON public .item_ids_mv USING btree (offer_id);
 
 REFRESH MATERIALIZED VIEW item_ids_mv;

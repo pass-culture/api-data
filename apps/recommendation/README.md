@@ -99,3 +99,15 @@ gcloud run deploy <SERVICE> \
 ```
 - SERVICE : Service Name (api-recommendation-\<env>)
 - IMAGE : Docker image (eu.gcr.io/passculture-data-\<env>/data-gcp/api-recommendation)
+
+
+**Staging**
+```sh
+gcloud builds submit --tag eu.gcr.io/passculture-data-ehp/data-gcp/apireco-stg 
+
+gcloud run deploy apireco-stg \
+--image eu.gcr.io/passculture-data-ehp/data-gcp/apireco-stg:latest \
+--region europe-west1 \
+--allow-unauthenticated \
+--platform managed
+```

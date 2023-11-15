@@ -103,7 +103,7 @@ class ModelEngine(ABC):
                     PastOfferContext(
                         call_id=self.call_id,
                         context=context,
-                        contexte_extra_data={},
+                        context_extra_data={},
                         date=date,
                         user_id=user.user_id,
                         user_bookings_count=user.bookings_count,

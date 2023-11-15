@@ -28,5 +28,5 @@ CREATE TABLE past_offer_context (
     offer_item_score DOUBLE PRECISION,
     offer_order DOUBLE PRECISION,
     offer_venue_id VARCHAR(256),
-    offer_extra_data JSON,
+    offer_extra_data JSON
 );
