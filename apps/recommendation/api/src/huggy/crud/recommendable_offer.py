@@ -1,31 +1,40 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from pydantic import TypeAdapter
-from sqlalchemy import String, and_, func, or_, select, text
+from sqlalchemy import String, and_, func, or_, select, text, not_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import literal_column
 import huggy.schemas.recommendable_offer as r_o
 from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
 from huggy.schemas.user import UserContext
+import huggy.schemas.offer as o
 
 
 class RecommendableOffer:
+    async def is_geolocated(self, user: UserContext, offer: o.Offer) -> bool:
+        if user is not None and user.is_geolocated:
+            return True
+        if offer is not None and offer.is_geolocated:
+            return True
+        return False
+
     async def get_nearest_offers(
         self,
         db: AsyncSession,
         user: UserContext,
         recommendable_items_ids: Dict[str, float],
         limit: int = 250,
+        offer: Optional[o.Offer] = None,
     ) -> List[r_o.RecommendableOffer]:
         offer_table: RecommendableOffersRaw = (
             await RecommendableOffersRaw().get_available_table(db)
         )
 
         user_distance_condition = []
-        user_distance = self.get_st_distance(user, offer_table)
+        user_distance = self.get_st_distance(user, offer_table, offer=offer)
         # If user is geolocated
         # Take all the offers near the user AND non geolocated offers
-        if user.is_geolocated:
+        if await self.is_geolocated(user, offer):
             user_distance_condition.append(
                 text(
                     " NOT offers.is_geolocated OR ( offers.is_geolocated AND offers.user_distance < offers.default_max_distance) "
@@ -72,6 +81,7 @@ class RecommendableOffer:
             )
             .where(*underage_condition)
             .where(offer_table.stock_price <= user.user_deposit_remaining_credit)
+            .where(not_(offer_table.is_sensitive))
             .subquery(name="offers")
         )
 
@@ -118,12 +128,24 @@ class RecommendableOffer:
         ).fetchall()
         return TypeAdapter(List[r_o.OfferDistance]).validate_python(results)
 
-    def get_st_distance(self, user: UserContext, offer_table: RecommendableOffersRaw):
-        if user.is_geolocated:
+    def get_st_distance(
+        self,
+        user: UserContext,
+        offer_table: RecommendableOffersRaw,
+        offer: o.Offer = None,
+    ):
+        if user is not None and user.is_geolocated:
             user_point = func.ST_GeographyFromText(
                 f"POINT({user.longitude} {user.latitude})"
             )
             return func.ST_Distance(user_point, offer_table.venue_geo).label(
+                "user_distance"
+            )
+        elif offer is not None and offer.is_geolocated:
+            offer_point = func.ST_GeographyFromText(
+                f"POINT({offer.longitude} {offer.latitude})"
+            )
+            return func.ST_Distance(offer_point, offer_table.venue_geo).label(
                 "user_distance"
             )
         else:

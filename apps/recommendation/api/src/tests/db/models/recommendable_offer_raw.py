@@ -27,6 +27,7 @@ class FakeRecommendableOffersRaw(Base):
     is_numerical = Column(Boolean)
     is_national = Column(Boolean)
     is_geolocated = Column(Boolean)
+    is_sensitive = Column(Boolean)
     offer_creation_date = Column(DateTime)
     stock_beginning_date = Column(DateTime)
     stock_price = Column(Float)

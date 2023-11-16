@@ -15,3 +15,13 @@ class AbstractEndpoint(ABC):
         self.model_version = None
         self.model_display_name = None
         self.cached = cached
+
+    async def to_dict(self):
+        return {
+            "endpoint_name": self.endpoint_name,
+            "size": self.size,
+            "endpoint_name": self.fallback_endpoints,
+            "model_version": self.model_version,
+            "model_display_name": self.model_display_name,
+            "cached": self.cached,
+        }

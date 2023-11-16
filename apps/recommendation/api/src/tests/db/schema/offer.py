@@ -27,6 +27,7 @@ class RecommendableOffersRawExample(BaseModel):
     offer_type_label: str
     venue_id: str
     name: str
+    gtl_id: str = None
     gtl_l1: str = None
     gtl_l2: str = None
     gtl_l3: str = None
@@ -34,6 +35,7 @@ class RecommendableOffersRawExample(BaseModel):
     is_numerical: bool = False
     is_national: bool = False
     is_geolocated: bool = False
+    is_sensitive: bool = False
     booking_number: int = 0
     offer_creation_date: datetime = datetime.now() - timedelta(days=5 * 366)
     stock_creation_date: datetime = datetime.now() - timedelta(days=5 * 366)

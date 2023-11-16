@@ -20,5 +20,6 @@ class Offer(BaseModel):
     longitude: t.Optional[float] = None
     iris_id: t.Optional[str] = None
     booking_number: float = 0
+    is_sensitive: bool = False
     found: bool = False
     is_geolocated: t.Optional[bool] = None
