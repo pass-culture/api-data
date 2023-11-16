@@ -53,13 +53,13 @@ class PlaylistParams(BaseModel):
         return None
 
     def playlist_type(self):
-        if len(self.categories) > 1:
+        if self.categories and len(self.categories) > 1:
             return "multipleCategoriesRecommendations"
-        if len(self.categories) == 1:
+        if self.categories and len(self.categories) == 1:
             return "singleCategoryRecommendations"
-        if len(self.subcategories) > 1:
+        if self.subcategories and len(self.subcategories) > 1:
             return "multipleSubCategoriesRecommendations"
-        if len(self.subcategories) == 1:
+        if self.subcategories and len(self.subcategories) == 1:
             return "singleSubCategoryRecommendations"
         return "GenericRecommendations"
 
