@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional
 
 from pydantic import TypeAdapter
-from sqlalchemy import String, and_, func, or_, select, text
+from sqlalchemy import String, and_, func, or_, select, text, not_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import literal_column
 import huggy.schemas.recommendable_offer as r_o
@@ -81,6 +81,7 @@ class RecommendableOffer:
             )
             .where(*underage_condition)
             .where(offer_table.stock_price <= user.user_deposit_remaining_credit)
+            .where(not_(offer_table.is_sensitive))
             .subquery(name="offers")
         )
 
