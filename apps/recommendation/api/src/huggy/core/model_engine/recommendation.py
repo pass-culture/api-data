@@ -28,17 +28,20 @@ class Recommendation(ModelEngine):
         if len(recommendations) > 0:
             date = datetime.datetime.now(pytz.utc)
 
+            playlist_type = self.params_in.playlist_type()
+
             for reco in recommendations:
                 reco_offer = PastRecommendedOffers(
                     userid=int(self.user.user_id),
                     offerid=int(reco),
                     date=date,
-                    group_id=self.model_params.name,
+                    group_id=playlist_type,
                     reco_origin=self.reco_origin,
-                    model_name=self.scorer.retrieval_endpoints[0].model_display_name,
+                    model_name=self.model_params.name,
                     model_version=self.scorer.retrieval_endpoints[0].model_version,
                     call_id=self.call_id,
                     user_iris_id=self.user.iris_id,
+                    reco_filters=await self.log_extra_data(),
                 )
                 session.add(reco_offer)
             await session.commit()

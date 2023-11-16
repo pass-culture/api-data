@@ -19,10 +19,7 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
             return call_next(request)
         except NotAuthorized as e:
             raise HTTPException(status_code=401, detail="Not authorized")
-        except RuntimeError as exc:
-            if str(exc) == "No response returned." and request.is_disconnected():
-                return Response(status_code=HTTPStatus.NO_CONTENT)
-            raise
+
         except Exception as e:
             print_exception(e)
             tb = traceback.format_exc()
