@@ -30,18 +30,21 @@ class Offer:
         Return : List[item_id,  number of booking associated].
         """
         offer_characteristics = await self.get_item(db, offer_id)
-        latitude = offer_characteristics.venue_latitude
-        longitude = offer_characteristics.venue_longitude
-        if latitude is not None and longitude is not None:
-            logger.info("Offer location found !")
-            iris_id = await Iris().get_iris_from_coordinates(
-                db, latitude=latitude, longitude=longitude
-            )
-        else:
-            iris_id = None
 
         if offer_characteristics is not None:
-            offer = o.Offer(
+            logger.info("Offer found !")
+            latitude = offer_characteristics.venue_latitude
+            longitude = offer_characteristics.venue_longitude
+            if latitude is not None and longitude is not None:
+                iris_id = await Iris().get_iris_from_coordinates(
+                    db, latitude=latitude, longitude=longitude
+                )
+                if iris_id:
+                    logger.info("Offer location found !")
+            else:
+                iris_id = None
+
+            return o.Offer(
                 offer_id=offer_id,
                 latitude=latitude,
                 longitude=longitude,
@@ -52,13 +55,11 @@ class Offer:
                 is_sensitive=offer_characteristics.is_sensitive,
                 found=True,
             )
-        else:
-            offer = o.Offer(
-                offer_id=offer_id,
-                latitude=latitude,
-                longitude=longitude,
-                iris_id=iris_id,
-                is_geolocated=True if iris_id else False,
-                found=False,
-            )
-        return offer
+        return o.Offer(
+            offer_id=offer_id,
+            latitude=None,
+            longitude=None,
+            iris_id=None,
+            is_geolocated=False,
+            found=False,
+        )

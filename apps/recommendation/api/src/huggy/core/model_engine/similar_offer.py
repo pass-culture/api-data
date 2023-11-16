@@ -15,19 +15,6 @@ from huggy.schemas.user import UserContext
 
 
 class SimilarOffer(ModelEngine):
-    def __init__(
-        self,
-        user: UserContext,
-        offer: o.Offer,
-        params_in: PlaylistParams,
-        call_id: str,
-        context: str,
-    ):
-        self.offer = offer
-        super().__init__(
-            user=user, params_in=params_in, call_id=call_id, context=context
-        )
-
     def get_model_configuration(
         self, user: UserContext, params_in: PlaylistParams
     ) -> ModelConfiguration:
@@ -59,7 +46,7 @@ class SimilarOffer(ModelEngine):
         )
 
     async def get_scoring(self, db: AsyncSession) -> List[str]:
-        if self.offer.item_id is None:
+        if self.offer is not None and self.offer.item_id is None:
             return []
         return await super().get_scoring(db)
 

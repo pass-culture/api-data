@@ -11,6 +11,13 @@ import huggy.schemas.offer as o
 
 
 class RecommendableOffer:
+    async def is_geolocated(self, user: UserContext, offer: o.Offer) -> bool:
+        if user is not None and user.is_geolocated:
+            return True
+        if offer is not None and offer.is_geolocated:
+            return True
+        return False
+
     async def get_nearest_offers(
         self,
         db: AsyncSession,
@@ -27,7 +34,7 @@ class RecommendableOffer:
         user_distance = self.get_st_distance(user, offer_table, offer=offer)
         # If user is geolocated
         # Take all the offers near the user AND non geolocated offers
-        if user.is_geolocated:
+        if await self.is_geolocated(user, offer):
             user_distance_condition.append(
                 text(
                     " NOT offers.is_geolocated OR ( offers.is_geolocated AND offers.user_distance < offers.default_max_distance) "
@@ -126,7 +133,7 @@ class RecommendableOffer:
         offer_table: RecommendableOffersRaw,
         offer: o.Offer = None,
     ):
-        if user.is_geolocated:
+        if user is not None and user.is_geolocated:
             user_point = func.ST_GeographyFromText(
                 f"POINT({user.longitude} {user.latitude})"
             )

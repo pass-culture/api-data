@@ -81,21 +81,23 @@ async def __similar_offers(
     offer = await Offer().get_offer_characteristics(db, offer_id)
 
     scoring = SimilarOffer(
-        user, offer, playlist_params, call_id=call_id, context="similar_offer"
+        user, playlist_params, call_id=call_id, context="similar_offer", offer=offer
     )
+
     if not offer.is_sensitive:
         offer_recommendations = await scoring.get_scoring(db)
-        # fallback to reco
-        if len(offer_recommendations) == 0:
-            scoring = Recommendation(
-                user,
-                params_in=playlist_params,
-                call_id=call_id,
-                context="recommendation_fallback",
-            )
-            offer_recommendations = await scoring.get_scoring(db)
+        # TODO :
+        #    # fallback to reco
+        #    if len(offer_recommendations) == 0:
+        #        scoring = Recommendation(
+        #            user,
+        #            params_in=playlist_params,
+        #            call_id=call_id,
+        #            context="recommendation_fallback",
+        #        )
+        #        offer_recommendations = await scoring.get_scoring(db)
 
-    await scoring.save_recommendation(db, offer_recommendations)
+        await scoring.save_recommendation(db, offer_recommendations)
 
     return jsonable_encoder(
         {
@@ -116,8 +118,8 @@ async def similar_offers(
     offer_id: str,
     playlist_params: p.PostSimilarOfferPlaylistParams,
     token: str = None,
-    latitude: float = None,  # TODO feat: PC-25775
-    longitude: float = None,  # TODO feat: PC-25775
+    latitude: float = None,
+    longitude: float = None,
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):
@@ -125,8 +127,8 @@ async def similar_offers(
         db,
         offer_id=offer_id,
         playlist_params=playlist_params,
-        latitude=latitude,
-        longitude=longitude,
+        latitude=None,  # TODO feat: PC-25775
+        longitude=None,
         call_id=call_id,
     )
 
@@ -139,8 +141,8 @@ async def similar_offers(
     offer_id: str,
     playlist_params: p.GetSimilarOfferPlaylistParams = Depends(),
     token: str = None,
-    latitude: float = None,  # TODO feat: PC-25775
-    longitude: float = None,  # TODO feat: PC-25775
+    latitude: float = None,
+    longitude: float = None,
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):
@@ -148,8 +150,8 @@ async def similar_offers(
         db,
         offer_id=offer_id,
         playlist_params=playlist_params,
-        latitude=latitude,
-        longitude=longitude,
+        latitude=None,  # TODO feat: PC-25775
+        longitude=None,
         call_id=call_id,
     )
 

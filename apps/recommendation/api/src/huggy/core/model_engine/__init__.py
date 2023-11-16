@@ -14,20 +14,27 @@ from huggy.schemas.recommendable_offer import RankedOffer
 from huggy.schemas.user import UserContext
 from huggy.utils.env_vars import NUMBER_OF_RECOMMENDATIONS
 from huggy.utils.mixing import order_offers_by_score_and_diversify_features
+import huggy.schemas.offer as o
 
 
 class ModelEngine(ABC):
     def __init__(
-        self, user: UserContext, params_in: PlaylistParams, call_id: str, context: str
+        self,
+        user: UserContext,
+        params_in: PlaylistParams,
+        call_id: str,
+        context: str,
+        offer: o.Offer = None,
     ):
         self.user = user
+        self.offer = offer
         self.params_in = params_in
         self.call_id = call_id
         # Get model (cold_start or algo)
         self.model_params = self.get_model_configuration(user, params_in)
-        self.scorer = self.get_scorer()
         self.context = context
         self.reco_origin = "unknown"
+        self.scorer = self.get_scorer()
 
     @abstractmethod
     def get_model_configuration(
@@ -51,7 +58,7 @@ class ModelEngine(ABC):
             model_params=self.model_params,
             retrieval_endpoints=self.model_params.retrieval_endpoints,
             ranking_endpoint=self.model_params.ranking_endpoint,
-            offer=None,
+            offer=self.offer,
         )
 
     async def get_scoring(self, db: AsyncSession) -> List[str]:
