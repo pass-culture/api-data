@@ -30,10 +30,10 @@ class ModelEngine(ABC):
         self.offer = offer
         self.params_in = params_in
         self.call_id = call_id
+        self.reco_origin = "unknown"
+        self.context = context
         # Get model (cold_start or algo)
         self.model_params = self.get_model_configuration(user, params_in)
-        self.context = context
-        self.reco_origin = "unknown"
         self.scorer = self.get_scorer()
 
     @abstractmethod
