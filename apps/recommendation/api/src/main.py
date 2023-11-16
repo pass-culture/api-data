@@ -86,16 +86,16 @@ async def __similar_offers(
 
     if not offer.is_sensitive:
         offer_recommendations = await scoring.get_scoring(db)
-        # TODO :
-        #    # fallback to reco
-        #    if len(offer_recommendations) == 0:
-        #        scoring = Recommendation(
-        #            user,
-        #            params_in=playlist_params,
-        #            call_id=call_id,
-        #            context="recommendation_fallback",
-        #        )
-        #        offer_recommendations = await scoring.get_scoring(db)
+
+        # fallback to reco
+        if len(offer_recommendations) == 0:
+            scoring = Recommendation(
+                user,
+                params_in=playlist_params,
+                call_id=call_id,
+                context="recommendation_fallback",
+            )
+            offer_recommendations = await scoring.get_scoring(db)
 
         await scoring.save_recommendation(db, offer_recommendations)
 
