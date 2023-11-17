@@ -1,9 +1,9 @@
 {
 	"info": {
-		"_postman_id": "a69521cb-31b0-4e39-84ad-e02b71156654",
+		"_postman_id": "fc2829a9-c31b-4b12-b55f-277900351d94",
 		"name": "API Integration Tests",
 		"description": "Collection of integration tests for the reco api.\nMade with Postman",
-		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "20735314"
 	},
 	"item": [
@@ -29,7 +29,15 @@
 			"request": {
 				"method": "GET",
 				"header": [],
-				"url": "{{api_url}}/"
+				"url": {
+					"raw": "{{api_url}}/",
+					"host": [
+						"{{api_url}}"
+					],
+					"path": [
+						""
+					]
+				}
 			},
 			"response": []
 		},
@@ -372,7 +380,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"beginningDatetime\": \"{{thirtyDaysBack}}\",\r\n    \"endingDatetime\": \"{{todayDate}}\",\r\n    \"categories\":[\"SPECTACLES\"],\r\n    \"subcategories\":[\"SPECTACLE_REPRESENTATION\"]\r\n}",
+					"raw": "{\r\n\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -468,7 +476,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"beginningDatetime\": \"{{thirtyDaysBack}}\",\r\n    \"endingDatetime\": \"{{todayDate}}\",\r\n    \"category\":[\"FILMS_SERIES_CINEMA\"]\r\n}",
+					"raw": "{\r\n    \"beginningDatetime\": \"{{thirtyDaysBack}}\",\r\n    \"endingDatetime\": \"{{todayDate}}\",\r\n    \"categories\":[\"FILMS_SERIES_CINEMA\"]\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -564,7 +572,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"offerTypeList\":[{\"MOVIE\":\"SCIENCE_FICTION\"},\r\n                     {\"MOVIE\":\"DETECTIVE\"},\r\n                     {\"MOVIE\":\"DRAMA\"}\r\n                     ]\r\n}",
+					"raw": "{\r\n\"offerTypeList\":[{\"key\":\"MOVIE\",\"value\":\"SCIENCE_FICTION\"},\r\n                    {\"key\":\"MOVIE\",\"value\":\"DETECTIVE\"},\r\n                    {\"key\":\"MOVIE\",\"value\":\"DRAMA\"}\r\n                ]\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -660,7 +668,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"offerTypeList\":[{\"BOOK\":\"Manga\"},\r\n                    {\"BOOK\":\"Droit\"}\r\n                     ]\r\n}",
+					"raw": "{\r\n\"offerTypeList\":[{\"key\":\"BOOK\",\"value\":\"Manga\"},\r\n                    {\"key\":\"BOOK\",\"value\":\"Droit\"}\r\n                ]\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -756,7 +764,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"offerTypeList\":[{\"BOOK\":\"Manga\"},\r\n                    {\"BOOK\":\"Droit\"}\r\n                     ]\r\n}",
+					"raw": "\r\n{\r\n\"offerTypeList\":[{\"key\":\"MUSIC\",\"value\":\"Hip-Hop\"},\r\n                    {\"key\":\"MUSIC\",\"value\":\"pop\"}\r\n                ]\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -852,7 +860,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"offerTypeList\":[{\"SHOW\":\"Humour / Café-théâtre\"},\r\n                    {\"SHOW\":\"Théâtre\"}\r\n                     ]\r\n}",
+					"raw": "{\r\n\"offerTypeList\":[{\"key\":\"SHOW\",\"value\":\"Humour / Café-théâtre\"},\r\n                    {\"key\":\"SHOW\",\"value\":\"Théâtre\"}\r\n                ]\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -1033,7 +1041,7 @@
 							"\r",
 							"pm.test(\"Response must at least 1 offer\", function () {\r",
 							"  const jsonResponse = pm.response.json();\r",
-							"  pm.expect(jsonResponse.playlist_recommended_offers.length).to.be.above(1);\r",
+							"  pm.expect(jsonResponse.playlist_recommended_offers.length).to.be.above(0);\r",
 							"});\r",
 							"\r",
 							"function checkIfArrayIsUnique(array) {\r",
@@ -1127,7 +1135,7 @@
 							"\r",
 							"pm.test(\"Response must at least 1 offer\", function () {\r",
 							"  const jsonResponse = pm.response.json();\r",
-							"  pm.expect(jsonResponse.playlist_recommended_offers.length).to.be.above(1);\r",
+							"  pm.expect(jsonResponse.playlist_recommended_offers.length).to.be.above(0);\r",
 							"});\r",
 							"\r",
 							"function checkIfArrayIsUnique(array) {\r",
@@ -1221,7 +1229,7 @@
 							"\r",
 							"pm.test(\"Response must at least 1 offer\", function () {\r",
 							"  const jsonResponse = pm.response.json();\r",
-							"  pm.expect(jsonResponse.playlist_recommended_offers.length).to.be.above(1);\r",
+							"  pm.expect(jsonResponse.playlist_recommended_offers.length).to.be.above(0);\r",
 							"});\r",
 							"\r",
 							"function checkIfArrayIsUnique(array) {\r",
@@ -1315,7 +1323,7 @@
 							"\r",
 							"pm.test(\"Response must at least 1 offer\", function () {\r",
 							"  const jsonResponse = pm.response.json();\r",
-							"  pm.expect(jsonResponse.playlist_recommended_offers.length).to.be.above(1);\r",
+							"  pm.expect(jsonResponse.playlist_recommended_offers.length).to.be.above(0);\r",
 							"});\r",
 							"\r",
 							"function checkIfArrayIsUnique(array) {\r",
@@ -1402,7 +1410,7 @@
 							"\r",
 							"pm.test(\"Response must at least 1 offer\", function () {\r",
 							"  const jsonResponse = pm.response.json();\r",
-							"  pm.expect(jsonResponse.results.length).to.be.above(1);\r",
+							"  pm.expect(jsonResponse.results.length).to.be.above(0);\r",
 							"});\r",
 							"\r",
 							"function checkIfArrayIsUnique(array) {\r",
@@ -1486,7 +1494,7 @@
 							"\r",
 							"pm.test(\"Response must at least 1 offer\", function () {\r",
 							"  const jsonResponse = pm.response.json();\r",
-							"  pm.expect(jsonResponse.results.length).to.be.above(1);\r",
+							"  pm.expect(jsonResponse.results.length).to.be.above(0);\r",
 							"});\r",
 							"\r",
 							"function checkIfArrayIsUnique(array) {\r",
@@ -1568,7 +1576,7 @@
 							"\r",
 							"pm.test(\"Response must at least 1 offer\", function () {\r",
 							"  const jsonResponse = pm.response.json();\r",
-							"  pm.expect(jsonResponse.results.length).to.be.above(1);\r",
+							"  pm.expect(jsonResponse.results.length).to.be.above(0);\r",
 							"});\r",
 							"\r",
 							"function checkIfArrayIsUnique(array) {\r",
