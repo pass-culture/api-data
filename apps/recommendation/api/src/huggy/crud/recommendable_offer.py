@@ -25,6 +25,7 @@ class RecommendableOffer:
         recommendable_items_ids: Dict[str, float],
         limit: int = 250,
         offer: Optional[o.Offer] = None,
+        query_order: str = "item_rank",
     ) -> List[r_o.RecommendableOffer]:
         offer_table: RecommendableOffersRaw = (
             await RecommendableOffersRaw().get_available_table(db)
@@ -100,11 +101,18 @@ class RecommendableOffer:
             .subquery(name="rank")
         )
 
+        if query_order == "user_distance":
+            order_by = rank_subquery.c.user_distance.asc()
+        elif query_order == "booking_number":
+            order_by = rank_subquery.c.booking_number.desc()
+        else:
+            order_by = rank_subquery.c.item_rank.asc()
+
         results = (
             await db.execute(
                 select(rank_subquery)
                 .where(rank_subquery.c.offer_rank == 1)
-                .order_by(rank_subquery.c.item_rank.asc())
+                .order_by(order_by)
                 .limit(limit)
             )
         ).fetchall()

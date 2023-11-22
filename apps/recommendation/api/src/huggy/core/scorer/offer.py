@@ -118,6 +118,10 @@ class OfferScorer:
             if item.item_id not in non_recommendable_items
         }
         recommendable_offers = await RecommendableOfferDB().get_nearest_offers(
-            db, self.user, recommendable_items_ids, offer=self.offer
+            db,
+            self.user,
+            recommendable_items_ids,
+            offer=self.offer,
+            query_order=self.model_params.query_order,
         )
         return recommendable_offers
