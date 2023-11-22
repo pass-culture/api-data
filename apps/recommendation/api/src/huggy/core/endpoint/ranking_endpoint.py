@@ -65,20 +65,22 @@ class ModelRankingEndpoint(RankingEndpoint):
                 {
                     "offer_id": row.offer_id,
                     "offer_subcategory_id": row.subcategory_id,
+                    "user_bookings_count": to_float(self.user.bookings_count),
                     "user_clicks_count": to_float(self.user.clicks_count),
                     "user_favorites_count": to_float(self.user.favorites_count),
                     "user_deposit_remaining_credit": to_float(
                         self.user.user_deposit_remaining_credit
                     ),
+                    "user_is_geolocated": to_float(self.user.is_geolocated),
+                    "user_iris_x": to_float(self.user.longitude),
+                    "user_iris_y": to_float(self.user.latitude),
                     "offer_user_distance": to_float(row.user_distance),
                     "offer_booking_number": to_float(row.booking_number),
                     "offer_item_score": to_float(row.item_rank),
+                    "offer_is_geolocated": to_float(row.is_geolocated),
                     "offer_stock_price": to_float(row.stock_price),
                     "offer_creation_days": to_days(row.offer_creation_date),
                     "offer_stock_beginning_days": to_days(row.stock_beginning_date),
-                    "is_geolocated": to_float(row.is_geolocated),
-                    "venue_latitude": to_float(row.venue_latitude),
-                    "venue_longitude": to_float(row.venue_longitude),
                 }
             )
         return offers_list

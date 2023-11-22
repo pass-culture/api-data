@@ -28,6 +28,13 @@ RECOMMENDATION_ENDPOINTS = {
         clicks_count=25,
         favorites_count=None,
     ),
+    "algo:geolocated": ModelFork(
+        warm_start_model=recommendation_endpoints.retrieval_geolocated_reco,
+        cold_start_model=recommendation_endpoints.retrieval_geolocated_filter,
+        bookings_count=2,
+        clicks_count=25,
+        favorites_count=None,
+    ),
     "top_offers:gtl_l2": ModelFork(
         warm_start_model=recommendation_endpoints.gtl_l2_filter,
         cold_start_model=recommendation_endpoints.gtl_l2_filter,
