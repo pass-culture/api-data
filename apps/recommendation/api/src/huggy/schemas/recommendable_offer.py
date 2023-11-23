@@ -37,7 +37,8 @@ class RecommendableOffer(BaseModel):
     venue_latitude: t.Optional[float]
     venue_longitude: t.Optional[float]
     is_geolocated: t.Optional[bool]
-    item_rank: int
+    item_rank: int  # lower = better
+    item_origin: t.Optional[str] = None
 
     class Config:
         from_attributes = True
