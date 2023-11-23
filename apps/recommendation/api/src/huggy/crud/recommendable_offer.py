@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import literal_column
 import huggy.schemas.recommendable_offer as r_o
 from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
+from huggy.schemas.item import RecommendableItem
 from huggy.schemas.user import UserContext
 import huggy.schemas.offer as o
 
@@ -22,9 +23,10 @@ class RecommendableOffer:
         self,
         db: AsyncSession,
         user: UserContext,
-        recommendable_items_ids: Dict[str, float],
+        recommendable_items_ids: Dict[str, RecommendableItem],
         limit: int = 250,
         offer: Optional[o.Offer] = None,
+        query_order: str = "item_rank",
     ) -> List[r_o.RecommendableOffer]:
         offer_table: RecommendableOffersRaw = (
             await RecommendableOffersRaw().get_available_table(db)
@@ -37,7 +39,7 @@ class RecommendableOffer:
         if await self.is_geolocated(user, offer):
             user_distance_condition.append(
                 text(
-                    " NOT offers.is_geolocated OR ( offers.is_geolocated AND offers.user_distance < offers.default_max_distance) "
+                    " NOT offers.is_geolocated OR ( offers.is_geolocated AND offers.user_distance < offers.default_max_distance ) "
                 )
             )
         # Else, take only non geolocated offers
@@ -100,11 +102,18 @@ class RecommendableOffer:
             .subquery(name="rank")
         )
 
+        if query_order == "user_distance":
+            order_by = rank_subquery.c.user_distance.asc()
+        elif query_order == "booking_number":
+            order_by = rank_subquery.c.booking_number.desc()
+        else:
+            order_by = rank_subquery.c.item_rank.asc()
+
         results = (
             await db.execute(
                 select(rank_subquery)
                 .where(rank_subquery.c.offer_rank == 1)
-                .order_by(rank_subquery.c.item_rank.asc())
+                .order_by(order_by)
                 .limit(limit)
             )
         ).fetchall()
@@ -151,9 +160,12 @@ class RecommendableOffer:
         else:
             return literal_column("NULL").label("user_distance")
 
-    def get_items(self, recommendable_items_ids: Dict[str, float]):
+    def get_items(self, recommendable_items_ids: Dict[str, RecommendableItem]):
         arr_sql = ",".join(
-            [f"('{k}'::VARCHAR, {v}::INT)" for k, v in recommendable_items_ids.items()]
+            [
+                f"('{k}'::VARCHAR, {v.item_rank}::INT)"
+                for k, v in recommendable_items_ids.items()
+            ]
         )
 
         return (

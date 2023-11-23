@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 
 from huggy.crud.recommendable_offer import RecommendableOffer as RecommendableOfferDB
 from huggy.schemas.recommendable_offer import OfferDistance, RecommendableOffer
+from huggy.schemas.item import RecommendableItem
 from huggy.schemas.user import UserContext
 from huggy.utils.distance import haversine_distance
 from tests.db.schema.iris import (
@@ -214,7 +215,10 @@ class RecommendableOfferTest:
     ):
         user: UserContext = pool["user"]
         items: t.List[str] = pool["items"]
-        items = {x: 0 for x in items}
+        items = {
+            x: RecommendableItem(item_id=x, item_rank=0, item_origin="reco")
+            for x in items
+        }
         expected_offers: t.List[RecommendableOffer] = pool["expected_offers"]
         description = pool["description"]
         result_offers = await RecommendableOfferDB().get_nearest_offers(

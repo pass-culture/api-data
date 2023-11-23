@@ -56,6 +56,7 @@ class ModelConfiguration:
     retrieval_endpoints: List[RetrievalEndpoint]
     ranking_endpoint: RankingEndpoint
     diversification_params: DiversificationParams
+    query_order: str = "item_rank"
 
     def get_diversification_params(
         self, params_in: PlaylistParams
@@ -65,9 +66,6 @@ class ModelConfiguration:
         """
         if params_in.is_reco_shuffled is not None:
             self.diversification_params.is_reco_shuffled = params_in.is_reco_shuffled
-
-        # if params_in.mixing_features is not None:
-        #     self.diversification_params.mixing_features = params_in.mixing_features
 
         if params_in.submixing_feature_dict is not None:
             self.diversification_params.submixing_feature_dict = (

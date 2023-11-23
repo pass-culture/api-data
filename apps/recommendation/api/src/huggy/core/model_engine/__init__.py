@@ -109,7 +109,7 @@ class ModelEngine(ABC):
                 session.add(
                     PastOfferContext(
                         call_id=self.call_id,
-                        context=context,
+                        context=f"{context}:{o.item_origin}",
                         context_extra_data={},
                         date=date,
                         user_id=user.user_id,

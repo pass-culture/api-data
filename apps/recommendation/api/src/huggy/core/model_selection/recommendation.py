@@ -172,6 +172,29 @@ retrieval_reco = ModelConfiguration(
     ranking_endpoint=user_ranking.user_ranking_endpoint,
 )
 
+retrieval_geolocated_reco = ModelConfiguration(
+    name="recommendation_geolocation",
+    description="""""",
+    scorer=offer_scorer.OfferScorer,
+    diversification_params=diversification_on,
+    retrieval_endpoints=[
+        user_retrieval.filter_retrieval_endpoint,
+        user_retrieval.recommendation_retrieval_endpoint,
+    ],
+    ranking_endpoint=user_ranking.user_ranking_endpoint,
+    query_order="user_distance",
+)
+
+retrieval_geolocated_filter = ModelConfiguration(
+    name="recommendation_geolocation_filter",
+    description="""""",
+    scorer=offer_scorer.OfferScorer,
+    diversification_params=diversification_on,
+    retrieval_endpoints=[user_retrieval.filter_retrieval_endpoint],
+    ranking_endpoint=user_ranking.user_ranking_endpoint,
+    query_order="user_distance",
+)
+
 
 retrieval_filter_version_b = ModelConfiguration(
     name="recommendation_filter",
