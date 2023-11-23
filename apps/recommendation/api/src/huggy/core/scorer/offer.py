@@ -113,11 +113,18 @@ class OfferScorer:
         non_recommendable_items = await get_non_recommendable_items(db, self.user)
 
         recommendable_items_ids = {
-            item.item_id: item.item_rank
+            item.item_id: item
             for item in recommendable_items
             if item.item_id not in non_recommendable_items
         }
         recommendable_offers = await RecommendableOfferDB().get_nearest_offers(
-            db, self.user, recommendable_items_ids, offer=self.offer
+            db,
+            self.user,
+            recommendable_items_ids,
+            offer=self.offer,
+            query_order=self.model_params.query_order,
         )
+        # add item context
+        for x in recommendable_offers:
+            x.item_origin = recommendable_items_ids[x.item_id].item_origin
         return recommendable_offers

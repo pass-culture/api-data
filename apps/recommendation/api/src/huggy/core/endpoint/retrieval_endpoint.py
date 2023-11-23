@@ -163,6 +163,7 @@ class RetrievalEndpoint(AbstractEndpoint):
 
     async def model_score(self) -> t.List[RecommendableItem]:
         instances = self.get_instance(self.size)
+        model_type = instances["model_type"]
         prediction_result = await endpoint_score(
             instances=instances,
             endpoint_name=self.endpoint_name,
@@ -174,8 +175,7 @@ class RetrievalEndpoint(AbstractEndpoint):
         # smallest = better (cosine similarity or inner_product)
         return [
             RecommendableItem(
-                item_id=r["item_id"],
-                item_rank=r["idx"],
+                item_id=r["item_id"], item_rank=r["idx"], item_origin=model_type
             )
             for r in prediction_result.predictions
         ]
