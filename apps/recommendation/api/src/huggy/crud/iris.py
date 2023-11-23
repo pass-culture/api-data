@@ -31,5 +31,5 @@ class Iris:
             )
 
             if iris_france_db is not None:
-                return str(iris_france_db.id)  # TODO add iris centroid
+                return str(iris_france_db.id)
         return iris_id
