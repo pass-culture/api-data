@@ -8,10 +8,12 @@ from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
 from huggy.schemas.offer import Offer
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+import typing as t
 
 
 @dataclass
-class DiversificationParams:
+class DiversificationParams(BaseModel):
     is_active: bool
     is_reco_shuffled: bool
     mixing_features: str
@@ -116,3 +118,28 @@ class ModelFork:
             if offer.booking_number >= self.bookings_count:
                 return copy.deepcopy(self.warm_start_model), "algo"
         return copy.deepcopy(self.cold_start_model), "cold_start"
+
+
+class WarnConfigInput(BaseModel):
+    bookings_count: int = 2
+    clicks_count: int = 25
+    favorites_count: int = None
+
+
+class ModelConfigurationInput(BaseModel):
+    """Custom modelEndpoint model"""
+
+    diversification_params: DiversificationParams
+    warn_config: WarnConfigInput
+    retrieval_models = t.List[str] = []
+    ranking_model = str
+    query_order: str
+
+    def generate(self) -> ModelFork:
+        warn_model = ModelConfiguration()
+        cold_start_model = ModelConfiguration()
+        return ModelFork(
+            bookings_count=self.warn_config.bookings_count,
+            clicks_count=self.warn_config.clicks_count,
+            favorites_count=self.warn_config.favorites_count,
+        )

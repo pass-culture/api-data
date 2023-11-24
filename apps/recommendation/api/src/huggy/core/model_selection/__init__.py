@@ -4,6 +4,8 @@ from huggy.core.model_selection.model_configuration import ModelConfiguration, M
 from huggy.schemas.offer import Offer
 from huggy.schemas.user import UserContext
 from huggy.utils.env_vars import DEFAULT_RECO_MODEL, DEFAULT_SIMILAR_OFFER_MODEL
+import typing as t
+
 
 RECOMMENDATION_ENDPOINTS = {
     # Default endpoint
