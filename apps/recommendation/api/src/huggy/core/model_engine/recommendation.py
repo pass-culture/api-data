@@ -16,11 +16,10 @@ class Recommendation(ModelEngine):
     def get_model_configuration(
         self, user: UserContext, params_in: PlaylistParams
     ) -> ModelConfiguration:
-        model_params, reco_origin = select_reco_model_params(
-            params_in.model_endpoint, user
-        )
-        self.reco_origin = reco_origin
-        return model_params
+        model_params = select_reco_model_params(params_in.get_model_enpoint(), user)
+        self.reco_origin = model_params.reco_origin
+        self.model_origin = model_params.model_origin
+        return model_params.model_configuration
 
     async def save_recommendation(
         self, session: AsyncSession, recommendations: t.List[str]

@@ -1,150 +1,160 @@
-import huggy.core.model_selection.recommendation as recommendation_endpoints
-import huggy.core.model_selection.similar_offer as similar_offer_endpoints
-from huggy.core.model_selection.model_configuration import ModelConfiguration, ModelFork
+from huggy.core.model_selection.model_configuration.configuration import (
+    ModelEnpointInput,
+    ModelConfigurationInput,
+    ModelConfiguration,
+    RankingChoices,
+    DiversificationChoices,
+)
+from huggy.core.model_selection.model_configuration.similar_offer import (
+    SimilarModelConfigurationInput,
+    SimOffersRetrievalChoices,
+)
+from huggy.core.model_selection.model_configuration.recommendation import (
+    RecoModelConfigurationInput,
+    RecoRetrievalChoices,
+)
+from huggy.core.model_selection.model_configuration.configuration import ForkOut
 from huggy.schemas.offer import Offer
 from huggy.schemas.user import UserContext
+from huggy.schemas.model_selection.model_configuration import (
+    ModelTypeInput,
+    ForkParamsInput,
+)
 from huggy.utils.env_vars import DEFAULT_RECO_MODEL, DEFAULT_SIMILAR_OFFER_MODEL
 import typing as t
 
 
 RECOMMENDATION_ENDPOINTS = {
     # Default endpoint
-    "default": ModelFork(
-        warm_start_model=recommendation_endpoints.retrieval_reco,
-        cold_start_model=recommendation_endpoints.retrieval_filter,
-        bookings_count=2,
-        clicks_count=25,
-        favorites_count=None,
+    "default": RecoModelConfigurationInput(
+        name="default",
+        description="""Default Configuration""",
+        diversification_params=DiversificationChoices.ON,
+        warn_model_type=ModelTypeInput(
+            retrieval=RecoRetrievalChoices.MIX,
+            ranking=RankingChoices.DEFAULT,
+            query_order="item_rank",
+        ),
+        cold_start_model_type=ModelTypeInput(
+            retrieval=RecoRetrievalChoices.TOPS,
+            ranking=RankingChoices.DEFAULT,
+            query_order="item_rank",
+        ),
+        fork_params=ForkParamsInput(
+            bookings_count=1,
+            clicks_count=25,
+            favorites_count=None,
+        ),
     ),
-    "top_offers:gtl_id": ModelFork(
-        warm_start_model=recommendation_endpoints.gtl_id_filter,
-        cold_start_model=recommendation_endpoints.gtl_id_filter,
-        bookings_count=None,
-        clicks_count=None,
-        favorites_count=None,
+    "top_offers": RecoModelConfigurationInput(
+        name="top_offers",
+        description="""Force top offers configuration""",
+        diversification_params=DiversificationChoices.ON,
+        warn_model_type=ModelTypeInput(
+            retrieval=RecoRetrievalChoices.TOPS,
+            ranking=RankingChoices.DEFAULT,
+            query_order="item_rank",
+        ),
+        cold_start_model_type=ModelTypeInput(
+            retrieval=RecoRetrievalChoices.TOPS,
+            ranking=RankingChoices.DEFAULT,
+            query_order="item_rank",
+        ),
+        fork_params=ForkParamsInput(
+            bookings_count=None,
+            clicks_count=None,
+            favorites_count=None,
+        ),
     ),
-    "algo:gtl_id": ModelFork(
-        warm_start_model=recommendation_endpoints.gtl_id_reco,
-        cold_start_model=recommendation_endpoints.gtl_id_filter,
-        bookings_count=2,
-        clicks_count=25,
-        favorites_count=None,
+    "cold_start": RecoModelConfigurationInput(
+        name="cold_start",
+        description="""Force cold_start configuration""",
+        diversification_params=DiversificationChoices.ON,
+        warn_model_type=ModelTypeInput(
+            retrieval=RecoRetrievalChoices.TOPS,
+            ranking=RankingChoices.DEFAULT,
+            query_order="item_rank",
+        ),
+        cold_start_model_type=ModelTypeInput(
+            retrieval=RecoRetrievalChoices.TOPS,
+            ranking=RankingChoices.DEFAULT,
+            query_order="item_rank",
+        ),
+        fork_params=ForkParamsInput(
+            bookings_count=None,
+            clicks_count=None,
+            favorites_count=None,
+        ),
     ),
-    "algo:geolocated": ModelFork(
-        warm_start_model=recommendation_endpoints.retrieval_geolocated_reco,
-        cold_start_model=recommendation_endpoints.retrieval_geolocated_filter,
-        bookings_count=2,
-        clicks_count=25,
-        favorites_count=None,
-    ),
-    "top_offers:gtl_l2": ModelFork(
-        warm_start_model=recommendation_endpoints.gtl_l2_filter,
-        cold_start_model=recommendation_endpoints.gtl_l2_filter,
-        bookings_count=None,
-        clicks_count=None,
-        favorites_count=None,
-    ),
-    "algo:gtl_l2": ModelFork(
-        warm_start_model=recommendation_endpoints.gtl_l2_reco,
-        cold_start_model=recommendation_endpoints.gtl_l2_filter,
-        bookings_count=2,
-        clicks_count=25,
-        favorites_count=None,
-    ),
-    "top_offers:gtl_l3": ModelFork(
-        warm_start_model=recommendation_endpoints.gtl_l3_filter,
-        cold_start_model=recommendation_endpoints.gtl_l3_filter,
-        bookings_count=None,
-        clicks_count=None,
-        favorites_count=None,
-    ),
-    "algo:gtl_l3": ModelFork(
-        warm_start_model=recommendation_endpoints.gtl_l3_reco,
-        cold_start_model=recommendation_endpoints.gtl_l3_filter,
-        bookings_count=2,
-        clicks_count=25,
-        favorites_count=None,
-    ),
-    "top_offers:gtl_l4": ModelFork(
-        warm_start_model=recommendation_endpoints.gtl_l4_filter,
-        cold_start_model=recommendation_endpoints.gtl_l4_filter,
-        bookings_count=None,
-        clicks_count=None,
-        favorites_count=None,
-    ),
-    "algo:gtl_l4": ModelFork(
-        warm_start_model=recommendation_endpoints.gtl_l4_reco,
-        cold_start_model=recommendation_endpoints.gtl_l4_filter,
-        bookings_count=2,
-        clicks_count=25,
-        favorites_count=None,
-    ),
-    "version_b": ModelFork(
-        warm_start_model=recommendation_endpoints.retrieval_reco_version_b,
-        cold_start_model=recommendation_endpoints.retrieval_filter_version_b,
-        bookings_count=0,
-    ),
-    "top_offers": ModelFork(
-        warm_start_model=recommendation_endpoints.retrieval_filter,
-        cold_start_model=recommendation_endpoints.retrieval_filter,
-        bookings_count=None,
-        clicks_count=None,
-        favorites_count=None,
-    ),
-    # Force model default enpoint
-    "default_algo": ModelFork(
-        warm_start_model=recommendation_endpoints.retrieval_reco,
-        cold_start_model=recommendation_endpoints.retrieval_reco,
-        bookings_count=0,
-        clicks_count=0,
-        favorites_count=0,
-    ),
-    # Force cold start model based on top offers
-    "cold_start": ModelFork(
-        warm_start_model=recommendation_endpoints.retrieval_filter,
-        cold_start_model=recommendation_endpoints.retrieval_filter,
-        bookings_count=None,
-        clicks_count=None,
-        favorites_count=None,
+    "force_algo": RecoModelConfigurationInput(
+        name="default_algo",
+        description="""Force algo configuration""",
+        diversification_params=DiversificationChoices.ON,
+        warn_model_type=ModelTypeInput(
+            retrieval=RecoRetrievalChoices.RECOMMENDATION,
+            ranking=RankingChoices.DEFAULT,
+            query_order="item_rank",
+        ),
+        cold_start_model_type=ModelTypeInput(
+            retrieval=RecoRetrievalChoices.RECOMMENDATION,
+            ranking=RankingChoices.DEFAULT,
+            query_order="item_rank",
+        ),
+        fork_params=ForkParamsInput(
+            bookings_count=0,
+            clicks_count=0,
+            favorites_count=0,
+        ),
     ),
 }
 
+
 SIMILAR_OFFER_ENDPOINTS = {
-    # Default version a
-    "default": ModelFork(
-        warm_start_model=similar_offer_endpoints.retrieval_offer,
-        cold_start_model=similar_offer_endpoints.retrieval_offer,
-        bookings_count=0,
-    ),
-    "version_b": ModelFork(
-        warm_start_model=similar_offer_endpoints.retrieval_offer_version_b,
-        cold_start_model=similar_offer_endpoints.retrieval_cs_offer,
-        bookings_count=0,
-    ),
-    # Force cold start mode
-    "cold_start": ModelFork(
-        warm_start_model=similar_offer_endpoints.retrieval_cs_offer,
-        cold_start_model=similar_offer_endpoints.retrieval_cs_offer,
-        bookings_count=None,
-        clicks_count=None,
-        favorites_count=None,
-    ),
+    "default": SimilarModelConfigurationInput(
+        name="default",
+        description="""Default similar offer configuration""",
+        diversification_params="off",
+        warn_model_type=ModelTypeInput(
+            retrieval=SimOffersRetrievalChoices.MIX,
+            ranking=RankingChoices.DEFAULT,
+            query_order="item_rank",
+        ),
+        cold_start_model_type=ModelTypeInput(
+            retrieval=SimOffersRetrievalChoices.MIX,
+            ranking=RankingChoices.DEFAULT,
+            query_order="item_rank",
+        ),
+        fork_params=ForkParamsInput(
+            bookings_count=0,
+        ),
+    )
 }
 
 
 def select_reco_model_params(
-    model_endpoint: str, user: UserContext
-) -> ModelConfiguration:
+    model_endpoint: ModelEnpointInput, user: UserContext
+) -> ForkOut:
     """Choose the model to apply Recommendation based on user interaction"""
-    if model_endpoint not in list(RECOMMENDATION_ENDPOINTS.keys()):
-        model_endpoint = DEFAULT_RECO_MODEL
-    model_fork = RECOMMENDATION_ENDPOINTS[model_endpoint]
-    return model_fork.get_user_status(user=user)
+    if model_endpoint.custom_configuration is not None:
+        origin = "custom"
+        model_fork = model_endpoint.custom_configuration.generate()
+    else:
+        origin = "default"
+        if model_endpoint not in list(RECOMMENDATION_ENDPOINTS.keys()):
+            model_endpoint = DEFAULT_RECO_MODEL
+        model_fork = RECOMMENDATION_ENDPOINTS[model_endpoint].generate()
+
+    return model_fork.get_user_status(user=user, model_origin=origin)
 
 
-def select_sim_model_params(model_endpoint: str, offer: Offer) -> ModelConfiguration:
+def select_sim_model_params(model_endpoint: ModelEnpointInput, offer: Offer) -> ForkOut:
     """Choose the model to apply for Similar Offers based on offer interaction"""
-    if model_endpoint not in list(SIMILAR_OFFER_ENDPOINTS.keys()):
-        model_endpoint = DEFAULT_SIMILAR_OFFER_MODEL
-    model_fork = SIMILAR_OFFER_ENDPOINTS[model_endpoint]
-    return model_fork.get_offer_status(offer=offer)
+    if model_endpoint.custom_configuration is not None:
+        origin = "custom"
+        model_fork = model_endpoint.custom_configuration.generate()
+    else:
+        origin = "default"
+        if model_endpoint not in list(SIMILAR_OFFER_ENDPOINTS.keys()):
+            model_endpoint = DEFAULT_SIMILAR_OFFER_MODEL
+        model_fork = SIMILAR_OFFER_ENDPOINTS[model_endpoint].generate()
+    return model_fork.get_offer_status(offer=offer, model_origin=origin)

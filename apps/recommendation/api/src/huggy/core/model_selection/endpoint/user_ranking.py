@@ -20,9 +20,3 @@ no_popular_ranking_endpoint = NoPopularModelRankingEndpoint(
     endpoint_name=RankingEndpointName.recommendation_user_ranking,
     size=50,
 )
-
-RANKING_ENDPOINT = {
-    "default": user_ranking_endpoint,
-    "distance": user_distance_ranking_endpoint,
-    "no_popularity": no_popular_ranking_endpoint,
-}
