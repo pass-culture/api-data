@@ -162,7 +162,12 @@ class RecommendableOffer:
             return literal_column("NULL").label("user_distance")
 
     def get_items(self, recommendable_items_ids: Dict[str, RecommendableItem]):
+    def get_items(self, recommendable_items_ids: Dict[str, RecommendableItem]):
         arr_sql = ",".join(
+            [
+                f"('{k}'::VARCHAR, {v.item_rank}::INT)"
+                for k, v in recommendable_items_ids.items()
+            ]
             [
                 f"('{k}'::VARCHAR, {v.item_rank}::INT)"
                 for k, v in recommendable_items_ids.items()
