@@ -1,7 +1,7 @@
 import copy
 from dataclasses import dataclass
 import typing as t
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 import huggy.core.scorer.offer as offer_scorer
 from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
 from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
@@ -155,10 +155,19 @@ class ModelConfigurationInput(BaseModel):
 
     name: str
     description: str = """"""
-    diversification_params: DiversificationParamsInput = DiversificationParamsInput()
-    warn_model_type: ModelTypeInput = WarnModelTypeDefaultInput()
-    cold_start_model_type: ModelTypeInput = ColdStartModelTypeDefaultInput()
-    fork_params: ForkParamsInput = ForkParamsInput()
+    diversification_params: DiversificationParamsInput = Field(
+        alias="dv", default=DiversificationParamsInput()
+    )
+    warn_model_type: ModelTypeInput = Field(
+        alias="wn", default=WarnModelTypeDefaultInput()
+    )
+    cold_start_model_type: ModelTypeInput = Field(
+        alias="cs", default=ColdStartModelTypeDefaultInput()
+    )
+    fork_params: ForkParamsInput = Field(alias="fk", default=ForkParamsInput())
+
+    class Config:
+        allow_population_by_field_name = True
 
     def get_diversification(
         self, diversification_params: DiversificationParamsInput

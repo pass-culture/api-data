@@ -1,14 +1,14 @@
 import json
+import base64
+import binascii
 
 
 def parse_hex(input_str):
     try:
-        int(input_str, 16)
-        return json.loads(bytes.fromhex(input_str).decode("utf-8"))
+        return json.loads(base64.b64decode(input_str).decode("utf-8"))
     except json.JSONDecodeError as e:
-        print(e)
         return None
-    except ValueError:
+    except (ValueError, binascii.Error, TypeError):
         return None
 
 
