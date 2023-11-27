@@ -1,7 +1,7 @@
 import traceback
 from traceback import print_exception
 from http import HTTPStatus
-
+import anyio
 from fastapi import HTTPException, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
@@ -14,24 +14,26 @@ class NotAuthorized(Exception):
 
 
 class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
-    def dispatch(self, request: Request, call_next):
+    async def dispatch(self, request: Request, call_next):
         try:
-            return call_next(request)
+            return await call_next(request)
         except NotAuthorized as e:
             raise HTTPException(status_code=401, detail="Not authorized")
-
-        except Exception as e:
-            print_exception(e)
+        except (RuntimeError, anyio.WouldBlock, anyio.EndOfStream) as exc:
+            if str(exc) == "No response returned." and await request.is_disconnected():
+                return Response(status_code=204)
+            raise
+        except Exception as exc:
             tb = traceback.format_exc()
             logger.error(
                 "Exception error",
                 extra={
                     "details": {
                         "content": {
-                            "error": e.__class__.__name__,
+                            "error": exc.__class__.__name__,
                             "trace": tb,
                         }
                     }
                 },
             )
-            raise e
+            raise
