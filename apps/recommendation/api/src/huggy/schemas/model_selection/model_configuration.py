@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 import typing as t
 
 from enum import Enum
@@ -36,37 +36,33 @@ class QueryOrderChoices(Enum):
 
 
 class ForkParamsInput(BaseModel):
-    bookings_count: t.Optional[int] = Field(alias="b", default=0)
-    clicks_count: t.Optional[int] = Field(alias="c", default=0)
-    favorites_count: t.Optional[int] = Field(alias="f", default=0)
-
-    class Config:
-        allow_population_by_field_name = True
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+    bookings_count: t.Optional[int] = Field(alias="b", default=1)
+    clicks_count: t.Optional[int] = Field(alias="c", default=25)
+    favorites_count: t.Optional[int] = Field(alias="f", default=None)
 
 
 class ModelTypeInput(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
     retrieval: RetrievalChoices = Field(alias="rt", default=RetrievalChoices.MIX)
     ranking: RankingChoices = Field(alias="rk", default=RankingChoices.MODEL)
     query_order: QueryOrderChoices = Field(
         alias="qo", default=QueryOrderChoices.ITEM_RANK
     )
 
-    class Config:
-        allow_population_by_field_name = True
-
 
 class DiversificationParamsInput(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
     diversication_type: DiversificationChoices = Field(
         alias="d", default=DiversificationChoices.ON
     )
 
-    class Config:
-        allow_population_by_field_name = True
-
 
 class WarnModelTypeDefaultInput(ModelTypeInput):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
     retrieval: RetrievalChoices = Field(alias="rt", default=RetrievalChoices.MIX)
 
 
 class ColdStartModelTypeDefaultInput(ModelTypeInput):
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
     retrieval: RetrievalChoices = Field(alias="rt", default=RetrievalChoices.TOPS)

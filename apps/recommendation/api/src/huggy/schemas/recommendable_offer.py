@@ -1,18 +1,18 @@
 import typing as t
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class OfferDistance(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     offer_id: str
     user_distance: float
 
-    class Config:
-        from_attributes = True
-
 
 class RecommendableOffer(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     """
     ORM model for RecommendableOfferRaw database query.
     This is used only as a db query output of crud.recommendable_offer queries.
@@ -40,9 +40,6 @@ class RecommendableOffer(BaseModel):
     item_rank: int  # lower = better
     item_score: t.Optional[float] = None  # scoring of the retrieval model
     item_origin: t.Optional[str] = None  # origin of item scoring
-
-    class Config:
-        from_attributes = True
 
 
 class RankedOffer(RecommendableOffer):

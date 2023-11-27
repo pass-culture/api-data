@@ -191,6 +191,7 @@ def select_reco_model_params(model_endpoint: str, user: UserContext) -> ForkOut:
         if model_name not in list(RECOMMENDATION_ENDPOINTS.keys()):
             model_name = DEFAULT_RECO_MODEL
         model_fork = RECOMMENDATION_ENDPOINTS[model_name].generate()
+        print(RECOMMENDATION_ENDPOINTS[model_name])
     return model_fork.get_user_status(user=user, model_origin=model_name)
 
 

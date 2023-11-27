@@ -59,7 +59,7 @@ class ItemRankRankingEndpoint(RankingEndpoint):
         for idx, row in enumerate(recommendable_offers):
             ranked_offers.append(
                 RankedOffer(
-                    offer_rank=idx,
+                    offer_rank=float(idx),
                     offer_score=None,
                     offer_origin=self.MODEL_ORIGIN,
                     **row.model_dump(),
@@ -81,12 +81,12 @@ class DistanceRankingEndpoint(RankingEndpoint):
     ) -> t.List[RankedOffer]:
         ranked_offers = []
         recommendable_offers = sorted(
-            recommendable_offers, key=lambda x: x.user_distance, reverse=False
+            recommendable_offers, key=lambda x: x.user_distance or 0, reverse=False
         )
         for idx, row in enumerate(recommendable_offers):
             ranked_offers.append(
                 RankedOffer(
-                    offer_rank=idx,
+                    offer_rank=float(idx),
                     offer_score=None,
                     offer_origin=self.MODEL_ORIGIN,
                     **row.model_dump(),

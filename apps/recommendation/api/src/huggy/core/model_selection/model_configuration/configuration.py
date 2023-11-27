@@ -153,6 +153,11 @@ class ModelFork:
 class ModelConfigurationInput(BaseModel):
     """Custom modelEndpoint model"""
 
+    model_config = ConfigDict(
+        populate_by_name=True,
+        extra="forbid",
+    )
+
     name: str
     description: str = """"""
     diversification_params: DiversificationParamsInput = Field(
@@ -165,9 +170,6 @@ class ModelConfigurationInput(BaseModel):
         alias="cs", default=ColdStartModelTypeDefaultInput()
     )
     fork_params: ForkParamsInput = Field(alias="fk", default=ForkParamsInput())
-
-    class Config:
-        allow_population_by_field_name = True
 
     def get_diversification(
         self, diversification_params: DiversificationParamsInput
