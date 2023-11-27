@@ -104,6 +104,7 @@ async def __similar_offers(
             "results": offer_recommendations,
             "params": {
                 "reco_origin": scoring.reco_origin,
+                "model_origin": scoring.model_origin,
                 "call_id": call_id,
             },
         }
@@ -186,6 +187,7 @@ async def playlist_recommendation(
             "playlist_recommended_offers": user_recommendations,
             "params": {
                 "reco_origin": scoring.reco_origin,
+                "model_origin": scoring.model_origin,
                 "call_id": call_id,
             },
         }

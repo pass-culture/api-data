@@ -3,14 +3,9 @@ from datetime import datetime
 from typing import Dict, List, Optional
 from dateutil.parser import parse
 from fastapi import Query
-from pydantic import BaseModel, ConfigDict, Field, field_validator, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
 from pydantic_core.core_schema import ValidationInfo
-from huggy.schemas.utils import parse_input
-from huggy.core.model_selection.model_configuration.configuration import (
-    ModelConfigurationInput,
-    ModelEnpointInput,
-)
 
 
 under_pat = re.compile(r"_([a-z])")
@@ -70,22 +65,6 @@ class PlaylistParams(BaseModel):
 
     async def to_dict(self):
         return self.dict()
-
-    def get_model_enpoint(self) -> ModelEnpointInput:
-        custom_configuration = None
-        if self.model_endpoint is not None:
-            try:
-                json = parse_input(self.model_endpoint)
-                if json is not None:
-                    custom_configuration = ModelConfigurationInput(**json)
-                    return ModelEnpointInput(
-                        model_name=None, custom_configuration=custom_configuration
-                    )
-            except ValidationError as e:
-                pass
-        return ModelEnpointInput(
-            model_name=self.model_endpoint, custom_configuration=None
-        )
 
 
 class GetSimilarOfferPlaylistParams(PlaylistParams):

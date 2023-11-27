@@ -44,8 +44,34 @@ class RankingEndpoint(AbstractEndpoint):
         pass
 
 
-class DistanceRankingEndpoint(RankingEndpoint):
-    """Return the same list"""
+class DummyRankingEndpoint(RankingEndpoint):
+    """Returns the same list."""
+
+    MODEL_ORIGIN = "dummy"
+
+    async def model_score(
+        self, recommendable_offers: t.List[RecommendableOffer]
+    ) -> t.List[RankedOffer]:
+        ranked_offers = []
+        for idx, row in enumerate(recommendable_offers):
+            ranked_offers.append(
+                RankedOffer(
+                    offer_rank=idx,
+                    offer_score=None,
+                    offer_origin=self.MODEL_ORIGIN,
+                    **row.model_dump(),
+                )
+            )
+        logger.debug(
+            f"ranking_endpoint {str(self.user.user_id)} out : {len(ranked_offers)}"
+        )
+        return ranked_offers
+
+
+class DistanceRankingEndpoint(DummyRankingEndpoint):
+    """Returns the list sorted by distance."""
+
+    MODEL_ORIGIN = "distance"
 
     async def model_score(
         self, recommendable_offers: t.List[RecommendableOffer]
@@ -54,11 +80,12 @@ class DistanceRankingEndpoint(RankingEndpoint):
         recommendable_offers = sorted(
             recommendable_offers, key=lambda x: x.user_distance, reverse=False
         )
-        for row in recommendable_offers:
+        for idx, row in enumerate(recommendable_offers):
             ranked_offers.append(
                 RankedOffer(
-                    offer_score=0,
-                    offer_output=0,
+                    offer_rank=idx,
+                    offer_score=None,
+                    offer_origin=self.MODEL_ORIGIN,
                     **row.model_dump(),
                 )
             )
@@ -71,9 +98,11 @@ class DistanceRankingEndpoint(RankingEndpoint):
 class ModelRankingEndpoint(RankingEndpoint):
     """Calls LGBM model to sort offers"""
 
+    MODEL_ORIGIN = "model"
+
     def get_instance(
         self, recommendable_offers: t.List[RecommendableOffer]
-    ) -> t.List[RankedOffer]:
+    ) -> t.List[t.Dict]:
         offers_list = []
         for row in recommendable_offers:
             offers_list.append(
@@ -109,8 +138,16 @@ class ModelRankingEndpoint(RankingEndpoint):
         )
         self.model_version = prediction_result.model_version
         self.model_display_name = prediction_result.model_display_name
+        # sort model output dict
         prediction_dict = {
-            str(r["offer_id"]): r["score"] for r in prediction_result.predictions
+            str(r["offer_id"]): {"offer_rank": idx, "offer_score": r["score"]}
+            for idx, r in enumerate(
+                sorted(
+                    prediction_result.predictions,
+                    key=lambda x: x["score"],
+                    reverse=True,
+                )
+            )
         }
         logger.debug(
             f"ranking_endpoint {str(self.user.user_id)} offers : {len(recommendable_offers)}",
@@ -120,12 +157,13 @@ class ModelRankingEndpoint(RankingEndpoint):
         ranked_offers = []
         not_found = []
         for row in recommendable_offers:
-            current_score = prediction_dict.get(str(row.offer_id), None)
+            current_score = prediction_dict.get(str(row.offer_id), {})
             if current_score is not None:
                 ranked_offers.append(
                     RankedOffer(
-                        offer_score=current_score,
-                        offer_output=current_score,
+                        offer_rank=current_score.get("offer_rank", None),
+                        offer_score=current_score.get("offer_score", None),
+                        offer_origin=self.MODEL_ORIGIN,
                         **row.model_dump(),
                     )
                 )
@@ -151,15 +189,17 @@ class ModelRankingEndpoint(RankingEndpoint):
         logger.debug(
             f"ranking_endpoint {str(self.user.user_id)} out : {len(ranked_offers)}"
         )
-        return sorted(ranked_offers, key=lambda x: x.offer_output, reverse=True)
+        return sorted(ranked_offers, key=lambda x: x.offer_rank, reverse=False)
 
 
-class NoPopularModelRankingEndpoint(RankingEndpoint):
-    """Calls LGBM model to sort offers"""
+class NoPopularModelRankingEndpoint(ModelRankingEndpoint):
+    """Calls LGBM model to sort offers without booking_number variable."""
+
+    MODEL_ORIGIN = "no_popular_model"
 
     def get_instance(
         self, recommendable_offers: t.List[RecommendableOffer]
-    ) -> t.List[RankedOffer]:
+    ) -> t.List[t.Dict]:
         offers_list = []
         for row in recommendable_offers:
             offers_list.append(

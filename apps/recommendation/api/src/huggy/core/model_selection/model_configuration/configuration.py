@@ -1,40 +1,42 @@
 import copy
 from dataclasses import dataclass
 import typing as t
+from pydantic import BaseModel, ConfigDict
 import huggy.core.scorer.offer as offer_scorer
 from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
 from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
 from huggy.schemas.offer import Offer
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
-from pydantic import BaseModel
-
-from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
-from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
+import huggy.core.model_selection.endpoint.user_ranking as user_ranking
 from huggy.schemas.model_selection.model_configuration import (
-    DiversificationParams,
     ModelTypeInput,
     WarnModelTypeDefaultInput,
     ForkParamsInput,
     ColdStartModelTypeDefaultInput,
+    DiversificationParamsInput,
+    DiversificationChoices,
+    RankingChoices,
 )
-import huggy.core.model_selection.endpoint.user_ranking as user_ranking
-from enum import Enum
+from huggy.schemas.model_selection.model_configuration import QueryOrderChoices
 
 
-class RankingChoices(Enum):
-    DEFAULT = "default"
-    DISTANCE = "distance"
-    NO_POPULARITY = "no_popularity"
+class DiversificationParams(BaseModel):
+    is_active: bool
+    is_reco_shuffled: bool
+    mixing_features: str
+    order_column: str
+    order_ascending: bool
+    submixing_feature_dict: t.Optional[t.Dict[str, str]] = None
 
-
-class DiversificationChoices(Enum):
-    DEFAULT = "default"
-    OFF = "off"
-    ON = "on"
-    GTL_ID = "gtl_id"
-    GTL_LVL3 = "glt_lvl3"
-    GTL_LVL4 = "glt_lvl4"
+    async def to_dict(self):
+        return {
+            "is_active": self.is_active,
+            "is_reco_shuffled": self.is_reco_shuffled,
+            "mixing_features": self.mixing_features,
+            "order_column": self.order_column,
+            "order_ascending": self.order_ascending,
+        }
 
 
 @dataclass
@@ -45,7 +47,7 @@ class ModelConfiguration:
     retrieval_endpoints: t.List[RetrievalEndpoint]
     ranking_endpoint: RankingEndpoint
     diversification_params: DiversificationParams
-    query_order: str = "item_rank"
+    query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK
 
     def get_diversification_params(
         self, params_in: PlaylistParams
@@ -126,7 +128,7 @@ class ModelFork:
             model_origin=model_origin,
         )
 
-    def get_offer_status(self, offer: Offer, model_origin):
+    def get_offer_status(self, offer: Offer, model_origin: str) -> ForkOut:
         """Get model status based on Offer interactions"""
         if not offer.found:
             return ForkOut(
@@ -153,28 +155,29 @@ class ModelConfigurationInput(BaseModel):
 
     name: str
     description: str = """"""
-    diversification_params: str = "default"
+    diversification_params: DiversificationParamsInput = DiversificationParamsInput()
     warn_model_type: ModelTypeInput = WarnModelTypeDefaultInput()
     cold_start_model_type: ModelTypeInput = ColdStartModelTypeDefaultInput()
     fork_params: ForkParamsInput = ForkParamsInput()
 
-    def get_diversification(self, div_type):
+    def get_diversification(
+        self, diversification_params: DiversificationParamsInput
+    ) -> DiversificationParams:
         diversification_on = DiversificationParams(
             is_active=True,
             is_reco_shuffled=False,
             mixing_features="search_group_name",
-            order_column="offer_score",
-            order_ascending=False,
+            order_column="offer_rank",
+            order_ascending=True,
             submixing_feature_dict=None,
         )
         return {
-            DiversificationChoices.DEFAULT: diversification_on,
             DiversificationChoices.OFF: DiversificationParams(
                 is_active=False,
                 is_reco_shuffled=False,
                 mixing_features="search_group_name",
-                order_column="offer_score",
-                order_ascending=False,
+                order_column="offer_rank",
+                order_ascending=True,
                 submixing_feature_dict=None,
             ),
             DiversificationChoices.ON: diversification_on,
@@ -182,35 +185,36 @@ class ModelConfigurationInput(BaseModel):
                 is_active=True,
                 is_reco_shuffled=True,
                 mixing_features="search_group_name",
-                order_column="offer_score",
-                order_ascending=False,
+                order_column="offer_rank",
+                order_ascending=True,
                 submixing_feature_dict={"LIVRES": "gtl_id"},
             ),
             DiversificationChoices.GTL_LVL3: DiversificationParams(
                 is_active=True,
                 is_reco_shuffled=True,
                 mixing_features="search_group_name",
-                order_column="offer_score",
-                order_ascending=False,
+                order_column="offer_rank",
+                order_ascending=True,
                 submixing_feature_dict={"LIVRES": "gtl_l3"},
             ),
             DiversificationChoices.GTL_LVL4: DiversificationParams(
                 is_active=True,
                 is_reco_shuffled=True,
                 mixing_features="search_group_name",
-                order_column="offer_score",
-                order_ascending=False,
+                order_column="offer_rank",
+                order_ascending=True,
                 submixing_feature_dict={"LIVRES": "gtl_l4"},
             ),
-        }.get(div_type, diversification_on)
+        }.get(diversification_params.diversication_type, diversification_on)
 
     def get_ranking(self, model_type) -> RankingEndpoint:
-        default = user_ranking.user_ranking_endpoint
+        model = user_ranking.user_ranking_endpoint
         return {
-            "default": default,
-            "distance": user_ranking.user_distance_ranking_endpoint,
-            "no_popularity": user_ranking.no_popular_ranking_endpoint,
-        }.get(model_type, default)
+            RankingChoices.MODEL: model,
+            RankingChoices.DISTANCE: user_ranking.user_distance_ranking_endpoint,
+            RankingChoices.NO_POPULARITY: user_ranking.no_popular_ranking_endpoint,
+            RankingChoices.OFF: user_ranking.off_ranking_endpoint,
+        }.get(model_type, model)
 
     def get_retrieval(self, model_type) -> t.List[RetrievalEndpoint]:
         pass
@@ -231,7 +235,7 @@ class ModelConfigurationInput(BaseModel):
         )
         warn_model = ModelConfiguration(
             name=self.name,
-            description="""""",
+            description=self.description,
             scorer=offer_scorer.OfferScorer,
             retrieval_endpoints=self.get_retrieval(self.warn_model_type.retrieval),
             ranking_endpoint=self.get_ranking(self.warn_model_type.ranking),
@@ -251,5 +255,6 @@ class ModelConfigurationInput(BaseModel):
 
 
 class ModelEnpointInput(BaseModel):
-    model_name: str = None
+    model_config = ConfigDict(protected_namespaces=())
+    model_name: t.Optional[str] = None
     custom_configuration: t.Optional[ModelConfigurationInput] = None

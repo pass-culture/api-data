@@ -5,13 +5,7 @@ from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
 from huggy.core.model_selection.model_configuration.configuration import (
     ModelConfigurationInput,
 )
-from enum import Enum
-
-
-class SimOffersRetrievalChoices(Enum):
-    MIX = "mix"
-    MIX_TOPS = "mix_tops"
-    TOPS = "tops"
+from huggy.schemas.model_selection.model_configuration import RetrievalChoices
 
 
 class SimilarModelConfigurationInput(ModelConfigurationInput):
@@ -21,11 +15,11 @@ class SimilarModelConfigurationInput(ModelConfigurationInput):
             offer_retrieval.semantic_offer_retrieval_endpoint,
         ]
         return {
-            SimOffersRetrievalChoices.MIX: default,
-            SimOffersRetrievalChoices.SEMANTIC: [
+            RetrievalChoices.MIX: default,
+            RetrievalChoices.SEMANTIC: [
                 offer_retrieval.semantic_offer_retrieval_endpoint,
             ],
-            SimOffersRetrievalChoices.MIX_TOPS: [
+            RetrievalChoices.MIX_TOPS: [
                 offer_retrieval.offer_retrieval_endpoint,
                 offer_retrieval.offer_filter_retrieval_endpoint,
                 offer_retrieval.semantic_offer_retrieval_endpoint,
