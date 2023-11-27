@@ -43,7 +43,7 @@ RECOMMENDATION_ENDPOINTS = {
             query_order=QueryOrderChoices.ITEM_RANK,
         ),
         fork_params=ForkParamsInput(
-            bookings_count=1,
+            bookings_count=2,
             clicks_count=25,
             favorites_count=None,
         ),

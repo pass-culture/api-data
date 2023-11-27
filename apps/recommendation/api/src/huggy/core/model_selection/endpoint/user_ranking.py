@@ -2,7 +2,7 @@ from huggy.core.endpoint.ranking_endpoint import (
     ModelRankingEndpoint,
     DistanceRankingEndpoint,
     NoPopularModelRankingEndpoint,
-    DummyRankingEndpoint,
+    ItemRankRankingEndpoint,
 )
 from huggy.core.model_selection.endpoint import RankingEndpointName
 
@@ -22,7 +22,7 @@ no_popular_ranking_endpoint = NoPopularModelRankingEndpoint(
     size=50,
 )
 
-off_ranking_endpoint = DummyRankingEndpoint(
+off_ranking_endpoint = ItemRankRankingEndpoint(
     endpoint_name=RankingEndpointName.recommendation_user_ranking,
     size=50,
 )

@@ -1,7 +1,7 @@
 import pytest
 
-from huggy.core.model_selection import recommendation_endpoints
-from huggy.core.model_selection.model_configuration import ModelFork
+from huggy.core.model_selection import RECOMMENDATION_ENDPOINTS
+from huggy.core.model_selection.model_configuration.configuration import ModelFork
 from huggy.schemas.user import UserContext
 
 
@@ -59,8 +59,6 @@ def test_get_cold_start_status(
     user: UserContext,
     expected_status: bool,
 ):
-    _, model_status = ModelFork(
-        cold_start_model=recommendation_endpoints.retrieval_reco,
-        warm_start_model=recommendation_endpoints.retrieval_reco,
-    ).get_user_status(user)
-    assert model_status == expected_status
+    model_fork = RECOMMENDATION_ENDPOINTS["default"].generate()
+    model_status = model_fork.get_user_status(user)
+    assert model_status.reco_origin == expected_status

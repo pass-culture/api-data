@@ -44,15 +44,18 @@ class RankingEndpoint(AbstractEndpoint):
         pass
 
 
-class DummyRankingEndpoint(RankingEndpoint):
-    """Returns the same list."""
+class ItemRankRankingEndpoint(RankingEndpoint):
+    """Returns the list sorted by item_rank ascending."""
 
-    MODEL_ORIGIN = "dummy"
+    MODEL_ORIGIN = "item_rank"
 
     async def model_score(
         self, recommendable_offers: t.List[RecommendableOffer]
     ) -> t.List[RankedOffer]:
         ranked_offers = []
+        recommendable_offers = sorted(
+            recommendable_offers, key=lambda x: x.item_rank, reverse=False
+        )
         for idx, row in enumerate(recommendable_offers):
             ranked_offers.append(
                 RankedOffer(
@@ -68,8 +71,8 @@ class DummyRankingEndpoint(RankingEndpoint):
         return ranked_offers
 
 
-class DistanceRankingEndpoint(DummyRankingEndpoint):
-    """Returns the list sorted by distance."""
+class DistanceRankingEndpoint(RankingEndpoint):
+    """Returns the list sorted by distance ascending."""
 
     MODEL_ORIGIN = "distance"
 
@@ -96,7 +99,7 @@ class DistanceRankingEndpoint(DummyRankingEndpoint):
 
 
 class ModelRankingEndpoint(RankingEndpoint):
-    """Calls LGBM model to sort offers"""
+    """Calls LGBM model to sort offers."""
 
     MODEL_ORIGIN = "model"
 
