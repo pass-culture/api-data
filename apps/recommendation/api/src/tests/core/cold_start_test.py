@@ -60,5 +60,5 @@ def test_get_cold_start_status(
     expected_status: bool,
 ):
     model_fork = RECOMMENDATION_ENDPOINTS["default"].generate()
-    model_status = model_fork.get_user_status(user)
+    model_status = model_fork.get_user_status(user, "test")
     assert model_status.reco_origin == expected_status
