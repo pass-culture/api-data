@@ -11,5 +11,5 @@ class IrisFrance(Base):
     __tablename__ = "iris_france"
     id = Column(Integer, primary_key=True)
     iriscode = Column(Integer)
-    centroid = Column(Geometry("POINT"))
+    centroid = Column(String(256))
     shape = Column(Geometry("POLYGON"))

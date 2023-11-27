@@ -9,6 +9,7 @@ from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
 from huggy.schemas.item import RecommendableItem
 from huggy.schemas.user import UserContext
 import huggy.schemas.offer as o
+from huggy.schemas.model_selection.model_configuration import QueryOrderChoices
 
 
 class RecommendableOffer:
@@ -26,7 +27,7 @@ class RecommendableOffer:
         recommendable_items_ids: Dict[str, RecommendableItem],
         limit: int = 250,
         offer: Optional[o.Offer] = None,
-        query_order: str = "item_rank",
+        query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK,
     ) -> List[r_o.RecommendableOffer]:
         offer_table: RecommendableOffersRaw = (
             await RecommendableOffersRaw().get_available_table(db)
@@ -102,11 +103,11 @@ class RecommendableOffer:
             .subquery(name="rank")
         )
 
-        if query_order == "user_distance":
+        if query_order == QueryOrderChoices.USER_DISTANCE:
             order_by = rank_subquery.c.user_distance.asc()
-        elif query_order == "booking_number":
+        elif query_order == QueryOrderChoices.BOOKING_NUMBER:
             order_by = rank_subquery.c.booking_number.desc()
-        else:
+        elif query_order == QueryOrderChoices.ITEM_RANK:
             order_by = rank_subquery.c.item_rank.asc()
 
         results = (

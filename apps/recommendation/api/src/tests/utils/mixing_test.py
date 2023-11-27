@@ -28,7 +28,7 @@ mock_scored_offers = [
         is_geolocated=0,
         item_rank=1,
         offer_score=1,
-        offer_output=1,
+        offer_rank=1,
     ),
     RankedOffer(
         offer_id="item_2",
@@ -52,7 +52,7 @@ mock_scored_offers = [
         is_geolocated=0,
         item_rank=2,
         offer_score=2,
-        offer_output=2,
+        offer_rank=2,
     ),
     RankedOffer(
         offer_id="item_3",
@@ -76,7 +76,7 @@ mock_scored_offers = [
         is_geolocated=0,
         item_rank=3,
         offer_score=3,
-        offer_output=3,
+        offer_rank=3,
     ),
     RankedOffer(
         offer_id="item_4",
@@ -100,7 +100,7 @@ mock_scored_offers = [
         is_geolocated=0,
         item_rank=4,
         offer_score=4,
-        offer_output=4,
+        offer_rank=4,
     ),
     RankedOffer(
         offer_id="item_5",
@@ -124,7 +124,7 @@ mock_scored_offers = [
         is_geolocated=0,
         item_rank=5,
         offer_score=5,
-        offer_output=5,
+        offer_rank=5,
     ),
 ]
 ## Reminder on diversification rule

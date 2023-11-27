@@ -1,6 +1,6 @@
 import typing as t
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, ConfigDict
 from pydantic_core.core_schema import ValidationInfo
 
 
@@ -15,16 +15,14 @@ class UserInput(BaseModel):
 class UserProfileDB(BaseModel):
     """ORM model from the crud.enriched_user base."""
 
+    model_config = ConfigDict(validate_assignment=True, from_attributes=True)
+
     user_id: t.Optional[str] = "-1"
     age: t.Optional[float] = 18
     bookings_count: t.Optional[int] = 0
     clicks_count: t.Optional[int] = 0
     favorites_count: t.Optional[int] = 0
     user_deposit_remaining_credit: t.Optional[float] = 300
-
-    class Config:
-        validate_assignment = True
-        from_attributes = True
 
     @field_validator("user_deposit_remaining_credit")
     def set_user_deposit_remaining_credit(cls, var, info: ValidationInfo) -> int:

@@ -6,7 +6,9 @@ from fastapi.encoders import jsonable_encoder
 import pytz
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from huggy.core.model_selection.model_configuration import ModelConfiguration
+from huggy.core.model_selection.model_configuration.configuration import (
+    ForkOut,
+)
 from huggy.core.scorer.offer import OfferScorer
 from huggy.models.past_recommended_offers import PastOfferContext
 from huggy.schemas.playlist_params import PlaylistParams
@@ -30,16 +32,18 @@ class ModelEngine(ABC):
         self.offer = offer
         self.params_in = params_in
         self.call_id = call_id
-        self.reco_origin = "unknown"
         self.context = context
         # Get model (cold_start or algo)
-        self.model_params = self.get_model_configuration(user, params_in)
+        config = self.get_model_configuration(user, params_in)
+        self.reco_origin = config.reco_origin
+        self.model_origin = config.model_origin
+        self.model_params = config.model_configuration
         self.scorer = self.get_scorer()
 
     @abstractmethod
     def get_model_configuration(
         self, user: UserContext, params_in: PlaylistParams
-    ) -> ModelConfiguration:
+    ) -> ForkOut:
         pass
 
     def get_scorer(self) -> OfferScorer:
@@ -132,11 +136,14 @@ class ModelEngine(ABC):
                         offer_stock_beginning_date=o.stock_beginning_date,
                         offer_category=o.category,
                         offer_subcategory_id=o.subcategory_id,
-                        offer_item_rank=o.item_rank,
-                        offer_item_score=o.item_rank,
-                        offer_order=o.offer_score,
+                        offer_item_rank=o.item_rank,  # ranking of the item
+                        offer_item_score=o.item_score,  # TODO: # score of the item
+                        offer_order=o.offer_rank,  # ranking of the offer
                         offer_venue_id=o.venue_id,
-                        offer_extra_data={},
+                        offer_extra_data={
+                            "offer_ranking_score": o.offer_score,
+                            "offer_ranking_origin": o.offer_origin,
+                        },
                     )
                 )
             await session.commit()
