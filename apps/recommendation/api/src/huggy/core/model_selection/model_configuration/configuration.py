@@ -153,7 +153,10 @@ class ModelFork:
 class ModelConfigurationInput(BaseModel):
     """Custom modelEndpoint model"""
 
-    model_config = ConfigDict(validate_assignment=True, from_attributes=True)
+    model_config = ConfigDict(
+        populate_by_name=True,
+        extra="forbid",
+    )
 
     name: str
     description: str = """"""

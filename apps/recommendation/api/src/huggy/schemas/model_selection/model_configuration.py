@@ -36,14 +36,14 @@ class QueryOrderChoices(Enum):
 
 
 class ForkParamsInput(BaseModel):
-    model_config = ConfigDict(strict=True, populate_by_name=True)
-    bookings_count: t.Optional[int] = Field(alias="b", default=2)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+    bookings_count: t.Optional[int] = Field(alias="b", default=1)
     clicks_count: t.Optional[int] = Field(alias="c", default=25)
-    favorites_count: t.Optional[int] = Field(alias="f", default=0)
+    favorites_count: t.Optional[int] = Field(alias="f", default=None)
 
 
 class ModelTypeInput(BaseModel):
-    model_config = ConfigDict(strict=True, populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
     retrieval: RetrievalChoices = Field(alias="rt", default=RetrievalChoices.MIX)
     ranking: RankingChoices = Field(alias="rk", default=RankingChoices.MODEL)
     query_order: QueryOrderChoices = Field(
@@ -52,17 +52,17 @@ class ModelTypeInput(BaseModel):
 
 
 class DiversificationParamsInput(BaseModel):
-    model_config = ConfigDict(strict=True, populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
     diversication_type: DiversificationChoices = Field(
         alias="d", default=DiversificationChoices.ON
     )
 
 
 class WarnModelTypeDefaultInput(ModelTypeInput):
-    model_config = ConfigDict(strict=True, populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
     retrieval: RetrievalChoices = Field(alias="rt", default=RetrievalChoices.MIX)
 
 
 class ColdStartModelTypeDefaultInput(ModelTypeInput):
-    model_config = ConfigDict(strict=True, populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, extra="forbid")
     retrieval: RetrievalChoices = Field(alias="rt", default=RetrievalChoices.TOPS)
