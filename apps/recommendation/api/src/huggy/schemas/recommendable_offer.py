@@ -38,7 +38,8 @@ class RecommendableOffer(BaseModel):
     venue_longitude: t.Optional[float]
     is_geolocated: t.Optional[bool]
     item_rank: int  # lower = better
-    item_origin: t.Optional[str] = None
+    item_score: t.Optional[float] = None  # scoring of the retrieval model
+    item_origin: t.Optional[str] = None  # origin of item scoring
 
     class Config:
         from_attributes = True
@@ -50,5 +51,6 @@ class RankedOffer(RecommendableOffer):
     Contains the scoring of a Ranking Model.
     """
 
-    offer_output: float  # final output
-    offer_score: float  # higher = better
+    offer_rank: float  # final output (lower = better)
+    offer_score: t.Optional[float] = None  # scoring of the ranking model
+    offer_origin: t.Optional[str] = None  # origin of the scoring

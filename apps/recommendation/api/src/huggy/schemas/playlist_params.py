@@ -6,7 +6,7 @@ from fastapi import Query
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
 from pydantic_core.core_schema import ValidationInfo
-import json
+
 
 under_pat = re.compile(r"_([a-z])")
 
