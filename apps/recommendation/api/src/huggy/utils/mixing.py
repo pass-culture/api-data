@@ -11,8 +11,8 @@ from huggy.utils.env_vars import NUMBER_OF_RECOMMENDATIONS
 
 def order_offers_by_score_and_diversify_features(
     offers: List[RankedOffer],
-    score_column="offer_score",
-    score_order_ascending=False,
+    score_column="offer_rank",
+    score_order_ascending=True,
     shuffle_recommendation=None,
     feature="subcategory_id",
     nb_reco_display=NUMBER_OF_RECOMMENDATIONS,
@@ -61,15 +61,12 @@ def order_offers_by_score_and_diversify_features(
             reverse=score_order_ascending,
         )
     if (not is_submixing) and (len(to_submixed_data) > 0):
-        print("inside recursive run...")
         is_submixing = True
         for subcat_to_mix in to_submixed_data.keys():
-            print(f"subcat_to_mix: {subcat_to_mix}")
-            print(f"feature: {submixing_feature_dict[subcat_to_mix]}")
             submixed_data = order_offers_by_score_and_diversify_features(
                 to_submixed_data[subcat_to_mix],
-                score_column="offer_score",
-                score_order_ascending=False,
+                score_column=score_column,
+                score_order_ascending=score_order_ascending,
                 shuffle_recommendation=None,
                 feature=submixing_feature_dict[subcat_to_mix],
                 nb_reco_display=len(to_submixed_data[subcat_to_mix]),
@@ -77,7 +74,6 @@ def order_offers_by_score_and_diversify_features(
             )
             submixed_data.reverse()
             offers_by_feature_ordered_by_frequency[subcat_to_mix] = submixed_data
-    # print("traditional run...")
     offers_by_feature_length = np.sum([len(l) for l in offers_by_feature.values()])
     while len(diversified_offers) != offers_by_feature_length:
         # here we pop one offer of eachsubcat
