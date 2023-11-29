@@ -9,6 +9,7 @@ class RetrievalChoices(Enum):
     TOPS = "tops"
     MIX_TOPS = "m&t"
     RECOMMENDATION = "reco"
+    RAW_RECOMMENDATION = "raw_reco"
     RECOMMENDATION_VERSIONB = "reco_b"
     MIX_VERSION_B = "mix_b"
     SEMANTIC = "sm"

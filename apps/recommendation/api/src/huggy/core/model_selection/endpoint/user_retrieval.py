@@ -1,6 +1,7 @@
 from huggy.core.endpoint.retrieval_endpoint import (
     FilterRetrievalEndpoint,
     RecommendationRetrievalEndpoint,
+    RawRecommendationRetrievalEndpoint,
 )
 from huggy.core.model_selection.endpoint import RetrievalEndpointName
 
@@ -19,6 +20,11 @@ recommendation_retrieval_endpoint = RecommendationRetrievalEndpoint(
     endpoint_name=RetrievalEndpointName.recommendation_user_retrieval,
     size=RETRIEVAL_LIMIT,
     fallback_endpoints=[RetrievalEndpointName.recommendation_user_retrieval_version_b],
+)
+
+raw_recommendation_retrieval_endpoint = RawRecommendationRetrievalEndpoint(
+    endpoint_name=RetrievalEndpointName.recommendation_user_retrieval,
+    size=RETRIEVAL_LIMIT,
 )
 
 
