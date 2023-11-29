@@ -48,6 +48,6 @@ class RankedOffer(RecommendableOffer):
     Contains the scoring of a Ranking Model.
     """
 
-    offer_rank: t.Optional[float]  # final output (lower = better)
+    offer_rank: float  # final output (lower = better)
     offer_score: t.Optional[float] = None  # scoring of the ranking model
     offer_origin: t.Optional[str] = None  # origin of the scoring
