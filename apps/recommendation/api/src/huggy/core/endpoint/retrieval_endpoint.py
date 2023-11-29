@@ -204,6 +204,20 @@ class RecommendationRetrievalEndpoint(RetrievalEndpoint):
         }
 
 
+class RawRecommendationRetrievalEndpoint(RetrievalEndpoint):
+    def get_instance(self, size: int):
+        return {
+            "model_type": "recommendation",
+            "user_id": str(self.user.user_id),
+            "size": size,
+            "params": self.get_params(),
+            "call_id": self.call_id,
+            "debug": 0,
+            "prefilter": 1,
+            "vector_column_name": "raw_embeddings",
+        }
+
+
 class OfferRetrievalEndpoint(RetrievalEndpoint):
     def init_input(
         self, user: UserContext, offer: Offer, params_in: PlaylistParams, call_id: str
