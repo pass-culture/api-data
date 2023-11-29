@@ -12,4 +12,7 @@ AsyncSessionLocal = sessionmaker(
 
 async def get_db() -> AsyncSession:
     async with AsyncSessionLocal() as session:
-        yield session
+        try:
+            yield session
+        finally:
+            await session.close()

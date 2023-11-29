@@ -161,10 +161,11 @@ class ModelRankingEndpoint(RankingEndpoint):
         not_found = []
         for row in recommendable_offers:
             current_score = prediction_dict.get(str(row.offer_id), {})
-            if current_score is not None:
+            offer_rank = current_score.get("offer_rank", None)
+            if offer_rank is not None:
                 ranked_offers.append(
                     RankedOffer(
-                        offer_rank=current_score.get("offer_rank", None),
+                        offer_rank=offer_rank,
                         offer_score=current_score.get("offer_score", None),
                         offer_origin=self.MODEL_ORIGIN,
                         **row.model_dump(),
