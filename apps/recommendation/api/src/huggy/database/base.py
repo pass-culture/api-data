@@ -15,7 +15,6 @@ class MaterializedBase:
     def materialized_tables(self) -> t.List[Base]:
         pass
 
-    @cached(ttl=30, cache=Cache.MEMORY)
     async def get_available_table(self, session: AsyncSession) -> Base:
         table_names = []
         for obj in self.materialized_tables():
