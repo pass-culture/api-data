@@ -115,7 +115,7 @@ RECOMMENDATION_ENDPOINTS = {
         ),
     ),
     "force_algo": RecoModelConfigurationInput(
-        name="default_algo",
+        name="force_algo",
         description="""Force algo configuration.""",
         diversification_params=DiversificationParamsInput(
             diversication_type=DiversificationChoices.ON,
