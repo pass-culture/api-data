@@ -25,6 +25,7 @@ recommendation_retrieval_endpoint = RecommendationRetrievalEndpoint(
 raw_recommendation_retrieval_endpoint = RawRecommendationRetrievalEndpoint(
     endpoint_name=RetrievalEndpointName.recommendation_user_retrieval,
     size=RETRIEVAL_LIMIT,
+    fallback_endpoints=[RetrievalEndpointName.recommendation_user_retrieval_version_b],
 )
 
 
