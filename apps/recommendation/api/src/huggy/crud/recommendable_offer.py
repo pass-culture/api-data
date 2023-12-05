@@ -61,6 +61,7 @@ class RecommendableOffer:
                 offer_table.venue_id.label("venue_id"),
                 user_distance,
                 offer_table.booking_number.label("booking_number"),
+                offer_table.total_offers.label("total_offers"),
                 offer_table.default_max_distance.label("default_max_distance"),
                 offer_table.stock_price.label("stock_price"),
                 offer_table.offer_creation_date.label("offer_creation_date"),
@@ -82,23 +83,15 @@ class RecommendableOffer:
                 recommendable_items,
                 offer_table.item_id == recommendable_items.c.item_id,
             )
+            .where(offer_table.total_offers == 1)
             .where(*underage_condition)
             .where(offer_table.stock_price <= user.user_deposit_remaining_credit)
             .where(not_(offer_table.is_sensitive))
             .subquery(name="offers")
         )
 
-        offer_rank = case(
-            offer_table.total_offers > 1,
-            func.row_number().over(
-                partition_by=text("offers.item_id"),
-                order_by=text("offers.user_distance ASC"),
-            ),
-            _else=literal_column(1),
-        ).label("offer_rank")
-
         rank_subquery = (
-            select(nearest_offers_subquery, offer_rank)
+            select(nearest_offers_subquery)
             .where(*user_distance_condition)
             .subquery(name="rank")
         )
@@ -111,12 +104,7 @@ class RecommendableOffer:
             order_by = rank_subquery.c.item_rank.asc()
 
         results = (
-            await db.execute(
-                select(rank_subquery)
-                .where(rank_subquery.c.offer_rank == 1)
-                .order_by(order_by)
-                .limit(limit)
-            )
+            await db.execute(select(rank_subquery).order_by(order_by).limit(limit))
         ).fetchall()
         return TypeAdapter(List[r_o.RecommendableOffer]).validate_python(results)
 

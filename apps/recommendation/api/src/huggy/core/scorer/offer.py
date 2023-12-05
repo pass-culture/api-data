@@ -117,7 +117,7 @@ class OfferScorer:
         recommendable_items_ids = {
             item.item_id: item
             for item in recommendable_items
-            if item.item_id not in non_recommendable_items
+            if item.item_id not in non_recommendable_items and item.item_id is not None
         }
         recommendable_offers = await RecommendableOfferDB().get_nearest_offers(
             db,

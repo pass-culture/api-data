@@ -37,6 +37,7 @@ class RecommendableOffersRawExample(BaseModel):
     is_geolocated: bool = False
     is_sensitive: bool = False
     booking_number: int = 0
+    total_offers: int = 1
     offer_creation_date: datetime = datetime.now() - timedelta(days=5 * 366)
     stock_creation_date: datetime = datetime.now() - timedelta(days=5 * 366)
     stock_price: float = 10
