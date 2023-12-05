@@ -3,7 +3,7 @@ from typing import Dict, List, Optional
 from pydantic import TypeAdapter
 from sqlalchemy import String, and_, func, or_, select, text, not_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.expression import literal_column
+from sqlalchemy.sql.expression import literal_column, case
 import huggy.schemas.recommendable_offer as r_o
 from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
 from huggy.schemas.item import RecommendableItem
@@ -88,14 +88,14 @@ class RecommendableOffer:
             .subquery(name="offers")
         )
 
-        offer_rank = (
-            func.row_number()
-            .over(
+        offer_rank = case(
+            offer_table.total_offers > 1,
+            func.row_number().over(
                 partition_by=text("offers.item_id"),
                 order_by=text("offers.user_distance ASC"),
-            )
-            .label("offer_rank")
-        )
+            ),
+            _else=literal_column(1),
+        ).label("offer_rank")
 
         rank_subquery = (
             select(nearest_offers_subquery, offer_rank)

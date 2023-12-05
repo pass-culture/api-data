@@ -35,31 +35,23 @@ async def check_table_exists(session: AsyncSession, table_name: str) -> bool:
 
 def get_engine(local=API_LOCAL):
     if local:
-        return create_async_engine(
-            f"postgresql+asyncpg://postgres:postgres@localhost:{DATA_GCP_TEST_POSTGRES_PORT}/{DB_NAME}",
-            pool_size=10,
-            max_overflow=20,
-            pool_timeout=10,
-            pool_pre_ping=True,
-            pool_use_lifo=True,
-            pool_recycle=3600,
-        )
+        conn = f"postgresql+asyncpg://postgres:postgres@localhost:{DATA_GCP_TEST_POSTGRES_PORT}/{DB_NAME}"
 
     else:
-        return create_async_engine(
-            engine.url.URL(
-                drivername="postgresql+asyncpg",
-                username=SQL_BASE_USER,
-                password=SQL_BASE_PASSWORD,
-                database=SQL_BASE,
-                host=SQL_HOST,
-                port=SQL_PORT,
-                query={},
-            ),
-            pool_size=10,
-            max_overflow=30,
-            pool_timeout=10,
-            pool_pre_ping=True,
-            pool_use_lifo=True,
-            pool_recycle=3600,
+        conn = engine.url.URL(
+            drivername="postgresql+asyncpg",
+            username=SQL_BASE_USER,
+            password=SQL_BASE_PASSWORD,
+            database=SQL_BASE,
+            host=SQL_HOST,
+            port=SQL_PORT,
+            query={},
         )
+    return create_async_engine(
+        conn,
+        pool_size=5,
+        max_overflow=30,
+        pool_timeout=1,
+        pool_pre_ping=True,
+        pool_recycle=300,
+    )
