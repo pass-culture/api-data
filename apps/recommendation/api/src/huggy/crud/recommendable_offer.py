@@ -61,7 +61,6 @@ class RecommendableOffer:
                 offer_table.venue_id.label("venue_id"),
                 user_distance,
                 offer_table.booking_number.label("booking_number"),
-                offer_table.total_offers.label("total_offers"),
                 offer_table.default_max_distance.label("default_max_distance"),
                 offer_table.stock_price.label("stock_price"),
                 offer_table.offer_creation_date.label("offer_creation_date"),
@@ -90,8 +89,17 @@ class RecommendableOffer:
             .subquery(name="offers")
         )
 
+        offer_rank = (
+            func.row_number()
+            .over(
+                partition_by=text("offers.item_id"),
+                order_by=text("offers.user_distance ASC"),
+            )
+            .label("offer_rank")
+        )
+
         rank_subquery = (
-            select(nearest_offers_subquery)
+            select(nearest_offers_subquery, offer_rank)
             .where(*user_distance_condition)
             .subquery(name="rank")
         )
@@ -104,7 +112,12 @@ class RecommendableOffer:
             order_by = rank_subquery.c.item_rank.asc()
 
         results = (
-            await db.execute(select(rank_subquery).order_by(order_by).limit(limit))
+            await db.execute(
+                select(rank_subquery)
+                .where(rank_subquery.c.offer_rank == 1)
+                .order_by(order_by)
+                .limit(limit)
+            )
         ).fetchall()
         return TypeAdapter(List[r_o.RecommendableOffer]).validate_python(results)
 

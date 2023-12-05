@@ -111,9 +111,6 @@ class OfferScorer:
         recommendable_items: List[RecommendableItem],
     ) -> List[RecommendableOffer]:
         non_recommendable_items = await get_non_recommendable_items(db, self.user)
-        recommendable_items = sorted(
-            recommendable_items, key=lambda x: x.item_rank, reverse=False
-        )[:250]
         recommendable_items_ids = {
             item.item_id: item
             for item in recommendable_items
