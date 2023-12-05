@@ -1,9 +1,9 @@
 from typing import Dict, List, Optional
 
 from pydantic import TypeAdapter
-from sqlalchemy import String, and_, func, or_, select, text, not_
+from sqlalchemy import String, func, select, text, not_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.expression import literal_column, case
+from sqlalchemy.sql.expression import literal_column
 import huggy.schemas.recommendable_offer as r_o
 from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
 from huggy.schemas.item import RecommendableItem
@@ -82,7 +82,6 @@ class RecommendableOffer:
                 recommendable_items,
                 offer_table.item_id == recommendable_items.c.item_id,
             )
-            .where(offer_table.total_offers == 1)
             .where(*underage_condition)
             .where(offer_table.stock_price <= user.user_deposit_remaining_credit)
             .where(not_(offer_table.is_sensitive))
