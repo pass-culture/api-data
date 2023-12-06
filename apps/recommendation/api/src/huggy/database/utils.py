@@ -50,8 +50,8 @@ def get_engine(local=API_LOCAL):
     return create_async_engine(
         conn,
         pool_size=5,
-        max_overflow=30,
-        pool_timeout=1,
+        max_overflow=10,
+        pool_timeout=10,
         pool_pre_ping=True,
-        pool_recycle=300,
+        pool_recycle=1000,
     )
