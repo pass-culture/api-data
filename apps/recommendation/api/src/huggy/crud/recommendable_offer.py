@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional
 
 from pydantic import TypeAdapter
-from sqlalchemy import String, and_, func, or_, select, text, not_
+from sqlalchemy import String, func, select, text, not_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import literal_column
 import huggy.schemas.recommendable_offer as r_o

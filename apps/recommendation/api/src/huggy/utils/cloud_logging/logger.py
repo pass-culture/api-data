@@ -3,6 +3,7 @@ from fastapi.logger import logger
 
 from huggy.utils.env_vars import (
     call_id_trace_context,
+    ENV_SHORT_NAME,
 )
 
 
@@ -22,7 +23,8 @@ class CustomLogger:
     def debug(self, msg=None, extra=None):
         call_id = call_id_trace_context.get()
         log_entry = {"message": msg, "extra": extra, "call_id": call_id}
-        logger.debug(log_entry)
+        if ENV_SHORT_NAME != "prod":
+            logger.debug(log_entry)
         return
 
     def error(self, msg=None, extra=None):

@@ -35,6 +35,7 @@ class FakeRecommendableOffersRaw(Base):
     offer_type_domain = Column(String(256))
     offer_type_label = Column(String(256))
     booking_number = Column(Integer)
+    total_offers = Column(Integer)
     is_underage_recommendable = Column(Boolean)
     venue_latitude = Column(Float)
     venue_longitude = Column(Float)
