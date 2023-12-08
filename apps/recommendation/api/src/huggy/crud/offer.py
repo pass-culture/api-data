@@ -5,17 +5,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.encoders import jsonable_encoder
 import huggy.schemas.offer as o
 from huggy.crud.iris import Iris
-from huggy.models.item_ids_mv import ItemIdsMv
+from huggy.models.item_ids import ItemIds
 from huggy.utils.cloud_logging import logger
 
 
 class Offer:
-    async def get_item(self, db, offer_id) -> t.Optional[ItemIdsMv]:
+    async def get_item(self, db, offer_id) -> t.Optional[ItemIds]:
+        item_table: ItemIds = await ItemIds().get_available_table(db)
         if offer_id is not None:
             return (
                 (
                     await db.execute(
-                        select(ItemIdsMv).where(ItemIdsMv.offer_id == offer_id)
+                        select(item_table).where(item_table.offer_id == offer_id)
                     )
                 )
                 .scalars()

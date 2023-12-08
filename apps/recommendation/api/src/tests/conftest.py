@@ -14,7 +14,7 @@ from huggy.models.enriched_user import (
     EnrichedUserMvTmp,
 )
 from huggy.models.iris_france import IrisFrance
-from huggy.models.item_ids_mv import ItemIdsMv
+from huggy.models.item_ids import ItemIdsMv
 from huggy.models.non_recommendable_items import NonRecommendableItems
 from huggy.models.recommendable_offers_raw import (
     RecommendableOffersRawMv,
