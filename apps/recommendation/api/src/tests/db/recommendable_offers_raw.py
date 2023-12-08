@@ -2,7 +2,7 @@ import logging
 
 from sqlalchemy import insert, inspect, text
 
-from huggy.models.item_ids_mv import ItemIdsMv
+from huggy.models.item_ids import ItemIdsMv
 from huggy.models.recommendable_offers_raw import (
     RecommendableOffersRawMv,
     RecommendableOffersRawMvOld,
