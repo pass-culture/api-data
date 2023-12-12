@@ -12,6 +12,7 @@ from huggy.models.enriched_user import (
     EnrichedUserMvOld,
     EnrichedUserMvTmp,
 )
+from huggy.utils.env_vars import SQL_BASE_DATABASE
 from huggy.models.iris_france import IrisFrance
 from huggy.models.item_ids import ItemIdsMv
 from huggy.models.non_recommendable_items import NonRecommendableItemsMv
@@ -26,7 +27,7 @@ from contextlib import ExitStack
 import pytest
 from fastapi.testclient import TestClient
 from huggy import init_app
-from tests.db.utils import clean_db
+from tests.db.utils import clean_db, drop_restore_db
 
 logger = logging.getLogger(__name__)
 
@@ -85,11 +86,12 @@ def event_loop(request):
 @pytest.fixture(scope="session", autouse=True)
 async def connection_test(event_loop):
     sessionmanager.init(config.DB_CONFIG)
-    yield
+    async with sessionmanager.session() as session:
+        yield
     await sessionmanager.close()
 
 
-@pytest.fixture(scope="function", autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 async def setup_default_database(connection_test):
     async with sessionmanager.session() as session:
         await clean_db(session, models=MODELS)

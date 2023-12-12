@@ -2,11 +2,12 @@ from sqlalchemy import inspect, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-def create_db(session: AsyncSession, db_name: str):
-    sql = f"""CREATE IF NOT EXISTS DATABSE {db_name} ; """
-    with session as conn:
-        conn.execute(text(sql))
-        conn.commit()
+async def drop_restore_db(session, db_name: str):
+    drop_sql = f"""DROP DATABASE IF EXISTS {db_name} ; """
+    create_sql = f"""CREATE DATABSE {db_name} ;"""
+    async with session.bind.connect() as connection:
+        await connection.execute(text(drop_sql))
+        await connection.execute(text(create_sql))
 
 
 async def create_model(session: AsyncSession, model):
