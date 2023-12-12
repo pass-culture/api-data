@@ -10,7 +10,7 @@ from huggy.utils.cloud_logging import logger
 
 
 class Offer:
-    async def get_item(self, db, offer_id) -> t.Optional[ItemIdsMv]:
+    async def get_item(self, db: AsyncSession, offer_id: str) -> t.Optional[ItemIdsMv]:
         if offer_id is not None:
             return (
                 (
@@ -53,7 +53,7 @@ class Offer:
                 latitude=latitude,
                 longitude=longitude,
                 iris_id=iris_id,
-                is_geolocated=True if iris_id else False,
+                is_geolocated=iris_id is not None,
                 item_id=offer_characteristics.item_id,
                 booking_number=offer_characteristics.booking_number,
                 is_sensitive=True if offer_characteristics.is_sensitive else False,

@@ -8,20 +8,14 @@ GCP_PROJECT = os.environ.get("GCP_PROJECT", "passculture-data-ehp")
 ENV_SHORT_NAME = os.environ.get("ENV_SHORT_NAME", "dev")
 CORS_ALLOWED_ORIGIN = os.environ.get("CORS_ALLOWED_ORIGIN", "*")
 API_LOCAL = bool(os.environ.get("API_LOCAL", 0)) == True
+
 # SQL
-SQL_BASE = os.environ.get("SQL_BASE", "cloudsql-recommendation-dev-ew1")
-
-SQL_BASE_USER = os.environ.get("SQL_BASE_USER", "cloudsql-recommendation-dev-ew1")
-SQL_CONNECTION_NAME = os.environ.get(
-    "SQL_CONNECTION_NAME",
-    "passculture-data-ehp:europe-west1:cloudsql-recommendation-dev-ew1",
-)
-
-DATA_GCP_TEST_POSTGRES_PORT = os.getenv("DATA_GCP_TEST_POSTGRES_PORT", 5432)
+SQL_BASE_DATABASE = os.environ.get("SQL_BASE", "db")
+SQL_BASE_USER = os.environ.get("SQL_BASE_USER", "postgres")
 SQL_BASE_PASSWORD = os.environ.get("SQL_BASE_PASSWORD", "postgres")
-SQL_PORT = os.environ.get("SQL_PORT")
-SQL_HOST = os.environ.get("SQL_HOST")
-DB_NAME = "db"
+SQL_BASE_PORT = os.environ.get("SQL_PORT", 5432)
+SQL_BASE_HOST = os.environ.get("SQL_HOST", "localhost")
+
 API_TOKEN = "api_token"
 
 if not API_LOCAL:

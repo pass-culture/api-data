@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 def create_db(session: AsyncSession, db_name: str):
     sql = f"""CREATE IF NOT EXISTS DATABSE {db_name} ; """
-    with session.bind.connect() as conn:
+    with session as conn:
         conn.execute(text(sql))
         conn.commit()
 
