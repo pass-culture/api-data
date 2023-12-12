@@ -10,10 +10,13 @@ from huggy.schemas.user import UserContext
 async def get_non_recommendable_items(
     db: AsyncSession, user: UserContext
 ) -> t.List[str]:
+    non_recommendable_items_table: NonRecommendableItems = (
+        await NonRecommendableItems().get_available_table(db)
+    )
     non_recommendable_items = (
         await db.execute(
-            select(NonRecommendableItems.item_id.label("item_id")).where(
-                NonRecommendableItems.user_id == user.user_id
+            select(non_recommendable_items_table.item_id.label("item_id")).where(
+                non_recommendable_items_table.user_id == user.user_id
             )
         )
     ).fetchall()

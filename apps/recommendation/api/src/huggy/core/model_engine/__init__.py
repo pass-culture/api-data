@@ -93,7 +93,7 @@ class ModelEngine(ABC):
         scoring_size = min(len(scored_offers), NUMBER_OF_RECOMMENDATIONS)
         await self.save_context(
             session=db,
-            offers=scored_offers,
+            offers=scored_offers[:scoring_size],
             context=self.context,
             user=self.user,
         )
