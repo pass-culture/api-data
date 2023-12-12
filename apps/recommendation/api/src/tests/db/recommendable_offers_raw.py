@@ -2,7 +2,7 @@ import logging
 
 from sqlalchemy import insert, inspect, text
 
-from huggy.models.item_ids_mv import ItemIdsMv
+from huggy.models.item_ids import ItemIdsMv
 from huggy.models.recommendable_offers_raw import (
     RecommendableOffersRawMv,
     RecommendableOffersRawMvOld,
@@ -22,17 +22,15 @@ async def create_fake_mv(session, table_name):
         SELECT *, ST_SetSRID(ST_MakePoint(ro.venue_longitude, ro.venue_latitude), 4326)::geography as venue_geo  
         FROM {raw_table_name} ro;
     """
-    async with session.bind.connect() as conn:
-        await conn.execute(text(sql))
-        await conn.commit()
+
+    await session.execute(text(sql))
+    await session.commit()
 
 
 async def create_recommendable_offers_raw(session):
     await create_model(session, FakeRecommendableOffersRaw)
-
-    async with session.bind.connect() as conn:
-        await conn.execute(insert(FakeRecommendableOffersRaw), raw_data)
-        await conn.commit()
+    await session.execute(insert(FakeRecommendableOffersRaw), raw_data)
+    await session.commit()
 
 
 async def create_recommendable_offers_raw_mv(session):
@@ -61,7 +59,5 @@ async def create_item_ids_mv(session):
         for x in raw_data
     ]
 
-    async with session.bind.connect() as conn:
-        await conn.execute(insert(ItemIdsMv), item_ids)
-        await conn.commit()
-        await conn.close()
+    await session.execute(insert(ItemIdsMv), item_ids)
+    await session.commit()

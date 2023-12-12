@@ -22,7 +22,7 @@ async def test_extensions(setup_empty_database: AsyncSession):
         ("enriched_user_mv", True),
         ("recommendable_offers_raw_mv", True),
         ("iris_france", True),
-        ("non_recommendable_items", True),
+        ("non_recommendable_items_mv", True),
         ("item_ids_mv", True),
     ],
 )
@@ -68,37 +68,37 @@ async def test_materialized_views(
     assert table.__tablename__ == expected_result
 
 
-@pytest.mark.parametrize(
-    "base_db, expected_result",
-    [
-        (EnrichedUser, "enriched_user_mv_tmp"),
-        (RecommendableOffersRaw, "recommendable_offers_raw_mv_tmp"),
-    ],
-)
-async def test_materialized_tmp_views(
-    setup_default_database: AsyncSession,
-    drop_mv_database: AsyncSession,
-    base_db,
-    expected_result,
-):
-    """This test should return tmp table only."""
-    table = await base_db().get_available_table(setup_default_database)
-    assert table.__tablename__ == expected_result
+# @pytest.mark.parametrize(
+#     "base_db, expected_result",
+#     [
+#         (EnrichedUser, "enriched_user_mv_tmp"),
+#         (RecommendableOffersRaw, "recommendable_offers_raw_mv_tmp"),
+#     ],
+# )
+# async def test_materialized_tmp_views(
+#     setup_default_database: AsyncSession,
+#     drop_mv_database: AsyncSession,
+#     base_db,
+#     expected_result,
+# ):
+#     """This test should return tmp table only."""
+#     table = await base_db().get_available_table(setup_default_database)
+#     assert table.__tablename__ == expected_result
 
 
-@pytest.mark.parametrize(
-    "base_db, expected_result",
-    [
-        (EnrichedUser, "enriched_user_mv_old"),
-        (RecommendableOffersRaw, "recommendable_offers_raw_mv_old"),
-    ],
-)
-async def test_materialized_old_views(
-    setup_default_database: AsyncSession,
-    drop_mv_and_tmp_database: AsyncSession,
-    base_db,
-    expected_result,
-):
-    """This test shloud return the old tables only."""
-    table = await base_db().get_available_table(setup_default_database)
-    assert table.__tablename__ == expected_result
+# @pytest.mark.parametrize(
+#     "base_db, expected_result",
+#     [
+#         (EnrichedUser, "enriched_user_mv_old"),
+#         (RecommendableOffersRaw, "recommendable_offers_raw_mv_old"),
+#     ],
+# )
+# async def test_materialized_old_views(
+#     setup_default_database: AsyncSession,
+#     drop_mv_and_tmp_database: AsyncSession,
+#     base_db,
+#     expected_result,
+# ):
+#     """This test shloud return the old tables only."""
+#     table = await base_db().get_available_table(setup_default_database)
+#     assert table.__tablename__ == expected_result

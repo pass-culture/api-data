@@ -20,4 +20,3 @@ async def create_iris_france(session):
 
     async with session.bind.connect() as conn:
         await conn.execute(text(sql))
-        await conn.close()
