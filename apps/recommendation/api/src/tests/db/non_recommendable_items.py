@@ -16,4 +16,3 @@ async def create_non_recommendable_items(session):
             ],
         )
         await conn.commit()
-        await conn.close()
