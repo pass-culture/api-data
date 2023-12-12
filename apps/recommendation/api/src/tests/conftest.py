@@ -89,7 +89,7 @@ async def connection_test(event_loop):
     await sessionmanager.close()
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="function", autouse=True)
 async def setup_default_database(connection_test):
     async with sessionmanager.session() as session:
         await clean_db(session, models=MODELS)
