@@ -11,23 +11,17 @@ from tests.db.utils import create_model
 
 async def create_enriched_user_mv(session):
     await create_model(session, EnrichedUserMv)
-
-    async with session.bind.connect() as conn:
-        await conn.execute(insert(EnrichedUserMv), raw_data)
-        await conn.commit()
+    await session.execute(insert(EnrichedUserMv), raw_data)
+    await session.commit()
 
 
 async def create_enriched_user_mv_old(session):
     await create_model(session, EnrichedUserMvOld)
-
-    async with session.bind.connect() as conn:
-        await conn.execute(insert(EnrichedUserMvOld), raw_data)
-        await conn.commit()
+    await session.execute(insert(EnrichedUserMvOld), raw_data)
+    await session.commit()
 
 
 async def create_enriched_user_mv_tmp(session):
     await create_model(session, EnrichedUserMvTmp)
-
-    async with session.bind.connect() as conn:
-        await conn.execute(insert(EnrichedUserMvTmp), raw_data)
-        await conn.commit()
+    await session.execute(insert(EnrichedUserMvTmp), raw_data)
+    await session.commit()
