@@ -31,11 +31,14 @@ def to_float(x: float = None):
 
 
 class RankingEndpoint(AbstractEndpoint):
-    def init_input(self, user: UserContext, params_in: PlaylistParams, call_id: str):
+    def init_input(
+        self, user: UserContext, params_in: PlaylistParams, call_id: str, context: str
+    ):
         self.user = user
         self.user_input = str(self.user.user_id)
         self.call_id = call_id
         self.params_in = params_in
+        self.context = context
 
     @abstractmethod
     async def model_score(
@@ -111,6 +114,7 @@ class ModelRankingEndpoint(RankingEndpoint):
             offers_list.append(
                 {
                     "offer_id": row.offer_id,
+                    "context": f"{self.context}:{row.item_origin}",
                     "offer_subcategory_id": row.subcategory_id,
                     "user_bookings_count": to_float(self.user.bookings_count),
                     "user_clicks_count": to_float(self.user.clicks_count),
@@ -209,6 +213,7 @@ class NoPopularModelRankingEndpoint(ModelRankingEndpoint):
             offers_list.append(
                 {
                     "offer_id": row.offer_id,
+                    "context": f"{self.context}:{row.item_origin}",
                     "offer_subcategory_id": row.subcategory_id,
                     "user_bookings_count": to_float(self.user.bookings_count),
                     "user_clicks_count": to_float(self.user.clicks_count),

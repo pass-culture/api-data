@@ -11,7 +11,7 @@ from huggy.crud.non_recommendable_offer import get_non_recommendable_items
 from huggy.crud.recommendable_offer import RecommendableOffer as RecommendableOfferDB
 from huggy.schemas.item import RecommendableItem
 from huggy.schemas.playlist_params import PlaylistParams
-from huggy.schemas.recommendable_offer import RecommendableOffer
+from huggy.schemas.recommendable_offer import RecommendableOffer, RankedOffer
 from huggy.schemas.user import UserContext
 from huggy.schemas.offer import Offer
 from huggy.utils.cloud_logging import logger
@@ -44,7 +44,7 @@ class OfferScorer:
         self,
         db: AsyncSession,
         call_id: str,
-    ) -> List[RecommendableOffer]:
+    ) -> List[RankedOffer]:
         prediction_items: List[RecommendableItem] = []
         endpoints_stats = {}
 
