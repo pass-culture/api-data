@@ -30,7 +30,10 @@ class SimilarOffer(ModelEngine):
                 call_id=self.call_id,
             )
         self.model_params.ranking_endpoint.init_input(
-            user=self.user, params_in=self.params_in, call_id=self.call_id
+            user=self.user,
+            params_in=self.params_in,
+            call_id=self.call_id,
+            context=self.context,
         )
         return self.model_params.scorer(
             user=self.user,
