@@ -13,8 +13,8 @@ class RecommendableOffersRaw(MaterializedBase):
     def materialized_tables(self):
         return [
             RecommendableOffersRawMv,
-            RecommendableOffersRawMvTmp,
             RecommendableOffersRawMvOld,
+            RecommendableOffersRawMvTmp,
         ]
 
     offer_id = Column(String(256))

@@ -10,6 +10,9 @@ from huggy.schemas.item import RecommendableItem
 from huggy.schemas.user import UserContext
 import huggy.schemas.offer as o
 from huggy.schemas.model_selection.model_configuration import QueryOrderChoices
+from asyncpg.exceptions import UndefinedTableError
+from huggy.utils.exception import log_error
+from huggy.utils.cloud_logging import logger
 
 
 class RecommendableOffer:
@@ -29,6 +32,29 @@ class RecommendableOffer:
         offer: Optional[o.Offer] = None,
         query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK,
     ) -> List[r_o.RecommendableOffer]:
+        try:
+            return self.__get_nearest_offers(
+                db=db,
+                user=user,
+                recommendable_items_ids=recommendable_items_ids,
+                limit=limit,
+                offer=offer,
+                query_order=query_order,
+            )
+        except UndefinedTableError as exc:
+            log_error(exc, message="Exception error on get_nearest_offers")
+        return []
+
+    async def __get_nearest_offers(
+        self,
+        db: AsyncSession,
+        user: UserContext,
+        recommendable_items_ids: Dict[str, RecommendableItem],
+        limit: int = 250,
+        offer: Optional[o.Offer] = None,
+        query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK,
+    ) -> List[r_o.RecommendableOffer]:
+
         offer_table: RecommendableOffersRaw = (
             await RecommendableOffersRaw().get_available_table(db)
         )
