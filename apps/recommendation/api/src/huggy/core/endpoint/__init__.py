@@ -2,6 +2,8 @@ from abc import ABC
 
 
 class AbstractEndpoint(ABC):
+    MODEL_TYPE = "unknown"
+
     def __init__(
         self, endpoint_name: str, size, fallback_endpoints=[], cached: bool = False
     ) -> None:

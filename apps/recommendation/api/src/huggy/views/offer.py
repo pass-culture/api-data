@@ -78,7 +78,7 @@ async def similar_offers(
         db,
         offer_id=offer_id,
         playlist_params=playlist_params,
-        latitude=latitude,  # TODO feat: PC-25775
+        latitude=latitude,
         longitude=longitude,
         call_id=call_id,
     )
@@ -101,7 +101,7 @@ async def similar_offers(
         db,
         offer_id=offer_id,
         playlist_params=playlist_params,
-        latitude=latitude,  # TODO feat: PC-25775
+        latitude=latitude,
         longitude=longitude,
         call_id=call_id,
     )

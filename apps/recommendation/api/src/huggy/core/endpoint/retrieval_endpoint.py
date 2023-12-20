@@ -163,7 +163,6 @@ class RetrievalEndpoint(AbstractEndpoint):
 
     async def model_score(self) -> t.List[RecommendableItem]:
         instances = self.get_instance(self.size)
-        model_type = instances["model_type"]
         prediction_result = await endpoint_score(
             instances=instances,
             endpoint_name=self.endpoint_name,
@@ -172,16 +171,18 @@ class RetrievalEndpoint(AbstractEndpoint):
         )
         self.model_version = prediction_result.model_version
         self.model_display_name = prediction_result.model_display_name
-        # smallest = better (cosine similarity or inner_product)
+        # smaller = better (cosine similarity or dot_product)
         return [
             RecommendableItem(
-                item_id=r["item_id"], item_rank=r["idx"], item_origin=model_type
+                item_id=r["item_id"], item_rank=r["idx"], item_origin=self.MODEL_TYPE
             )
             for r in prediction_result.predictions
         ]
 
 
 class FilterRetrievalEndpoint(RetrievalEndpoint):
+    MODEL_TYPE = "filter"
+
     def get_instance(self, size: int):
         return {
             "model_type": "filter",
@@ -193,18 +194,8 @@ class FilterRetrievalEndpoint(RetrievalEndpoint):
 
 
 class RecommendationRetrievalEndpoint(RetrievalEndpoint):
-    def get_instance(self, size: int):
-        return {
-            "model_type": "recommendation",
-            "user_id": str(self.user.user_id),
-            "size": size,
-            "params": self.get_params(),
-            "call_id": self.call_id,
-            "debug": 0,
-        }
+    MODEL_TYPE = "user_based"
 
-
-class RawRecommendationRetrievalEndpoint(RetrievalEndpoint):
     def get_instance(self, size: int):
         return {
             "model_type": "recommendation",
@@ -219,6 +210,8 @@ class RawRecommendationRetrievalEndpoint(RetrievalEndpoint):
 
 
 class OfferRetrievalEndpoint(RetrievalEndpoint):
+    MODEL_TYPE = "user_based"
+
     def init_input(
         self, user: UserContext, offer: Offer, params_in: PlaylistParams, call_id: str
     ):
@@ -241,6 +234,8 @@ class OfferRetrievalEndpoint(RetrievalEndpoint):
 
 
 class OfferSemanticRetrievalEndpoint(OfferRetrievalEndpoint):
+    MODEL_TYPE = "content_based"
+
     def get_instance(self, size: int):
         return {
             "model_type": "similar_offer",
@@ -253,6 +248,8 @@ class OfferSemanticRetrievalEndpoint(OfferRetrievalEndpoint):
 
 
 class OfferFilterRetrievalEndpoint(OfferRetrievalEndpoint):
+    MODEL_TYPE = "filter"
+
     def get_instance(self, size: int):
         return {
             "model_type": "filter",
