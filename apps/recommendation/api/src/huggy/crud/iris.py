@@ -37,6 +37,6 @@ class Iris:
                 if iris_france_db is not None:
                     return str(iris_france_db.id)
         except UndefinedTableError as exc:
-            log_error(exc, message="Exception error on get_non_recommendable_items")
+            log_error(exc, message="Exception error on get_iris_from_coordinates")
 
         return iris_id
