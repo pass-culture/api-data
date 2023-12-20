@@ -33,7 +33,7 @@ class RecommendableOffer:
         query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK,
     ) -> List[r_o.RecommendableOffer]:
         try:
-            return self.__get_nearest_offers(
+            return await self.__get_nearest_offers(
                 db=db,
                 user=user,
                 recommendable_items_ids=recommendable_items_ids,
