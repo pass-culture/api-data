@@ -10,7 +10,7 @@ from huggy.schemas.item import RecommendableItem
 from huggy.schemas.user import UserContext
 import huggy.schemas.offer as o
 from huggy.schemas.model_selection.model_configuration import QueryOrderChoices
-from asyncpg.exceptions import UndefinedTableError
+from sqlalchemy.exc import ProgrammingError
 from huggy.utils.exception import log_error
 from huggy.utils.cloud_logging import logger
 
@@ -41,7 +41,7 @@ class RecommendableOffer:
                 offer=offer,
                 query_order=query_order,
             )
-        except UndefinedTableError as exc:
+        except ProgrammingError as exc:
             log_error(exc, message="Exception error on get_nearest_offers")
         return []
 
