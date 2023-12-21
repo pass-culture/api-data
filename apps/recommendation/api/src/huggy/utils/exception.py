@@ -1,12 +1,25 @@
 import traceback
-from traceback import print_exception
-from http import HTTPStatus
 import anyio
 from fastapi import HTTPException, Request
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
+from fastapi.responses import JSONResponse
 
 from huggy.utils.cloud_logging import logger
+
+
+def log_error(exc: Exception, message: str):
+    tb = traceback.format_exc()
+    logger.error(
+        message,
+        extra={
+            "details": {
+                "content": {
+                    "error": exc.__class__.__name__,
+                    "trace": tb,
+                }
+            }
+        },
+    )
 
 
 class NotAuthorized(Exception):
@@ -21,19 +34,20 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
             raise HTTPException(status_code=401, detail="Not authorized")
         except (RuntimeError, anyio.WouldBlock, anyio.EndOfStream) as exc:
             if str(exc) == "No response returned." and await request.is_disconnected():
-                return Response(status_code=204)
+                return JSONResponse(
+                    status_code=204,
+                    content={
+                        "error": "No response returned",
+                        "message": "An unexpected error occurred.",
+                    },
+                )
             raise
         except Exception as exc:
-            tb = traceback.format_exc()
-            logger.error(
-                "Exception error",
-                extra={
-                    "details": {
-                        "content": {
-                            "error": exc.__class__.__name__,
-                            "trace": tb,
-                        }
-                    }
+            log_error(exc, message="Server Exception")
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "error": "Internal Server Error",
+                    "message": "An unexpected error occurred.",
                 },
             )
-            raise

@@ -11,7 +11,7 @@ class RecoModelConfigurationInput(ModelConfigurationInput):
     def get_retrieval(self, model_type) -> t.List[RetrievalEndpoint]:
         default = [
             user_retrieval.filter_retrieval_endpoint,
-            user_retrieval.raw_recommendation_retrieval_endpoint,
+            user_retrieval.recommendation_retrieval_endpoint,
         ]
         return {
             RetrievalChoices.MIX: default,
@@ -23,16 +23,9 @@ class RecoModelConfigurationInput(ModelConfigurationInput):
                 user_retrieval.recommendation_retrieval_endpoint,
             ],
             RetrievalChoices.RAW_RECOMMENDATION: [
-                user_retrieval.raw_recommendation_retrieval_endpoint
+                user_retrieval.recommendation_retrieval_endpoint
             ],
             RetrievalChoices.TOPS: [
                 user_retrieval.filter_retrieval_endpoint,
-            ],
-            RetrievalChoices.RECOMMENDATION_VERSIONB: [
-                user_retrieval.recommendation_retrieval_version_b_endpoint,
-            ],
-            RetrievalChoices.MIX_VERSION_B: [
-                user_retrieval.filter_retrieval_version_b_endpoint,
-                user_retrieval.recommendation_retrieval_version_b_endpoint,
             ],
         }.get(model_type, default)

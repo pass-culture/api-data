@@ -14,8 +14,8 @@ class ItemIds(MaterializedBase):
     def materialized_tables(self):
         return [
             ItemIdsMv,
-            ItemIdsMvTmp,
             ItemIdsMvOld,
+            ItemIdsMvTmp,
         ]
 
     """Database model of item_ids materialized view."""
