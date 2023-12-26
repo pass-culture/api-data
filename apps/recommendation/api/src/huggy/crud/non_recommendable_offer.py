@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from huggy.models.non_recommendable_items import NonRecommendableItems
 from huggy.schemas.user import UserContext
-from asyncpg.exceptions import UndefinedTableError
+from sqlalchemy.exc import ProgrammingError
 from huggy.utils.exception import log_error
 from huggy.utils.cloud_logging import logger
 
@@ -28,6 +28,6 @@ async def get_non_recommendable_items(
         return [
             recommendable_item.item_id for recommendable_item in non_recommendable_items
         ]
-    except UndefinedTableError as exc:
+    except ProgrammingError as exc:
         log_error(exc, message="Exception error on get_non_recommendable_items")
     return []

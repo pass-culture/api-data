@@ -6,7 +6,7 @@ import huggy.schemas.offer as o
 from huggy.crud.iris import Iris
 from huggy.models.item_ids import ItemIds
 
-from asyncpg.exceptions import UndefinedTableError
+from sqlalchemy.exc import ProgrammingError
 from huggy.utils.exception import log_error
 from huggy.utils.cloud_logging import logger
 
@@ -25,7 +25,7 @@ class Offer:
                     .scalars()
                     .first()
                 )
-        except UndefinedTableError as exc:
+        except ProgrammingError as exc:
             log_error(exc, message="Exception error on get_item")
 
         return None
@@ -66,7 +66,7 @@ class Offer:
                     is_sensitive=True if offer_characteristics.is_sensitive else False,
                     found=True,
                 )
-        except UndefinedTableError as exc:
+        except ProgrammingError as exc:
             log_error(exc, message="Exception error on get_offer_characteristics")
 
         return offer
