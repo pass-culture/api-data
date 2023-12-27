@@ -97,7 +97,6 @@ class RecommendableOffer:
             log_error(exc, message="Exception error on get_nearest_offers")
         return recommendable_offers
 
-
     async def __get_nearest_offers(
         self,
         db: AsyncSession,
