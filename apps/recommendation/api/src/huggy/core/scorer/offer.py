@@ -128,11 +128,19 @@ class OfferScorer:
             query_order=self.model_params.query_order,
         )
 
-    async def get_user_distance(
-        self, item: i.RecommendableItem, user: u.UserContext, offer: o.Offer
-    ) -> bool:
+    async def get_distance(
+        self,
+        item: i.RecommendableItem,
+        user: u.UserContext,
+        offer: o.Offer,
+        default_max_distance: int,
+    ) -> float:
+        # If item is not geolocated then return
+        if not item.is_geolocated:
+            return None, True
+        # Else check user or offer statuses
         if user is not None and user.is_geolocated:
-            return haversine_distance(
+            distance = haversine_distance(
                 item.example_venue_latitude,
                 item.example_venue_longitude,
                 user.latitude,
@@ -140,13 +148,14 @@ class OfferScorer:
             )
 
         if offer is not None and offer.is_geolocated:
-            return haversine_distance(
+            distance = haversine_distance(
                 item.example_venue_latitude,
                 item.example_venue_longitude,
                 offer.latitude,
                 offer.longitude,
             )
-        return False
+        within_radius = distance <= default_max_distance
+        return distance, within_radius
 
     async def get_nearest_offers(
         self,
@@ -161,15 +170,19 @@ class OfferScorer:
         multiple_item_offers = []
         for k, v in recommendable_items_ids.items():
             if v.total_offers == 1 or not v.is_geolocated:
-                recommendable_offers.append(
-                    r_o.RecommendableOffer(
-                        offer_id=v.example_offer_id,
-                        user_distance=await self.get_user_distance(v, user, offer),
-                        venue_latitude=v.example_venue_latitude,
-                        venue_longitude=v.example_venue_longitude,
-                        **v.dict(),
-                    )
+                user_distance, within_radius = await self.get_distance(
+                    v, user, offer, default_max_distance=100_000
                 )
+                if within_radius:
+                    recommendable_offers.append(
+                        r_o.RecommendableOffer(
+                            offer_id=v.example_offer_id,
+                            user_distance=user_distance,
+                            venue_latitude=v.example_venue_latitude,
+                            venue_longitude=v.example_venue_longitude,
+                            **v.dict(),
+                        )
+                    )
             else:
                 multiple_item_offers.append(v)
         try:
