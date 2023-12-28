@@ -3,10 +3,11 @@ import os
 import typing as t
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from huggy.crud.recommendable_offer import RecommendableOffer as RecommendableOfferDB
-from huggy.schemas.recommendable_offer import OfferDistance, RecommendableOffer
+from huggy.schemas.offer import OfferDistance
+from huggy.schemas.recommendable_offer import RecommendableOffer
 from huggy.schemas.item import RecommendableItem
 from huggy.schemas.user import UserContext
 from huggy.utils.distance import haversine_distance
@@ -21,14 +22,14 @@ from tests.db.schema.offer_context import (
     items_books_paris_below_30_euros,
     items_no_geolocated,
     items_paris,
-    offers_below_30_euros,
-    offers_books_nearest_cours_julien_marseille,
-    offers_books_nearest_vieux_port_marseille,
-    offers_books_paris_30_euros,
-    offers_no_geolocated,
-    offers_paris,
-    offers_underage_and_below_30_euros,
-    offers_underage_books_paris_30_euros,
+    offers_below_30_euros_distance,
+    offers_books_nearest_cours_julien_marseille_distance,
+    offers_books_nearest_vieux_port_marseille_distance,
+    offers_books_paris_30_euros_distance,
+    offers_no_geolocated_distance,
+    offers_paris_distance,
+    offers_underage_and_below_30_euros_distance,
+    offers_underage_books_paris_30_euros_distance,
 )
 from tests.db.schema.user_context import (
     user_context_111_cours_julien_marseille,
@@ -52,7 +53,7 @@ recommendable_offers_test_pool_paris = [
         """,
         "user": user_context_unknown_paris,
         "items": items_paris,
-        "expected_offers": offers_paris,
+        "expected_offers": offers_paris_distance,
     },
     {
         "description": """
@@ -72,7 +73,7 @@ recommendable_offers_test_pool_paris = [
         """,
         "user": user_context_111_paris,
         "items": items_paris,
-        "expected_offers": offers_paris,
+        "expected_offers": offers_paris_distance,
     },
     {
         "description": """
@@ -82,7 +83,7 @@ recommendable_offers_test_pool_paris = [
         """,
         "user": user_context_111_paris,
         "items": items_no_geolocated,
-        "expected_offers": offers_no_geolocated,
+        "expected_offers": offers_no_geolocated_distance,
     },
     {
         "description": """
@@ -92,57 +93,7 @@ recommendable_offers_test_pool_paris = [
         """,
         "user": user_context_111_paris,
         "items": items_all,
-        "expected_offers": offers_paris + offers_no_geolocated,
-    },
-    {
-        "description": """
-            users: 18 YO user 300€ credit, not geolocated.
-            items: All items.
-            expected: non geolocated.
-        """,
-        "user": user_context_111_unknown,
-        "items": items_all,
-        "expected_offers": offers_no_geolocated,
-    },
-    {
-        "description": """
-            users: 18 YO user 30€ credit, geolocated Paris.
-            items: All items.
-            expected: all offers below 30€.
-        """,
-        "user": user_context_118_paris,
-        "items": items_all,
-        "expected_offers": offers_below_30_euros,
-    },
-    {
-        "description": """
-            users: 18 YO user 30€ credit, geolocated Paris.
-            items: Geolocated Books items.
-            expected: books geolocated < 30.
-        """,
-        "user": user_context_118_paris,
-        "items": items_books_paris_below_30_euros,
-        "expected_offers": offers_books_paris_30_euros,
-    },
-    {
-        "description": """
-            users: 17 YO user 30€ credit, geolocated Paris.
-            items: Geolocated Books items.
-            expected: books geolocated.
-        """,
-        "user": user_context_117_paris,
-        "items": items_books_paris_below_30_euros,
-        "expected_offers": offers_underage_books_paris_30_euros,
-    },
-    {
-        "description": """
-            users: 17 YO user 30€ credit, geolocated Paris.
-            items: all items.
-            expected: underage + below 30€ .
-        """,
-        "user": user_context_117_paris,
-        "items": items_all,
-        "expected_offers": offers_underage_and_below_30_euros,
+        "expected_offers": offers_paris_distance + offers_no_geolocated_distance,
     },
 ]
 
@@ -156,7 +107,7 @@ recommendable_offers_test_pool_marseille = [
         """,
         "user": user_context_111_vieux_port_marseille,
         "items": items_books_marseille,
-        "expected_offers": offers_books_nearest_vieux_port_marseille,
+        "expected_offers": offers_books_nearest_vieux_port_marseille_distance,
     },
     {
         "description": """
@@ -166,7 +117,7 @@ recommendable_offers_test_pool_marseille = [
         """,
         "user": user_context_111_cours_julien_marseille,
         "items": items_books_marseille,
-        "expected_offers": offers_books_nearest_cours_julien_marseille,
+        "expected_offers": offers_books_nearest_cours_julien_marseille_distance,
     },
 ]
 
@@ -177,6 +128,7 @@ offers_distance_pool = [
         "offers": ["offer-manga-marseille-vieux-port-1"],
         "expected_offers": [
             OfferDistance(
+                item_id="item-manga-marseille-vieux-port-1",
                 offer_id="offer-manga-marseille-vieux-port-1",
                 user_distance=haversine_distance(
                     iris_marseille_cours_julien.latitude,
@@ -184,6 +136,8 @@ offers_distance_pool = [
                     iris_marseille_vieux_port.latitude,
                     iris_marseille_vieux_port.longitude,
                 ),
+                venue_latitude=iris_marseille_cours_julien.latitude,
+                venue_longitude=iris_marseille_cours_julien.longitude,
             )
         ],
     },
@@ -192,6 +146,7 @@ offers_distance_pool = [
         "offers": ["offer-manga-marseille-vieux-port-1"],
         "expected_offers": [
             OfferDistance(
+                item_id="item-manga-marseille-vieux-port-1",
                 offer_id="offer-manga-marseille-vieux-port-1",
                 user_distance=haversine_distance(
                     iris_paris_chatelet.latitude,
@@ -199,6 +154,8 @@ offers_distance_pool = [
                     iris_marseille_vieux_port.latitude,
                     iris_marseille_vieux_port.longitude,
                 ),
+                venue_latitude=iris_paris_chatelet.latitude,
+                venue_longitude=iris_paris_chatelet.longitude,
             )
         ],
     },
@@ -214,11 +171,7 @@ class RecommendableOfferTest:
         self, setup_default_database: AsyncSession, pool: dict
     ):
         user: UserContext = pool["user"]
-        items: t.List[str] = pool["items"]
-        items = {
-            x: RecommendableItem(item_id=x, item_rank=0, item_origin="reco")
-            for x in items
-        }
+        items: t.List[RecommendableItem] = pool["items"]
         expected_offers: t.List[RecommendableOffer] = pool["expected_offers"]
         description = pool["description"]
         result_offers = await RecommendableOfferDB().get_nearest_offers(

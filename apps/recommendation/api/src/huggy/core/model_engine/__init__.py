@@ -142,7 +142,7 @@ class ModelEngine(ABC):
                         offer_item_rank=o.item_rank,  # ranking of the item
                         offer_item_score=o.item_score,  # TODO: # score of the item
                         offer_order=o.offer_rank,  # ranking of the offer
-                        offer_venue_id=o.venue_id,
+                        offer_venue_id=None,
                         offer_extra_data={
                             "offer_ranking_score": o.offer_score,
                             "offer_ranking_origin": o.offer_origin,

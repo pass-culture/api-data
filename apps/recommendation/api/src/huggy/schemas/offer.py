@@ -34,4 +34,3 @@ class OfferDistance(BaseModel):
     user_distance: t.Optional[float]
     venue_latitude: t.Optional[float]
     venue_longitude: t.Optional[float]
-    is_geolocated: t.Optional[bool]

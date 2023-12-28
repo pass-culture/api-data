@@ -1,7 +1,30 @@
 # Data Recommendation API 
 
+Recommendation API with FastAPI + Psql + VertexAI endpoints
+
 ## See <uri-api>/docs for API endpoints
 
+## Folders structure
+
+```
++-- src
+| + huggy
+|  +-- core
+|    +-- model_engine - orchestration of the scoring pipeline 
+|    +-- model_selection - model selection based on the model_endpoint parameter 
+|    +-- scorer - retrieve the base of recommendable offers and score them 
+|    +-- utils
+|  +-- crud - functions for reading/writing to the database 
+|  +-- database - logic for handling db connexion
+|  +-- models - model of the database tables - 1 file per table 
+|  +-- schemas - definition of object properties 
+|  +-- utils 
+|  +-- views - router views
+|
++-- main.py
+|
++-- tests - tests files
+```
 
 ## How to DEV
 
@@ -26,6 +49,9 @@ pip3 install -r requirements.txt
 
 ### Run tests
 
+```sh
+pip install "psycopg[binary,pool]"           
+```
 
 Set up a testdb :
 ```sh
@@ -37,6 +63,7 @@ docker-compose up -d testdb
 ```sh
 cd apps/recommendation/
 pyenv shell reco_fastapi
+export API_LOCAL=1
 pytest
 ```
 
@@ -48,7 +75,7 @@ Connect to db, create db database, add postgis extension
 docker exec -it <docker_id> /bin/sh
 psql -U postgres
 
-create database db
+create database db;
 \c db; 
 create extension postgis;
 ```
