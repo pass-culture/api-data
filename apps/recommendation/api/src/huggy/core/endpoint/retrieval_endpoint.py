@@ -103,6 +103,9 @@ class RetrievalEndpoint(AbstractEndpoint):
         if self.user.age and self.user.age < 18:
             params.append(EqParams(label="is_underage_recommendable", value=float(1)))
 
+        if self.params_in.is_restrained:
+            params.append(EqParams(label="is_restrained", value=float(1)))
+
         # dates filter
         if self.params_in.start_date is not None or self.params_in.end_date is not None:
             label = (
