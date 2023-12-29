@@ -32,7 +32,8 @@ async def playlist_recommendation(
     user = await UserContextDB().get_user_context(db, user_id, latitude, longitude)
     if modelEndpoint is not None:
         playlist_params.model_endpoint = modelEndpoint
-
+    if playlist_params.is_restrained is None:
+        playlist_params.is_restrained = True
     scoring = Recommendation(
         user, params_in=playlist_params, call_id=call_id, context="recommendation"
     )
