@@ -1,27 +1,27 @@
 import math
 
 
-def haversine_distance(lat1, lon1, lat2, lon2):
-    if lat1 is None:
+def haversine_distance(venue_latitude, venue_longitude, user_latitude, user_longitude):
+    if venue_latitude is None:
         return None
-    if lon1 is None:
+    if venue_longitude is None:
         return None
-    if lat2 is None:
+    if user_latitude is None:
         return None
-    if lon2 is None:
+    if user_longitude is None:
         return None
 
     earth_radius = 6371
-    lat1 = math.radians(lat1)
-    lon1 = math.radians(lon1)
-    lat2 = math.radians(lat2)
-    lon2 = math.radians(lon2)
+    venue_latitude = math.radians(venue_latitude)
+    venue_longitude = math.radians(venue_longitude)
+    user_latitude = math.radians(user_latitude)
+    user_longitude = math.radians(user_longitude)
 
-    dlat = lat2 - lat1
-    dlon = lon2 - lon1
+    dlat = user_latitude - venue_latitude
+    dlon = user_longitude - venue_longitude
     a = (
         math.sin(dlat / 2) ** 2
-        + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+        + math.cos(venue_latitude) * math.cos(user_latitude) * math.sin(dlon / 2) ** 2
     )
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     distance = earth_radius * c

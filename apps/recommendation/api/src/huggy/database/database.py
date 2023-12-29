@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.exc import TimeoutError
 
 
 class DatabaseSessionManager:
@@ -15,9 +16,16 @@ class DatabaseSessionManager:
         self._sessionmaker: async_sessionmaker | None = None
 
     def init(self, host: str, autocommit=False):
-        self._engine = create_async_engine(host)
+        self._engine = create_async_engine(
+            host,
+            pool_pre_ping=True,
+            echo_pool=True,
+            echo=False,
+            pool_recycle=900,
+        )
         self._sessionmaker = async_sessionmaker(
-            autocommit=autocommit, bind=self._engine
+            autocommit=autocommit,
+            bind=self._engine,
         )
 
     async def close(self):
@@ -35,6 +43,9 @@ class DatabaseSessionManager:
         async with self._engine.begin() as connection:
             try:
                 yield connection
+            except TimeoutError:
+                await connection.reset()
+                raise
             except Exception:
                 await connection.rollback()
                 raise
@@ -47,6 +58,9 @@ class DatabaseSessionManager:
         session = self._sessionmaker()
         try:
             yield session
+        except TimeoutError:
+            await session.reset()
+            raise
         except Exception:
             await session.rollback()
             raise

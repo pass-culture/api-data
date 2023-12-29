@@ -4,11 +4,7 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 from pydantic import BaseModel, Field, validator
-
-from huggy.schemas.recommendable_offer import RecommendableOffer
-from huggy.utils.distance import haversine_distance
 from tests.db.schema.iris import (
-    IrisTestExample,
     iris_marseille_cours_julien,
     iris_marseille_vieux_port,
     iris_nok,
@@ -39,38 +35,15 @@ class RecommendableOffersRawExample(BaseModel):
     booking_number: int = 0
     total_offers: int = 1
     offer_creation_date: datetime = datetime.now() - timedelta(days=5 * 366)
-    stock_creation_date: datetime = datetime.now() - timedelta(days=5 * 366)
+    stock_beginning_date: datetime = datetime.now() - timedelta(days=5 * 366)
     stock_price: float = 10
     is_underage_recommendable: bool = False
     venue_latitude: t.Optional[float] = None
     venue_longitude: t.Optional[float] = None
+    item_topic_id: str = Field(default_factory=lambda: str(uuid4()))
+    item_cluster_id: str = Field(default_factory=lambda: str(uuid4()))
     unique_id: str = Field(default_factory=lambda: str(uuid4()))
     default_max_distance: float = 50_000  # 50 KM
-
-    def to_context(self, iris_context: IrisTestExample):
-        user_distance = haversine_distance(
-            self.venue_latitude,
-            self.venue_longitude,
-            iris_context.latitude,
-            iris_context.longitude,
-        )
-        return RecommendableOffer(
-            offer_id=self.offer_id,
-            item_id=self.item_id,
-            venue_id=self.venue_id,
-            user_distance=user_distance,
-            booking_number=self.booking_number,
-            category=self.category,
-            subcategory_id=self.subcategory_id,
-            search_group_name=self.search_group_name,
-            stock_price=self.stock_price,
-            offer_creation_date=self.offer_creation_date,
-            stock_beginning_date=self.stock_creation_date,
-            venue_latitude=self.venue_latitude,
-            venue_longitude=self.venue_longitude,
-            is_geolocated=self.is_geolocated,
-            item_rank=random.randint(1, 100),
-        )
 
 
 movie_offer_no_geolocated = RecommendableOffersRawExample(
@@ -121,7 +94,7 @@ movie_offer_underage_paris = RecommendableOffersRawExample(
     venue_longitude=iris_paris_chatelet.longitude,
     is_underage_recommendable=True,
     offer_creation_date=datetime.strptime("2023-03-03", "%Y-%m-%d"),
-    stock_creation_date=datetime.strptime("2023-03-03", "%Y-%m-%d"),
+    stock_beginning_date=datetime.strptime("2023-03-03", "%Y-%m-%d"),
     stock_price=12.5,
 )
 
@@ -142,7 +115,7 @@ movie_offer_high_price_paris = RecommendableOffersRawExample(
     venue_longitude=iris_paris_chatelet.longitude,
     is_underage_recommendable=False,
     offer_creation_date=datetime.strptime("2023-04-03", "%Y-%m-%d"),
-    stock_creation_date=datetime.strptime("2023-04-03", "%Y-%m-%d"),
+    stock_beginning_date=datetime.strptime("2023-04-03", "%Y-%m-%d"),
     stock_price=50.0,
 )
 
@@ -164,7 +137,7 @@ spectacle_offer_paris = RecommendableOffersRawExample(
     venue_longitude=iris_paris_chatelet.longitude,
     is_underage_recommendable=False,
     offer_creation_date=datetime.strptime("2023-05-05", "%Y-%m-%d"),
-    stock_creation_date=datetime.strptime("2023-05-05", "%Y-%m-%d"),
+    stock_beginning_date=datetime.strptime("2023-05-05", "%Y-%m-%d"),
     stock_price=45.0,
 )
 
@@ -185,7 +158,7 @@ book_offer_paris = RecommendableOffersRawExample(
     venue_longitude=iris_paris_chatelet.longitude,
     is_underage_recommendable=False,
     offer_creation_date=datetime.strptime("2023-06-06", "%Y-%m-%d"),
-    stock_creation_date=datetime.strptime("2023-06-06", "%Y-%m-%d"),
+    stock_beginning_date=datetime.strptime("2023-06-06", "%Y-%m-%d"),
     stock_price=20.0,
 )
 
@@ -207,7 +180,7 @@ manga_book_offer_paris = RecommendableOffersRawExample(
     venue_longitude=iris_paris_chatelet.longitude,
     is_underage_recommendable=True,
     offer_creation_date=datetime.strptime("2023-03-03", "%Y-%m-%d"),
-    stock_creation_date=datetime.strptime("2023-03-03", "%Y-%m-%d"),
+    stock_beginning_date=datetime.strptime("2023-03-03", "%Y-%m-%d"),
     stock_price=15.0,
 )
 
@@ -228,7 +201,7 @@ manga_book_offer_vieux_port_marseille = RecommendableOffersRawExample(
     venue_longitude=iris_marseille_vieux_port.longitude,
     is_underage_recommendable=True,
     offer_creation_date=datetime.strptime("2023-03-03", "%Y-%m-%d"),
-    stock_creation_date=datetime.strptime("2023-03-03", "%Y-%m-%d"),
+    stock_beginning_date=datetime.strptime("2023-03-03", "%Y-%m-%d"),
     stock_price=15.0,
 )
 
@@ -249,7 +222,7 @@ manga_book_offer_cours_julien_marseille = RecommendableOffersRawExample(
     venue_longitude=iris_marseille_cours_julien.longitude,
     is_underage_recommendable=True,
     offer_creation_date=datetime.strptime("2023-03-03", "%Y-%m-%d"),
-    stock_creation_date=datetime.strptime("2023-03-03", "%Y-%m-%d"),
+    stock_beginning_date=datetime.strptime("2023-03-03", "%Y-%m-%d"),
     stock_price=15.0,
 )
 
@@ -270,7 +243,7 @@ book_offer_marseille_cours_julien = RecommendableOffersRawExample(
     venue_longitude=iris_marseille_cours_julien.longitude,
     is_underage_recommendable=True,
     offer_creation_date=datetime.strptime("2023-06-06", "%Y-%m-%d"),
-    stock_creation_date=datetime.strptime("2023-06-06", "%Y-%m-%d"),
+    stock_beginning_date=datetime.strptime("2023-06-06", "%Y-%m-%d"),
     stock_price=20.0,
 )
 

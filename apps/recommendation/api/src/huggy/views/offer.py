@@ -30,6 +30,9 @@ async def __similar_offers(
 
     offer = await Offer().get_offer_characteristics(db, offer_id)
 
+    if playlist_params.is_restrained is None:
+        playlist_params.is_restrained = False
+
     scoring = SimilarOffer(
         user, playlist_params, call_id=call_id, context="similar_offer", offer=offer
     )
@@ -78,7 +81,7 @@ async def similar_offers(
         db,
         offer_id=offer_id,
         playlist_params=playlist_params,
-        latitude=latitude,  # TODO feat: PC-25775
+        latitude=latitude,
         longitude=longitude,
         call_id=call_id,
     )
@@ -101,7 +104,7 @@ async def similar_offers(
         db,
         offer_id=offer_id,
         playlist_params=playlist_params,
-        latitude=latitude,  # TODO feat: PC-25775
+        latitude=latitude,
         longitude=longitude,
         call_id=call_id,
     )

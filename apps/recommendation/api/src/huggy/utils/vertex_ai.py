@@ -62,7 +62,10 @@ async def endpoint_score(
             model_version=response["model_version_id"],
         )
         # if we have results, return, else fallback_endpoints
-        if prediction_result.status == "success":
+        if (
+            prediction_result.status == "success"
+            and len(prediction_result.predictions) > 0
+        ):
             return prediction_result
     # default
     return prediction_result
@@ -130,7 +133,7 @@ async def __predict_model(
                 endpoint=model_params["endpoint_path"],
                 instances=instances,
                 parameters=parameters,
-                timeout=1,
+                timeout=2,
             )
         except DeadlineExceeded:
             timeout_error = {

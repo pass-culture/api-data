@@ -7,6 +7,9 @@ from pydantic import TypeAdapter
 import huggy.models.enriched_user as user_db
 import huggy.schemas.user as user_sh
 from huggy.crud.iris import Iris
+from sqlalchemy.exc import ProgrammingError
+from huggy.utils.exception import log_error
+from huggy.utils.cloud_logging import logger
 
 logger = logging.getLogger(__name__)
 
@@ -56,31 +59,37 @@ class UserContextDB:
         self, db: AsyncSession, user_id: str
     ) -> t.Optional[user_sh.UserProfileDB]:
         if user_id is not None:
-            user_table = await user_db.EnrichedUser().get_available_table(db)
+            try:
+                user_table = await user_db.EnrichedUser().get_available_table(db)
 
-            user_profile = (
-                await db.execute(
-                    select(
-                        user_table.user_id.label("user_id"),
-                        func.date_part(
-                            "year", func.age(user_table.user_birth_date)
-                        ).label("age"),
-                        func.coalesce(user_table.booking_cnt, 0).label(
-                            "bookings_count"
-                        ),
-                        func.coalesce(user_table.consult_offer, 0).label(
-                            "clicks_count"
-                        ),
-                        func.coalesce(user_table.has_added_offer_to_favorites, 0).label(
-                            "favorites_count"
-                        ),
-                        func.coalesce(
-                            user_table.user_theoretical_remaining_credit,
-                            user_table.user_deposit_initial_amount,
-                        ).label("user_deposit_remaining_credit"),
-                    ).where(user_table.user_id == user_id)
-                )
-            ).fetchone()
-            if user_profile is not None:
-                return TypeAdapter(user_sh.UserProfileDB).validate_python(user_profile)
+                user_profile = (
+                    await db.execute(
+                        select(
+                            user_table.user_id.label("user_id"),
+                            func.date_part(
+                                "year", func.age(user_table.user_birth_date)
+                            ).label("age"),
+                            func.coalesce(user_table.booking_cnt, 0).label(
+                                "bookings_count"
+                            ),
+                            func.coalesce(user_table.consult_offer, 0).label(
+                                "clicks_count"
+                            ),
+                            func.coalesce(
+                                user_table.has_added_offer_to_favorites, 0
+                            ).label("favorites_count"),
+                            func.coalesce(
+                                user_table.user_theoretical_remaining_credit,
+                                user_table.user_deposit_initial_amount,
+                            ).label("user_deposit_remaining_credit"),
+                        ).where(user_table.user_id == user_id)
+                    )
+                ).fetchone()
+                if user_profile is not None:
+                    return TypeAdapter(user_sh.UserProfileDB).validate_python(
+                        user_profile
+                    )
+            except ProgrammingError as exc:
+                log_error(exc, message="Exception error on get_user_profile")
+
         return None

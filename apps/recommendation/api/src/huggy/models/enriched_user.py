@@ -10,7 +10,7 @@ class EnrichedUser(MaterializedBase):
     """
 
     def materialized_tables(self):
-        return [EnrichedUserMv, EnrichedUserMvTmp, EnrichedUserMvOld]
+        return [EnrichedUserMv, EnrichedUserMvOld, EnrichedUserMvTmp]
 
     user_id = Column(String(256), primary_key=True)
     user_deposit_creation_date = Column(DateTime(timezone=True))

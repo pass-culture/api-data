@@ -8,8 +8,8 @@ class NonRecommendableItems(MaterializedBase):
     def materialized_tables(self):
         return [
             NonRecommendableItemsMv,
-            NonRecommendableItemsMvTmp,
             NonRecommendableItemsMvTmpOld,
+            NonRecommendableItemsMvTmp,
         ]
 
     item_id = Column(String(256), primary_key=True)
