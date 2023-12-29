@@ -39,9 +39,9 @@ def order_offers_by_score_and_diversify_features(
     to_submixed_data = {}
     if submixing_feature_dict is not None:
         for submixed_subcat in submixing_feature_dict.keys():
-            to_submixed_data[submixed_subcat] = offers_by_feature[submixed_subcat]
-    # if "LIVRE_PAPIER" in offers_by_feature.keys():
-    #     books=offers_by_feature["LIVRE_PAPIER"]
+            if submixed_subcat in offers_by_feature:
+                to_submixed_data[submixed_subcat] = offers_by_feature[submixed_subcat]
+
     offers_by_feature_ordered_by_frequency = collections.OrderedDict(
         sorted(
             offers_by_feature.items(),
