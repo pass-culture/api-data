@@ -7,7 +7,7 @@ from huggy.core.model_selection.endpoint import RetrievalEndpointName
 
 offer_retrieval_endpoint = OfferRetrievalEndpoint(
     endpoint_name=RetrievalEndpointName.recommendation_user_retrieval,
-    size=150,
+    size=100,
     fallback_endpoints=[
         RetrievalEndpointName.recommendation_semantic_retrieval,
     ],
