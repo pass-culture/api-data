@@ -7,7 +7,7 @@ from pydantic import TypeAdapter
 import huggy.models.enriched_user as user_db
 import huggy.schemas.user as user_sh
 from huggy.crud.iris import Iris
-from asyncpg.exceptions import UndefinedTableError
+from sqlalchemy.exc import ProgrammingError
 from huggy.utils.exception import log_error
 from huggy.utils.cloud_logging import logger
 
@@ -89,7 +89,7 @@ class UserContextDB:
                     return TypeAdapter(user_sh.UserProfileDB).validate_python(
                         user_profile
                     )
-            except UndefinedTableError as exc:
+            except ProgrammingError as exc:
                 log_error(exc, message="Exception error on get_user_profile")
 
         return None

@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from huggy.models.iris_france import IrisFrance
-from asyncpg.exceptions import UndefinedTableError
+from sqlalchemy.exc import ProgrammingError
 from huggy.utils.exception import log_error
 from huggy.utils.cloud_logging import logger
 
@@ -36,7 +36,7 @@ class Iris:
 
                 if iris_france_db is not None:
                     return str(iris_france_db.id)
-        except UndefinedTableError as exc:
+        except ProgrammingError as exc:
             log_error(exc, message="Exception error on get_iris_from_coordinates")
 
         return iris_id

@@ -15,9 +15,11 @@ def init_app(init_db=True):
 
         @asynccontextmanager
         async def lifespan(app: FastAPI):
-            yield
-            if sessionmanager._engine is not None:
-                await sessionmanager.close()
+            try:
+                yield
+            finally:
+                if sessionmanager._engine is not None:
+                    await sessionmanager.close()
 
     server = FastAPI(title="passCulture - Recommendation", lifespan=lifespan)
     server = include_routers(server)

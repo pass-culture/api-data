@@ -32,6 +32,7 @@ class PlaylistParams(BaseModel):
     price_max: Optional[float] = None
     price_min: Optional[float] = None
     is_reco_shuffled: Optional[bool] = None
+    is_restrained: Optional[str] = None
     is_digital: Optional[bool] = None
     categories: Optional[List[str]] = None
     subcategories: Optional[List[str]] = None

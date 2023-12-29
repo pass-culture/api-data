@@ -14,6 +14,13 @@ from huggy.utils.cloud_logging import logger
 from huggy.utils.vertex_ai import endpoint_score
 
 
+def to_datetime(ts):
+    try:
+        return datetime.fromtimestamp(float(ts))
+    except:
+        return datetime.fromtimestamp(0.0)
+
+
 @dataclass
 class ListParams:
     label: str
@@ -96,6 +103,9 @@ class RetrievalEndpoint(AbstractEndpoint):
         if self.user.age and self.user.age < 18:
             params.append(EqParams(label="is_underage_recommendable", value=float(1)))
 
+        if self.params_in.is_restrained:
+            params.append(EqParams(label="is_restrained", value=float(1)))
+
         # dates filter
         if self.params_in.start_date is not None or self.params_in.end_date is not None:
             label = (
@@ -174,7 +184,27 @@ class RetrievalEndpoint(AbstractEndpoint):
         # smaller = better (cosine similarity or dot_product)
         return [
             RecommendableItem(
-                item_id=r["item_id"], item_rank=r["idx"], item_origin=self.MODEL_TYPE
+                item_id=r["item_id"],
+                item_rank=r["idx"],
+                item_score=r.get("_distance", None),
+                item_origin=self.MODEL_TYPE,
+                item_cluster_id=r.get("cluster_id", None),
+                item_topic_id=r.get("topic_id", None),
+                is_geolocated=bool(r["is_geolocated"]),
+                booking_number=r["booking_number"],
+                stock_price=r["stock_price"],
+                category=r["category"],
+                subcategory_id=r["subcategory_id"],
+                search_group_name=r["search_group_name"],
+                offer_creation_date=to_datetime(r["offer_creation_date"]),
+                stock_beginning_date=to_datetime(r["stock_beginning_date"]),
+                gtl_id=r["gtl_id"],
+                gtl_l3=r["gtl_l3"],
+                gtl_l4=r["gtl_l4"],
+                total_offers=r["total_offers"],
+                example_offer_id=r["example_offer_id"],
+                example_venue_latitude=r["example_venue_latitude"],
+                example_venue_longitude=r["example_venue_longitude"],
             )
             for r in prediction_result.predictions
         ]
@@ -189,7 +219,7 @@ class FilterRetrievalEndpoint(RetrievalEndpoint):
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,
-            "debug": 0,
+            "debug": 1,
         }
 
 
@@ -203,7 +233,7 @@ class RecommendationRetrievalEndpoint(RetrievalEndpoint):
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,
-            "debug": 0,
+            "debug": 1,
             "prefilter": 1,
             "vector_column_name": "raw_embeddings",
         }
@@ -229,7 +259,7 @@ class OfferRetrievalEndpoint(RetrievalEndpoint):
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,
-            "debug": 0,
+            "debug": 1,
         }
 
 
@@ -243,7 +273,7 @@ class OfferSemanticRetrievalEndpoint(OfferRetrievalEndpoint):
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,
-            "debug": 0,
+            "debug": 1,
         }
 
 
@@ -256,5 +286,5 @@ class OfferFilterRetrievalEndpoint(OfferRetrievalEndpoint):
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,
-            "debug": 0,
+            "debug": 1,
         }
