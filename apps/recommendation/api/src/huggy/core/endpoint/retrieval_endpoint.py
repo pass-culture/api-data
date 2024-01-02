@@ -260,7 +260,7 @@ class OfferRetrievalEndpoint(RetrievalEndpoint):
             "params": self.get_params(),
             "call_id": self.call_id,
             "debug": 1,
-            "similarity_metric" : "l2",
+            "similarity_metric": "l2",
             "prefilter": 1,
             "vector_column_name": "raw_embeddings",
         }
@@ -277,7 +277,7 @@ class OfferSemanticRetrievalEndpoint(OfferRetrievalEndpoint):
             "params": self.get_params(),
             "call_id": self.call_id,
             "debug": 1,
-            "similarity_metric" : "l2",
+            "similarity_metric": "l2",
             "prefilter": 1,
             "vector_column_name": "raw_embeddings",
         }
