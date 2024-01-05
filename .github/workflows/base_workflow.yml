@@ -1,5 +1,5 @@
-name: Base workflow
-  # test
+name: "Base workflow"
+
 on:
   push:
     branches:
@@ -9,6 +9,5 @@ on:
       - '!production'
 
 jobs:
-
   api-reco-coverage-tests:
     uses: ./.github/workflows/reusable_api_reco_coverage_tests.yml
