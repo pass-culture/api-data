@@ -51,7 +51,7 @@ jobs:
         with:
           secrets: |-
             ARTIFACT_REGISTRY_SERVICE_ACCOUNT:passculture-metier-ehp/passculture-main-artifact-registry-service-account
-            ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER:infra-prod-gcp-workload-identity-provider
+            ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER:passculture-metier-ehp/infra-prod-gcp-workload-identity-provider
       - name: "Output variables"
         id: "vars"
         run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" | tee -a $GITHUB_OUTPUT
@@ -104,7 +104,7 @@ jobs:
       with:
         secrets: |-
           ARTIFACT_REGISTRY_SERVICE_ACCOUNT:passculture-metier-ehp/passculture-main-artifact-registry-service-account
-          ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER:infra-prod-gcp-workload-identity-provider
+          ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER:passculture-metier-ehp/infra-prod-gcp-workload-identity-provider
     - name: "Output variables"
       id: "vars"
       run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" | tee -a $GITHUB_OUTPUT

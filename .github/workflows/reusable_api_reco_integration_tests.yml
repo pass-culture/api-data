@@ -45,7 +45,7 @@ jobs:
           secrets: |-
             SLACK_BOT_TOKEN:passculture-metier-ehp/passculture-ci-slack-bot-token
             ARTIFACT_REGISTRY_SERVICE_ACCOUNT:passculture-metier-ehp/passculture-main-artifact-registry-service-account
-            ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER:infra-prod-gcp-workload-identity-provider
+            ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER:passculture-metier-ehp/infra-prod-gcp-workload-identity-provider
             API_RECO_TOKEN:${{ env.DATA_GCP_PROJECT }}/${{ env.API_RECO_SECRET_NAME }}
       - id: openid-auth
         name: "Authenticate with Google Cloud"
