@@ -6,7 +6,7 @@ from huggy.core.model_selection.endpoint import RetrievalEndpointName
 
 filter_retrieval_endpoint = FilterRetrievalEndpoint(
     endpoint_name=RetrievalEndpointName.recommendation_user_retrieval,
-    size=100,
+    size=150,
     cached=True,
 )
 

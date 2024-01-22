@@ -220,6 +220,7 @@ class FilterRetrievalEndpoint(RetrievalEndpoint):
             "params": self.get_params(),
             "call_id": self.call_id,
             "debug": 1,
+            "vector_column_name": "booking_number_desc",
         }
 
 
@@ -293,4 +294,5 @@ class OfferFilterRetrievalEndpoint(OfferRetrievalEndpoint):
             "params": self.get_params(),
             "call_id": self.call_id,
             "debug": 1,
+            "vector_column_name": "booking_number_desc",
         }
