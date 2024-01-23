@@ -26,7 +26,7 @@ class RecommendableOffer:
         db: AsyncSession,
         user: UserContext,
         recommendable_items_ids: t.List[RecommendableItem],
-        limit: int = 250,
+        limit: int = 500,
         offer: Optional[o.Offer] = None,
         query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK,
     ) -> List[o.OfferDistance]:
