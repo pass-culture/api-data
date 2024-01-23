@@ -162,7 +162,7 @@ class OfferScorer:
         db: AsyncSession,
         user: u.UserContext,
         recommendable_items_ids: t.Dict[str, i.RecommendableItem],
-        limit: int = 250,
+        limit: int = 500,
         offer: t.Optional[o.Offer] = None,
         query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK,
     ) -> List[r_o.RecommendableOffer]:

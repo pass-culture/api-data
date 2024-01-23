@@ -12,12 +12,19 @@ class RecoModelConfigurationInput(ModelConfigurationInput):
         default = [
             user_retrieval.filter_retrieval_endpoint,
             user_retrieval.recommendation_retrieval_endpoint,
+            user_retrieval.trend_release_date_retrieval_endpoint,
+            user_retrieval.trend_creation_date_retrieval_endpoint,
         ]
         return {
             RetrievalChoices.MIX: default,
             RetrievalChoices.MIX_TOPS: [
                 user_retrieval.filter_retrieval_endpoint,
+                user_retrieval.trend_release_date_retrieval_endpoint,
+                user_retrieval.trend_creation_date_retrieval_endpoint,
+            ],
+            RetrievalChoices.MIX_RECOMMENDATION: [
                 user_retrieval.recommendation_retrieval_endpoint,
+                user_retrieval.filter_retrieval_endpoint,
             ],
             RetrievalChoices.RECOMMENDATION: [
                 user_retrieval.recommendation_retrieval_endpoint,

@@ -177,7 +177,7 @@ class ModelConfigurationInput(BaseModel):
         diversification_on = DiversificationParams(
             is_active=True,
             is_reco_shuffled=False,
-            mixing_features="search_group_name",
+            mixing_features="item_cluster_id",
             order_column="offer_rank",
             order_ascending=True,
             submixing_feature_dict=None,
