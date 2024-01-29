@@ -13,7 +13,11 @@ from huggy.models.enriched_user import (
     EnrichedUserMvTmp,
 )
 from huggy.utils.env_vars import SQL_BASE_DATABASE
-from huggy.models.iris_france import IrisFrance
+from huggy.models.iris_france import (
+    IrisFranceMv,
+    IrisFranceMvOld,
+    IrisFranceMvTmp,
+)
 from huggy.models.item_ids import ItemIdsMv
 from huggy.models.non_recommendable_items import NonRecommendableItemsMv
 from huggy.models.recommendable_offers_raw import (
@@ -37,7 +41,9 @@ from tests.db import (
     create_enriched_user_mv,
     create_enriched_user_mv_old,
     create_enriched_user_mv_tmp,
-    create_iris_france,
+    create_iris_france_mv,
+    create_iris_france_mv_old,
+    create_iris_france_mv_tmp,
     create_item_ids_mv,
     create_non_recommendable_items,
     create_recommendable_offers_raw,
@@ -55,7 +61,9 @@ MODELS = [
     EnrichedUserMv,
     EnrichedUserMvOld,
     EnrichedUserMvTmp,
-    IrisFrance,
+    IrisFranceMv,
+    IrisFranceMvOld,
+    IrisFranceMvTmp,
 ]
 
 
@@ -103,8 +111,11 @@ async def setup_default_database(connection_test):
         await create_enriched_user_mv_tmp(session)
         await create_enriched_user_mv_old(session)
         await create_non_recommendable_items(session)
-        await create_iris_france(session)
+        await create_iris_france_mv(session)
+        await create_iris_france_mv_tmp(session)
+        await create_iris_france_mv_old(session)
         await create_item_ids_mv(session)
+
         yield session
 
 
