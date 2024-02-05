@@ -30,6 +30,7 @@ async def playlist_recommendation(
     call_id: str = Depends(get_call_id),
 ):
     user = await UserContextDB().get_user_context(db, user_id, latitude, longitude)
+
     if modelEndpoint is not None:
         playlist_params.model_endpoint = modelEndpoint
     if playlist_params.is_restrained is None:
