@@ -21,12 +21,15 @@ class Iris:
         iris_id = None
         try:
             if latitude is not None and longitude is not None:
-                point = WKTElement(f"POINT({longitude} {latitude})")
+                iris_france: IrisFrance = await IrisFrance().get_available_table(db)
+                point = WKTElement(f"POINT({longitude} {latitude})", srid=4326)
                 iris_france_db: IrisFrance = (
                     (
                         await db.execute(
-                            select(IrisFrance).where(
-                                func.ST_Contains(IrisFrance.shape, point)
+                            select(iris_france.id.label("id")).where(
+                                func.ST_Contains(
+                                    func.ST_SetSRID(iris_france.shape, 4326), point
+                                )
                             )
                         )
                     )
@@ -35,7 +38,7 @@ class Iris:
                 )
 
                 if iris_france_db is not None:
-                    return str(iris_france_db.id)
+                    return str(iris_france_db)
         except ProgrammingError as exc:
             log_error(exc, message="Exception error on get_iris_from_coordinates")
 
