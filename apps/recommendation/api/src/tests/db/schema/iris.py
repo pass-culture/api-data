@@ -10,10 +10,6 @@ class IrisFrance(BaseModel):
     iriscode: t.Optional[float]
     centroid: t.Optional[str]
     shape: t.Optional[t.Any]
-    # id = Column(Integer, primary_key=True)
-    # iriscode = Column(Integer)
-    # centroid = Column(String(256))
-    # shape = Column(Geometry("POLYGON"))
 
 
 class IrisTestExample(BaseModel):

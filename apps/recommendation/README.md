@@ -61,7 +61,7 @@ export DB_NAME="db"
 docker-compose up -d testdb
 ```
 ```sh
-cd apps/recommendation/
+cd apps/recommendation/api
 pyenv shell reco_fastapi
 export API_LOCAL=1
 pytest
