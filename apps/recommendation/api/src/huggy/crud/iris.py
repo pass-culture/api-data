@@ -22,14 +22,12 @@ class Iris:
         try:
             if latitude is not None and longitude is not None:
                 iris_france: IrisFrance = await IrisFrance().get_available_table(db)
-                point = WKTElement(f"POINT({longitude} {latitude})", srid=4326)
+                point = WKTElement(f"POINT({longitude} {latitude})", srid=0)
                 iris_france_db: IrisFrance = (
                     (
                         await db.execute(
                             select(iris_france.id.label("id")).where(
-                                func.ST_Contains(
-                                    func.ST_SetSRID(iris_france.shape, 4326), point
-                                )
+                                func.ST_Contains(iris_france.shape, point)
                             )
                         )
                     )
