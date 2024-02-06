@@ -1,98 +1,60 @@
-CREATE EXTENSION IF NOT EXISTS postgis;
-
-CREATE TABLE IF NOT EXISTS public.recommendable_offers_raw(
-    item_id varchar,
-    offer_id varchar,
-    product_id varchar,
-    category VARCHAR,
-    subcategory_id VARCHAR,
-    search_group_name VARCHAR,
-    gtl_id VARCHAR,
-    gtl_l1 VARCHAR,
-    gtl_l2 VARCHAR,
-    gtl_l3 VARCHAR,
-    gtl_l4 VARCHAR,
-    venue_id varchar,
-    name VARCHAR,
-    is_numerical BOOLEAN,
-    is_national BOOLEAN,
-    is_geolocated BOOLEAN,
-    offer_creation_date TIMESTAMP,
-    stock_beginning_date TIMESTAMP,
-    stock_price REAL,
-    offer_is_duo BOOLEAN,
-    offer_type_domain VARCHAR,
-    offer_type_label VARCHAR,
-    booking_number INTEGER,
-    is_underage_recommendable BOOLEAN,
-    venue_latitude DECIMAL,
-    venue_longitude DECIMAL,
-    default_max_distance INTEGER,
-    unique_id VARCHAR
-);
-
-DROP FUNCTION IF EXISTS get_recommendable_offers_raw_mv CASCADE;
-
-CREATE
-OR REPLACE FUNCTION get_recommendable_offers_raw_mv() RETURNS TABLE (
-    item_id varchar,
-    offer_id varchar,
-    product_id varchar,
-    category VARCHAR,
-    subcategory_id VARCHAR,
-    search_group_name VARCHAR,
-    gtl_id VARCHAR,
-    gtl_l1 VARCHAR,
-    gtl_l2 VARCHAR,
-    gtl_l3 VARCHAR,
-    gtl_l4 VARCHAR,
-    venue_id varchar,
-    name VARCHAR,
-    is_numerical BOOLEAN,
-    is_national BOOLEAN,
-    is_geolocated BOOLEAN,
-    offer_creation_date TIMESTAMP,
-    stock_beginning_date TIMESTAMP,
-    stock_price REAL,
-    offer_is_duo BOOLEAN,
-    offer_type_domain VARCHAR,
-    offer_type_label VARCHAR,
-    booking_number INTEGER,
-    is_underage_recommendable BOOLEAN,
-    is_sensitive BOOLEAN,
-    venue_latitude DECIMAL,
-    venue_longitude DECIMAL,
-    default_max_distance INTEGER,
-    unique_id VARCHAR,
-    venue_geo GEOGRAPHY
-) AS $ body $ BEGIN RETURN QUERY
-SELECT
-    *,
-    ST_MakePoint(ro.venue_longitude, ro.venue_latitude) :: geography as venue_geo
-FROM
-    public.recommendable_offers_raw ro;
-
+DROP FUNCTION IF EXISTS get_recommendable_offers_raw_{{ ts_nodash  }} CASCADE;
+CREATE OR REPLACE FUNCTION get_recommendable_offers_raw_{{ ts_nodash  }}()
+RETURNS TABLE (   
+                offer_id varchar,
+                item_id varchar,
+                offer_creation_date TIMESTAMP,
+                stock_beginning_date TIMESTAMP,
+                booking_number INTEGER,
+                venue_latitude DECIMAL, 
+                venue_longitude DECIMAL,
+                venue_geo GEOGRAPHY,
+                default_max_distance INTEGER,
+                unique_id VARCHAR
+                ) AS
+$body$
+BEGIN
+    RETURN QUERY 
+    SELECT
+        ro.offer_id,
+        ro.item_id,
+        ro.offer_creation_date,
+        ro.stock_beginning_date,
+        ro.booking_number,
+        ro.venue_latitude,
+        ro.venue_longitude,
+        ST_MakePoint(ro.venue_longitude, ro.venue_latitude)::geography as venue_geo,
+        ro.default_max_distance,
+        ro.unique_id
+    FROM public.recommendable_offers_raw ro
+    WHERE is_geolocated AND not is_sensitive ; 
 END;
+$body$
+LANGUAGE plpgsql;
 
-$ body $ LANGUAGE plpgsql;
 
 -- Create tmp Materialized view
-DROP MATERIALIZED VIEW IF EXISTS recommendable_offers_raw_mv;
+DROP MATERIALIZED VIEW IF EXISTS recommendable_offers_raw_mv_tmp;
+CREATE MATERIALIZED VIEW IF NOT EXISTS recommendable_offers_raw_mv_tmp AS
+SELECT * FROM get_recommendable_offers_raw_{{ ts_nodash  }}()
+WITH NO DATA;
 
-CREATE MATERIALIZED VIEW IF NOT EXISTS recommendable_offers_raw_mv AS
-SELECT
-    *
-FROM
-    get_recommendable_offers_raw_mv() WITH NO DATA;
 
 -- Create indexes
-CREATE UNIQUE INDEX IF NOT EXISTS unique_idx_recommendable_offers_raw_mv ON public.recommendable_offers_raw_mv USING btree (is_geolocated, item_id, offer_id, unique_id);
+CREATE UNIQUE INDEX IF NOT EXISTS unique_idx_recommendable_offers_raw_mv_tmp_{{ ts_nodash  }} 
+ON public.recommendable_offers_raw_mv_tmp 
+USING btree (item_id,offer_id,unique_id);
 
-CREATE INDEX IF NOT EXISTS offer_idx_recommendable_offers_raw_mv ON public.recommendable_offers_raw_mv(offer_id);
+CREATE INDEX IF NOT EXISTS offer_idx_offer_recommendable_raw_{{ ts_nodash  }}
+ON public.recommendable_offers_raw_mv_tmp(offer_id);
 
-CREATE INDEX IF NOT EXISTS item_offer_idx_recommendable_offers_raw_mv ON public.recommendable_offers_raw_mv USING btree (item_id, offer_id);
+CREATE INDEX IF NOT EXISTS item_idx_offer_recommendable_raw_{{ ts_nodash  }}
+ON public.recommendable_offers_raw_mv_tmp(item_id);
 
-CREATE INDEX IF NOT EXISTS venue_geo_idx_recommendable_offers_raw_mv ON public.recommendable_offers_raw_mv USING gist(venue_geo);
+CREATE INDEX IF NOT EXISTS venue_geo_idx_offer_recommendable_raw_{{ ts_nodash  }}
+ON public.recommendable_offers_raw_mv_tmp            
+USING gist(venue_geo);
+
 
 -- Refresh state
-REFRESH MATERIALIZED VIEW recommendable_offers_raw_mv;
+REFRESH MATERIALIZED VIEW recommendable_offers_raw_mv_tmp;

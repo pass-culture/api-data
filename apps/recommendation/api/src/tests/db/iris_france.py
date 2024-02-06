@@ -1,22 +1,27 @@
-import logging
+from sqlalchemy import insert
 
-import pandas as pd
-from sqlalchemy import text
+from huggy.models.iris_france import (
+    IrisFranceMv,
+    IrisFranceMvOld,
+    IrisFranceMvTmp,
+)
+from tests.db.schema.iris import raw_data
+from tests.db.utils import create_model
 
-from tests.db.utils import create_table_from_df
 
-logger = logging.getLogger(__name__)
+async def create_iris_france_mv(session):
+    await create_model(session, IrisFranceMv)
+    await session.execute(insert(IrisFranceMv), raw_data)
+    await session.commit()
 
 
-async def create_iris_france(session):
-    iris_france = pd.read_csv("./src/tests/static/iris_france_tests.csv")
-    await create_table_from_df(session, iris_france, "iris_france")
-    sql = """
-        
-        ALTER TABLE public.iris_france
-        ALTER COLUMN shape TYPE Geometry(GEOMETRY, 4326)
-        USING ST_SetSRID(shape::Geometry, 4326);
-        """
+async def create_iris_france_mv_old(session):
+    await create_model(session, IrisFranceMvOld)
+    await session.execute(insert(IrisFranceMvOld), raw_data)
+    await session.commit()
 
-    async with session.bind.connect() as conn:
-        await conn.execute(text(sql))
+
+async def create_iris_france_mv_tmp(session):
+    await create_model(session, IrisFranceMvTmp)
+    await session.execute(insert(IrisFranceMvTmp), raw_data)
+    await session.commit()
