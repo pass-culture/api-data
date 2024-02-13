@@ -44,6 +44,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ needs.setup-job.outputs.env_name }}
     needs: [deploy-api-compliance, setup-job]
+    permissions:
+      id-token: write
+      contents: write
     if: always()
     steps:
       - uses: actions/checkout@v4
