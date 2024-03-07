@@ -56,6 +56,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ needs.setup-job.outputs.env_name }}
     needs: [setup-job, api-reco-test-integration]
+    permissions:
+      id-token: write
+      contents: write
     if: always()
     steps:
       - uses: actions/checkout@v4
