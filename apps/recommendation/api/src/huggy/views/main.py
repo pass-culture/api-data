@@ -12,6 +12,6 @@ async def read_root():
     return "Welcome to the recommendation API!"
 
 
-@r.get("/check")
+@r.get("/health/api")
 async def check():
     return "OK"
