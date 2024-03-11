@@ -60,6 +60,11 @@ def read_root():
     return "Auth user welcome to : Validation API test"
 
 
+@app.get("/health/api")
+def read_health():
+    return "OK"
+
+
 @app.post(
     "/model/compliance/scoring",
     response_model=ComplianceOutput,
