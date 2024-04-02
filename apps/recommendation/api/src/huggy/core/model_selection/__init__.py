@@ -30,7 +30,7 @@ RECOMMENDATION_ENDPOINTS = {
         name="default",
         description="""Default Configuration.""",
         diversification_params=DiversificationParamsInput(
-            diversication_type=DiversificationChoices.GTL_LVL3,
+            diversication_type=DiversificationChoices.ON,
         ),
         warn_model_type=ModelTypeInput(
             retrieval=RetrievalChoices.MIX,
@@ -52,7 +52,7 @@ RECOMMENDATION_ENDPOINTS = {
         name="user_distance",
         description="""Rank by offer distance.""",
         diversification_params=DiversificationParamsInput(
-            diversication_type=DiversificationChoices.GTL_LVL3,
+            diversication_type=DiversificationChoices.ON,
         ),
         warn_model_type=ModelTypeInput(
             retrieval=RetrievalChoices.MIX,
@@ -74,7 +74,7 @@ RECOMMENDATION_ENDPOINTS = {
         name="top_offers",
         description="""Force top offers configuration.""",
         diversification_params=DiversificationParamsInput(
-            diversication_type=DiversificationChoices.GTL_LVL3,
+            diversication_type=DiversificationChoices.ON,
         ),
         warn_model_type=ModelTypeInput(
             retrieval=RetrievalChoices.TOPS,
@@ -96,7 +96,7 @@ RECOMMENDATION_ENDPOINTS = {
         name="cold_start",
         description="""Force cold_start configuration.""",
         diversification_params=DiversificationParamsInput(
-            diversication_type=DiversificationChoices.GTL_LVL3,
+            diversication_type=DiversificationChoices.ON,
         ),
         warn_model_type=ModelTypeInput(
             retrieval=RetrievalChoices.TOPS,
@@ -118,7 +118,7 @@ RECOMMENDATION_ENDPOINTS = {
         name="force_algo",
         description="""Force algo configuration.""",
         diversification_params=DiversificationParamsInput(
-            diversication_type=DiversificationChoices.GTL_LVL3,
+            diversication_type=DiversificationChoices.ON,
         ),
         warn_model_type=ModelTypeInput(
             retrieval=RetrievalChoices.RECOMMENDATION,

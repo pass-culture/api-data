@@ -21,7 +21,7 @@ async def test_extensions(setup_empty_database: AsyncSession):
     [
         ("enriched_user_mv", True),
         ("recommendable_offers_raw_mv", True),
-        ("iris_france", True),
+        ("iris_france_mv", True),
         ("non_recommendable_items_mv", True),
         ("item_ids_mv", True),
     ],

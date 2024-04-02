@@ -1,6 +1,15 @@
+import pandas as pd
 import typing as t
-
+from geoalchemy2 import Geometry
+from sqlalchemy import Column, Integer, String
 from pydantic import BaseModel
+
+
+class IrisFrance(BaseModel):
+    id: t.Optional[float]
+    iriscode: t.Optional[float]
+    centroid: t.Optional[str]
+    shape: t.Optional[t.Any]
 
 
 class IrisTestExample(BaseModel):
@@ -25,3 +34,7 @@ iris_marseille_vieux_port = IrisTestExample(
 iris_marseille_cours_julien = IrisTestExample(
     longitude=5.38402043954079, latitude=43.2937465050196, iris_id="25195"
 )  # default centroid (Marseille, cours Julien)
+
+
+iris_france = pd.read_csv("./src/tests/static/iris_france_tests.csv")
+raw_data = iris_france.to_dict("records")
