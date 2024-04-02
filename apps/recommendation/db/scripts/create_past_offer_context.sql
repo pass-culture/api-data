@@ -30,3 +30,7 @@ CREATE TABLE past_offer_context (
     offer_venue_id VARCHAR(256),
     offer_extra_data JSON
 );
+
+
+ALTER TABLE past_offer_context ALTER COLUMN id TYPE BIGINT;
+ALTER SEQUENCE past_offer_context_id_seq AS BIGINT MAXVALUE 9223372036854775807 CYCLE;
