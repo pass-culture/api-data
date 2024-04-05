@@ -10,8 +10,12 @@ class RecommendableItem(BaseModel):
     item_origin: str
     item_cluster_id: t.Optional[str]
     item_topic_id: t.Optional[str]
+    semantic_emb_mean: t.Optional[float]
     is_geolocated: t.Optional[bool]
     booking_number: float
+    booking_number_last_7_days: float
+    booking_number_last_14_days: float
+    booking_number_last_28_days: float
     stock_price: float
     category: str
     subcategory_id: str

@@ -104,7 +104,7 @@ In case of emergency you still can deploy the api by hand:
 **1:** Build
 
 ```
-cd ~/apps/recommendation/api
+cd apps/recommendation/api
 gcloud builds submit \
   --tag eu.gcr.io/<PROJECT-ID>/data-gcp/<IMAGE-NAME>
 

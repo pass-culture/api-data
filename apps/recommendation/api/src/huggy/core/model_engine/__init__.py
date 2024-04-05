@@ -117,7 +117,9 @@ class ModelEngine(ABC):
                     PastOfferContext(
                         call_id=self.call_id,
                         context=f"{context}:{o.item_origin}",
-                        context_extra_data={},
+                        context_extra_data={"offer_origin_id": self.offer.offer_id}
+                        if self.offer
+                        else {},
                         date=date,
                         user_id=user.user_id,
                         user_bookings_count=user.bookings_count,
@@ -146,6 +148,10 @@ class ModelEngine(ABC):
                         offer_extra_data={
                             "offer_ranking_score": o.offer_score,
                             "offer_ranking_origin": o.offer_origin,
+                            "offer_booking_number_last_7_days": o.booking_number_last_7_days,
+                            "offer_booking_number_last_14_days": o.booking_number_last_14_days,
+                            "offer_booking_number_last_28_days": o.booking_number_last_28_days,
+                            "offer_semantic_emb_mean": o.semantic_emb_mean,
                         },
                     )
                 )
