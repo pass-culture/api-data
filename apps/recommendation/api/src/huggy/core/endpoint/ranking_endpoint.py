@@ -30,6 +30,15 @@ def to_float(x: float = None):
     return None
 
 
+def to_int(x: int = None):
+    try:
+        if x is not None:
+            return int(x)
+    except Exception as e:
+        pass
+    return None
+
+
 class RankingEndpoint(AbstractEndpoint):
     def init_input(
         self, user: UserContext, params_in: PlaylistParams, call_id: str, context: str
@@ -132,6 +141,8 @@ class ModelRankingEndpoint(RankingEndpoint):
                     "offer_stock_price": to_float(row.stock_price),
                     "offer_creation_days": to_days(row.offer_creation_date),
                     "offer_stock_beginning_days": to_days(row.stock_beginning_date),
+                    "day_of_the_week": to_int(datetime.today().weekday()),
+                    "hour_of_the_day": to_int(datetime.hour),
                 }
             )
         return offers_list
@@ -231,6 +242,8 @@ class NoPopularModelRankingEndpoint(ModelRankingEndpoint):
                     "offer_stock_price": to_float(row.stock_price),
                     "offer_creation_days": to_days(row.offer_creation_date),
                     "offer_stock_beginning_days": to_days(row.stock_beginning_date),
+                    "day_of_the_week": to_int(datetime.today().weekday()),
+                    "hour_of_the_day": to_int(datetime.hour),
                 }
             )
         return offers_list
