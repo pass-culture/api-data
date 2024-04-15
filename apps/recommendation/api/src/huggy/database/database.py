@@ -22,6 +22,8 @@ class DatabaseSessionManager:
             echo_pool=True,
             echo=False,
             pool_recycle=900,
+            pool_size=15,
+            max_overflow=15,
         )
         self._sessionmaker = async_sessionmaker(
             autocommit=autocommit,

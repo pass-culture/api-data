@@ -11,3 +11,6 @@ CREATE TABLE past_similar_offers (
     reco_filters    json,
     venue_iris_id   varchar
 );
+
+ALTER TABLE past_similar_offers ALTER COLUMN id TYPE BIGINT;
+ALTER SEQUENCE past_similar_offers_id_seq AS BIGINT MAXVALUE 9223372036854775807 CYCLE;

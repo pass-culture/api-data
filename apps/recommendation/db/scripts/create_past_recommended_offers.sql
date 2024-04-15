@@ -15,3 +15,7 @@ ADD COLUMN reco_filters    json,
 ADD COLUMN lat varchar,
 ADD COLUMN long varchar,
 ADD COLUMN user_iris_id    varchar;
+
+
+ALTER TABLE past_recommended_offers ALTER COLUMN id TYPE BIGINT;
+ALTER SEQUENCE past_recommended_offers_id_seq AS BIGINT MAXVALUE 9223372036854775807 CYCLE;
