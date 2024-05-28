@@ -41,7 +41,6 @@ async def playlist_recommendation(
 
     user_recommendations = await scoring.get_scoring(db)
 
-    await scoring.save_recommendation(db, user_recommendations)
     return jsonable_encoder(
         {
             "playlist_recommended_offers": user_recommendations,
