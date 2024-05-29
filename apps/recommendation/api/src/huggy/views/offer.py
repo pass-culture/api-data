@@ -47,8 +47,6 @@ async def __similar_offers(
             )
             offer_recommendations = await scoring.get_scoring(db)
 
-        await scoring.save_recommendation(db, offer_recommendations)
-
     return jsonable_encoder(
         {
             "results": offer_recommendations,
