@@ -112,14 +112,17 @@ class ModelEngine(ABC):
     ) -> None:
         if len(offers) > 0:
             date = datetime.datetime.now(pytz.utc)
+            context_extra_data = await self.log_extra_data()
+            # add similar offer_id origin input.
+            if self.offer is not None:
+                context_extra_data["offer_origin_id"] = self.offer.offer_id
+
             for o in offers:
                 session.add(
                     PastOfferContext(
                         call_id=self.call_id,
                         context=f"{context}:{o.item_origin}",
-                        context_extra_data={"offer_origin_id": self.offer.offer_id}
-                        if self.offer
-                        else {},
+                        context_extra_data=context_extra_data,
                         date=date,
                         user_id=user.user_id,
                         user_bookings_count=user.bookings_count,

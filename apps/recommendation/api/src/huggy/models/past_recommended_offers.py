@@ -3,42 +3,6 @@ from sqlalchemy.types import Boolean
 from huggy.database.base import Base
 
 
-class PastRecommendedOffers(Base):
-    """Database model of past_recommendable_offers table.
-    This table is used to log the offers recommended to an user."""
-
-    __tablename__ = "past_recommended_offers"
-    id = Column(Integer, primary_key=True)
-    call_id = Column(String(256))
-    userid = Column(Integer)
-    offerid = Column(Integer)
-    date = Column(DateTime(timezone=True))
-    group_id = Column(String(256))
-    reco_origin = Column(String(256))
-    model_name = Column(String(256))
-    model_version = Column(String(256))
-    reco_filters = Column(JSON)
-    user_iris_id = Column(String(256))
-
-
-class PastSimilarOffers(Base):
-    """Database model of past_recommendable_offers table.
-    This table is used to log the offers recommended to an user."""
-
-    __tablename__ = "past_similar_offers"
-    id = Column(Integer, primary_key=True)
-    call_id = Column(String(256))
-    user_id = Column(Integer)
-    offer_id = Column(Integer)
-    origin_offer_id = Column(Integer)
-    date = Column(DateTime(timezone=True))
-    group_id = Column(String(256))
-    model_name = Column(String(256))
-    model_version = Column(String(256))
-    reco_filters = Column(JSON)
-    venue_iris_id = Column(String(256))
-
-
 class PastOfferContext(Base):
     """Database model of offer_context table.
     This table is used to log the context of the offer when it is recommended to an user.
