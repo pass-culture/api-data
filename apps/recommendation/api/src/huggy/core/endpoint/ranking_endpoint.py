@@ -140,10 +140,10 @@ class ModelRankingEndpoint(RankingEndpoint):
                         row.booking_number_last_7_days
                     ),
                     "offer_booking_number_last_14_days": to_float(
-                        row.offer_booking_number_last_14_days
+                        row.booking_number_last_14_days
                     ),
                     "offer_booking_number_last_28_days": to_float(
-                        row.offer_booking_number_last_28_days
+                        row.booking_number_last_28_days
                     ),
                     "offer_semantic_emb_mean": to_float(row.semantic_emb_mean),
                     "offer_item_score": to_float(row.item_score),
