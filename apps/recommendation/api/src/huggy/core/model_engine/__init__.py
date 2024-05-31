@@ -144,9 +144,9 @@ class ModelEngine(ABC):
                         offer_stock_beginning_date=o.stock_beginning_date,
                         offer_category=o.category,
                         offer_subcategory_id=o.subcategory_id,
-                        offer_item_rank=o.item_rank,  # ranking of the item
-                        offer_item_score=o.item_score,  # TODO: # score of the item
-                        offer_order=o.offer_rank,  # ranking of the offer
+                        offer_item_rank=o.item_rank,
+                        offer_item_score=o.item_score,
+                        offer_order=o.offer_rank,
                         offer_venue_id=None,
                         offer_extra_data={
                             "offer_ranking_score": o.offer_score,

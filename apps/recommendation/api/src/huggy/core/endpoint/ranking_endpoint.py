@@ -136,7 +136,18 @@ class ModelRankingEndpoint(RankingEndpoint):
                     "user_iris_y": to_float(self.user.latitude),
                     "offer_user_distance": to_float(row.user_distance),
                     "offer_booking_number": to_float(row.booking_number),
-                    "offer_item_score": to_float(row.item_rank),
+                    "offer_booking_number_last_7_days": to_float(
+                        row.booking_number_last_7_days
+                    ),
+                    "offer_booking_number_last_14_days": to_float(
+                        row.booking_number_last_14_days
+                    ),
+                    "offer_booking_number_last_28_days": to_float(
+                        row.booking_number_last_28_days
+                    ),
+                    "offer_semantic_emb_mean": to_float(row.semantic_emb_mean),
+                    "offer_item_score": to_float(row.item_score),
+                    "offer_item_rank": to_float(row.item_rank),
                     "offer_is_geolocated": to_float(row.is_geolocated),
                     "offer_stock_price": to_float(row.stock_price),
                     "offer_creation_days": to_days(row.offer_creation_date),
@@ -236,8 +247,13 @@ class NoPopularModelRankingEndpoint(ModelRankingEndpoint):
                     "user_iris_x": to_float(self.user.longitude),
                     "user_iris_y": to_float(self.user.latitude),
                     "offer_user_distance": to_float(row.user_distance),
-                    "offer_booking_number": 0,  # force this metric at 0.
-                    "offer_item_score": to_float(row.item_rank),
+                    "offer_booking_number": 0,  # force theses metrics at 0.
+                    "offer_booking_number_last_7_days": 0,
+                    "offer_booking_number_last_14_days": 0,
+                    "offer_booking_number_last_28_days": 0,
+                    "offer_semantic_emb_mean": to_float(row.semantic_emb_mean),
+                    "offer_item_score": to_float(row.item_score),
+                    "offer_item_rank": to_float(row.item_rank),
                     "offer_is_geolocated": to_float(row.is_geolocated),
                     "offer_stock_price": to_float(row.stock_price),
                     "offer_creation_days": to_days(row.offer_creation_date),
