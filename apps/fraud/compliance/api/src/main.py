@@ -1,4 +1,3 @@
-import time
 from datetime import timedelta
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
@@ -72,7 +71,6 @@ def read_health():
 )
 @version(1, 0)
 def model_compliance_scoring(item: Item):
-    start = time.time()
     log_extra_data = {
         "model_version": "default_model",
         "offer_id": item.dict()["offer_id"],

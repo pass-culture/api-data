@@ -1,6 +1,5 @@
 from typing import Union
 
-from pcpapillon.utils.env_vars import MODEL_DEFAULT, MODEL_STAGE
 from pydantic import BaseModel
 
 # from __future__ import annotations
