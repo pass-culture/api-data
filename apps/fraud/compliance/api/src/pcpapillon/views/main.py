@@ -22,13 +22,13 @@ main_router = APIRouter(tags=["main"])
 
 
 @main_router.get("/")
-def read_root():
+async def read_root():
     custom_logger.info("Auth user welcome to : Validation API test")
     return "Auth user welcome to : Validation API test"
 
 
 @main_router.get("/health/api")
-def read_health():
+async def read_health():
     return "OK"
 
 
