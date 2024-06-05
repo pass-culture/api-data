@@ -3,15 +3,13 @@ from fastapi_versioning import version
 from main import custom_logger, setup_trace
 from pcpapillon.core.predict import get_prediction_and_main_contribution
 from pcpapillon.core.preprocess import preprocess
+from pcpapillon.utils.compliance import load_config, load_models
 from pcpapillon.utils.config_handler import ConfigHandler
 from pcpapillon.utils.data_model import (
     ComplianceOutput,
     Item,
     ModelParams,
     User,
-)
-from pcpapillon.utils.env_vars import (
-    isAPI_LOCAL,
 )
 from pcpapillon.utils.model_handler import ModelHandler
 from pcpapillon.utils.security import (
@@ -21,19 +19,10 @@ from typing_extensions import Annotated
 
 compliance_router = APIRouter(tags=["compliance"])
 
-config_handler = ConfigHandler()
-api_config = config_handler.get_config_by_name_and_type("API", "default")
-model_config = config_handler.get_config_by_name_and_type("model", "default")
 
-model_handler = ModelHandler(model_config)
-custom_logger.info("load_compliance_model..")
-model_loaded = model_handler.get_model_by_name(
-    name="compliance", type="local" if isAPI_LOCAL else "default"
-)
-custom_logger.info("load_preproc_model..")
-prepoc_models = {}
-for feature_type in model_config.pre_trained_model_for_embedding_extraction.keys():
-    prepoc_models[feature_type] = model_handler.get_model_by_name(feature_type)
+# Init model and configs
+api_config, model_config = load_config()
+model_loaded, prepoc_models = load_models(model_config=model_config)
 
 
 @compliance_router.post(
@@ -74,13 +63,19 @@ def model_compliance_load(
     model_params: ModelParams,
     current_user: Annotated[User, Depends(get_current_active_user)],
 ):
+    # Update model and config in all workers by using globla variables
+    global model_config
+    global model_loaded
+
     log_extra_data = {"model_params": model_params.dict()}
     custom_logger.info("Loading new model", extra=log_extra_data)
-    global model_loaded
+
+    config_handler = ConfigHandler()
+    model_handler = ModelHandler(model_config)
     model_loaded = model_handler.get_model_by_name(model_params.name, model_params.type)
-    global model_config
     model_config = config_handler.get_config_by_name_and_type(
         "model", model_params.type
     )
+
     custom_logger.info("Validation model updated", extra=log_extra_data)
     return model_params
