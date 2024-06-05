@@ -18,3 +18,4 @@ sentence-transformers==2.2.2
 catboost==1.2
 google-cloud-logging==3.5.0
 dataclass-wizard==0.22.2
+ruff==0.4.7
