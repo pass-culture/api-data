@@ -18,11 +18,13 @@ custom_logger = setup_logging()
 def init_app():
     from pcpapillon.views.compliance import compliance_router
     from pcpapillon.views.main import main_router
+    from pcpapillon.views.offer_categorisation import offer_categorisation_router
 
     app = FastAPI(title="Passculture offer validation API")
 
     app.include_router(main_router, tags=["main"])
     app.include_router(compliance_router, tags=["compliance"])
+    app.include_router(offer_categorisation_router, tags=["offer_categorisation"])
     return VersionedFastAPI(app, enable_latest=True)
 
 

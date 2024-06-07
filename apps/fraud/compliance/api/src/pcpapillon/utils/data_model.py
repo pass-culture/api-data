@@ -73,7 +73,7 @@ class OfferCategorisationInput(BaseModel):
 
 
 class OfferCategorisationOutput(BaseModel):
-    offer_if: str
+    offer_id: str
     most_probable_categories: list[str]
 
 
