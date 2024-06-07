@@ -1,10 +1,9 @@
-from typing import Union
-
-from pydantic import BaseModel
-
 # from __future__ import annotations
 from dataclasses import dataclass
+from typing import Union
+
 from dataclass_wizard import JSONWizard
+from pydantic import BaseModel
 
 
 @dataclass
@@ -37,7 +36,7 @@ class TokenData(BaseModel):
     username: Union[str, None] = None
 
 
-class Item(BaseModel):
+class ComplianceInput(BaseModel):
     offer_id: Union[str, None] = ""
     offer_name: Union[str, None] = ""
     offer_description: Union[str, None] = ""
@@ -58,6 +57,24 @@ class ComplianceOutput(BaseModel):
     validation_main_features: list[str]
     probability_rejected: int
     rejection_main_features: list[str]
+
+
+class OfferCategorisationInput(BaseModel):
+    offer_id: Union[str, None] = ""
+    offer_name: Union[str, None] = ""
+    offer_description: Union[str, None] = ""
+    offer_subcategoryId: Union[str, None] = ""
+    venue_type_label: Union[str, None] = ""
+    offerer_name: Union[str, None] = ""
+    offer_type_label: Union[str, None] = ""
+    offer_sub_type_label: Union[str, None] = ""
+    author: Union[str, None] = ""
+    performer: Union[str, None] = ""
+
+
+class OfferCategorisationOutput(BaseModel):
+    offer_if: str
+    most_probable_categories: list[str]
 
 
 class ModelParams(BaseModel):

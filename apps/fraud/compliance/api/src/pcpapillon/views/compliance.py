@@ -6,8 +6,8 @@ from pcpapillon.core.preprocess import preprocess
 from pcpapillon.utils.compliance import load_config, load_models
 from pcpapillon.utils.config_handler import ConfigHandler
 from pcpapillon.utils.data_model import (
+    ComplianceInput,
     ComplianceOutput,
-    Item,
     ModelParams,
     User,
 )
@@ -31,7 +31,7 @@ model_loaded, prepoc_models = load_models(model_config=model_config)
     dependencies=[Depends(setup_trace)],
 )
 @version(1, 0)
-def model_compliance_scoring(item: Item):
+def model_compliance_scoring(item: ComplianceInput):
     log_extra_data = {
         "model_version": "default_model",
         "offer_id": item.dict()["offer_id"],
