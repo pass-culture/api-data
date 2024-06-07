@@ -72,9 +72,14 @@ class OfferCategorisationInput(BaseModel):
     performer: Union[str, None] = ""
 
 
+class CategoryOutput(BaseModel):
+    category: str
+    probability: float
+
+
 class OfferCategorisationOutput(BaseModel):
     offer_id: str
-    most_probable_categories: list[str]
+    most_probable_categories: list[CategoryOutput]
 
 
 class ModelParams(BaseModel):
