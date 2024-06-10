@@ -28,7 +28,7 @@ class ModelHandler:
             else:
                 connect_remote_mlflow(MLFLOW_CLIENT_ID)
                 model_loaded = mlflow.catboost.load_model(
-                    model_uri=f"models:/{name}_{type}_{ENV_SHORT_NAME}/Production"
+                    model_uri=f"models:/{name}_{ENV_SHORT_NAME}/Production"
                 )
             return model_loaded
         else:

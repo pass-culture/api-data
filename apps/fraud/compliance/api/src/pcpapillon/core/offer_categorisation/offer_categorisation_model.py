@@ -24,6 +24,20 @@ class OfferCategorisationModel:
             self.model_classifier.classes_
         )
 
+    def predict(
+        self, input: OfferCategorisationInput, num_offers_to_return: int
+    ) -> pd.Series:
+        preprocessed_input = self._preprocess(input=input)
+
+        probabilities = self._classify(
+            preprocessed_input=preprocessed_input,
+        )
+
+        return self._postprocess(
+            probabilities=probabilities,
+            n_top=num_offers_to_return,
+        )
+
     def _preprocess(self, input: OfferCategorisationInput):
         t0 = time.time()
 
@@ -82,20 +96,6 @@ class OfferCategorisationModel:
                 "probability": probabilities[top_indexes],
             }
         ).to_dict(orient="records")
-
-    def predict(
-        self, input: OfferCategorisationInput, num_offers_to_return: int
-    ) -> pd.Series:
-        preprocessed_input = self._preprocess(input=input)
-
-        probabilities = self._classify(
-            preprocessed_input=preprocessed_input,
-        )
-
-        return self._postprocess(
-            probabilities=probabilities,
-            n_top=num_offers_to_return,
-        )
 
     @classmethod
     def _load_models(cls) -> tuple[CatBoostClassifier, SentenceTransformer]:
