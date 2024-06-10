@@ -1,5 +1,5 @@
 import pytest
-from pcpapillon.core.preprocess import prepare_features
+from pcpapillon.core.compliance.preprocess import prepare_features
 
 
 class PreprocessTest:
