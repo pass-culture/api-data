@@ -1,85 +1,20 @@
-import time
-
-import pandas as pd
-from catboost import CatBoostClassifier
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 from main import custom_logger, setup_trace
+from pcpapillon.core.offer_categorisation.offer_categorisation_model import (
+    OfferCategorisationModel,
+)
 from pcpapillon.utils.data_model import (
     OfferCategorisationInput,
     OfferCategorisationOutput,
 )
-from pcpapillon.utils.offer_categorisation_loaders import (
-    load_classes_to_label_mapping,
-    load_models,
-)
-from sentence_transformers import SentenceTransformer
 
 offer_categorisation_router = APIRouter(tags=["offer_categorisation"])
 
 
-# Add auto_class_weights to balance
-instantiated_model_classifier, instantiated_text_encoder = load_models()
-classes_to_label_mapping = load_classes_to_label_mapping(
-    instantiated_model_classifier.classes_
-)
-
-
-def preprocess(input: OfferCategorisationInput, sementinc_encoder: SentenceTransformer):
-    t0 = time.time()
-
-    input_series = pd.Series(input.dict()).fillna("unkn")
-    content = [
-        "offer_name",
-        "offer_description",
-        "offer_type_label",
-        "offer_sub_type_label",
-        "author",
-        "performer",
-    ]
-    sementic_content = " ".join(input_series[content].astype(str))
-    custom_logger.info(f"sementic_content: {sementic_content}")
-
-    output_series = pd.Series(
-        {
-            "venue_type_label": input.venue_type_label,
-            "offerer_name": input.offerer_name,
-            "embedding": sementinc_encoder.encode(sementic_content),
-        }
-    )
-
-    custom_logger.info(
-        f"elapsed time for preprocessing the input (LLM embedding extraction) {time.time() - t0}"
-    )
-    return output_series
-
-
-def predict(preprocessed_input: pd.Series, model_classifier: CatBoostClassifier):
-    t0 = time.time()
-    probabilities = model_classifier.predict_proba(preprocessed_input)
-    custom_logger.info(f"elapsed time for classification (CatBoost) {time.time() - t0}")
-
-    return probabilities
-
-
-def postprocess(
-    probabilities: pd.Series,
-    classes_to_label_mapping: pd.Series,
-    n_top: int,
-):
-    t0 = time.time()
-
-    top_indexes = probabilities.argsort()[-n_top:][::-1]
-    top_categories = classes_to_label_mapping.iloc[top_indexes]
-
-    custom_logger.info(f"elapsed time for postprocessing {time.time() - t0}")
-
-    return pd.DataFrame(
-        {
-            "category": top_categories,
-            "probability": probabilities[top_indexes],
-        }
-    ).to_dict(orient="records")
+# Load Model
+offer_categorisation_model = OfferCategorisationModel()
+NUM_OFFERS_TO_RETURN = 3
 
 
 @offer_categorisation_router.post(
@@ -95,19 +30,15 @@ def model_compliance_scoring(input: OfferCategorisationInput):
         "scoring_input": input.dict(),
     }
 
-    preprocessed_input = preprocess(
-        input=input, sementinc_encoder=instantiated_text_encoder
-    )
+    preprocessed_input = offer_categorisation_model.preprocess(input=input)
 
-    probabilities = predict(
+    probabilities = offer_categorisation_model.predict(
         preprocessed_input=preprocessed_input,
-        model_classifier=instantiated_model_classifier,
     )
 
-    most_probable_categories = postprocess(
+    most_probable_categories = offer_categorisation_model.postprocess(
         probabilities=probabilities,
-        classes_to_label_mapping=classes_to_label_mapping,
-        n_top=3,
+        n_top=NUM_OFFERS_TO_RETURN,
     )
 
     output_data = {
