@@ -9,27 +9,20 @@ from pcpapillon.utils.data_model import (
     OfferCategorisationInput,
     OfferCategorisationOutput,
 )
+from pcpapillon.utils.offer_categorisation_loaders import (
+    load_classes_to_label_mapping,
+    load_models,
+)
 from sentence_transformers import SentenceTransformer
 
 offer_categorisation_router = APIRouter(tags=["offer_categorisation"])
 
 
 # Add auto_class_weights to balance
-instantiated_text_encoder = SentenceTransformer(
-    "sentence-transformers/all-MiniLM-L6-v2"
+instantiated_model_classifier, instantiated_text_encoder = load_models()
+classes_to_label_mapping = load_classes_to_label_mapping(
+    instantiated_model_classifier.classes_
 )
-instantiated_model_classifier = CatBoostClassifier(
-    one_hot_max_size=65, loss_function="MultiClass", auto_class_weights="Balanced"
-)
-instantiated_model_classifier.load_model(
-    "pcpapillon/local_model/offer_categorisation_model.cb"
-)
-label_mapping = pd.read_parquet(
-    "pcpapillon/data/offer_categorisation_label_mapping.parquet"
-)
-classes_to_label_mapping = label_mapping.iloc[instantiated_model_classifier.classes_][
-    "offer_subcategoryId"
-]
 
 
 def preprocess(input: OfferCategorisationInput, sementinc_encoder: SentenceTransformer):
@@ -55,14 +48,16 @@ def preprocess(input: OfferCategorisationInput, sementinc_encoder: SentenceTrans
         }
     )
 
-    custom_logger.info(f"elapsed_time for preprocessing with LLM {time.time() - t0}")
+    custom_logger.info(
+        f"elapsed time for preprocessing the input (LLM embedding extraction) {time.time() - t0}"
+    )
     return output_series
 
 
 def predict(preprocessed_input: pd.Series, model_classifier: CatBoostClassifier):
     t0 = time.time()
     probabilities = model_classifier.predict_proba(preprocessed_input)
-    custom_logger.info(f"elapsed_time for Catboost {time.time() - t0}")
+    custom_logger.info(f"elapsed time for classification (CatBoost) {time.time() - t0}")
 
     return probabilities
 
@@ -77,7 +72,7 @@ def postprocess(
     top_indexes = probabilities.argsort()[-n_top:][::-1]
     top_categories = classes_to_label_mapping.iloc[top_indexes]
 
-    custom_logger.info(f"elapsed_time for postprocessing {time.time() - t0}")
+    custom_logger.info(f"elapsed time for postprocessing {time.time() - t0}")
 
     return pd.DataFrame(
         {

@@ -3,7 +3,7 @@ from fastapi_versioning import version
 from main import custom_logger, setup_trace
 from pcpapillon.core.compliance.predict import get_prediction_and_main_contribution
 from pcpapillon.core.compliance.preprocess import preprocess
-from pcpapillon.utils.compliance import load_config, load_models
+from pcpapillon.utils.compliance_loaders import load_config, load_models
 from pcpapillon.utils.config_handler import ConfigHandler
 from pcpapillon.utils.data_model import (
     ComplianceInput,
