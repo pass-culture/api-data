@@ -63,7 +63,6 @@ class OfferCategorisationInput(BaseModel):
     offer_id: Union[str, None] = ""
     offer_name: Union[str, None] = ""
     offer_description: Union[str, None] = ""
-    offer_subcategoryId: Union[str, None] = ""
     venue_type_label: Union[str, None] = ""
     offerer_name: Union[str, None] = ""
     offer_type_label: Union[str, None] = ""
