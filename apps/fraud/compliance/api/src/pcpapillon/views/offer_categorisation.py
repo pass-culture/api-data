@@ -30,15 +30,9 @@ def model_compliance_scoring(input: OfferCategorisationInput):
         "scoring_input": input.dict(),
     }
 
-    preprocessed_input = offer_categorisation_model.preprocess(input=input)
-
-    probabilities = offer_categorisation_model.predict(
-        preprocessed_input=preprocessed_input,
-    )
-
-    most_probable_categories = offer_categorisation_model.postprocess(
-        probabilities=probabilities,
-        n_top=NUM_OFFERS_TO_RETURN,
+    most_probable_categories = offer_categorisation_model.predict(
+        input=input,
+        num_offers_to_return=NUM_OFFERS_TO_RETURN,
     )
 
     output_data = {

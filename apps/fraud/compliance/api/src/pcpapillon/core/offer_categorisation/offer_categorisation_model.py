@@ -24,7 +24,7 @@ class OfferCategorisationModel:
             self.model_classifier.classes_
         )
 
-    def preprocess(self, input: OfferCategorisationInput):
+    def _preprocess(self, input: OfferCategorisationInput):
         t0 = time.time()
 
         input_series = pd.Series(input.dict()).fillna("unkn")
@@ -52,7 +52,7 @@ class OfferCategorisationModel:
         )
         return output_series
 
-    def predict(
+    def _classify(
         self,
         preprocessed_input: pd.Series,
     ):
@@ -64,7 +64,7 @@ class OfferCategorisationModel:
 
         return probabilities
 
-    def postprocess(
+    def _postprocess(
         self,
         probabilities: pd.Series,
         n_top: int,
@@ -82,6 +82,20 @@ class OfferCategorisationModel:
                 "probability": probabilities[top_indexes],
             }
         ).to_dict(orient="records")
+
+    def predict(
+        self, input: OfferCategorisationInput, num_offers_to_return: int
+    ) -> pd.Series:
+        preprocessed_input = self._preprocess(input=input)
+
+        probabilities = self._classify(
+            preprocessed_input=preprocessed_input,
+        )
+
+        return self._postprocess(
+            probabilities=probabilities,
+            n_top=num_offers_to_return,
+        )
 
     @classmethod
     def _load_models(cls) -> tuple[CatBoostClassifier, SentenceTransformer]:
