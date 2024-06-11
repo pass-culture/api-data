@@ -1,3 +1,5 @@
+import hashlib
+import pickle
 import time
 from datetime import timedelta
 
@@ -8,25 +10,23 @@ from fastapi_versioning import VersionedFastAPI, version
 from pcpapillon.core.predict import get_prediction_and_main_contribution
 from pcpapillon.core.preprocess import preprocess
 from pcpapillon.utils.cloud_logging.setup import setup_logging
+from pcpapillon.utils.config_handler import ConfigHandler
 from pcpapillon.utils.data_model import (
-    Item,
-    Token,
-    User,
-    ModelParams,
     ComplianceOutput,
+    Item,
+    ModelParams,
+    Token,
 )
 from pcpapillon.utils.env_vars import (
-    isAPI_LOCAL,
     LOGIN_TOKEN_EXPIRATION,
     cloud_trace_context,
+    isAPI_LOCAL,
     users_db,
 )
 from pcpapillon.utils.model_handler import ModelHandler
-from pcpapillon.utils.config_handler import ConfigHandler
 from pcpapillon.utils.security import (
     authenticate_user,
     create_access_token,
-    get_current_active_user,
 )
 from typing_extensions import Annotated
 
@@ -52,6 +52,16 @@ custom_logger.info("load_preproc_model..")
 prepoc_models = {}
 for feature_type in model_config.pre_trained_model_for_embedding_extraction.keys():
     prepoc_models[feature_type] = model_handler.get_model_by_name(feature_type)
+
+
+def get_object_hash(obj):
+    # Serialize the object to a byte stream
+    obj_bytes = pickle.dumps(obj)
+
+    # Compute the hash of the serialized data
+    obj_hash = hashlib.md5(obj_bytes).hexdigest()
+
+    return obj_hash
 
 
 @app.get("/")
@@ -95,6 +105,8 @@ def model_compliance_scoring(item: Item):
         "rejection_main_features": top_rejection,
     }
     custom_logger.info(validation_response_dict, extra=log_extra_data)
+
+    custom_logger.info(f"Model parameters hash: [{get_object_hash(model_loaded)}]")
     return validation_response_dict
 
 
@@ -102,24 +114,26 @@ def model_compliance_scoring(item: Item):
 @version(1, 0)
 def model_compliance_load(
     model_params: ModelParams,
-    current_user: Annotated[User, Depends(get_current_active_user)],
 ):
     log_extra_data = {"model_params": model_params.dict()}
     custom_logger.info("Loading new model", extra=log_extra_data)
     global model_loaded
     model_loaded = model_handler.get_model_by_name(model_params.name, model_params.type)
-    global model_config
-    model_config = config_handler.get_config_by_name_and_type(
-        "model", model_params.type
-    )
+
+    # global model_config
+    # model_config = config_handler.get_config_by_name_and_type(
+    #     "model", model_params.type
+    # )
     custom_logger.info("Validation model updated", extra=log_extra_data)
+
+    custom_logger.info(f"Model parameters hash: [{get_object_hash(model_loaded)}]")
     return model_params
 
 
 @app.post("/token", response_model=Token, dependencies=[Depends(setup_trace)])
 @version(1, 0)
 async def login_for_access_token(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ):
     log_extra_data = {"user": form_data.username}
     custom_logger.info("Requesting access token", extra=log_extra_data)

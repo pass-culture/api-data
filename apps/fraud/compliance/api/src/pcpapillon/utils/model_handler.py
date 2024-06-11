@@ -1,9 +1,9 @@
 import mlflow
 import mlflow.pyfunc
 from catboost import CatBoostClassifier
-from sentence_transformers import SentenceTransformer
 from pcpapillon.utils.env_vars import ENV_SHORT_NAME, MLFLOW_CLIENT_ID
 from pcpapillon.utils.tools import connect_remote_mlflow
+from sentence_transformers import SentenceTransformer
 
 
 class ModelHandler:
@@ -11,10 +11,12 @@ class ModelHandler:
         self.model_config = model_config
 
     def get_model_by_name(self, name, type="default"):
-        if name == "compliance":
+        if "compliance" in name:
             if type == "local":
                 model = CatBoostClassifier(one_hot_max_size=65)
-                model_loaded = model.load_model("./pcpapillon/local_model/model.cb")
+                model_loaded = model.load_model(
+                    f"./pcpapillon/local_model/{name}_model.cb"
+                )
             else:
                 connect_remote_mlflow(MLFLOW_CLIENT_ID)
                 # model = CatBoostClassifier(one_hot_max_size=65)
