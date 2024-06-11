@@ -9,4 +9,4 @@ install:
 	@eval "$$(pyenv init -)" && pyenv activate api-data-fraud-compliance && pip install -r requirements.txt
 
 start:
-	@eval "$$(pyenv init -)" && cd src && API_LOCAL=True uvicorn main:app --reload
+	@eval "$$(pyenv init -)" && cd src && API_LOCAL=True uvicorn --workers 4 main:app

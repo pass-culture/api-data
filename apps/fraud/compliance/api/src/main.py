@@ -1,4 +1,5 @@
 import hashlib
+import os
 import pickle
 import time
 from datetime import timedelta
@@ -106,7 +107,9 @@ def model_compliance_scoring(item: Item):
     }
     custom_logger.info(validation_response_dict, extra=log_extra_data)
 
-    custom_logger.info(f"Model parameters hash: [{get_object_hash(model_loaded)}]")
+    custom_logger.info(
+        f"Model parameters hash: [{get_object_hash(model_loaded)}] on pid {os.getpid()}"
+    )
     return validation_response_dict
 
 
@@ -125,8 +128,9 @@ def model_compliance_load(
     #     "model", model_params.type
     # )
     custom_logger.info("Validation model updated", extra=log_extra_data)
-
-    custom_logger.info(f"Model parameters hash: [{get_object_hash(model_loaded)}]")
+    custom_logger.info(
+        f"Model parameters hash: [{get_object_hash(model_loaded)}] on pid {os.getpid()}"
+    )
     return model_params
 
 
