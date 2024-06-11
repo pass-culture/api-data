@@ -27,9 +27,13 @@ class ModelEngine(ABC):
         call_id: str,
         context: str,
         offer: o.Offer = None,
+        offers: List[o.Offer] = None,
     ):
         self.user = user
         self.offer = offer
+        self.offers = (
+            [offer for offer in offers] if isinstance(offers, list) else [offer]
+        )
         self.params_in = params_in
         self.call_id = call_id
         self.context = context
@@ -66,6 +70,7 @@ class ModelEngine(ABC):
             retrieval_endpoints=self.model_params.retrieval_endpoints,
             ranking_endpoint=self.model_params.ranking_endpoint,
             offer=self.offer,
+            offers=self.offers,
         )
 
     async def get_scoring(self, db: AsyncSession) -> List[str]:

@@ -11,7 +11,9 @@ class SimilarOffer(ModelEngine):
     def get_model_configuration(
         self, user: UserContext, params_in: PlaylistParams
     ) -> ForkOut:
-        return select_sim_model_params(params_in.model_endpoint, offer=self.offer)
+        return select_sim_model_params(
+            params_in.model_endpoint, offer=self.offer, offers=self.offers
+        )
 
     def get_scorer(self):
         # init input
@@ -19,6 +21,7 @@ class SimilarOffer(ModelEngine):
             endpoint.init_input(
                 user=self.user,
                 offer=self.offer,
+                offers=self.offers,
                 params_in=self.params_in,
                 call_id=self.call_id,
             )
@@ -39,5 +42,7 @@ class SimilarOffer(ModelEngine):
 
     async def get_scoring(self, db: AsyncSession) -> List[str]:
         if self.offer is not None and self.offer.item_id is None:
+            return []
+        if len(self.offers) > 0 and len([offer.item_id for offer in self.offers]) == 0:
             return []
         return await super().get_scoring(db)

@@ -30,9 +30,11 @@ class OfferScorer:
         ranking_endpoint: RankingEndpoint,
         model_params,
         offer: t.Optional[o.Offer] = None,
+        offers: t.Optional[t.List[o.Offer]] = None,
     ):
         self.user = user
         self.offer = offer
+        self.offers = offers
         self.model_params = model_params
         self.params_in = params_in
         self.retrieval_endpoints = retrieval_endpoints
