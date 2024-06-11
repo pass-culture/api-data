@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
-from main import custom_logger, setup_trace
+from main import custom_logger
 from pcpapillon.core.compliance.compliance_model import (
     ComplianceModel,
 )
 from pcpapillon.core.compliance.loaders import load_config
+from pcpapillon.utils.cloud_logging.setup import setup_trace
 from pcpapillon.utils.data_model import (
     ComplianceInput,
     ComplianceOutput,

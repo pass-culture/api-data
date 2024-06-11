@@ -1,10 +1,14 @@
 import logging
 
 import google.cloud.logging
+from fastapi import Request
 from fastapi.logger import logger
 from pcpapillon.utils.cloud_logging.filter import GoogleCloudLogFilter
 from pcpapillon.utils.cloud_logging.logger import CustomLogger
-from pcpapillon.utils.env_vars import isAPI_LOCAL
+from pcpapillon.utils.env_vars import (
+    cloud_trace_context,
+    isAPI_LOCAL,
+)
 
 
 def setup_logging():
@@ -21,3 +25,8 @@ def setup_logging():
         logger.setLevel(logging.DEBUG)
         api_logger = CustomLogger()
     return api_logger
+
+
+async def setup_trace(request: Request):
+    if "x-cloud-trace-context" in request.headers:
+        cloud_trace_context.set(request.headers.get("x-cloud-trace-context"))

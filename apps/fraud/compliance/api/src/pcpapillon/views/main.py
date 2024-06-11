@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.logger import logger
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_versioning import version
-from main import custom_logger, setup_trace
+from main import custom_logger
+from pcpapillon.utils.cloud_logging.setup import setup_trace
 from pcpapillon.utils.data_model import (
     Token,
 )
