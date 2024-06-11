@@ -1,7 +1,8 @@
+import os
+
+import mlflow
 from google.auth.transport.requests import Request
 from google.oauth2 import id_token
-import mlflow
-import os
 from pcpapillon.utils.env_vars import MLFLOW_URL
 
 

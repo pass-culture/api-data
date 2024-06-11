@@ -1,7 +1,8 @@
-import requests
-import numpy as np
-from PIL import Image
 import io
+
+import numpy as np
+import requests
+from PIL import Image
 
 
 def extract_embedding(data, params, prepoc_models):

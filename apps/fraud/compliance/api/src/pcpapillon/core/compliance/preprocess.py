@@ -1,5 +1,5 @@
 from catboost import Pool
-from pcpapillon.core.extract_embedding import extract_embedding
+from pcpapillon.core.compliance.extract_embedding import extract_embedding
 
 
 def preprocess(api_config, model_config, data, prepoc_models):

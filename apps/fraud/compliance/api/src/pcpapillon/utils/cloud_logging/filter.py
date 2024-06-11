@@ -1,5 +1,4 @@
 import logging
-import re
 from google.cloud.logging_v2.handlers import CloudLoggingFilter
 from pcpapillon.utils.env_vars import (
     http_request_context,
