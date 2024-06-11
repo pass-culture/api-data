@@ -1,24 +1,68 @@
-import hashlib
-import pickle
-from typing import Any
+from typing import Union
 
+import mlflow
 from main import custom_logger
 from pcpapillon.core.compliance.predict import get_prediction_and_main_contribution
 from pcpapillon.core.compliance.preprocess import preprocess
 from pcpapillon.utils.config_handler import ConfigHandler
-from pcpapillon.utils.data_model import APIConfig, ModelConfig, ModelParams
+from pcpapillon.utils.data_model import APIConfig, ModelConfig
 from pcpapillon.utils.env_vars import (
     isAPI_LOCAL,
 )
 from pcpapillon.utils.model_handler import ModelHandler
+from sentence_transformers import SentenceTransformer
 
 
 class ComplianceModel:
-    def __init__(self, api_config, model_config):
-        self.api_config = api_config
-        self.model_config = model_config
-        self.classfier_model, self.prepoc_models = self._load_models(
-            model_config=self.model_config
+    MODEL_NAME = "compliance"
+    MODEL_TYPE = "local" if isAPI_LOCAL else "default"
+    PREPROC_MODEL_TYPE = "custom_sentence_transformer"
+
+    def __init__(self):
+        self.model_handler = ModelHandler()
+        self.api_config, self.model_config = self._load_config()
+        self.classfier_model, self.classifier_model_identifier, self.prepoc_models = (
+            self._load_models()
+        )
+
+    @staticmethod
+    def _load_config() -> tuple[APIConfig, ModelConfig]:
+        api_config = ConfigHandler.get_config_by_name_and_type("API", "default")
+        model_config = ConfigHandler.get_config_by_name_and_type("model", "default")
+        return api_config, model_config
+
+    def _load_models(
+        self,
+    ) -> tuple[
+        Union[mlflow.pyfunc.PythonModel, SentenceTransformer],
+        str,
+        dict[str, SentenceTransformer],
+    ]:
+        custom_logger.info("load_compliance_model..")
+        catboost_model_with_metadata = (
+            self.model_handler.get_model_with_metadata_by_name(
+                model_name=self.MODEL_NAME, model_type=self.MODEL_TYPE
+            )
+        )
+
+        custom_logger.info("load_preproc_model..")
+        prepoc_models = {}
+        for (
+            feature_type,
+            sentence_transformer_name,
+        ) in self.model_config.pre_trained_model_for_embedding_extraction.items():
+            prepoc_models[feature_type] = (
+                self.model_handler.get_model_with_metadata_by_name(
+                    model_name=sentence_transformer_name,
+                    model_type=self.PREPROC_MODEL_TYPE,
+                ).model
+            )
+
+        custom_logger.info("Preprocessing models for compliance : {prepoc_models}")
+        return (
+            catboost_model_with_metadata.model,
+            catboost_model_with_metadata.model_identifier,
+            prepoc_models,
         )
 
     def predict(self, data):
@@ -48,53 +92,27 @@ class ComplianceModel:
             self.classfier_model, data_w_emb, pool
         )
 
-    @staticmethod
-    def _load_models(model_config: ModelConfig) -> tuple[Any, dict[str, Any]]:
-        custom_logger.info("load_compliance_model..")
-        loaded_model = ModelHandler.get_model_by_name(
-            name="compliance", type="local" if isAPI_LOCAL else "default"
+    def _is_newer_model_available(self) -> bool:
+        return (
+            self.classifier_model_identifier
+            != self.model_handler.get_model_hash_from_mlflow(self.MODEL_NAME)
         )
-
-        custom_logger.info("load_preproc_model..")
-        prepoc_models = {}
-        for (
-            feature_type,
-            sentence_transformer_name,
-        ) in model_config.pre_trained_model_for_embedding_extraction.items():
-            prepoc_models[feature_type] = ModelHandler.get_model_by_name(
-                name=sentence_transformer_name, type="custom_sentence_transformer"
-            )
-
-        custom_logger.info("Preprocessing models for compliance : {prepoc_models}")
-
-        return loaded_model, prepoc_models
-
-    def _load_config() -> tuple[APIConfig, ModelConfig]:
-        config_handler = ConfigHandler()
-        api_config = config_handler.get_config_by_name_and_type("API", "default")
-        model_config = config_handler.get_config_by_name_and_type("model", "default")
-        return api_config, model_config
-
-    def reload_classification_model(self, model_params: ModelParams) -> None:
-        self.classfier_model = ModelHandler().get_model_by_name(
-            model_params.name, model_params.type
-        )
-        self.model_config = ConfigHandler().get_config_by_name_and_type(
-            "model", model_params.type
-        )
-
-    def _check_is_model_available(self) -> bool:
-        def get_object_hash(obj):
-            # Serialize the object to a byte stream
-            obj_bytes = pickle.dumps(obj)
-
-            # Compute the hash of the serialized data
-            obj_hash = hashlib.md5(obj_bytes).hexdigest()
-
-            return obj_hash
-
-        return get_object_hash(self.classfier_model)
 
     async def reload_model_if_newer_is_available(self):
         custom_logger.info("Checking if newer model is available...")
-        custom_logger.info(self._check_is_model_available())
+
+        if self._is_newer_model_available():
+            classfier_model_with_metadata = (
+                self.model_handler.get_model_with_metadata_by_name(
+                    model_name=self.MODEL_NAME, model_type=self.MODEL_TYPE
+                )
+            )
+            self.classfier_model, self.classifier_model_identifier = (
+                classfier_model_with_metadata.model,
+                classfier_model_with_metadata.model_hash,
+            )
+            custom_logger.info(
+                f"...New model loaded with hash {self.classfier_model_with_metadata.model_hash}"
+            )
+        else:
+            custom_logger.info("...No newer model available")

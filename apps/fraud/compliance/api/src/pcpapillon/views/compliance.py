@@ -4,28 +4,18 @@ from main import custom_logger
 from pcpapillon.core.compliance.compliance_model import (
     ComplianceModel,
 )
-from pcpapillon.core.compliance.loaders import load_config
 from pcpapillon.utils.cloud_logging.setup import setup_trace
 from pcpapillon.utils.data_model import (
     ComplianceInput,
     ComplianceOutput,
-    ModelParams,
-    User,
 )
 from pcpapillon.utils.scheduler import init_scheduler
-from pcpapillon.utils.security import (
-    get_current_active_user,
-)
-from typing_extensions import Annotated
 
 compliance_router = APIRouter(tags=["compliance"])
 
 
-# Init model and configs
-api_config, model_config = load_config()
-compliance_model = ComplianceModel(api_config=api_config, model_config=model_config)
-
-
+# Init model and scheduler
+compliance_model = ComplianceModel()
 compliance_scheduler = init_scheduler(
     compliance_model.reload_model_if_newer_is_available, time_interval=2
 )
@@ -60,18 +50,3 @@ def model_compliance_scoring(scoring_input: ComplianceInput):
     }
     custom_logger.info(validation_response_dict, extra=log_extra_data)
     return validation_response_dict
-
-
-@compliance_router.post("/model/compliance/load", dependencies=[Depends(setup_trace)])
-@version(1, 0)
-def model_compliance_load(
-    model_params: ModelParams,
-    current_user: Annotated[User, Depends(get_current_active_user)],
-):
-    log_extra_data = {"model_params": model_params.dict()}
-    custom_logger.info("Loading new model", extra=log_extra_data)
-
-    compliance_model.reload_classification_model(model_params=model_params)
-
-    custom_logger.info("Validation model updated", extra=log_extra_data)
-    return model_params

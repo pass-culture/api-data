@@ -17,8 +17,12 @@ from sentence_transformers import SentenceTransformer
 class OfferCategorisationModel:
     LABEL_MAPPING_PATH = "pcpapillon/data/offer_categorisation_label_mapping.parquet"
     PREPROCESSOR_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+    MODEL_NAME = "offer_categorisation"
+    MODEL_TYPE = "local" if isAPI_LOCAL else "default"
+    PREPROC_MODEL_TYPE = "custom_sentence_transformer"
 
     def __init__(self):
+        self.model_handler = ModelHandler()
         self.model_classifier, self.sementinc_encoder = self._load_models()
         self.classes_to_label_mapping = self._load_classes_to_label_mapping(
             self.model_classifier.classes_
@@ -97,18 +101,17 @@ class OfferCategorisationModel:
             }
         ).to_dict(orient="records")
 
-    @classmethod
-    def _load_models(cls) -> tuple[CatBoostClassifier, SentenceTransformer]:
+    def _load_models(self) -> tuple[CatBoostClassifier, SentenceTransformer]:
         custom_logger.info("Load offer categorisation model..")
-        model_classifier = ModelHandler.get_model_by_name(
-            name="offer_categorisation", type="local" if isAPI_LOCAL else "default"
-        )
+        model_classifier = self.model_handler.get_model_with_metadata_by_name(
+            model_name=self.MODEL_NAME, model_type=self.MODEL_TYPE
+        ).model
 
         custom_logger.info("Load offer categorisation model preprocessor..")
-        text_preprocessor = ModelHandler.get_model_by_name(
-            name=cls.PREPROCESSOR_NAME,
-            type="custom_sentence_transformer",
-        )
+        text_preprocessor = self.model_handler.get_model_with_metadata_by_name(
+            model_name=self.PREPROCESSOR_NAME,
+            model_type=self.PREPROC_MODEL_TYPE,
+        ).model
 
         return model_classifier, text_preprocessor
 
