@@ -1,3 +1,4 @@
+APScheduler==3.10.4
 catboost==1.2
 dataclass-wizard==0.22.2
 fastapi-cloud-logging==1.1.0
