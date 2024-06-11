@@ -12,6 +12,7 @@ from pcpapillon.utils.data_model import (
     ModelParams,
     User,
 )
+from pcpapillon.utils.scheduler import init_scheduler
 from pcpapillon.utils.security import (
     get_current_active_user,
 )
@@ -23,6 +24,11 @@ compliance_router = APIRouter(tags=["compliance"])
 # Init model and configs
 api_config, model_config = load_config()
 compliance_model = ComplianceModel(api_config=api_config, model_config=model_config)
+
+
+compliance_scheduler = init_scheduler(
+    compliance_model.reload_model_if_newer_is_available, time_interval=2
+)
 
 
 @compliance_router.post(

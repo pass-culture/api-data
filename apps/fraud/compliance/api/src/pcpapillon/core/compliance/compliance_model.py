@@ -1,3 +1,5 @@
+import hashlib
+import pickle
 from typing import Any
 
 from main import custom_logger
@@ -80,3 +82,19 @@ class ComplianceModel:
         self.model_config = ConfigHandler().get_config_by_name_and_type(
             "model", model_params.type
         )
+
+    def _check_is_model_available(self) -> bool:
+        def get_object_hash(obj):
+            # Serialize the object to a byte stream
+            obj_bytes = pickle.dumps(obj)
+
+            # Compute the hash of the serialized data
+            obj_hash = hashlib.md5(obj_bytes).hexdigest()
+
+            return obj_hash
+
+        return get_object_hash(self.classfier_model)
+
+    async def reload_model_if_newer_is_available(self):
+        custom_logger.info("Checking if newer model is available...")
+        custom_logger.info(self._check_is_model_available())

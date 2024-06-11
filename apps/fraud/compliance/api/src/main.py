@@ -1,8 +1,11 @@
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 from fastapi import FastAPI
 from fastapi_versioning import VersionedFastAPI
 from pcpapillon.utils.cloud_logging.setup import setup_logging
 
 custom_logger = setup_logging()
+
 
 
 def init_app():
@@ -15,7 +18,9 @@ def init_app():
     app.include_router(main_router, tags=["main"])
     app.include_router(compliance_router, tags=["compliance"])
     app.include_router(offer_categorisation_router, tags=["offer_categorisation"])
+
     return VersionedFastAPI(app, enable_latest=True)
+
 
 
 app = init_app()
