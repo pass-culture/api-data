@@ -28,6 +28,7 @@ class ModelHandler:
     OFFER_RECOMMENDATION_LOCAL_PATH = (
         "pcpapillon/local_model/offer_categorisation_model.cb"
     )
+    MODEL_STAGE = "Production"
 
     def __init__(self) -> None:
         if not isAPI_LOCAL:
@@ -42,9 +43,8 @@ class ModelHandler:
         self, model_name, model_type="default"
     ) -> ModelWithMetadata:
         if model_type == "default":
-            mlflow_model_name = self._get_mlflow_model_name(model_name)
             loaded_model = mlflow.catboost.load_model(
-                model_uri=f"models:/{mlflow_model_name}"
+                model_uri=f"models:/{self._get_mlflow_model_name(model_name)}/{self.MODEL_STAGE}"
             )
             model_hash = self.get_model_hash_from_mlflow(model_name=model_name)
             return ModelWithMetadata(model=loaded_model, model_identifier=model_hash)
@@ -84,7 +84,7 @@ class ModelHandler:
             raise ValueError("No mlflow client connected")
 
         model_version = self.mlflow_client.get_latest_versions(
-            mlflow_model_name, stages=["Production"]
+            mlflow_model_name, stages=[self.MODEL_STAGE]
         )
 
         return self._get_hash(model_version)
@@ -92,9 +92,9 @@ class ModelHandler:
     @staticmethod
     def _get_mlflow_model_name(model_name: str):
         if model_name == "compliance":
-            return f"{model_name}_default_{ENV_SHORT_NAME}/Production"
+            return f"{model_name}_default_{ENV_SHORT_NAME}"
         elif model_name == "offer_categorisation":
-            return f"{model_name}_{ENV_SHORT_NAME}/Production"
+            return f"{model_name}_{ENV_SHORT_NAME}"
         raise ValueError(
             "Only compliance and offer_categorisation are registered in mlflow"
         )
