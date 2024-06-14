@@ -1,10 +1,8 @@
 import logging
 
 from fastapi import Request
-from fastapi.logger import logger
 from fastapi.logger import logger as fastapi_logger
 from google.cloud import logging as gcloud_logging
-from pcpapillon.utils.cloud_logging.filter import GoogleCloudLogFilter
 from pcpapillon.utils.env_vars import (
     cloud_trace_context,
     isAPI_LOCAL,
@@ -17,6 +15,7 @@ class CustomLogger:
             "message": message,
             "extra": extra,
         }
+
         fastapi_logger.info(log_entry)
         return
 
@@ -27,26 +26,32 @@ def setup_logging():
 
     if isAPI_LOCAL:
         # Local development with Uvicorn or Gunicorn with Uvicorn workers
-        # uvicorn_logger = logging.getLogger("uvicorn")
-        # uvicorn_logger.setLevel(logging.DEBUG)
         handler = logging.StreamHandler()
         handler.setFormatter(
             logging.Formatter("%(levelname)s: %(asctime)s - %(message)s")
         )
-        # uvicorn_logger.addHandler(handler)
         fastapi_logger.addHandler(handler)
         fastapi_logger.setLevel(logging.DEBUG)
         api_logger = fastapi_logger
     else:
         # Production on Cloud Run
         client = gcloud_logging.Client()
-        handler = client.get_default_handler()
-        handler.setLevel(logging.DEBUG)
-        handler.filters = []
-        handler.addFilter(GoogleCloudLogFilter(project=client.project))
-        logger.handlers = []
-        logger.addHandler(handler)
-        logger.setLevel(logging.DEBUG)
+        gcloud_handler = client.get_default_handler()
+        gcloud_handler.setLevel(logging.DEBUG)
+        gcloud_handler.setFormatter(
+            logging.Formatter("%(levelname)s: %(asctime)s - %(message)s")
+        )
+
+        # Gunicorn/Console logging
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.DEBUG)
+        console_handler.setFormatter(
+            logging.Formatter("%(levelname)s: %(asctime)s - %(message)s")
+        )
+
+        fastapi_logger.addHandler(gcloud_handler)
+        fastapi_logger.addHandler(console_handler)
+        fastapi_logger.setLevel(logging.DEBUG)
         api_logger = CustomLogger()
     return api_logger
 
