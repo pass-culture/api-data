@@ -1,4 +1,4 @@
-from fastapi.logger import logger
+from fastapi.logger import logger as fastapi_logger
 
 
 class CustomLogger:
@@ -11,5 +11,5 @@ class CustomLogger:
             "message": message,
             "extra": extra,
         }
-        logger.info(log_entry)
+        fastapi_logger.info(log_entry)
         return
