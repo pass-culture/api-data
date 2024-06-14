@@ -12,4 +12,8 @@ start:
 	@eval "$$(pyenv init -)" && cd src && API_LOCAL=True uvicorn main:app --reload
 
 guvistart:
-	@eval "$$(pyenv init -)" && cd src && API_LOCAL=True gunicorn -k uvicorn.workers.UvicornWorker --workers 1 --threads 10 --preload --timeout 0 --log-level "debug" --access-logfile "-" main:app
+	@eval "$$(pyenv init -)" && cd src && API_LOCAL=True gunicorn -k uvicorn.workers.UvicornWorker --bind :8080 --workers 1 --threads 1 --preload --timeout 0 main:app
+	# @eval "$$(pyenv init -)" && cd src && API_LOCAL=True gunicorn -k uvicorn.workers.UvicornWorker --workers 1 --threads 10 --preload --timeout 0 --log-level "debug" --access-logfile "-" main:app
+
+start_as_not_local:
+	@eval "$$(pyenv init -)" && cd src && uvicorn main:app --reload
