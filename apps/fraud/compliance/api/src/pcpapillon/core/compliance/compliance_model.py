@@ -98,7 +98,7 @@ class ComplianceModel:
             != self.model_handler.get_model_hash_from_mlflow(self.MODEL_NAME)
         )
 
-    async def reload_model_if_newer_is_available(self):
+    def reload_model_if_newer_is_available(self):
         custom_logger.info("Checking if newer model is available...")
 
         if self._is_newer_model_available():
