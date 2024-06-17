@@ -31,6 +31,7 @@ JIRA-ticket_number
 - [ ] I have performed a self-review of my code
 - [ ] My code passes CI/CD tests
 - [ ] I updated README.md
+- [ ] My PR contains only a single commit (squash them if needed)
 - [ ] I will create a review on slack and ensure to specify the duration of the review task: short (<10min), medium (<30min), long (>30min)
 
 ### Added tests?

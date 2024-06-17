@@ -10,3 +10,9 @@ install:
 
 start:
 	@eval "$$(pyenv init -)" && cd src && API_LOCAL=True uvicorn main:app --reload
+
+start_with_gunicorn:
+	@eval "$$(pyenv init -)" && cd src && API_LOCAL=True gunicorn -k uvicorn.workers.UvicornWorker --bind :8000 --workers 1 --threads 10 --preload --timeout 0 main:app
+
+start_as_not_local:
+	@eval "$$(pyenv init -)" && cd src && uvicorn main:app --reload

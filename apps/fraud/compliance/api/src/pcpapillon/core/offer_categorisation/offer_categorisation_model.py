@@ -4,21 +4,29 @@ import numpy as np
 import pandas as pd
 from catboost import CatBoostClassifier
 from main import custom_logger
+from pcpapillon.utils.constants import (
+    ModelName,
+    ModelType,
+)
 from pcpapillon.utils.data_model import (
     OfferCategorisationInput,
 )
 from pcpapillon.utils.env_vars import (
-    isAPI_LOCAL,
+    IS_API_LOCAL,
 )
 from pcpapillon.utils.model_handler import ModelHandler
 from sentence_transformers import SentenceTransformer
 
 
 class OfferCategorisationModel:
-    LABEL_MAPPING_PATH = "pcpapillon/data/offer_categorisation_label_mapping.parquet"
-    PREPROCESSOR_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+    LABEL_MAPPING_PATH = "pcpapillon/data/offer_categorisation_label_mapping.parquet"  # Will be removed when model predict is updated
+    PREPROCESSOR_NAME = "sentence-transformers/all-MiniLM-L6-v2"  # Will be removed when model predict is updated
+    MODEL_NAME = ModelName.OFFER_CATEGORISATION
+    MODEL_TYPE = ModelType.LOCAL if IS_API_LOCAL else ModelType.DEFAULT
+    PREPROC_MODEL_TYPE = ModelType.PREPROCESSING
 
     def __init__(self):
+        self.model_handler = ModelHandler()
         self.model_classifier, self.sementinc_encoder = self._load_models()
         self.classes_to_label_mapping = self._load_classes_to_label_mapping(
             self.model_classifier.classes_
@@ -97,18 +105,17 @@ class OfferCategorisationModel:
             }
         ).to_dict(orient="records")
 
-    @classmethod
-    def _load_models(cls) -> tuple[CatBoostClassifier, SentenceTransformer]:
+    def _load_models(self) -> tuple[CatBoostClassifier, SentenceTransformer]:
         custom_logger.info("Load offer categorisation model..")
-        model_classifier = ModelHandler.get_model_by_name(
-            name="offer_categorisation", type="local" if isAPI_LOCAL else "default"
-        )
+        model_classifier = self.model_handler.get_model_with_metadata_by_name(
+            model_name=self.MODEL_NAME, model_type=self.MODEL_TYPE
+        ).model
 
         custom_logger.info("Load offer categorisation model preprocessor..")
-        text_preprocessor = ModelHandler.get_model_by_name(
-            name=cls.PREPROCESSOR_NAME,
-            type="custom_sentence_transformer",
-        )
+        text_preprocessor = self.model_handler.get_model_with_metadata_by_name(
+            model_name=self.PREPROCESSOR_NAME,
+            model_type=self.PREPROC_MODEL_TYPE,
+        ).model
 
         return model_classifier, text_preprocessor
 

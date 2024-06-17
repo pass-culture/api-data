@@ -1,5 +1,6 @@
-import os
 import contextvars
+import os
+
 from google.auth.exceptions import DefaultCredentialsError
 from google.cloud import secretmanager
 
@@ -20,7 +21,7 @@ GCP_PROJECT = os.environ.get("GCP_PROJECT", "passculture-data-ehp")
 ENV_SHORT_NAME = os.environ.get("ENV_SHORT_NAME", "dev")
 # API_LOCAL is string to match terraform boolean handling
 API_LOCAL = os.environ.get("API_LOCAL", False)
-isAPI_LOCAL = True if API_LOCAL == "True" else False
+IS_API_LOCAL = True if API_LOCAL == "True" else False
 # API
 API_SECRET_KET_SECRET_ID = os.environ.get(
     "API_SECRET_KET_SECRET_ID", "api-papillon-auth-secret-key-dev"
@@ -29,7 +30,7 @@ SECRET_KEY = access_secret(GCP_PROJECT, API_SECRET_KET_SECRET_ID)
 HASH_ALGORITHM = os.environ.get("VALIDATION_LOGIN_KEY", "HS256")
 LOGIN_TOKEN_EXPIRATION = os.environ.get("LOGIN_TOKEN_EXPIRATION", 30)
 
-if isAPI_LOCAL:
+if IS_API_LOCAL:
     API_USER = "user_local"
     API_PWD = "pwd_local"
 

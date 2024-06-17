@@ -2,7 +2,7 @@
 * [Hotfix](?expand=1&template=Hotfix_template.md)
 * [MES](?expand=1&template=MES_template.md)
 * [MEP](?expand=1&template=MEP_template.md)
-* [Other](?expand=1&template=Refacto_template.md)
+* [Other](?expand=1&template=Generic_template.md)
 
 
 
