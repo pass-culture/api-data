@@ -47,7 +47,7 @@ async def playlist_recommendation(
             user,
             playlist_params,
             call_id=call_id,
-            context="similar_offer",
+            context="pl_semi_edito",
             offers=offers_list,
         )
     else:
