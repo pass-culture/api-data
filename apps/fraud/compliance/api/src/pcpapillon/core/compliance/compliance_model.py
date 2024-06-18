@@ -1,4 +1,4 @@
-import threading
+from dataclasses import dataclass
 from typing import Union
 
 import mlflow
@@ -6,13 +6,19 @@ from main import custom_logger
 from pcpapillon.core.compliance.predict import get_prediction_and_main_contribution
 from pcpapillon.core.compliance.preprocess import preprocess
 from pcpapillon.utils.config_handler import ConfigHandler
-from pcpapillon.utils.constants import APIType, ConfigName, ModelName, ModelType
-from pcpapillon.utils.data_model import APIConfig, ModelConfig
+from pcpapillon.utils.constants import APIType, ModelName, ModelType
 from pcpapillon.utils.env_vars import (
     IS_API_LOCAL,
 )
 from pcpapillon.utils.model_handler import ModelHandler
 from sentence_transformers import SentenceTransformer
+
+
+@dataclass
+class ModelData:
+    classification_model: Union[mlflow.pyfunc.PythonModel, SentenceTransformer]
+    model_identifier: str
+    preprocessing_models: dict[str, SentenceTransformer]
 
 
 class ComplianceModel:
@@ -21,30 +27,17 @@ class ComplianceModel:
     PREPROC_MODEL_TYPE = MODEL_TYPE.PREPROCESSING
 
     def __init__(self):
+        self.api_config = ConfigHandler.get_api_config(APIType.DEFAULT)
+        self.model_config = ConfigHandler.get_model_config(ModelType.DEFAULT)
         self.model_handler = ModelHandler()
-        self.api_config, self.model_config = self._load_config()
-        self.classfier_model, self.classifier_model_identifier, self.prepoc_models = (
-            self._load_models()
-        )
-        self.classfier_model_lock: threading.Lock = threading.Lock()
-
-    @staticmethod
-    def _load_config() -> tuple[APIConfig, ModelConfig]:
-        api_config = ConfigHandler.get_config_by_name_and_type(
-            ConfigName.API, APIType.DEFAULT
-        )
-        model_config = ConfigHandler.get_config_by_name_and_type(
-            ConfigName.MODEL, ModelType.DEFAULT
-        )
-        return api_config, model_config
+        model_data = self._load_models()
+        self.classfier_model = model_data.classification_model
+        self.classifier_model_identifier = model_data.model_identifier
+        self.prepoc_models = model_data.preprocessing_models
 
     def _load_models(
         self,
-    ) -> tuple[
-        Union[mlflow.pyfunc.PythonModel, SentenceTransformer],
-        str,
-        dict[str, SentenceTransformer],
-    ]:
+    ) -> ModelData:
         custom_logger.info("load classification model..")
         catboost_model_with_metadata = (
             self.model_handler.get_model_with_metadata_by_name(
@@ -68,10 +61,10 @@ class ComplianceModel:
         custom_logger.info(
             f"Preprocessing models for {self.MODEL_NAME} : {prepoc_models}"
         )
-        return (
-            catboost_model_with_metadata.model,
-            catboost_model_with_metadata.model_identifier,
-            prepoc_models,
+        return ModelData(
+            classification_model=catboost_model_with_metadata.model,
+            model_identifier=catboost_model_with_metadata.model_identifier,
+            preprocessing_models=prepoc_models,
         )
 
     def predict(self, data):
@@ -108,22 +101,20 @@ class ComplianceModel:
         )
 
     def reload_model_if_newer_is_available(self):
-        custom_logger.info("Checking if newer model is available...")
-        # To prevent simultaneous model reloads : the following block is thread-safe.
-        # e.g. it won't be exectued by multiple threads at the same time
-        with self.classfier_model_lock:
-            if self._is_newer_model_available():
-                classfier_model_with_metadata = (
-                    self.model_handler.get_model_with_metadata_by_name(
-                        model_name=self.MODEL_NAME, model_type=self.MODEL_TYPE
-                    )
+        custom_logger.debug("Checking if newer model is available...")
+        if self._is_newer_model_available():
+            custom_logger.info("New model available: Loading it...")
+            classfier_model_with_metadata = (
+                self.model_handler.get_model_with_metadata_by_name(
+                    model_name=self.MODEL_NAME, model_type=self.MODEL_TYPE
                 )
-                self.classfier_model, self.classifier_model_identifier = (
-                    classfier_model_with_metadata.model,
-                    classfier_model_with_metadata.model_identifier,
-                )
-                custom_logger.info(
-                    f"...New model loaded with hash {self.classifier_model_identifier}"
-                )
-            else:
-                custom_logger.info("...No newer model available")
+            )
+            self.classfier_model, self.classifier_model_identifier = (
+                classfier_model_with_metadata.model,
+                classfier_model_with_metadata.model_identifier,
+            )
+            custom_logger.info(
+                f"...New model loaded with hash {self.classifier_model_identifier}"
+            )
+        else:
+            custom_logger.debug("...No newer model available")

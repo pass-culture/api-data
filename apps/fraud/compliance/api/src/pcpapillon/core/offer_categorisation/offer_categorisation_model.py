@@ -59,7 +59,7 @@ class OfferCategorisationModel:
             "performer",
         ]
         sementic_content = " ".join(input_series[content].astype(str))
-        custom_logger.info(f"sementic_content: {sementic_content}")
+        custom_logger.debug(f"sementic_content: {sementic_content}")
 
         output_series = pd.Series(
             {
@@ -69,7 +69,7 @@ class OfferCategorisationModel:
             }
         )
 
-        custom_logger.info(
+        custom_logger.debug(
             f"elapsed time for preprocessing the input (LLM embedding extraction) {time.time() - t0}"
         )
         return output_series
@@ -80,7 +80,7 @@ class OfferCategorisationModel:
     ):
         t0 = time.time()
         probabilities = self.model_classifier.predict_proba(preprocessed_input)
-        custom_logger.info(
+        custom_logger.debug(
             f"elapsed time for classification (CatBoost) {time.time() - t0}"
         )
 
@@ -96,7 +96,7 @@ class OfferCategorisationModel:
         top_indexes = probabilities.argsort()[-n_top:][::-1]
         top_categories = self.classes_to_label_mapping.iloc[top_indexes]
 
-        custom_logger.info(f"elapsed time for postprocessing {time.time() - t0}")
+        custom_logger.debug(f"elapsed time for postprocessing {time.time() - t0}")
 
         return pd.DataFrame(
             {

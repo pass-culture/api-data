@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 from main import custom_logger, setup_trace
 from pcpapillon.core.compliance.compliance_model import (
@@ -9,12 +9,17 @@ from pcpapillon.utils.data_model import (
     ComplianceOutput,
 )
 from pcpapillon.utils.env_vars import IS_API_LOCAL
+from pcpapillon.utils.scheduler import init_scheduler
 
 compliance_router = APIRouter(tags=["compliance"])
 
 
 # Init model and scheduler
 compliance_model = ComplianceModel()
+if not IS_API_LOCAL:
+    compliance_scheduler = init_scheduler(
+        compliance_model.reload_model_if_newer_is_available, time_interval=600
+    )
 
 
 @compliance_router.post(
@@ -23,16 +28,12 @@ compliance_model = ComplianceModel()
     dependencies=[Depends(setup_trace)],
 )
 @version(1, 0)
-def model_compliance_scoring(
-    scoring_input: ComplianceInput, background_tasks: BackgroundTasks
-):
+def model_compliance_scoring(scoring_input: ComplianceInput):
     log_extra_data = {
         "model_version": "default_model",
         "offer_id": scoring_input.dict()["offer_id"],
         "scoring_input": scoring_input.dict(),
     }
-    if not IS_API_LOCAL:
-        background_tasks.add_task(compliance_model.reload_model_if_newer_is_available)
 
     (
         proba_validation,

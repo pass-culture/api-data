@@ -1,5 +1,10 @@
 from enum import Enum
 
+from pcpapillon.utils.env_vars import (
+    COMPLIANCE_MODEL_PATH,
+    OFFER_CATEGORISATION_MODEL_PATH,
+)
+
 
 class ModelName(Enum):
     """
@@ -37,8 +42,7 @@ class APIType(Enum):
     DEFAULT = "default"
 
 
-MLFLOW_TRACKING_TOKEN_ENV_VAR = "MLFLOW_TRACKING_TOKEN"
 MODEL_PATHS = {
-    ModelName.COMPLIANCE: "pcpapillon/local_model/model.cb",
-    ModelName.OFFER_CATEGORISATION: "pcpapillon/local_model/offer_categorisation_model.cb",
+    ModelName.COMPLIANCE: COMPLIANCE_MODEL_PATH,
+    ModelName.OFFER_CATEGORISATION: OFFER_CATEGORISATION_MODEL_PATH,
 }
