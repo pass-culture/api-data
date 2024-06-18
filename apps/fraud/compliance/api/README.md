@@ -7,16 +7,12 @@ Api créée en suivant : <https://cloud.google.com/run/docs/quickstarts/build-an
 
 ## Routes
 
-- Validation :
-  - /model/compliance/scoring/< item >
-    - item: [class Item(BaseModel):](https://github.com/pass-culture/data-gcp/blob/e4e3bab8f50e64a10da17b0b497faebcb015ffd5/apps/fraud/validation/api/src/pcvalidation/utils/data_model.py#L27-L39)
-- Route pour chargé la dernière du model :
-  - /model/compliance/load/< model_params >
-    - model_params : [class model_params(BaseModel):](https://github.com/pass-culture/data-gcp/blob/e4e3bab8f50e64a10da17b0b497faebcb015ffd5/apps/fraud/validation/api/src/pcvalidation/utils/data_model.py#L42-L44)
-- Route d'authentification:
-  - /token/< form_data> :
-    - form_data = {"username":user_name,"password":user_pwd}
-    - user_name et user_pwd se trouve dans le secret manager
+La liste des routes à jour est disponible sur l'API Swagger :
+
+- en local : `make start` et aller sur <http://localhost:8000/latest/docs>
+- [Swagger Dev](https://compliance.testing.passculture.team/latest/docs)
+- [Swagger Staging](https://compliance.staging.passculture.team/latest/docs)
+- [Swagger Prod](https://compliance.passculture.team/latest/docs)
 
 ## Tests
 
