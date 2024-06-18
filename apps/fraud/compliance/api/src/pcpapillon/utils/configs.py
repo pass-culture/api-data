@@ -1,6 +1,8 @@
+from pcpapillon.utils.constants import APIType, ConfigName, ModelType
+
 configs = {
-    "API": {
-        "default": {
+    ConfigName.API: {
+        APIType.DEFAULT: {
             "features_to_extract_embedding": [
                 {"name": "offer_name", "type": "text"},
                 {"name": "offer_description", "type": "text"},
@@ -27,8 +29,8 @@ configs = {
             },
         }
     },
-    "model": {
-        "default": {
+    ConfigName.MODEL: {
+        ModelType.DEFAULT: {
             "pre_trained_model_for_embedding_extraction": {
                 "image": "clip-ViT-B-32",
                 "text": "sentence-transformers/clip-ViT-B-32-multilingual-v1",
@@ -44,7 +46,7 @@ configs = {
                 "embedding_features": ["image_embedding"],
             },
         },
-        "semantic_content": {
+        ModelType.PREPROCESSING: {
             "pre_trained_model_for_embedding_extraction": {
                 "image": "clip-ViT-B-32",
                 "text": "sentence-transformers/clip-ViT-B-32-multilingual-v1",
