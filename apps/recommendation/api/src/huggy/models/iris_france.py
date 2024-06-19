@@ -1,7 +1,6 @@
 from geoalchemy2 import Geometry
-from sqlalchemy import Column, Integer, String
-
 from huggy.database.base import Base, MaterializedBase
+from sqlalchemy import Column, Integer, String
 
 
 class IrisFrance(MaterializedBase):
@@ -14,6 +13,9 @@ class IrisFrance(MaterializedBase):
             IrisFranceMvOld,
             IrisFranceMvTmp,
         ]
+
+    print("IrisFrance")
+    
 
     id = Column(Integer, primary_key=True)
     iriscode = Column(Integer)
