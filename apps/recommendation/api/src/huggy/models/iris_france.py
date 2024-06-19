@@ -16,6 +16,7 @@ class IrisFrance(MaterializedBase):
 
     print("IrisFranceMv")
 
+    print("é")
     id = Column(Integer, primary_key=True)
     iriscode = Column(Integer)
     centroid = Column(String(256))
