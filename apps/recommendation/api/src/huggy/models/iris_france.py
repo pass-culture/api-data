@@ -15,7 +15,8 @@ class IrisFrance(MaterializedBase):
         ]
 
     print("IrisFrance")
-    
+
+    print("IrisFranceMv")
 
     id = Column(Integer, primary_key=True)
     iriscode = Column(Integer)
