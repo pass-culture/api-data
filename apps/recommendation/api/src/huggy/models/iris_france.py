@@ -14,8 +14,6 @@ class IrisFrance(MaterializedBase):
             IrisFranceMvTmp,
         ]
 
-    print("IrisFrance")
-
     print("IrisFranceMv")
 
     id = Column(Integer, primary_key=True)
