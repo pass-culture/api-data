@@ -72,13 +72,13 @@ class OfferCategorisationInput(BaseModel):
 
 
 class CategoryOutput(BaseModel):
-    category: str
+    subcategory: str
     probability: float
 
 
 class OfferCategorisationOutput(BaseModel):
     offer_id: str
-    most_probable_categories: list[CategoryOutput]
+    most_probable_subcategories: list[CategoryOutput]
 
 
 class ModelParams(BaseModel):

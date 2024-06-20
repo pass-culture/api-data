@@ -100,7 +100,7 @@ class OfferCategorisationModel:
 
         return pd.DataFrame(
             {
-                "category": top_categories,
+                "subcategory": top_categories,
                 "probability": probabilities[top_indexes],
             }
         ).to_dict(orient="records")
