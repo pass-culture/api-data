@@ -72,6 +72,7 @@ class CategoryOutput(BaseModel):
 
 
 class OfferCategorisationOutput(BaseModel):
+    offer_id: str
     most_probable_subcategories: list[CategoryOutput]
 
 
