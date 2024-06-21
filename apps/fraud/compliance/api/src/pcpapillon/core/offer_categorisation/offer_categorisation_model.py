@@ -53,8 +53,6 @@ class OfferCategorisationModel:
         content = [
             "offer_name",
             "offer_description",
-            "offer_type_label",
-            "offer_sub_type_label",
             "author",
             "performer",
         ]

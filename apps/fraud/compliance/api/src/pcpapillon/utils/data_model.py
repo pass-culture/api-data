@@ -60,13 +60,10 @@ class ComplianceOutput(BaseModel):
 
 
 class OfferCategorisationInput(BaseModel):
-    offer_id: Union[str, None] = ""
     offer_name: Union[str, None] = ""
     offer_description: Union[str, None] = ""
     venue_type_label: Union[str, None] = ""
     offerer_name: Union[str, None] = ""
-    offer_type_label: Union[str, None] = ""
-    offer_sub_type_label: Union[str, None] = ""
     author: Union[str, None] = ""
     performer: Union[str, None] = ""
 
@@ -77,8 +74,8 @@ class CategoryOutput(BaseModel):
 
 
 class OfferCategorisationOutput(BaseModel):
-    offer_id: str
     most_probable_subcategories: list[CategoryOutput]
+    input: OfferCategorisationInput
 
 
 class ModelParams(BaseModel):
