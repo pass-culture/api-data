@@ -18,12 +18,12 @@ NUM_OFFERS_TO_RETURN = 3
 
 
 @offer_categorisation_router.post(
-    "/model/offer_categorisation/scoring",
+    "/model/categorisation",
     response_model=OfferCategorisationOutput,
     dependencies=[Depends(setup_trace)],
 )
 @version(1, 0)
-def model_compliance_scoring(input: OfferCategorisationInput):
+def model_categorisation(input: OfferCategorisationInput):
     log_extra_data = {
         "model_version": "default_model",
         "scoring_input": input.dict(),
