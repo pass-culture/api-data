@@ -15,7 +15,6 @@ configs = {
                     "offer_description",
                     "rayon",
                     "macro_rayon",
-                    # "image_url"
                 ],
                 "numerical_features": ["stock_price"],
                 "macro_text": [
