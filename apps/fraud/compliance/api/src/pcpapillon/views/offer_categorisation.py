@@ -35,7 +35,6 @@ def model_categorisation(input: OfferCategorisationInput):
     )
 
     output_data = {
-        "offer_id": input.offer_id,
         "most_probable_subcategories": most_probable_subcategories,
     }
     custom_logger.info(output_data, extra=log_extra_data)
