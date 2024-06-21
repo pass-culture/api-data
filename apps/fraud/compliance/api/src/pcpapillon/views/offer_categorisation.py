@@ -26,7 +26,6 @@ NUM_OFFERS_TO_RETURN = 3
 def model_compliance_scoring(input: OfferCategorisationInput):
     log_extra_data = {
         "model_version": "default_model",
-        "offer_id": input.dict()["offer_id"],
         "scoring_input": input.dict(),
     }
 
@@ -36,7 +35,6 @@ def model_compliance_scoring(input: OfferCategorisationInput):
     )
 
     output_data = {
-        "offer_id": input.offer_id,
         "most_probable_subcategories": most_probable_subcategories,
     }
     custom_logger.info(output_data, extra=log_extra_data)

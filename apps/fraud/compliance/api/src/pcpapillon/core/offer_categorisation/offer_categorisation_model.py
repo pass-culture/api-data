@@ -53,10 +53,6 @@ class OfferCategorisationModel:
         content = [
             "offer_name",
             "offer_description",
-            "offer_type_label",
-            "offer_sub_type_label",
-            "author",
-            "performer",
         ]
         sementic_content = " ".join(input_series[content].astype(str))
         custom_logger.debug(f"sementic_content: {sementic_content}")
