@@ -46,21 +46,5 @@ configs = {
                 "embedding_features": ["image_embedding"],
             },
         },
-        ModelType.PREPROCESSING: {
-            "pre_trained_model_for_embedding_extraction": {
-                "image": "clip-ViT-B-32",
-                "text": "sentence-transformers/clip-ViT-B-32-multilingual-v1",
-            },
-            "catboost_features_types": {
-                "cat_features": [
-                    "offer_subcategoryid",
-                    "rayon",
-                    "macro_rayon",
-                ],
-                "text_features": [],
-                "numerical_features": ["stock_price"],
-                "embedding_features": ["image_embedding", "semantic_content_embedding"],
-            },
-        },
     },
 }
