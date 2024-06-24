@@ -1,11 +1,9 @@
-from typing import Union
-
-from pcpapillon.utils.env_vars import MODEL_DEFAULT, MODEL_STAGE
-from pydantic import BaseModel
-
 # from __future__ import annotations
 from dataclasses import dataclass
+from typing import Union
+
 from dataclass_wizard import JSONWizard
+from pydantic import BaseModel
 
 
 @dataclass
@@ -38,7 +36,7 @@ class TokenData(BaseModel):
     username: Union[str, None] = None
 
 
-class Item(BaseModel):
+class ComplianceInput(BaseModel):
     offer_id: Union[str, None] = ""
     offer_name: Union[str, None] = ""
     offer_description: Union[str, None] = ""
@@ -59,6 +57,22 @@ class ComplianceOutput(BaseModel):
     validation_main_features: list[str]
     probability_rejected: int
     rejection_main_features: list[str]
+
+
+class OfferCategorisationInput(BaseModel):
+    offer_name: Union[str, None] = ""
+    offer_description: Union[str, None] = ""
+    venue_type_label: Union[str, None] = ""
+    offerer_name: Union[str, None] = ""
+
+
+class CategoryOutput(BaseModel):
+    subcategory: str
+    probability: float
+
+
+class OfferCategorisationOutput(BaseModel):
+    most_probable_subcategories: list[CategoryOutput]
 
 
 class ModelParams(BaseModel):
