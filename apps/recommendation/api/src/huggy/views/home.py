@@ -27,7 +27,6 @@ async def playlist_recommendation(
     latitude: float = None,
     longitude: float = None,
     modelEndpoint: str = None,
-    offers: Optional[List[str]] = None,
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):
@@ -37,18 +36,14 @@ async def playlist_recommendation(
     if playlist_params.is_restrained is None:
         playlist_params.is_restrained = True
 
-    if offers:
-        offers_list = []
-        for offer_id in offers:
-            offer = await Offer().get_offer_characteristics(db, offer_id)
-            offers_list.append(offer)
-
+    if playlist_params.offers:
+        await playlist_params.parse_offers(db)
+        logger.info(f"playlist_recommendation: {playlist_params.offers}")
         scoring = SimilarOffer(
             user,
             playlist_params,
             call_id=call_id,
             context="pl_semi_edito",
-            offers=offers_list,
         )
     else:
         scoring = Recommendation(

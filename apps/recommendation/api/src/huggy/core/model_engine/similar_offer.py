@@ -12,7 +12,7 @@ class SimilarOffer(ModelEngine):
         self, user: UserContext, params_in: PlaylistParams
     ) -> ForkOut:
         return select_sim_model_params(
-            params_in.model_endpoint, offer=self.offer, offers=self.offers
+            params_in.model_endpoint, offer=self.offer, offers=params_in.offers
         )
 
     def get_scorer(self):
@@ -21,7 +21,6 @@ class SimilarOffer(ModelEngine):
             endpoint.init_input(
                 user=self.user,
                 offer=self.offer,
-                offers=self.offers,
                 params_in=self.params_in,
                 call_id=self.call_id,
             )
