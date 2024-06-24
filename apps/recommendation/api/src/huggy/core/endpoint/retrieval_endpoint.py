@@ -12,6 +12,7 @@ from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
 from huggy.utils.cloud_logging import logger
 from huggy.utils.vertex_ai import endpoint_score
+from huggy.utils.hash import hash_from_keys
 
 
 def to_datetime(ts):
@@ -85,6 +86,14 @@ class RetrievalEndpoint(AbstractEndpoint):
         self.params_in = params_in
         self.user_input = str(self.user.user_id)
         self.is_geolocated = self.user.is_geolocated
+
+    def get_instance_hash(self, instance) -> str:
+        """
+        Generate a hash from the instance to use as a key for caching
+        """
+        # drop call_id from instance
+        _ = dict(instance).pop("call_id", None)
+        return hash_from_keys(instance)
 
     @abstractmethod
     def get_instance(self, size):
@@ -172,12 +181,18 @@ class RetrievalEndpoint(AbstractEndpoint):
         return filters
 
     async def model_score(self) -> t.List[RecommendableItem]:
-        instances = self.get_instance(self.size)
+        instance = self.get_instance(self.size)
+        # generate key hash for caching
+        if self.cached:
+            instance_hash = self.get_instance_hash(instance)
+        else:
+            instance_hash = None
+
         prediction_result = await endpoint_score(
-            instances=instances,
+            instances=instance,
             endpoint_name=self.endpoint_name,
             fallback_endpoints=self.fallback_endpoints,
-            cached=self.cached,
+            hash=instance_hash,
         )
         self.model_version = prediction_result.model_version
         self.model_display_name = prediction_result.model_display_name
@@ -295,7 +310,6 @@ class OfferRetrievalEndpoint(RetrievalEndpoint):
             "debug": 1,
             "similarity_metric": "l2",
             "prefilter": 1,
-            "vector_column_name": "raw_embeddings",
         }
 
 
@@ -312,7 +326,6 @@ class OfferSemanticRetrievalEndpoint(OfferRetrievalEndpoint):
             "debug": 1,
             "similarity_metric": "l2",
             "prefilter": 1,
-            "vector_column_name": "raw_embeddings",
         }
 
 

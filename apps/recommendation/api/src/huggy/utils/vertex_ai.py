@@ -12,7 +12,7 @@ from google.protobuf.struct_pb2 import Value
 import traceback
 from huggy.utils.cloud_logging import logger
 from huggy.utils.env_vars import GCP_PROJECT
-from aiocache import cached, Cache
+from aiocache import cached, Cache, multi_cached
 
 
 @dataclass
@@ -47,13 +47,17 @@ async def get_client(api_endpoint):
 
 
 async def endpoint_score(
-    endpoint_name, instances, fallback_endpoints=[], cached=False
+    endpoint_name,
+    instances,
+    fallback_endpoints=[],
+    hash=None,
 ) -> PredictionResult:
     for endpoint in [endpoint_name] + fallback_endpoints:
         response = await predict_model(
             endpoint_name=endpoint,
             location="europe-west1",
             instances=instances,
+            hash=hash,
         )
         prediction_result = PredictionResult(
             status=response["status"],
@@ -71,12 +75,14 @@ async def endpoint_score(
     return prediction_result
 
 
+@multi_cached(keys_from_attr="hash", ttl=600, cache=Cache.MEMORY)
 async def predict_model(
     endpoint_name: str,
     instances: Union[Dict, List[Dict]],
     location: str = "europe-west1",
     api_endpoint: str = "europe-west1-aiplatform.googleapis.com",
-):
+    hash=None,
+) -> Dict:
     return await __predict_model(endpoint_name, instances, location, api_endpoint)
 
 
@@ -85,7 +91,7 @@ async def __predict_model(
     instances: Union[Dict, List[Dict]],
     location: str = "europe-west1",
     api_endpoint: str = "europe-west1-aiplatform.googleapis.com",
-):
+) -> Dict:
     """
     `instances` can be either single instance of type dict or a list
     of instances.
