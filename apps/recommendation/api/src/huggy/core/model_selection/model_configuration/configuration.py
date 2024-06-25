@@ -128,8 +128,17 @@ class ModelFork:
             model_origin=model_origin,
         )
 
-    def get_offer_status(self, offer: Offer, model_origin: str) -> ForkOut:
+    def get_offer_status(
+        self, offer: Offer, offers: t.List[Offer], model_origin: str
+    ) -> ForkOut:
         """Get model status based on Offer interactions"""
+        if offers:
+            return ForkOut(
+                copy.deepcopy(self.warm_start_model),
+                reco_origin="algo",
+                model_origin=model_origin,
+            )
+
         if not offer.found:
             return ForkOut(
                 copy.deepcopy(self.cold_start_model),
