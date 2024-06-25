@@ -122,3 +122,4 @@ jobs:
         image: "${{ steps.vars.outputs.DOCKER_REPO }}/api-data/${{ inputs.API_NAME }}:${{ steps.sha.outputs.short_sha }}"
         project_id: ${{ env.DATA_GCP_PROJECT }}
         region: "${{ env.DOCKER_REGISTRY_REGION }}"
+        memory: "8Gi"
