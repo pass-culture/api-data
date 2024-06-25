@@ -276,19 +276,26 @@ class OfferRetrievalEndpoint(RetrievalEndpoint):
     MODEL_TYPE = "user_based"
 
     def init_input(
-        self, user: UserContext, offer: Offer, params_in: PlaylistParams, call_id: str
+        self,
+        user: UserContext,
+        offer: Offer,
+        params_in: PlaylistParams,
+        call_id: str,
     ):
         self.user = user
         self.offer = offer
         self.call_id = call_id
-        self.item_id = str(self.offer.item_id)
+        if params_in.offers:
+            self.items = [offer.item_id for offer in params_in.offers]
+        else:
+            self.items = [str(self.offer.item_id)]
         self.params_in = params_in
-        self.is_geolocated = self.offer.is_geolocated
+        self.is_geolocated = self.offer.is_geolocated if self.offer else False
 
     def get_instance(self, size: int):
         return {
             "model_type": "similar_offer",
-            "offer_id": str(self.item_id),
+            "items": self.items,
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,

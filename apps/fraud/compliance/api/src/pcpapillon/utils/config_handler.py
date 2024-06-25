@@ -1,11 +1,12 @@
 from pcpapillon.utils.configs import configs
+from pcpapillon.utils.constants import ConfigName
 from pcpapillon.utils.data_model import APIConfig, ModelConfig
 
 
 class ConfigHandler:
-    def get_config_by_name_and_type(self, name, config_type):
-        if name == "API":
-            return APIConfig.from_dict(configs[name][config_type])
-        if name == "model":
-            return ModelConfig.from_dict(configs[name][config_type])
-        return
+    @staticmethod
+    def get_api_config(config_type):
+        return APIConfig.from_dict(configs[ConfigName.API][config_type])
+
+    def get_model_config(config_type):
+        return ModelConfig.from_dict(configs[ConfigName.MODEL][config_type])
