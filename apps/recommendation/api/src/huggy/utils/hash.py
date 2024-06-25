@@ -2,7 +2,7 @@ import hashlib
 from typing import Any, Dict, List, Set
 
 
-def __extract_values(data: Any, keys: Set[str], values: List[str] = None) -> List[str]:
+def _extract_values(data: Any, keys: Set[str], values: List[str] = None) -> List[str]:
     """
     Extract values from a dictionary based on the keys.
 
@@ -20,10 +20,10 @@ def __extract_values(data: Any, keys: Set[str], values: List[str] = None) -> Lis
             if key in keys:
                 values.append(str(value))
             if isinstance(value, (dict, list)):
-                __extract_values(value, keys, values)
+                _extract_values(value, keys, values)
     elif isinstance(data, list):
         for item in data:
-            __extract_values(item, keys, values)
+            _extract_values(item, keys, values)
 
     return values
 
@@ -40,7 +40,7 @@ def hash_from_keys(data: Dict, keys: List[str] = None) -> str:
     if keys is None:
         keys = list(data.keys())
     keys_set: Set[str] = set(keys)
-    values: List[str] = __extract_values(data, keys_set)
+    values: List[str] = _extract_values(data, keys_set)
 
     concatenated_values: str = "".join(values)
 

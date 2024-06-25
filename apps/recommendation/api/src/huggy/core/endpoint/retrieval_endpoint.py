@@ -87,13 +87,13 @@ class RetrievalEndpoint(AbstractEndpoint):
         self.user_input = str(self.user.user_id)
         self.is_geolocated = self.user.is_geolocated
 
-    def get_instance_hash(self, instance) -> str:
+    def get_instance_hash(self, instance: t.Dict) -> str:
         """
         Generate a hash from the instance to use as a key for caching
         """
         # drop call_id from instance
-        _ = dict(instance).pop("call_id", None)
-        return hash_from_keys(instance)
+        keys = [k for k in instance.keys() if k != "call_id"]
+        return hash_from_keys(instance.copy(), keys=keys)
 
     @abstractmethod
     def get_instance(self, size):
@@ -183,10 +183,7 @@ class RetrievalEndpoint(AbstractEndpoint):
     async def model_score(self) -> t.List[RecommendableItem]:
         instance = self.get_instance(self.size)
         # generate key hash for caching
-        if self.cached:
-            instance_hash = self.get_instance_hash(instance)
-        else:
-            instance_hash = None
+        instance_hash = self.get_instance_hash(instance) if self.cached else None
 
         prediction_result = await endpoint_score(
             instances=instance,
@@ -310,6 +307,7 @@ class OfferRetrievalEndpoint(RetrievalEndpoint):
             "debug": 1,
             "similarity_metric": "l2",
             "prefilter": 1,
+            "vector_column_name": "raw_embeddings",
         }
 
 
@@ -326,6 +324,7 @@ class OfferSemanticRetrievalEndpoint(OfferRetrievalEndpoint):
             "debug": 1,
             "similarity_metric": "l2",
             "prefilter": 1,
+            "vector_column_name": "raw_embeddings",
         }
 
 
