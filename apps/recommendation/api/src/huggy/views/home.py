@@ -43,7 +43,7 @@ async def playlist_recommendation(
             user,
             playlist_params,
             call_id=call_id,
-            context="pl_semi_edito",
+            context="hybrid_recommendation",
         )
     else:
         scoring = Recommendation(

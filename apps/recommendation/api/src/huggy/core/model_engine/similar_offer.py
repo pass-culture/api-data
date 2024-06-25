@@ -42,6 +42,8 @@ class SimilarOffer(ModelEngine):
     async def get_scoring(self, db: AsyncSession) -> List[str]:
         if self.offer is not None and self.offer.item_id is None:
             return []
-        if len(self.offers) > 0 and len([offer.item_id for offer in self.offers]) == 0:
+        if (
+            len(self.offers) > 0 and len([offer.item_id for offer in self.offers]) == 0
+        ):  # to review
             return []
         return await super().get_scoring(db)
