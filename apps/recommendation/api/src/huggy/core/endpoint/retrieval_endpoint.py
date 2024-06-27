@@ -14,6 +14,14 @@ from huggy.utils.cloud_logging import logger
 from huggy.utils.vertex_ai import endpoint_score
 from huggy.utils.hash import hash_from_keys
 
+from aiocache import Cache
+from aiocache.serializers import PickleSerializer
+
+
+VERTEX_CACHE = Cache(
+    Cache.MEMORY, ttl=6000, serializer=PickleSerializer(), namespace="vertex_cache"
+)
+
 
 def to_datetime(ts):
     try:
@@ -87,7 +95,7 @@ class RetrievalEndpoint(AbstractEndpoint):
         self.user_input = str(self.user.user_id)
         self.is_geolocated = self.user.is_geolocated
 
-    def get_instance_hash(
+    def __get_instance_hash(
         self, instance: t.Dict, ignore_keys: t.List = ["call_id"]
     ) -> str:
         """
@@ -138,7 +146,7 @@ class RetrievalEndpoint(AbstractEndpoint):
                 self.user.user_deposit_remaining_credit, self.params_in.price_max
             )
         else:
-            price_max = self.user.user_deposit_remaining_credit
+            price_max = round(self.user.user_deposit_remaining_credit)
 
         params.append(
             RangeParams(
@@ -182,16 +190,13 @@ class RetrievalEndpoint(AbstractEndpoint):
 
         return filters
 
-    async def model_score(self) -> t.List[RecommendableItem]:
-        instance = self.get_instance(self.size)
-        # generate key hash for caching
-        instance_hash = self.get_instance_hash(instance) if self.cached else None
-
+    async def _vertex_retrieval_score(
+        self, instance: dict
+    ) -> t.List[RecommendableItem]:
         prediction_result = await endpoint_score(
             instances=instance,
             endpoint_name=self.endpoint_name,
             fallback_endpoints=self.fallback_endpoints,
-            hash=instance_hash,
         )
         self.model_version = prediction_result.model_version
         self.model_display_name = prediction_result.model_display_name
@@ -226,6 +231,35 @@ class RetrievalEndpoint(AbstractEndpoint):
             )
             for r in prediction_result.predictions
         ]
+
+    async def model_score(self) -> t.List[RecommendableItem]:
+        instance = self.get_instance(self.size)
+
+        if self.cached:
+            instance_hash = self.__get_instance_hash(instance)
+            cache_key = f"{self.endpoint_name}:{instance_hash}"
+            result = await VERTEX_CACHE.get(cache_key)
+            if result is not None:
+                self._log_cache_usage(cache_key, "Used")
+                return result
+
+        result = await self._vertex_retrieval_score(instance)
+
+        if self.cached:
+            await VERTEX_CACHE.set(cache_key, result)
+            self._log_cache_usage(cache_key, "Set")
+
+        return result
+
+    def _log_cache_usage(self, cache_key: str, action: str) -> None:
+        logger.debug(
+            f"{action} cache in retrieval_endpoint {cache_key}",
+            extra={
+                "event_name": "cache_retrieval_endpoint",
+                "endpoint_name": self.endpoint_name,
+                "hash": cache_key,
+            },
+        )
 
 
 class FilterRetrievalEndpoint(RetrievalEndpoint):

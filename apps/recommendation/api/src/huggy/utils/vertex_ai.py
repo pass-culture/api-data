@@ -1,6 +1,5 @@
 import concurrent.futures
 from dataclasses import dataclass
-from functools import partial
 from fastapi.encoders import jsonable_encoder
 from typing import Dict, List, Union
 from huggy.utils.cloud_logging import logger
@@ -12,7 +11,7 @@ from google.protobuf.struct_pb2 import Value
 import traceback
 from huggy.utils.cloud_logging import logger
 from huggy.utils.env_vars import GCP_PROJECT
-from aiocache import cached, Cache, multi_cached
+from aiocache import cached, Cache
 
 
 @dataclass
@@ -50,14 +49,12 @@ async def endpoint_score(
     endpoint_name,
     instances,
     fallback_endpoints=[],
-    hash=None,
 ) -> PredictionResult:
     for endpoint in [endpoint_name] + fallback_endpoints:
         response = await predict_model(
             endpoint_name=endpoint,
             location="europe-west1",
             instances=instances,
-            hash=hash,
         )
         prediction_result = PredictionResult(
             status=response["status"],
@@ -75,13 +72,11 @@ async def endpoint_score(
     return prediction_result
 
 
-@multi_cached(keys_from_attr="hash", ttl=600, cache=Cache.MEMORY)
 async def predict_model(
     endpoint_name: str,
     instances: Union[Dict, List[Dict]],
     location: str = "europe-west1",
     api_endpoint: str = "europe-west1-aiplatform.googleapis.com",
-    hash=None,
 ) -> Dict:
     return await __predict_model(endpoint_name, instances, location, api_endpoint)
 
