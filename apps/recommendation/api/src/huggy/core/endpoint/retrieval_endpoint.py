@@ -87,13 +87,15 @@ class RetrievalEndpoint(AbstractEndpoint):
         self.user_input = str(self.user.user_id)
         self.is_geolocated = self.user.is_geolocated
 
-    def get_instance_hash(self, instance: t.Dict) -> str:
+    def get_instance_hash(
+        self, instance: t.Dict, ignore_keys: t.List = ["call_id"]
+    ) -> str:
         """
         Generate a hash from the instance to use as a key for caching
         """
         # drop call_id from instance
-        keys = [k for k in instance.keys() if k != "call_id"]
-        return hash_from_keys(instance.copy(), keys=keys)
+        keys = [k for k in instance.keys() if k not in ignore_keys]
+        return hash_from_keys(instance, keys=keys)
 
     @abstractmethod
     def get_instance(self, size):

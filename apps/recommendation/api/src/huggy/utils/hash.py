@@ -1,5 +1,6 @@
 import hashlib
-from typing import Any, Dict, List, Set
+from typing import Any, List, Set
+import pickle
 
 
 def _extract_values(data: Any, keys: Set[str], values: List[str] = None) -> List[str]:
@@ -28,7 +29,7 @@ def _extract_values(data: Any, keys: Set[str], values: List[str] = None) -> List
     return values
 
 
-def hash_from_keys(data: Dict, keys: List[str] = None) -> str:
+def hash_from_keys(data: dict, keys: List[str] = None) -> str:
     """
     Create a hash from a dictionary based on the values of the keys.
 
@@ -37,14 +38,5 @@ def hash_from_keys(data: Dict, keys: List[str] = None) -> str:
     :return: The hash.
 
     """
-    if keys is None:
-        keys = list(data.keys())
-    keys_set: Set[str] = set(keys)
-    values: List[str] = _extract_values(data, keys_set)
-
-    concatenated_values: str = "".join(values)
-
-    hash_object = hashlib.sha256(concatenated_values.encode())
-    hash_hex: str = hash_object.hexdigest()
-
-    return hash_hex
+    _dict = {k: data[k] for k in keys} if keys is not None else data.copy()
+    return hashlib.md5(pickle.dumps(_dict)).hexdigest()
