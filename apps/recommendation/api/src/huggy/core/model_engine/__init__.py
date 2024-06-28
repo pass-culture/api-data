@@ -30,6 +30,11 @@ class ModelEngine(ABC):
     ):
         self.user = user
         self.offer = offer
+        self.offers = (
+            [offer for offer in params_in.offers]
+            if isinstance(params_in.offers, list)
+            else [offer]
+        )
         self.params_in = params_in
         self.call_id = call_id
         self.context = context
