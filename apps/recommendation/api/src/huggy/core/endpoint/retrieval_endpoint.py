@@ -95,7 +95,7 @@ class RetrievalEndpoint(AbstractEndpoint):
         self.user_input = str(self.user.user_id)
         self.is_geolocated = self.user.is_geolocated
 
-    def __get_instance_hash(
+    def _get_instance_hash(
         self, instance: t.Dict, ignore_keys: t.List = ["call_id"]
     ) -> str:
         """
@@ -234,17 +234,18 @@ class RetrievalEndpoint(AbstractEndpoint):
 
     async def model_score(self) -> t.List[RecommendableItem]:
         instance = self.get_instance(self.size)
-
+        # Retrieve cache if exists
         if self.cached:
-            instance_hash = self.__get_instance_hash(instance)
+            instance_hash = self._get_instance_hash(instance)
             cache_key = f"{self.endpoint_name}:{instance_hash}"
             result = await VERTEX_CACHE.get(cache_key)
+            # Compute retrieval if cache not found or used
             if result is not None:
                 self._log_cache_usage(cache_key, "Used")
                 return result
 
         result = await self._vertex_retrieval_score(instance)
-
+        # Update Cache
         if self.cached:
             await VERTEX_CACHE.set(cache_key, result)
             self._log_cache_usage(cache_key, "Set")
