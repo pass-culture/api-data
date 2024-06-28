@@ -44,7 +44,7 @@ class PlaylistParams(BaseModel):
     gtl_l2: Optional[List[str]] = None
     gtl_l3: Optional[List[str]] = None
     gtl_l4: Optional[List[str]] = None
-    submixing_feature_dict: Optional[dict] = None
+    submixing_feature_dict: Optional[Dict] = None
     offers: Optional[List[str]] = None
 
     @field_validator("start_date", "end_date", mode="before")

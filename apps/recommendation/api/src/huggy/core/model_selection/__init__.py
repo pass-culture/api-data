@@ -30,7 +30,7 @@ RECOMMENDATION_ENDPOINTS = {
     # Default endpoint
     "default": RecoModelConfigurationInput(
         name="default",
-        description="""Default Configuration.""",
+        description="""Default Configuration (cache).""",
         diversification_params=DiversificationParamsInput(
             diversication_type=DiversificationChoices.ON,
         ),
@@ -142,7 +142,7 @@ RECOMMENDATION_ENDPOINTS = {
 SIMILAR_OFFER_ENDPOINTS = {
     "default": SimilarModelConfigurationInput(
         name="default",
-        description="""Default similar offer configuration.""",
+        description="""Default similar offer configuration (cache).""",
         diversification_params=DiversificationParamsInput(
             diversication_type=DiversificationChoices.OFF,
         ),
