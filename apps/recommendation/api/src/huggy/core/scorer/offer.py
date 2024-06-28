@@ -33,6 +33,7 @@ class OfferScorer:
     ):
         self.user = user
         self.offer = offer
+        self.offers = params_in.offers
         self.model_params = model_params
         self.params_in = params_in
         self.retrieval_endpoints = retrieval_endpoints

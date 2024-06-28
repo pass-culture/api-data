@@ -1,6 +1,5 @@
 import concurrent.futures
 from dataclasses import dataclass
-from functools import partial
 from fastapi.encoders import jsonable_encoder
 from typing import Dict, List, Union
 from huggy.utils.cloud_logging import logger
@@ -47,7 +46,9 @@ async def get_client(api_endpoint):
 
 
 async def endpoint_score(
-    endpoint_name, instances, fallback_endpoints=[], cached=False
+    endpoint_name,
+    instances,
+    fallback_endpoints=[],
 ) -> PredictionResult:
     for endpoint in [endpoint_name] + fallback_endpoints:
         response = await predict_model(
@@ -76,7 +77,7 @@ async def predict_model(
     instances: Union[Dict, List[Dict]],
     location: str = "europe-west1",
     api_endpoint: str = "europe-west1-aiplatform.googleapis.com",
-):
+) -> Dict:
     return await __predict_model(endpoint_name, instances, location, api_endpoint)
 
 
@@ -85,7 +86,7 @@ async def __predict_model(
     instances: Union[Dict, List[Dict]],
     location: str = "europe-west1",
     api_endpoint: str = "europe-west1-aiplatform.googleapis.com",
-):
+) -> Dict:
     """
     `instances` can be either single instance of type dict or a list
     of instances.

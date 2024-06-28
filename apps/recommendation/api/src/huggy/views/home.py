@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List, Optional
 
 from huggy.core.model_engine.recommendation import Recommendation
 from huggy.core.model_engine.similar_offer import SimilarOffer
@@ -30,14 +31,24 @@ async def playlist_recommendation(
     call_id: str = Depends(get_call_id),
 ):
     user = await UserContextDB().get_user_context(db, user_id, latitude, longitude)
-
     if modelEndpoint is not None:
         playlist_params.model_endpoint = modelEndpoint
     if playlist_params.is_restrained is None:
         playlist_params.is_restrained = True
-    scoring = Recommendation(
-        user, params_in=playlist_params, call_id=call_id, context="recommendation"
-    )
+
+    if playlist_params.offers:
+        await playlist_params.parse_offers(db)
+        logger.info(f"playlist_recommendation: {playlist_params.offers}")
+        scoring = SimilarOffer(
+            user,
+            playlist_params,
+            call_id=call_id,
+            context="hybrid_recommendation",
+        )
+    else:
+        scoring = Recommendation(
+            user, params_in=playlist_params, call_id=call_id, context="recommendation"
+        )
 
     user_recommendations = await scoring.get_scoring(db)
 
