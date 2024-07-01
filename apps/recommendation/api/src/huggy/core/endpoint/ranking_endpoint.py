@@ -153,7 +153,7 @@ class ModelRankingEndpoint(RankingEndpoint):
                     "offer_creation_days": to_days(row.offer_creation_date),
                     "offer_stock_beginning_days": to_days(row.stock_beginning_date),
                     "day_of_the_week": to_int(datetime.today().weekday()),
-                    "hour_of_the_day": to_int(datetime.hour),
+                    "hour_of_the_day": to_int(datetime.now().hour),
                 }
             )
         return offers_list
@@ -259,7 +259,7 @@ class NoPopularModelRankingEndpoint(ModelRankingEndpoint):
                     "offer_creation_days": to_days(row.offer_creation_date),
                     "offer_stock_beginning_days": to_days(row.stock_beginning_date),
                     "day_of_the_week": to_int(datetime.today().weekday()),
-                    "hour_of_the_day": to_int(datetime.hour),
+                    "hour_of_the_day": to_int(datetime.now().hour),
                 }
             )
         return offers_list

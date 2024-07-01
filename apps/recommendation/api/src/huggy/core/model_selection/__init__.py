@@ -1,3 +1,5 @@
+import typing as t
+
 from huggy.core.model_selection.model_configuration.configuration import (
     ForkOut,
     ModelEnpointInput,
@@ -28,7 +30,7 @@ RECOMMENDATION_ENDPOINTS = {
     # Default endpoint
     "default": RecoModelConfigurationInput(
         name="default",
-        description="""Default Configuration.""",
+        description="""Default Configuration (cache).""",
         diversification_params=DiversificationParamsInput(
             diversication_type=DiversificationChoices.ON,
         ),
@@ -140,7 +142,7 @@ RECOMMENDATION_ENDPOINTS = {
 SIMILAR_OFFER_ENDPOINTS = {
     "default": SimilarModelConfigurationInput(
         name="default",
-        description="""Default similar offer configuration.""",
+        description="""Default similar offer configuration (cache).""",
         diversification_params=DiversificationParamsInput(
             diversication_type=DiversificationChoices.OFF,
         ),
@@ -194,7 +196,9 @@ def select_reco_model_params(model_endpoint: str, user: UserContext) -> ForkOut:
     return model_fork.get_user_status(user=user, model_origin=model_name)
 
 
-def select_sim_model_params(model_endpoint: str, offer: Offer) -> ForkOut:
+def select_sim_model_params(
+    model_endpoint: str, offer: Offer, offers: t.List[Offer]
+) -> ForkOut:
     """Choose the model to apply for Similar Offers based on offer interaction."""
     model_endpoint = parse_model_enpoint(model_endpoint, model_type="similar_offer")
     model_name = model_endpoint.model_name
@@ -204,7 +208,9 @@ def select_sim_model_params(model_endpoint: str, offer: Offer) -> ForkOut:
         if model_name not in list(SIMILAR_OFFER_ENDPOINTS.keys()):
             model_name = DEFAULT_SIMILAR_OFFER_MODEL
         model_fork = SIMILAR_OFFER_ENDPOINTS[model_name].generate()
-    return model_fork.get_offer_status(offer=offer, model_origin=model_name)
+    return model_fork.get_offer_status(
+        offer=offer, offers=offers, model_origin=model_name
+    )
 
 
 def parse_model_enpoint(model_endpoint: str, model_type: str) -> ModelEnpointInput:
