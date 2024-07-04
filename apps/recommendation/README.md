@@ -10,10 +10,10 @@ Recommendation API with FastAPI + Psql + VertexAI endpoints
 +-- src
 | + huggy
 |  +-- core
+|    +-- endpoint - configuration of VertexAi endpoint for retrieval and ranking
 |    +-- model_engine - orchestration of the scoring pipeline 
 |    +-- model_selection - model selection based on the model_endpoint parameter 
 |    +-- scorer - retrieve the base of recommendable offers and score them 
-|    +-- utils
 |  +-- crud - functions for reading/writing to the database 
 |  +-- database - logic for handling db connexion
 |  +-- models - model of the database tables - 1 file per table 

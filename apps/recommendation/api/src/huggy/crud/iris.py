@@ -15,7 +15,11 @@ class Iris:
         latitude: t.Optional[float],
         longitude: t.Optional[float],
     ) -> str:
-        """Query the database in ORM mode to get iris_id from a set of coordinates."""
+        """
+        Query the database in ORM mode to get iris_id from a set of coordinates.
+
+        """
+
         iris_id = None
         try:
             if latitude is not None and longitude is not None:

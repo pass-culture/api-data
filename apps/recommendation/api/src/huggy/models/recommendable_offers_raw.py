@@ -6,6 +6,7 @@ from sqlalchemy import Column, DateTime, Float, Integer, String
 class RecommendableOffersRaw(MaterializedBase):
     """
     Database model of recommendable_offers table.
+
     """
 
     def materialized_tables(self):

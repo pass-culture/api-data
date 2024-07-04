@@ -6,6 +6,7 @@ from sqlalchemy.types import Boolean
 class FakeRecommendableOffersRaw(Base):
     """
     Fake Database model of recommendable_offers table.
+
     """
 
     __tablename__ = "recommendable_offer_raw"

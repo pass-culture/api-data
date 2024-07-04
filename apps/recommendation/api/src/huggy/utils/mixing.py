@@ -23,7 +23,9 @@ def order_offers_by_score_and_diversify_features(
     Sort offers by taking the last offer of each group (maximum score), by decreasing size of group.
     Return only the ids of these sorted offers.
     score_order_ascending is False, score = the higher the better
+
     """
+
     diversified_offers = []
     if shuffle_recommendation:
         for recommendation in offers:

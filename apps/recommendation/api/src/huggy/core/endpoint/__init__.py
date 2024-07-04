@@ -13,7 +13,7 @@ class AbstractEndpoint(ABC):  # noqa: B024
     ) -> None:
         """
         endpoint_name : Default endpoint
-        fallback_endpoints : list of endpoints to retry in case no results or timeout error
+        fallback_endpoints : List of endpoints to retry in case no results or timeout error
         """
         if fallback_endpoints is None:
             fallback_endpoints = []

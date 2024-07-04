@@ -6,16 +6,20 @@ from sqlalchemy.types import Boolean
 class ItemIds(MaterializedBase):
     """
     Database model of recommendable_offers table.
+
     """
 
     def materialized_tables(self):
+        """
+        Database model of item_ids materialized view.
+
+        """
+
         return [
             ItemIdsMv,
             ItemIdsMvOld,
             ItemIdsMvTmp,
         ]
-
-    """Database model of item_ids materialized view."""
 
     item_id = Column(String)
     offer_id = Column(String, primary_key=True)

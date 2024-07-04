@@ -6,6 +6,7 @@ class EnrichedUser(MaterializedBase):
     """
     Database model of enriched_user table.
     This table is used to get informations about the user calling the API.
+
     """
 
     def materialized_tables(self):

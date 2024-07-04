@@ -7,6 +7,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class SimilarOffer(ModelEngine):
+    """
+    Class to build the similar offer scoring pipeline.
+
+    1. Get the model endpoint based on the offer interaction
+    2. Initialize endpoints (retrieval and ranking)
+    3. Initialize scorer
+    4. Compute scored offers
+        a. Get the scored items via retrieval endpoint
+        b. Transform items in offers depending on recommendability
+        c. Rank offers
+    4. Save context in past_offer_context
+
+    """
+
     def get_model_configuration(
         self, user: UserContext, params_in: PlaylistParams
     ) -> ForkOut:

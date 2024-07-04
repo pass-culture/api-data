@@ -16,12 +16,17 @@ under_pat = re.compile(r"_([a-z])")
 def underscore_to_camel(name):
     """
     Parse key into camelCase format
+
     """
+
     return under_pat.sub(lambda x: x.group(1).upper(), name)
 
 
 class PlaylistParams(BaseModel):
-    """Acceptable input in a API request for recommendations filters."""
+    """
+    Acceptable input in a API request for recommendations filters.
+
+    """
 
     model_config = ConfigDict(
         alias_generator=to_camel, populate_by_name=True, protected_namespaces=()

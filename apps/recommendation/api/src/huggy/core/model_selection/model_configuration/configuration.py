@@ -55,6 +55,7 @@ class ModelConfiguration:
     ) -> DiversificationParams:
         """
         Overwrite default params
+
         """
         if params_in.is_reco_shuffled is not None:
             self.diversification_params.is_reco_shuffled = params_in.is_reco_shuffled
@@ -76,8 +77,6 @@ class ModelConfiguration:
 
 @dataclass
 class ForkOut:
-    """"""
-
     model_configuration: ModelConfiguration
     reco_origin: str
     model_origin: str
@@ -92,7 +91,11 @@ class ModelFork:
     favorites_count: int = None
 
     def get_user_status(self, user: UserContext, model_origin: str) -> ForkOut:
-        """Get model status based on UserContext interactions"""
+        """
+        Get model status based on UserContext interactions
+
+        """
+
         if not user.found:
             return ForkOut(
                 copy.deepcopy(self.cold_start_model),
@@ -132,7 +135,11 @@ class ModelFork:
     def get_offer_status(
         self, offer: Offer, offers: list[Offer], model_origin: str
     ) -> ForkOut:
-        """Get model status based on Offer interactions"""
+        """
+        Get model status based on Offer interactions
+
+        """
+
         if offers:
             return ForkOut(
                 copy.deepcopy(self.warm_start_model),
@@ -161,7 +168,10 @@ class ModelFork:
 
 
 class ModelConfigurationInput(BaseModel):
-    """Custom modelEndpoint model"""
+    """
+    Custom modelEndpoint model
+
+    """
 
     model_config = ConfigDict(
         populate_by_name=True,

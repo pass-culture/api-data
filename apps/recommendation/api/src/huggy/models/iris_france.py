@@ -4,8 +4,11 @@ from sqlalchemy import Column, Integer, String
 
 
 class IrisFrance(MaterializedBase):
-    """Database model of iris_france table.
-    This table is used to retrieve iris_id from coordinates (latitude, longitude)."""
+    """
+    Database model of iris_france table.
+    This table is used to retrieve iris_id from coordinates (latitude, longitude).
+
+    """
 
     def materialized_tables(self):
         return [

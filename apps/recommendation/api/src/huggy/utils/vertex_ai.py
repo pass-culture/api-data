@@ -91,7 +91,9 @@ async def __predict_model(
     """
     `instances` can be either single instance of type dict or a list
     of instances.
+
     """
+
     default_error = {
         "status": "success",
         "predictions": [],

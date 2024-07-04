@@ -4,8 +4,10 @@ from sqlalchemy.types import Boolean
 
 
 class PastOfferContext(Base):
-    """Database model of offer_context table.
+    """
+    Database model of offer_context table.
     This table is used to log the context of the offer when it is recommended to an user.
+
     """
 
     __tablename__ = "past_offer_context"
