@@ -1,18 +1,18 @@
 import concurrent.futures
+import traceback
 from dataclasses import dataclass
 from functools import partial
-from fastapi.encoders import jsonable_encoder
 from typing import Dict, List, Union
-from huggy.utils.cloud_logging import logger
+
 import grpc
+from aiocache import Cache, cached
+from fastapi.encoders import jsonable_encoder
 from google.api_core.exceptions import DeadlineExceeded
 from google.cloud import aiplatform
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value
-import traceback
 from huggy.utils.cloud_logging import logger
 from huggy.utils.env_vars import GCP_PROJECT
-from aiocache import cached, Cache
 
 
 @dataclass

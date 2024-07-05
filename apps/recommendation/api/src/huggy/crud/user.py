@@ -1,15 +1,15 @@
 import logging
 import typing as t
 
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import TypeAdapter
 import huggy.models.enriched_user as user_db
 import huggy.schemas.user as user_sh
 from huggy.crud.iris import Iris
-from sqlalchemy.exc import ProgrammingError
-from huggy.utils.exception import log_error
 from huggy.utils.cloud_logging import logger
+from huggy.utils.exception import log_error
+from pydantic import TypeAdapter
+from sqlalchemy import func, select
+from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 

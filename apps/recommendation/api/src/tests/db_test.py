@@ -1,10 +1,9 @@
 import pytest
-from sqlalchemy import inspect, text
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from huggy.database.utils import check_table_exists
 from huggy.models.enriched_user import EnrichedUser
 from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
+from sqlalchemy import inspect, text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def test_extensions(setup_empty_database: AsyncSession):

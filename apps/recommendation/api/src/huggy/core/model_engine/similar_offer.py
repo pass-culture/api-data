@@ -1,10 +1,11 @@
 from typing import List
-from sqlalchemy.ext.asyncio import AsyncSession
+
 from huggy.core.model_engine import ModelEngine
 from huggy.core.model_selection import select_sim_model_params
 from huggy.core.model_selection.model_configuration.configuration import ForkOut
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class SimilarOffer(ModelEngine):

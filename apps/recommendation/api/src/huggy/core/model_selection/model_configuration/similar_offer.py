@@ -1,6 +1,6 @@
 import typing as t
-import huggy.core.model_selection.endpoint.offer_retrieval as offer_retrieval
 
+import huggy.core.model_selection.endpoint.offer_retrieval as offer_retrieval
 from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
 from huggy.core.model_selection.model_configuration.configuration import (
     ModelConfigurationInput,

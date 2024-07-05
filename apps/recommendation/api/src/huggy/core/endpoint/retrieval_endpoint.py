@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from fastapi.encoders import jsonable_encoder
-
 from huggy.core.endpoint import AbstractEndpoint
 from huggy.schemas.item import RecommendableItem
 from huggy.schemas.offer import Offer

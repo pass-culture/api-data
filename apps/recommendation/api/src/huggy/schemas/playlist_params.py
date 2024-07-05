@@ -1,12 +1,12 @@
 import re
 from datetime import datetime
 from typing import Dict, List, Optional
+
 from dateutil.parser import parse
 from fastapi import Query
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic.alias_generators import to_camel
 from pydantic_core.core_schema import ValidationInfo
-
 
 under_pat = re.compile(r"_([a-z])")
 

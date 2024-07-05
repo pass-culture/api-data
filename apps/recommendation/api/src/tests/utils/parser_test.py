@@ -1,5 +1,4 @@
 import pytest
-
 from huggy.schemas.playlist_params import underscore_to_camel
 
 

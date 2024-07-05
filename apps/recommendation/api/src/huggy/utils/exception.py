@@ -1,10 +1,10 @@
 import traceback
+
 import anyio
 from fastapi import HTTPException, Request
-from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.responses import JSONResponse
-
 from huggy.utils.cloud_logging import logger
+from starlette.middleware.base import BaseHTTPMiddleware
 
 
 def log_error(exc: Exception, message: str):

@@ -1,8 +1,9 @@
-import pandas as pd
 import typing as t
+
+import pandas as pd
 from geoalchemy2 import Geometry
-from sqlalchemy import Column, Integer, String
 from pydantic import BaseModel
+from sqlalchemy import Column, Integer, String
 
 
 class IrisFrance(BaseModel):

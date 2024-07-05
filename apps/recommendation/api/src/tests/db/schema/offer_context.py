@@ -1,5 +1,9 @@
 import typing as t
+
 from huggy.schemas.item import RecommendableItem
+from huggy.schemas.offer import OfferDistance
+from huggy.utils.distance import haversine_distance
+
 from tests.db.schema.iris import (
     IrisTestExample,
     iris_marseille_cours_julien,
@@ -20,10 +24,6 @@ from tests.db.schema.offer import (
     movie_offer_underage_paris,
     spectacle_offer_paris,
 )
-from huggy.schemas.item import RecommendableItem
-from huggy.schemas.offer import OfferDistance
-
-from huggy.utils.distance import haversine_distance
 
 
 def to_items(

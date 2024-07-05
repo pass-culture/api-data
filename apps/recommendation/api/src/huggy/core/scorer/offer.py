@@ -1,24 +1,22 @@
 import asyncio
-
 import typing as t
 from typing import List
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
-from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
+import huggy.schemas.item as i
+import huggy.schemas.offer as o
 import huggy.schemas.playlist_params as pp
 import huggy.schemas.recommendable_offer as r_o
-import huggy.schemas.item as i
 import huggy.schemas.user as u
-import huggy.schemas.offer as o
-from huggy.schemas.model_selection.model_configuration import QueryOrderChoices
+from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
+from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
 from huggy.crud.non_recommendable_offer import get_non_recommendable_items
 from huggy.crud.recommendable_offer import RecommendableOffer as RecommendableOfferDB
+from huggy.schemas.model_selection.model_configuration import QueryOrderChoices
 from huggy.utils.cloud_logging import logger
-from sqlalchemy.exc import ProgrammingError
-from huggy.utils.exception import log_error
 from huggy.utils.distance import haversine_distance
+from huggy.utils.exception import log_error
+from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class OfferScorer:
