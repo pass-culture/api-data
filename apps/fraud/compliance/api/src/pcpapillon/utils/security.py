@@ -1,12 +1,11 @@
 from datetime import datetime, timedelta
-from typing import Union
+from typing import Annotated, Union
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from pcpapillon.utils.data_model import TokenData, User, UserInDB
 from pcpapillon.utils.env_vars import HASH_ALGORITHM, SECRET_KEY, users_db
-from typing_extensions import Annotated
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -54,7 +53,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
             raise credentials_exception
         token_data = TokenData(username=username)
     except JWTError:
-        raise credentials_exception
+        raise credentials_exception  # noqa: B904
     user = get_user(users_db, username=token_data.username)
     if user is None:
         raise credentials_exception

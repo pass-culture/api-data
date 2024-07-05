@@ -23,16 +23,18 @@ def get_prediction_and_main_contribution(model, data_w_emb, pool):
             top_val: main features contributing to increase validation probability
             top_reg: main features contributing to reduce validation probability
     """
-    proba_predicted = model.predict(
-        pool,
-        prediction_type="Probability",
-        ntree_start=0,
-        ntree_end=0,
-        thread_count=1,
-        verbose=None,
-    )[0]
-    proba_rej = list(proba_predicted)[0] * 100
-    proba_val = list(proba_predicted)[1] * 100
+    proba_predicted = list(
+        model.predict(
+            pool,
+            prediction_type="Probability",
+            ntree_start=0,
+            ntree_end=0,
+            thread_count=1,
+            verbose=None,
+        )[0]
+    )
+    proba_rej = proba_predicted[0] * 100
+    proba_val = proba_predicted[1] * 100
     top_val, top_rej = _get_prediction_main_contribution(model, data_w_emb, pool)
     return proba_val, proba_rej, top_val, top_rej
 
