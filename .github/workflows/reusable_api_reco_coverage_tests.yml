@@ -16,7 +16,7 @@ jobs:
       - name : "Install Ruff Linter "
         run: uv pip install --system -r linter-requirements.txt
       - name: "Run Ruff"
-        run: ruff --check .
+        run: make ruff-check
   api-reco-coverage-test:
     name: "API Reco Coverage test"
     needs: linter
