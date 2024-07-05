@@ -1,9 +1,8 @@
 import logging
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from huggy.crud.iris import Iris
+from sqlalchemy.ext.asyncio import AsyncSession
 from tests.db.schema.iris import (
     IrisTestExample,
     iris_marseille_cours_julien,

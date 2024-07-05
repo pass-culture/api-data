@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 
 import pytz
-
 from huggy.schemas.user import UserProfileDB
 
 # all values are null

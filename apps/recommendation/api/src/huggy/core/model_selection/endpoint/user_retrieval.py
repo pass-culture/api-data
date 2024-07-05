@@ -1,7 +1,7 @@
 from huggy.core.endpoint.retrieval_endpoint import (
+    CreationTrendRetrievalEndpoint,
     FilterRetrievalEndpoint,
     RecommendationRetrievalEndpoint,
-    CreationTrendRetrievalEndpoint,
     ReleaseTrendRetrievalEndpoint,
 )
 from huggy.core.model_selection.endpoint import RetrievalEndpointName

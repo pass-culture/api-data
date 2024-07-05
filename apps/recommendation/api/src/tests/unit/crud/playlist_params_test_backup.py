@@ -1,8 +1,8 @@
-import pytest
-from huggy.schemas.playlist_params import PlaylistParams
 import json
-from huggy.core.model_selection.model_configuration import parse_model_enpoint
 
+import pytest
+from huggy.core.model_selection.model_configuration import parse_model_enpoint
+from huggy.schemas.playlist_params import PlaylistParams
 
 model_endpoint = {
     "name": "default_endpoint",

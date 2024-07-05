@@ -1,10 +1,10 @@
-from sqlalchemy import insert
-
 from huggy.models.enriched_user import (
     EnrichedUserMv,
     EnrichedUserMvOld,
     EnrichedUserMvTmp,
 )
+from sqlalchemy import insert
+
 from tests.db.schema.user import raw_data
 from tests.db.utils import create_model
 

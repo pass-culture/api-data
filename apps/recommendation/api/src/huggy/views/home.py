@@ -1,17 +1,13 @@
+import huggy.schemas.playlist_params as p
 from fastapi import APIRouter, Depends
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional
-
 from huggy.core.model_engine.recommendation import Recommendation
 from huggy.core.model_engine.similar_offer import SimilarOffer
-from huggy.crud.offer import Offer
 from huggy.crud.user import UserContextDB
 from huggy.database.session import get_db
-import huggy.schemas.playlist_params as p
 from huggy.utils.cloud_logging import logger
-from huggy.views.common import setup_trace, get_call_id, check_token
-
+from huggy.views.common import check_token, get_call_id, setup_trace
+from sqlalchemy.ext.asyncio import AsyncSession
 
 home_router = r = APIRouter(tags=["home"])
 

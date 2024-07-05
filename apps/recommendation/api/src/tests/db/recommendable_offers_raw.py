@@ -1,13 +1,13 @@
 import logging
 
-from sqlalchemy import insert, inspect, text
-
 from huggy.models.item_ids import ItemIdsMv
 from huggy.models.recommendable_offers_raw import (
     RecommendableOffersRawMv,
     RecommendableOffersRawMvOld,
     RecommendableOffersRawMvTmp,
 )
+from sqlalchemy import insert, inspect, text
+
 from tests.db.models.recommendable_offer_raw import FakeRecommendableOffersRaw
 from tests.db.schema.offer import raw_data
 from tests.db.utils import create_model
