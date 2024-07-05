@@ -1,24 +1,25 @@
 import copy
-from dataclasses import dataclass
 import typing as t
-from pydantic import BaseModel, ConfigDict, Field
+from dataclasses import dataclass
+
+import huggy.core.model_selection.endpoint.user_ranking as user_ranking
 import huggy.core.scorer.offer as offer_scorer
 from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
 from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
+from huggy.schemas.model_selection.model_configuration import (
+    ColdStartModelTypeDefaultInput,
+    DiversificationChoices,
+    DiversificationParamsInput,
+    ForkParamsInput,
+    ModelTypeInput,
+    QueryOrderChoices,
+    RankingChoices,
+    WarnModelTypeDefaultInput,
+)
 from huggy.schemas.offer import Offer
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
-import huggy.core.model_selection.endpoint.user_ranking as user_ranking
-from huggy.schemas.model_selection.model_configuration import (
-    ModelTypeInput,
-    WarnModelTypeDefaultInput,
-    ForkParamsInput,
-    ColdStartModelTypeDefaultInput,
-    DiversificationParamsInput,
-    DiversificationChoices,
-    RankingChoices,
-)
-from huggy.schemas.model_selection.model_configuration import QueryOrderChoices
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DiversificationParams(BaseModel):

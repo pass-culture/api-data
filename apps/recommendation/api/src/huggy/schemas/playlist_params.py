@@ -9,7 +9,6 @@ from pydantic.alias_generators import to_camel
 from pydantic_core.core_schema import ValidationInfo
 from huggy.crud.offer import Offer
 
-
 under_pat = re.compile(r"_([a-z])")
 
 

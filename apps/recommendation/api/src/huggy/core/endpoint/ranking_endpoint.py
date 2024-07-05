@@ -3,7 +3,6 @@ from abc import abstractmethod
 from datetime import datetime
 
 from fastapi.encoders import jsonable_encoder
-
 from huggy.core.endpoint import AbstractEndpoint
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.recommendable_offer import RankedOffer, RecommendableOffer

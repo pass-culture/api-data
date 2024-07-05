@@ -1,9 +1,7 @@
 from fastapi.logger import logger
-
-
 from huggy.utils.env_vars import (
-    call_id_trace_context,
     ENV_SHORT_NAME,
+    call_id_trace_context,
 )
 
 

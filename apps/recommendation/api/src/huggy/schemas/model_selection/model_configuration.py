@@ -1,7 +1,7 @@
-from pydantic import BaseModel, Field, ConfigDict
 import typing as t
-
 from enum import Enum
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class RetrievalChoices(Enum):

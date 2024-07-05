@@ -1,6 +1,6 @@
-import json
 import base64
 import binascii
+import json
 
 
 def parse_hex(input_str):

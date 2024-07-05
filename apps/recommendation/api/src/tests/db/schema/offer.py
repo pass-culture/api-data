@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 from pydantic import BaseModel, Field, validator
+
 from tests.db.schema.iris import (
     iris_marseille_cours_julien,
     iris_marseille_vieux_port,

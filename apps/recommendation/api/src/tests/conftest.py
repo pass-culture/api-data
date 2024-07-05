@@ -1,18 +1,20 @@
+import asyncio
 import logging
 import os
+from contextlib import ExitStack
 from typing import Any, Dict
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.testclient import TestClient
+from huggy import init_app
+from huggy.database.config import config
 from huggy.database.database import sessionmanager
 from huggy.database.session import get_db
-from huggy.database.config import config
 from huggy.models.enriched_user import (
     EnrichedUserMv,
     EnrichedUserMvOld,
     EnrichedUserMvTmp,
 )
-from huggy.utils.env_vars import SQL_BASE_DATABASE
 from huggy.models.iris_france import (
     IrisFranceMv,
     IrisFranceMvOld,
@@ -25,12 +27,9 @@ from huggy.models.recommendable_offers_raw import (
     RecommendableOffersRawMvOld,
     RecommendableOffersRawMvTmp,
 )
+from huggy.utils.env_vars import SQL_BASE_DATABASE
+from sqlalchemy.ext.asyncio import AsyncSession
 
-import asyncio
-from contextlib import ExitStack
-import pytest
-from fastapi.testclient import TestClient
-from huggy import init_app
 from tests.db.utils import clean_db, drop_restore_db
 
 logger = logging.getLogger(__name__)

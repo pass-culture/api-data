@@ -1,6 +1,7 @@
+import typing as t
+
 import huggy.core.model_selection.endpoint.user_retrieval as user_retrieval
 from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
-import typing as t
 from huggy.core.model_selection.model_configuration.configuration import (
     ModelConfigurationInput,
 )

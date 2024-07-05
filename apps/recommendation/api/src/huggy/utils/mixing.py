@@ -3,10 +3,9 @@ import random
 from typing import Dict, List, Tuple
 
 import numpy as np
-from loguru import logger
-
 from huggy.schemas.recommendable_offer import RankedOffer
 from huggy.utils.env_vars import NUMBER_OF_RECOMMENDATIONS
+from loguru import logger
 
 
 def order_offers_by_score_and_diversify_features(
