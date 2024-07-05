@@ -1,5 +1,3 @@
-import typing as t
-
 from huggy.schemas.item import RecommendableItem
 from huggy.schemas.offer import OfferDistance
 from huggy.utils.distance import haversine_distance
@@ -29,7 +27,7 @@ from tests.db.schema.offer import (
 def to_items(
     offers: list[RecommendableOffersRawExample],
 ) -> list[RecommendableItem]:
-    items: t.dict[str, RecommendableOffersRawExample] = {x.item_id: x for x in offers}
+    items: dict[str, RecommendableOffersRawExample] = {x.item_id: x for x in offers}
 
     return [
         RecommendableItem(

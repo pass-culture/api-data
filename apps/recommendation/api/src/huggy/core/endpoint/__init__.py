@@ -1,10 +1,9 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 
 
-class AbstractEndpoint(ABC):
+class AbstractEndpoint(ABC):  # noqa: B024
     MODEL_TYPE = "unknown"
 
-    @abstractmethod
     def __init__(
         self,
         endpoint_name: str,

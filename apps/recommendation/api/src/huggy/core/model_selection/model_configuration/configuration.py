@@ -28,7 +28,7 @@ class DiversificationParams(BaseModel):
     mixing_features: str
     order_column: str
     order_ascending: bool
-    submixing_feature_dict: t.Optional[t.dict[str, str]] = None
+    submixing_feature_dict: t.Optional[dict[str, str]] = None
 
     async def to_dict(self):
         return {

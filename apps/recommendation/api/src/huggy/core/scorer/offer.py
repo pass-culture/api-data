@@ -159,7 +159,7 @@ class OfferScorer:
         self,
         db: AsyncSession,
         user: u.UserContext,
-        recommendable_items_ids: t.dict[str, i.RecommendableItem],
+        recommendable_items_ids: dict[str, i.RecommendableItem],
         limit: int = 500,
         offer: t.Optional[o.Offer] = None,
         query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK,
