@@ -1,5 +1,4 @@
-import typing as t
-from typing import List, Optional
+from typing import Optional, list
 
 import huggy.schemas.offer as o
 from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
@@ -24,11 +23,11 @@ class RecommendableOffer:
         self,
         db: AsyncSession,
         user: UserContext,
-        recommendable_items_ids: t.List[RecommendableItem],
+        recommendable_items_ids: list[RecommendableItem],
         limit: int = 500,
         offer: Optional[o.Offer] = None,
         query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK,
-    ) -> List[o.OfferDistance]:
+    ) -> list[o.OfferDistance]:
         if await self.is_geolocated(user, offer):
             offer_table: RecommendableOffersRaw = (
                 await RecommendableOffersRaw().get_available_table(db)
@@ -94,7 +93,7 @@ class RecommendableOffer:
                     .limit(limit)
                 )
             ).fetchall()
-            return TypeAdapter(List[o.OfferDistance]).validate_python(results)
+            return TypeAdapter(list[o.OfferDistance]).validate_python(results)
         return []
 
     def get_st_distance(
@@ -120,7 +119,7 @@ class RecommendableOffer:
         else:
             return literal_column("NULL").label("user_distance")
 
-    def get_items(self, recommendable_items_ids: t.List[RecommendableItem]):
+    def get_items(self, recommendable_items_ids: list[RecommendableItem]):
         arr_sql = ",".join(
             [
                 f"('{v.item_id}'::VARCHAR, {v.item_rank}::INT)"
@@ -133,7 +132,7 @@ class RecommendableOffer:
                 f"""
 
                     SELECT s.item_id, s.item_rank
-                    FROM unnest(ARRAY[{arr_sql}]) 
+                    FROM unnest(ARRAY[{arr_sql}])
                     AS s(item_id VARCHAR, item_rank INT)
             """
             )
@@ -142,8 +141,8 @@ class RecommendableOffer:
         )
 
     async def get_user_offer_distance(
-        self, db: AsyncSession, user: UserContext, offer_list: List[str]
-    ) -> List[o.OfferDistance]:
+        self, db: AsyncSession, user: UserContext, offer_list: list[str]
+    ) -> list[o.OfferDistance]:
         offer_table: RecommendableOffersRaw = (
             await RecommendableOffersRaw().get_available_table(db)
         )
@@ -160,4 +159,4 @@ class RecommendableOffer:
                 ).where(offer_table.offer_id.in_(list(offer_list)))
             )
         ).fetchall()
-        return TypeAdapter(List[o.OfferDistance]).validate_python(results)
+        return TypeAdapter(list[o.OfferDistance]).validate_python(results)

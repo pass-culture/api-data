@@ -6,7 +6,7 @@ from huggy.utils.env_vars import API_LOCAL
 
 
 def setup_logging():
-    if API_LOCAL == True:
+    if API_LOCAL is True:
         logger = logging.getLogger("uvicorn")
         logger.warning("This API is running in LOCAL MODE")
         return logger

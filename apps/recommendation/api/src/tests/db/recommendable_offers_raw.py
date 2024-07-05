@@ -19,7 +19,7 @@ async def create_fake_mv(session, table_name):
     raw_table_name = FakeRecommendableOffersRaw.__tablename__
     sql = f"""
         CREATE TABLE {table_name} AS
-        SELECT *, ST_SetSRID(ST_MakePoint(ro.venue_longitude, ro.venue_latitude), 4326)::geography as venue_geo  
+        SELECT *, ST_SetSRID(ST_MakePoint(ro.venue_longitude, ro.venue_latitude), 4326)::geography as venue_geo
         FROM {raw_table_name} ro;
     """
 

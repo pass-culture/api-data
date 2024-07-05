@@ -27,6 +27,12 @@ lint.ignore = [
     # -> would imply to update tests every time you update exception message
     "SIM102", # "Use a single `if` statement instead of nested `if` statements"
     # -> too restrictive
+    "TCH002", # "Move import into a type-checking block"
+    # -> Add complexity in code"
+    "B904", # B904 Within an `except` clause, raise exceptions with `raise ... from err` to distinguish them from errors in exception handling
+    # -> TODO: readd this rule later on
+    "B008", # Do not perform function call `Depends` in argument defaults
+    # -> TODO: readd this rule later on once the proposed fix is sure to work
 ]
 
 [tool.ruff.lint.pydocstyle]

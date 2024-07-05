@@ -1,6 +1,6 @@
 import traceback
 from dataclasses import dataclass
-from typing import Dict, List, Union
+from typing import Union, dict, list
 
 import grpc
 from aiocache import Cache, cached
@@ -16,7 +16,7 @@ from huggy.utils.env_vars import GCP_PROJECT
 @dataclass
 class PredictionResult:
     status: str
-    predictions: List[str]
+    predictions: list[str]
     model_version: str
     model_display_name: str
 
@@ -27,7 +27,7 @@ async def get_model(endpoint_name, location):
 
 
 async def __get_model(endpoint_name, location):
-    endpoint = aiplatform.Endpoint.list(
+    endpoint = aiplatform.Endpoinlist(
         filter=f"display_name={endpoint_name}", location=location, project=GCP_PROJECT
     )[0]
     endpoint_dict = endpoint.to_dict()
@@ -45,9 +45,11 @@ async def get_client(api_endpoint):
 
 
 async def endpoint_score(
-    endpoint_name, instances, fallback_endpoints=[], cached=False
+    endpoint_name, instances, fallback_endpoints=None, cached=False
 ) -> PredictionResult:
-    for endpoint in [endpoint_name] + fallback_endpoints:
+    if fallback_endpoints is None:
+        fallback_endpoints = []
+    for endpoint in [endpoint_name, *fallback_endpoints]:
         response = await predict_model(
             endpoint_name=endpoint,
             location="europe-west1",
@@ -71,7 +73,7 @@ async def endpoint_score(
 
 async def predict_model(
     endpoint_name: str,
-    instances: Union[Dict, List[Dict]],
+    instances: Union[dict, list[dict]],
     location: str = "europe-west1",
     api_endpoint: str = "europe-west1-aiplatform.googleapis.com",
 ):
@@ -80,7 +82,7 @@ async def predict_model(
 
 async def __predict_model(
     endpoint_name: str,
-    instances: Union[Dict, List[Dict]],
+    instances: Union[dict, list[dict]],
     location: str = "europe-west1",
     api_endpoint: str = "europe-west1-aiplatform.googleapis.com",
 ):
@@ -99,8 +101,7 @@ async def __predict_model(
 
         try:
             model_params = await get_model(endpoint_name, location)
-
-        except:
+        except Exception:
             model_params = await __get_model(endpoint_name, location)
             logger.warn(
                 "__predict_endpoint : Could not get model",

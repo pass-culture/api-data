@@ -1,6 +1,5 @@
 import collections
 import random
-from typing import Dict, List, Tuple
 
 import numpy as np
 from huggy.schemas.recommendable_offer import RankedOffer
@@ -8,7 +7,7 @@ from huggy.utils.env_vars import NUMBER_OF_RECOMMENDATIONS
 
 
 def order_offers_by_score_and_diversify_features(
-    offers: List[RankedOffer],
+    offers: list[RankedOffer],
     score_column="offer_rank",
     score_order_ascending=True,
     shuffle_recommendation=None,
@@ -16,7 +15,7 @@ def order_offers_by_score_and_diversify_features(
     nb_reco_display=NUMBER_OF_RECOMMENDATIONS,
     is_submixing=False,
     submixing_feature_dict=None,
-) -> List[RankedOffer]:
+) -> list[RankedOffer]:
     """
     Group offers by feature.
     Order offer groups by decreasing number of offers in each group and decreasing maximal score.
@@ -36,7 +35,7 @@ def order_offers_by_score_and_diversify_features(
 
     to_submixed_data = {}
     if submixing_feature_dict is not None:
-        for submixed_subcat in submixing_feature_dict.keys():
+        for submixed_subcat in submixing_feature_dict:
             if submixed_subcat in offers_by_feature:
                 to_submixed_data[submixed_subcat] = offers_by_feature[submixed_subcat]
 
@@ -72,10 +71,12 @@ def order_offers_by_score_and_diversify_features(
             )
             submixed_data.reverse()
             offers_by_feature_ordered_by_frequency[subcat_to_mix] = submixed_data
-    offers_by_feature_length = np.sum([len(l) for l in offers_by_feature.values()])
+    offers_by_feature_length = np.sum(
+        [len(offer_by_feature) for offer_by_feature in offers_by_feature.values()]
+    )
     while len(diversified_offers) != offers_by_feature_length:
         # here we pop one offer of eachsubcat
-        for offer_feature in offers_by_feature_ordered_by_frequency.keys():
+        for offer_feature in offers_by_feature_ordered_by_frequency:
             if offers_by_feature_ordered_by_frequency[offer_feature]:
                 diversified_offers.append(
                     offers_by_feature_ordered_by_frequency[offer_feature].pop()
@@ -87,9 +88,9 @@ def order_offers_by_score_and_diversify_features(
 
 
 def _get_offers_grouped_by_feature(
-    offers: List[RankedOffer], feature="subcategory_id"
-) -> Dict:
-    offers_by_feature = dict()
+    offers: list[RankedOffer], feature="subcategory_id"
+) -> dict:
+    offers_by_feature = {}
     product_ids = set()
     for offer in offers:
         offer_feature = getattr(offer, feature)
@@ -104,10 +105,11 @@ def _get_offers_grouped_by_feature(
 
 
 def _get_number_of_offers_and_max_score_by_feature(
-    feature_and_offers: Tuple,
+    feature_and_offers: tuple,
     score_column: str = "score",
-    score_order_ascending: bool = False,
-) -> Tuple:
+    *,
+    score_order_ascending: bool,
+) -> tuple:
     if score_order_ascending:
         sum_score = min(
             [getattr(offer, score_column) for offer in feature_and_offers[1]]

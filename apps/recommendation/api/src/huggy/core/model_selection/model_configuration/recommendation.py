@@ -1,5 +1,3 @@
-import typing as t
-
 import huggy.core.model_selection.endpoint.user_retrieval as user_retrieval
 from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
 from huggy.core.model_selection.model_configuration.configuration import (
@@ -9,7 +7,7 @@ from huggy.schemas.model_selection.model_configuration import RetrievalChoices
 
 
 class RecoModelConfigurationInput(ModelConfigurationInput):
-    def get_retrieval(self, model_type) -> t.List[RetrievalEndpoint]:
+    def get_retrieval(self, model_type) -> list[RetrievalEndpoint]:
         default = [
             user_retrieval.filter_retrieval_endpoint,
             user_retrieval.recommendation_retrieval_endpoint,

@@ -20,7 +20,7 @@ def to_days(dt: datetime):
     return None
 
 
-def to_float(x: float = None):
+def to_float(x: t.Optional[float] = None):
     try:
         if x is not None:
             return float(x)
@@ -29,7 +29,7 @@ def to_float(x: float = None):
     return None
 
 
-def to_int(x: int = None):
+def to_int(x: t.Optional[int] = None):
     try:
         if x is not None:
             return int(x)
@@ -50,8 +50,8 @@ class RankingEndpoint(AbstractEndpoint):
 
     @abstractmethod
     async def model_score(
-        self, recommendable_offers: t.List[RecommendableOffer]
-    ) -> t.List[RankedOffer]:
+        self, recommendable_offers: list[RecommendableOffer]
+    ) -> list[RankedOffer]:
         pass
 
 
@@ -61,8 +61,8 @@ class ItemRankRankingEndpoint(RankingEndpoint):
     MODEL_ORIGIN = "item_rank"
 
     async def model_score(
-        self, recommendable_offers: t.List[RecommendableOffer]
-    ) -> t.List[RankedOffer]:
+        self, recommendable_offers: list[RecommendableOffer]
+    ) -> list[RankedOffer]:
         ranked_offers = []
         recommendable_offers = sorted(
             recommendable_offers, key=lambda x: x.item_rank, reverse=False
@@ -88,8 +88,8 @@ class DistanceRankingEndpoint(RankingEndpoint):
     MODEL_ORIGIN = "distance"
 
     async def model_score(
-        self, recommendable_offers: t.List[RecommendableOffer]
-    ) -> t.List[RankedOffer]:
+        self, recommendable_offers: list[RecommendableOffer]
+    ) -> list[RankedOffer]:
         ranked_offers = []
         recommendable_offers = sorted(
             recommendable_offers, key=lambda x: x.user_distance or 0, reverse=False
@@ -115,8 +115,8 @@ class ModelRankingEndpoint(RankingEndpoint):
     MODEL_ORIGIN = "model"
 
     def get_instance(
-        self, recommendable_offers: t.List[RecommendableOffer]
-    ) -> t.List[t.Dict]:
+        self, recommendable_offers: list[RecommendableOffer]
+    ) -> list[dict]:
         offers_list = []
         for row in recommendable_offers:
             offers_list.append(
@@ -158,8 +158,8 @@ class ModelRankingEndpoint(RankingEndpoint):
         return offers_list
 
     async def model_score(
-        self, recommendable_offers: t.List[RecommendableOffer]
-    ) -> t.List[RankedOffer]:
+        self, recommendable_offers: list[RecommendableOffer]
+    ) -> list[RankedOffer]:
         instances = self.get_instance(recommendable_offers)
         prediction_result = await endpoint_score(
             instances=instances, endpoint_name=self.endpoint_name
@@ -227,8 +227,8 @@ class NoPopularModelRankingEndpoint(ModelRankingEndpoint):
     MODEL_ORIGIN = "no_popular_model"
 
     def get_instance(
-        self, recommendable_offers: t.List[RecommendableOffer]
-    ) -> t.List[t.Dict]:
+        self, recommendable_offers: list[RecommendableOffer]
+    ) -> list[dict]:
         offers_list = []
         for row in recommendable_offers:
             offers_list.append(

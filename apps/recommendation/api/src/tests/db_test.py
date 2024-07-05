@@ -16,7 +16,7 @@ async def test_extensions(setup_empty_database: AsyncSession):
 
 
 @pytest.mark.parametrize(
-    "table_name, expected_result",
+    ("table_name", "expected_result"),
     [
         ("enriched_user_mv", True),
         ("recommendable_offers_raw_mv", True),
@@ -26,7 +26,9 @@ async def test_extensions(setup_empty_database: AsyncSession):
     ],
 )
 async def test_tables_should_exist(
-    setup_default_database: AsyncSession, table_name: str, expected_result: bool
+    setup_default_database: AsyncSession,
+    table_name: str,
+    expected_result: bool,  # noqa: FBT001
 ):
     """This test should return all available tables in default context."""
     result = await check_table_exists(setup_default_database, table_name)
@@ -36,7 +38,7 @@ async def test_tables_should_exist(
 
 
 @pytest.mark.parametrize(
-    "table_name, expected_result",
+    ("table_name", "expected_result"),
     [
         ("enriched_user_mv", False),
         ("recommendable_offers_raw_mv", False),
@@ -45,7 +47,9 @@ async def test_tables_should_exist(
     ],
 )
 async def only_tmp_tables_should_exist(
-    setup_tmp_database: AsyncSession, table_name: str, expected_result: bool
+    setup_tmp_database: AsyncSession,
+    table_name: str,
+    expected_result: bool,  # noqa: FBT001
 ):
     """This test should return only available tables in tmp database context."""
     result = await check_table_exists(setup_tmp_database, table_name)
@@ -53,7 +57,7 @@ async def only_tmp_tables_should_exist(
 
 
 @pytest.mark.parametrize(
-    "base_db, expected_result",
+    ("base_db", "expected_result"),
     [
         (EnrichedUser, "enriched_user_mv"),
         (RecommendableOffersRaw, "recommendable_offers_raw_mv"),

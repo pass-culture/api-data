@@ -1,5 +1,4 @@
 import logging
-import typing as t
 
 import pytest
 from huggy.crud.recommendable_offer import RecommendableOffer as RecommendableOfferDB
@@ -161,8 +160,8 @@ class RecommendableOfferTest:
         self, setup_default_database: AsyncSession, pool: dict
     ):
         user: UserContext = pool["user"]
-        items: t.List[RecommendableItem] = pool["items"]
-        expected_offers: t.List[RecommendableOffer] = pool["expected_offers"]
+        items: list[RecommendableItem] = pool["items"]
+        expected_offers: list[RecommendableOffer] = pool["expected_offers"]
         description = pool["description"]
         result_offers = await RecommendableOfferDB().get_nearest_offers(
             setup_default_database, user=user, recommendable_items_ids=items
@@ -170,7 +169,7 @@ class RecommendableOfferTest:
         expected_offers_ids = sorted([x.offer_id for x in expected_offers])
         result_offers_ids = sorted([x.offer_id for x in result_offers])
         assert result_offers_ids == expected_offers_ids, f"""
-            {description} should have the same length. 
+            {description} should have the same length.
             User details : {user}
             Expected : {expected_offers}
             Result : {result_offers}
@@ -181,8 +180,8 @@ class RecommendableOfferTest:
         self, setup_default_database: AsyncSession, pool: dict
     ):
         user: UserContext = pool["user"]
-        offer_list: t.List[str] = pool["offers"]
-        expected_offers: t.List[OfferDistance] = pool["expected_offers"]
+        offer_list: list[str] = pool["offers"]
+        expected_offers: list[OfferDistance] = pool["expected_offers"]
 
         result_offers = await RecommendableOfferDB().get_user_offer_distance(
             setup_default_database, user=user, offer_list=offer_list

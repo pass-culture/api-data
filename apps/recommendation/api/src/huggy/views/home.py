@@ -1,3 +1,5 @@
+from typing import Optional
+
 import huggy.schemas.playlist_params as p
 from fastapi import APIRouter, Depends
 from fastapi.encoders import jsonable_encoder
@@ -18,9 +20,9 @@ async def playlist_recommendation(
     user_id: str,
     playlist_params: p.PlaylistParams,
     token: str,
-    latitude: float = None,
-    longitude: float = None,
-    modelEndpoint: str = None,
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+    modelEndpoint: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):

@@ -1,4 +1,3 @@
-import typing as t
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
@@ -16,14 +15,14 @@ from huggy.utils.vertex_ai import endpoint_score
 def to_datetime(ts):
     try:
         return datetime.fromtimestamp(float(ts))
-    except:
+    except Exception:
         return datetime.fromtimestamp(0.0)
 
 
 @dataclass
 class ListParams:
     label: str
-    values: t.List[str] = None
+    values: list[str] = None
 
     def filter(self):
         if self.values is not None and len(self.values) > 0:
@@ -170,7 +169,7 @@ class RetrievalEndpoint(AbstractEndpoint):
 
         return filters
 
-    async def model_score(self) -> t.List[RecommendableItem]:
+    async def model_score(self) -> list[RecommendableItem]:
         instances = self.get_instance(self.size)
         prediction_result = await endpoint_score(
             instances=instances,

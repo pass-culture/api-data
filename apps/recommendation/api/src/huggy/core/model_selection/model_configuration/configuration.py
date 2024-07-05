@@ -28,7 +28,7 @@ class DiversificationParams(BaseModel):
     mixing_features: str
     order_column: str
     order_ascending: bool
-    submixing_feature_dict: t.Optional[t.Dict[str, str]] = None
+    submixing_feature_dict: t.Optional[t.dict[str, str]] = None
 
     async def to_dict(self):
         return {
@@ -45,7 +45,7 @@ class ModelConfiguration:
     name: str
     description: str
     scorer: offer_scorer.OfferScorer
-    retrieval_endpoints: t.List[RetrievalEndpoint]
+    retrieval_endpoints: list[RetrievalEndpoint]
     ranking_endpoint: RankingEndpoint
     diversification_params: DiversificationParams
     query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK
@@ -228,7 +228,7 @@ class ModelConfigurationInput(BaseModel):
             RankingChoices.OFF: user_ranking.off_ranking_endpoint,
         }.get(model_type, model)
 
-    def get_retrieval(self, model_type) -> t.List[RetrievalEndpoint]:
+    def get_retrieval(self, model_type) -> list[RetrievalEndpoint]:
         pass
 
     def generate(self) -> ModelFork:

@@ -4,7 +4,7 @@ from huggy.schemas.playlist_params import underscore_to_camel
 
 class PlaylistParamsTest:
     @pytest.mark.parametrize(
-        ["input_str", "output_str"],
+        ("input_str", "output_str"),
         [
             ("snake_case", "snakeCase"),
             ("camel_case", "camelCase"),
