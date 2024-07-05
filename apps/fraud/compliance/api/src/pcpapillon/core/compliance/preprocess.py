@@ -55,7 +55,7 @@ def convert_data_to_catboost_pool(data, features_type_dict):
     """
     Convert json data to catboost pool:
         - inputs:
-            - Features names: List of features name (same order as list of features)
+            - Features names: list of features name (same order as list of features)
             - cat_features: list of categorical features names
             - text_features: list of text features names
             - embedding_features: list of embedding features names

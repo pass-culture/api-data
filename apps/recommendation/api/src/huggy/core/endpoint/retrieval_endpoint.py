@@ -1,8 +1,9 @@
-import typing as t
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 
+from aiocache import Cache
+from aiocache.serializers import PickleSerializer
 from fastapi.encoders import jsonable_encoder
 from huggy.core.endpoint import AbstractEndpoint
 from huggy.schemas.item import RecommendableItem
@@ -10,12 +11,8 @@ from huggy.schemas.offer import Offer
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
 from huggy.utils.cloud_logging import logger
-from huggy.utils.vertex_ai import endpoint_score
 from huggy.utils.hash import hash_from_keys
-
-from aiocache import Cache
-from aiocache.serializers import PickleSerializer
-
+from huggy.utils.vertex_ai import endpoint_score
 
 VERTEX_CACHE = Cache(
     Cache.MEMORY, ttl=6000, serializer=PickleSerializer(), namespace="vertex_cache"
@@ -25,14 +22,14 @@ VERTEX_CACHE = Cache(
 def to_datetime(ts):
     try:
         return datetime.fromtimestamp(float(ts))
-    except:
+    except Exception:
         return datetime.fromtimestamp(0.0)
 
 
 @dataclass
 class ListParams:
     label: str
-    values: t.List[str] = None
+    values: list[str] = None
 
     def filter(self):
         if self.values is not None and len(self.values) > 0:
@@ -189,9 +186,7 @@ class RetrievalEndpoint(AbstractEndpoint):
 
         return filters
 
-    async def _vertex_retrieval_score(
-        self, instance: dict
-    ) -> t.List[RecommendableItem]:
+    async def _vertex_retrieval_score(self, instance: dict) -> list[RecommendableItem]:
         prediction_result = await endpoint_score(
             instances=instance,
             endpoint_name=self.endpoint_name,
@@ -231,7 +226,7 @@ class RetrievalEndpoint(AbstractEndpoint):
             for r in prediction_result.predictions
         ]
 
-    async def model_score(self) -> t.List[RecommendableItem]:
+    async def model_score(self) -> list[RecommendableItem]:
         instance = self.get_instance(self.size)
         # Retrieve cache if exists
         if self.cached:

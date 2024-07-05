@@ -32,7 +32,7 @@ class Offer:
         self, db: AsyncSession, offer_id: str
     ) -> o.Offer:
         """Query the database in ORM mode to get characteristics of an offer.
-        Return : List[item_id,  number of booking associated].
+        Return : list[item_id,  number of booking associated].
         """
         offer_characteristics = await self.get_item(db, offer_id)
         iris_id = None
@@ -61,7 +61,7 @@ class Offer:
                     is_geolocated=iris_id is not None,
                     item_id=offer_characteristics.item_id,
                     booking_number=offer_characteristics.booking_number,
-                    is_sensitive=True if offer_characteristics.is_sensitive else False,
+                    is_sensitive=bool(offer_characteristics.is_sensitive),
                     found=True,
                 )
         except ProgrammingError as exc:

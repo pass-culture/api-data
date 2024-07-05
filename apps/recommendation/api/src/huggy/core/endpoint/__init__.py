@@ -1,16 +1,23 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 
 class AbstractEndpoint(ABC):
     MODEL_TYPE = "unknown"
 
+    @abstractmethod
     def __init__(
-        self, endpoint_name: str, size, fallback_endpoints=[], cached: bool = False
+        self,
+        endpoint_name: str,
+        size,
+        fallback_endpoints=None,
+        cached: bool = False,  # noqa: FBT001
     ) -> None:
         """
         endpoint_name : Default endpoint
-        fallback_endpoints : List of endpoints to retry in case no results or timeout error
+        fallback_endpoints : list of endpoints to retry in case no results or timeout error
         """
+        if fallback_endpoints is None:
+            fallback_endpoints = []
         self.endpoint_name = str(endpoint_name.value)
         self.size = size
         self.fallback_endpoints = [str(x.value) for x in fallback_endpoints]

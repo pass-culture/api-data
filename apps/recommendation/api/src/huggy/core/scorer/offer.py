@@ -1,6 +1,6 @@
 import asyncio
 import typing as t
-from typing import List
+from typing import list
 
 import huggy.schemas.item as i
 import huggy.schemas.offer as o
@@ -24,7 +24,7 @@ class OfferScorer:
         self,
         user: u.UserContext,
         params_in: pp.PlaylistParams,
-        retrieval_endpoints: List[RetrievalEndpoint],
+        retrieval_endpoints: list[RetrievalEndpoint],
         ranking_endpoint: RankingEndpoint,
         model_params,
         offer: t.Optional[o.Offer] = None,
@@ -47,8 +47,8 @@ class OfferScorer:
         self,
         db: AsyncSession,
         call_id: str,
-    ) -> List[r_o.RankedOffer]:
-        prediction_items: List[i.RecommendableItem] = []
+    ) -> list[r_o.RankedOffer]:
+        prediction_items: list[i.RecommendableItem] = []
         endpoints_stats = {}
 
         # // call
@@ -111,8 +111,8 @@ class OfferScorer:
     async def get_recommendable_offers(
         self,
         db: AsyncSession,
-        recommendable_items: List[i.RecommendableItem],
-    ) -> List[r_o.RecommendableOffer]:
+        recommendable_items: list[i.RecommendableItem],
+    ) -> list[r_o.RecommendableOffer]:
         non_recommendable_items = await get_non_recommendable_items(db, self.user)
         recommendable_items_ids = {
             item.item_id: item
@@ -160,14 +160,14 @@ class OfferScorer:
         self,
         db: AsyncSession,
         user: u.UserContext,
-        recommendable_items_ids: t.Dict[str, i.RecommendableItem],
+        recommendable_items_ids: t.dict[str, i.RecommendableItem],
         limit: int = 500,
         offer: t.Optional[o.Offer] = None,
         query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK,
-    ) -> List[r_o.RecommendableOffer]:
+    ) -> list[r_o.RecommendableOffer]:
         recommendable_offers = []
         multiple_item_offers = []
-        for k, v in recommendable_items_ids.items():
+        for v in recommendable_items_ids.values():
             if v.total_offers == 1 or not v.is_geolocated:
                 user_distance, within_radius = await self.get_distance(
                     v, user, offer, default_max_distance=100_000

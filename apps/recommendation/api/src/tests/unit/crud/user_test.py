@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 class UserTest:
     @pytest.mark.parametrize(
-        ["user", "found"],
+        ("user", "found"),
         [
             (user_profile_111, True),
             (user_profile_112, True),
@@ -32,7 +32,10 @@ class UserTest:
         ],
     )
     async def test_get_user_profile(
-        self, setup_default_database: AsyncSession, user: UserProfileDB, found: bool
+        self,
+        setup_default_database: AsyncSession,
+        user: UserProfileDB,
+        found: bool,  # noqa: FBT001
     ):
         result_user = await UserContextDB().get_user_profile(
             setup_default_database, user.user_id
@@ -57,7 +60,7 @@ class UserTest:
             ), "favorites_count is right"
 
     @pytest.mark.parametrize(
-        ["user", "iris", "found"],
+        ("user", "iris", "found"),
         [
             (user_profile_117, iris_paris_chatelet, True),
             (user_profile_112, iris_nok, True),
@@ -70,7 +73,7 @@ class UserTest:
         setup_default_database: AsyncSession,
         user: UserProfileDB,
         iris: IrisTestExample,
-        found: bool,
+        found: bool,  # noqa: FBT001
     ):
         geolocated = iris.iris_id is not None
         result_user = await UserContextDB().get_user_context(

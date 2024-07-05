@@ -51,4 +51,4 @@ class PlaylistParamsTest:
     def test_model_params(self, input_params, output_name):
         output_playlist_params = PlaylistParams(**input_params)
         model_enpoint = parse_model_enpoint(output_playlist_params)
-        model_enpoint.model_name == output_name
+        assert model_enpoint.model_name == output_name
