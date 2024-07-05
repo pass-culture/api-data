@@ -6,7 +6,7 @@ import json
 def parse_hex(input_str):
     try:
         return json.loads(base64.b64decode(input_str).decode("utf-8"))
-    except json.JSONDecodeError as e:
+    except json.JSONDecodeError:
         return None
     except (ValueError, binascii.Error, TypeError):
         return None

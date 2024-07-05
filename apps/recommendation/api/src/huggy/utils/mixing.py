@@ -5,7 +5,6 @@ from typing import Dict, List, Tuple
 import numpy as np
 from huggy.schemas.recommendable_offer import RankedOffer
 from huggy.utils.env_vars import NUMBER_OF_RECOMMENDATIONS
-from loguru import logger
 
 
 def order_offers_by_score_and_diversify_features(
@@ -61,7 +60,7 @@ def order_offers_by_score_and_diversify_features(
         )
     if (not is_submixing) and (len(to_submixed_data) > 0):
         is_submixing = True
-        for subcat_to_mix in to_submixed_data.keys():
+        for subcat_to_mix in to_submixed_data:
             submixed_data = order_offers_by_score_and_diversify_features(
                 to_submixed_data[subcat_to_mix],
                 score_column=score_column,
@@ -95,7 +94,7 @@ def _get_offers_grouped_by_feature(
     for offer in offers:
         offer_feature = getattr(offer, feature)
         offer_product_id = offer.item_id
-        if offer_feature in offers_by_feature.keys():  # Here we filter subcat
+        if offer_feature in offers_by_feature:  # Here we filter subcat
             if offer_product_id not in product_ids:
                 offers_by_feature[offer_feature].append(offer)
                 product_ids.add(offer_product_id)

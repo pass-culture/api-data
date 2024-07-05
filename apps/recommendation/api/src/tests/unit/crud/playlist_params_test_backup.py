@@ -16,7 +16,7 @@ model_endpoint = {
 
 class PlaylistParamsTest:
     @pytest.mark.parametrize(
-        ["input_params"],
+        "input_params",
         [
             (
                 {
@@ -38,7 +38,7 @@ class PlaylistParamsTest:
         )
 
     @pytest.mark.parametrize(
-        ["input_params"],
+        "input_params",
         [
             ({"modelEndpoint": "default"}, "default"),
             ({"modelEndpoint": "not_existing"}, "default"),
