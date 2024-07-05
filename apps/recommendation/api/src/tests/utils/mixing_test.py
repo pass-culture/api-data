@@ -1,4 +1,3 @@
-
 from huggy.schemas.recommendable_offer import RankedOffer
 from huggy.utils.mixing import order_offers_by_score_and_diversify_features
 from numpy.testing import assert_array_equal
@@ -191,7 +190,8 @@ mock_scored_offers = [
     ),
 ]
 ## Reminder on diversification rule
-# output list is order by top score of the category, picking one in each category until reaching NbofRecommendations
+# output list is order by top score of the category, picking one in each category
+# until reaching Nb of Recommendations
 mock_expected_diversification_output = [
     "item_5",
     "item_4",

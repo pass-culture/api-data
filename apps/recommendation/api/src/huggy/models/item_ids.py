@@ -1,4 +1,3 @@
-
 from huggy.database.base import Base, MaterializedBase
 from sqlalchemy import Column, Float, String
 from sqlalchemy.types import Boolean

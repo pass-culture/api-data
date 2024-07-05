@@ -1,5 +1,3 @@
-from typing import List
-
 from huggy.core.model_engine import ModelEngine
 from huggy.core.model_selection import select_sim_model_params
 from huggy.core.model_selection.model_configuration.configuration import ForkOut
@@ -40,7 +38,7 @@ class SimilarOffer(ModelEngine):
             offer=self.offer,
         )
 
-    async def get_scoring(self, db: AsyncSession) -> List[str]:
+    async def get_scoring(self, db: AsyncSession) -> list[str]:
         if self.offer is not None and self.offer.item_id is None:
             return []
         if (

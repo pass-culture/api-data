@@ -4,7 +4,6 @@ import typing as t
 import huggy.models.enriched_user as user_db
 import huggy.schemas.user as user_sh
 from huggy.crud.iris import Iris
-from huggy.utils.cloud_logging import logger
 from huggy.utils.exception import log_error
 from pydantic import TypeAdapter
 from sqlalchemy import func, select

@@ -4,7 +4,7 @@ from huggy.schemas.user import UserContext
 
 
 @pytest.mark.parametrize(
-    ["user", "expected_status"],
+    ("user", "expected_status"),
     [
         (
             UserContext(
@@ -55,7 +55,7 @@ from huggy.schemas.user import UserContext
 )
 def test_get_cold_start_status(
     user: UserContext,
-    expected_status: bool,
+    expected_status: bool,  # noqa: FBT001
 ):
     model_fork = RECOMMENDATION_ENDPOINTS["default"].generate()
     model_status = model_fork.get_user_status(user, "test")

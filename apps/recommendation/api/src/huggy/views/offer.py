@@ -62,12 +62,12 @@ async def __similar_offers(
     "/similar_offers/{offer_id}",
     dependencies=[Depends(setup_trace), Depends(check_token)],
 )
-async def similar_offers(
+async def post_similar_offers(
     offer_id: str,
     playlist_params: p.PostSimilarOfferPlaylistParams,
-    token: str = None,
-    latitude: float = None,
-    longitude: float = None,
+    token: t.Optional[str] = None,
+    latitude: t.Optional[float] = None,
+    longitude: t.Optional[float] = None,
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):
@@ -85,12 +85,12 @@ async def similar_offers(
     "/similar_offers/{offer_id}",
     dependencies=[Depends(setup_trace), Depends(check_token)],
 )
-async def similar_offers(
+async def get_similar_offers(
     offer_id: str,
     playlist_params: p.GetSimilarOfferPlaylistParams = Depends(),
-    token: str = None,
-    latitude: float = None,
-    longitude: float = None,
+    token: t.Optional[str] = None,
+    latitude: t.Optional[float] = None,
+    longitude: t.Optional[float] = None,
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):

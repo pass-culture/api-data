@@ -7,7 +7,7 @@ from huggy.utils.secrets import access_secret
 GCP_PROJECT = os.environ.get("GCP_PROJECT", "passculture-data-ehp")
 ENV_SHORT_NAME = os.environ.get("ENV_SHORT_NAME", "dev")
 CORS_ALLOWED_ORIGIN = os.environ.get("CORS_ALLOWED_ORIGIN", "*")
-API_LOCAL = bool(os.environ.get("API_LOCAL", 0)) == True
+API_LOCAL = bool(os.environ.get("API_LOCAL", 0)) is True
 
 # SQL
 SQL_BASE_DATABASE = os.environ.get("SQL_BASE", "db")
@@ -38,7 +38,7 @@ if not API_LOCAL:
 # logger
 cloud_trace_context = contextvars.ContextVar("cloud_trace_context", default="")
 call_id_trace_context = contextvars.ContextVar("call_id_context", default="")
-http_request_context = contextvars.ContextVar("http_request_context", default=dict({}))
+http_request_context = contextvars.ContextVar("http_request_context", default={})
 
 # config
 DEFAULT_SIMILAR_OFFER_MODEL = os.environ.get("DEFAULT_SIMILAR_OFFER_MODEL", "default")

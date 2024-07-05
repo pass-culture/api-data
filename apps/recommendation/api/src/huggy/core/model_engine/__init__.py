@@ -1,7 +1,5 @@
 import datetime
-import typing as t
 from abc import ABC, abstractmethod
-from typing import List
 
 import huggy.schemas.offer as o
 import pytz
@@ -31,9 +29,7 @@ class ModelEngine(ABC):
         self.user = user
         self.offer = offer
         self.offers = (
-            [offer for offer in params_in.offers]
-            if isinstance(params_in.offers, list)
-            else [offer]
+            list(params_in.offers) if isinstance(params_in.offers, list) else [offer]
         )
         self.params_in = params_in
         self.call_id = call_id
@@ -73,7 +69,7 @@ class ModelEngine(ABC):
             offer=self.offer,
         )
 
-    async def get_scoring(self, db: AsyncSession) -> List[str]:
+    async def get_scoring(self, db: AsyncSession) -> list[str]:
         """
         Returns a list of offer_id to be send to the user
         Depends of the scorer method.
@@ -111,7 +107,7 @@ class ModelEngine(ABC):
     async def save_context(
         self,
         session: AsyncSession,
-        offers: t.List[RankedOffer],
+        offers: list[RankedOffer],
         context: str,
         user: UserContext,
     ) -> None:
