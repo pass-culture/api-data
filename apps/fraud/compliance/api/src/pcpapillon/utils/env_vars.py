@@ -21,7 +21,7 @@ GCP_PROJECT = os.environ.get("GCP_PROJECT", "passculture-data-ehp")
 ENV_SHORT_NAME = os.environ.get("ENV_SHORT_NAME", "dev")
 # API_LOCAL is string to match terraform boolean handling
 API_LOCAL = os.environ.get("API_LOCAL", False)
-IS_API_LOCAL = True if API_LOCAL == "True" else False
+IS_API_LOCAL = API_LOCAL == "True"
 # API
 API_SECRET_KET_SECRET_ID = os.environ.get(
     "API_SECRET_KET_SECRET_ID", "api-papillon-auth-secret-key-dev"
@@ -49,7 +49,7 @@ users_db = {
 # Configs
 # logger
 cloud_trace_context = contextvars.ContextVar("cloud_trace_context", default="")
-http_request_context = contextvars.ContextVar("http_request_context", default=dict({}))
+http_request_context = contextvars.ContextVar("http_request_context", default={})
 # MLFlow
 MLFLOW_SECRET_ID = os.environ.get("MLFLOW_SECRET_ID", "mlflow_client_id")
 MLFLOW_CLIENT_ID = access_secret(GCP_PROJECT, MLFLOW_SECRET_ID)
