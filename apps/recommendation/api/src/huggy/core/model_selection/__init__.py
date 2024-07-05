@@ -1,5 +1,3 @@
-import typing as t
-
 from fastapi.exceptions import HTTPException
 from huggy.core.model_selection.model_configuration.configuration import (
     ForkOut,
@@ -197,7 +195,7 @@ def select_reco_model_params(model_endpoint: str, user: UserContext) -> ForkOut:
 
 
 def select_sim_model_params(
-    model_endpoint: str, offer: Offer, offers: t.List[Offer]
+    model_endpoint: str, offer: Offer, offers: list[Offer]
 ) -> ForkOut:
     """Choose the model to apply for Similar Offers based on offer interaction."""
     model_endpoint = parse_model_enpoint(model_endpoint, model_type="similar_offer")

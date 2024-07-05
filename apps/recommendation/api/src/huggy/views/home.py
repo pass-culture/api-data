@@ -7,6 +7,7 @@ from huggy.core.model_engine.recommendation import Recommendation
 from huggy.core.model_engine.similar_offer import SimilarOffer
 from huggy.crud.user import UserContextDB
 from huggy.database.session import get_db
+from huggy.utils.cloud_logging import logger
 from huggy.views.common import check_token, get_call_id, setup_trace
 from sqlalchemy.ext.asyncio import AsyncSession
 

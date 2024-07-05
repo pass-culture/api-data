@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Optional
 
 from aiocache import Cache
 from aiocache.serializers import PickleSerializer
@@ -92,13 +93,15 @@ class RetrievalEndpoint(AbstractEndpoint):
         self.is_geolocated = self.user.is_geolocated
 
     def _get_instance_hash(
-        self, instance: t.Dict, ignore_keys: t.List = ["call_id"]
+        self, instance: dict, ignore_keys: Optional[list] = None
     ) -> str:
         """
         Generate a hash from the instance to use as a key for caching
         """
         # drop call_id from instance
-        keys = [k for k in instance.keys() if k not in ignore_keys]
+        if ignore_keys is None:
+            ignore_keys = ["call_id"]
+        keys = [k for k in instance if k not in ignore_keys]
         return hash_from_keys(instance, keys=keys)
 
     @abstractmethod

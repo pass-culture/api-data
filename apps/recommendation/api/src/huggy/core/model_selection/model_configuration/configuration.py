@@ -130,7 +130,7 @@ class ModelFork:
         )
 
     def get_offer_status(
-        self, offer: Offer, offers: t.List[Offer], model_origin: str
+        self, offer: Offer, offers: list[Offer], model_origin: str
     ) -> ForkOut:
         """Get model status based on Offer interactions"""
         if offers:
