@@ -1,14 +1,13 @@
 import typing as t
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import huggy.schemas.offer as o
-import huggy.schemas.recommendable_offer as r_o
 from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
 from huggy.schemas.item import RecommendableItem
 from huggy.schemas.model_selection.model_configuration import QueryOrderChoices
 from huggy.schemas.user import UserContext
 from pydantic import TypeAdapter
-from sqlalchemy import Integer, String, func, not_, select, text
+from sqlalchemy import Integer, String, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import literal_column
 

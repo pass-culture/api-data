@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import os
 from contextlib import ExitStack
 from typing import Any, Dict
 
@@ -27,14 +26,12 @@ from huggy.models.recommendable_offers_raw import (
     RecommendableOffersRawMvOld,
     RecommendableOffersRawMvTmp,
 )
-from huggy.utils.env_vars import SQL_BASE_DATABASE
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests.db.utils import clean_db, drop_restore_db
+from tests.db.utils import clean_db
 
 logger = logging.getLogger(__name__)
 
-import asyncio
 
 from tests.db import (
     create_enriched_user_mv,

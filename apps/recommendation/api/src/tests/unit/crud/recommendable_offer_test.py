@@ -1,5 +1,4 @@
 import logging
-import os
 import typing as t
 
 import pytest
@@ -18,25 +17,17 @@ from tests.db.schema.iris import (
 from tests.db.schema.offer_context import (
     items_all,
     items_books_marseille,
-    items_books_paris_below_30_euros,
     items_no_geolocated,
     items_paris,
-    offers_below_30_euros_distance,
     offers_books_nearest_cours_julien_marseille_distance,
     offers_books_nearest_vieux_port_marseille_distance,
-    offers_books_paris_30_euros_distance,
     offers_no_geolocated_distance,
     offers_paris_distance,
-    offers_underage_and_below_30_euros_distance,
-    offers_underage_books_paris_30_euros_distance,
 )
 from tests.db.schema.user_context import (
     user_context_111_cours_julien_marseille,
     user_context_111_paris,
-    user_context_111_unknown,
     user_context_111_vieux_port_marseille,
-    user_context_117_paris,
-    user_context_118_paris,
     user_context_null_nok,
     user_context_unknown_paris,
 )
@@ -207,4 +198,4 @@ class RecommendableOfferTest:
             assert x.offer_id == x.offer_id, "Offer shoud be the same."
             assert (
                 x.user_distance - y.user_distance
-            ) // 1000 == 0, f"Distance should be the same in KM."
+            ) // 1000 == 0, "Distance should be the same in KM."

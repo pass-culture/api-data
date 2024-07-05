@@ -1,4 +1,3 @@
-import typing as t
 
 from huggy.database.base import Base, MaterializedBase
 from sqlalchemy import Column, Float, String

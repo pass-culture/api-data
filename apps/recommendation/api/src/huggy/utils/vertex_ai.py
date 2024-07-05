@@ -1,7 +1,5 @@
-import concurrent.futures
 import traceback
 from dataclasses import dataclass
-from functools import partial
 from typing import Dict, List, Union
 
 import grpc
@@ -105,7 +103,7 @@ async def __predict_model(
         except:
             model_params = await __get_model(endpoint_name, location)
             logger.warn(
-                f"__predict_endpoint : Could not get model",
+                "__predict_endpoint : Could not get model",
                 extra={
                     "event_name": "predict_model",
                     "endpoint_name": endpoint_name,
@@ -114,7 +112,7 @@ async def __predict_model(
         instances = instances if type(instances) == list else [instances]
 
         logger.debug(
-            f"__predict_endpoint : predict",
+            "__predict_endpoint : predict",
             extra={
                 "event_name": "predict_model",
                 "endpoint_name": endpoint_name,
@@ -143,7 +141,7 @@ async def __predict_model(
                 "model_display_name": model_params["model_name"],
             }
             logger.warn(
-                f"__predict_endpoint : Timeout",
+                "__predict_endpoint : Timeout",
                 extra=dict(
                     {
                         "event_name": "predict_model",
@@ -167,7 +165,7 @@ async def __predict_model(
             "model_display_name": model_params["model_name"],
         }
         logger.debug(
-            f"__predict_endpoint : results",
+            "__predict_endpoint : results",
             extra=dict(
                 {
                     "event_name": "predict_model",
@@ -178,7 +176,7 @@ async def __predict_model(
     except grpc._channel._InactiveRpcError as e:
         tb = traceback.format_exc()
         logger.warn(
-            f"__predict_endpoint : error",
+            "__predict_endpoint : error",
             extra=dict(
                 {
                     "event_name": "predict_model",
@@ -198,7 +196,7 @@ async def __predict_model(
     except Exception as e:
         tb = traceback.format_exc()
         logger.warn(
-            f"__predict_endpoint : error",
+            "__predict_endpoint : error",
             extra=dict(
                 {
                     "event_name": "predict_model",

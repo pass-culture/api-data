@@ -2,7 +2,6 @@ import typing as t
 
 from huggy.models.non_recommendable_items import NonRecommendableItems
 from huggy.schemas.user import UserContext
-from huggy.utils.cloud_logging import logger
 from huggy.utils.exception import log_error
 from sqlalchemy import select
 from sqlalchemy.exc import ProgrammingError

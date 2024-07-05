@@ -97,7 +97,7 @@ class RetrievalEndpoint(AbstractEndpoint):
         params = []
 
         if not self.is_geolocated:
-            params.append(EqParams(label="is_geolocated", value=float(0.0)))
+            params.append(EqParams(label="is_geolocated", value=0.0))
 
         if self.user.age and self.user.age < 18:
             params.append(EqParams(label="is_underage_recommendable", value=float(1)))
