@@ -1,7 +1,6 @@
 import typing as t
 from abc import abstractmethod
 
-from aiocache import Cache, cached
 from huggy.database.utils import check_table_exists
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import declarative_base

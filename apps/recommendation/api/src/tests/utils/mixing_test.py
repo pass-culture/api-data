@@ -1,4 +1,3 @@
-import os
 
 from huggy.schemas.recommendable_offer import RankedOffer
 from huggy.utils.mixing import order_offers_by_score_and_diversify_features

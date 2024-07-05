@@ -1,5 +1,5 @@
 import contextlib
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 from sqlalchemy.exc import TimeoutError
 from sqlalchemy.ext.asyncio import (

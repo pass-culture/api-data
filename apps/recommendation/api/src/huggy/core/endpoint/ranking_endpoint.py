@@ -15,7 +15,7 @@ def to_days(dt: datetime):
     try:
         if dt is not None:
             return (dt - datetime.now()).days
-    except Exception as e:
+    except Exception:
         pass
     return None
 
@@ -24,7 +24,7 @@ def to_float(x: float = None):
     try:
         if x is not None:
             return float(x)
-    except Exception as e:
+    except Exception:
         pass
     return None
 
@@ -33,7 +33,7 @@ def to_int(x: int = None):
     try:
         if x is not None:
             return int(x)
-    except Exception as e:
+    except Exception:
         pass
     return None
 
@@ -77,7 +77,7 @@ class ItemRankRankingEndpoint(RankingEndpoint):
                 )
             )
         logger.debug(
-            f"ranking_endpoint {str(self.user.user_id)} out : {len(ranked_offers)}"
+            f"ranking_endpoint {self.user.user_id!s} out : {len(ranked_offers)}"
         )
         return ranked_offers
 
@@ -104,7 +104,7 @@ class DistanceRankingEndpoint(RankingEndpoint):
                 )
             )
         logger.debug(
-            f"ranking_endpoint {str(self.user.user_id)} out : {len(ranked_offers)}"
+            f"ranking_endpoint {self.user.user_id!s} out : {len(ranked_offers)}"
         )
         return ranked_offers
 
@@ -178,7 +178,7 @@ class ModelRankingEndpoint(RankingEndpoint):
             )
         }
         logger.debug(
-            f"ranking_endpoint {str(self.user.user_id)} offers : {len(recommendable_offers)}",
+            f"ranking_endpoint {self.user.user_id!s} offers : {len(recommendable_offers)}",
             extra=prediction_dict,
         )
 
@@ -201,7 +201,7 @@ class ModelRankingEndpoint(RankingEndpoint):
 
         if len(not_found) > 0:
             logger.warn(
-                f"ranking_endpoint, offer not found",
+                "ranking_endpoint, offer not found",
                 extra=jsonable_encoder(
                     {
                         "event_name": "ranking",
@@ -216,7 +216,7 @@ class ModelRankingEndpoint(RankingEndpoint):
             )
 
         logger.debug(
-            f"ranking_endpoint {str(self.user.user_id)} out : {len(ranked_offers)}"
+            f"ranking_endpoint {self.user.user_id!s} out : {len(ranked_offers)}"
         )
         return sorted(ranked_offers, key=lambda x: x.offer_rank, reverse=False)
 

@@ -6,7 +6,7 @@ from huggy.models.recommendable_offers_raw import (
     RecommendableOffersRawMvOld,
     RecommendableOffersRawMvTmp,
 )
-from sqlalchemy import insert, inspect, text
+from sqlalchemy import insert, text
 
 from tests.db.models.recommendable_offer_raw import FakeRecommendableOffersRaw
 from tests.db.schema.offer import raw_data

@@ -30,7 +30,7 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         try:
             return await call_next(request)
-        except NotAuthorized as e:
+        except NotAuthorized:
             raise HTTPException(status_code=401, detail="Not authorized")
         except (RuntimeError, anyio.WouldBlock, anyio.EndOfStream) as exc:
             if str(exc) == "No response returned." and await request.is_disconnected():
