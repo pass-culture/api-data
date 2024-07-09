@@ -128,7 +128,9 @@ async def _session_override(app, _connection_test):
 async def drop_mv_database(
     _connection_test, app_config: dict[str, Any]
 ) -> AsyncGenerator[Any, Any]:
-    """Removes the enriched_user_mv and recommendable_offers_raw_mv in order to test the switch."""
+    """
+    Removes the enriched_user_mv and recommendable_offers_raw_mv in order to test the switch.
+    """
     async with sessionmanager.session() as session:
         await clean_db(session, models=[EnrichedUserMv, RecommendableOffersRawMv])
         try:

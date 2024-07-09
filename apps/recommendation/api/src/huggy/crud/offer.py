@@ -31,9 +31,12 @@ class Offer:
     async def get_offer_characteristics(
         self, db: AsyncSession, offer_id: str
     ) -> o.Offer:
-        """Query the database in ORM mode to get characteristics of an offer.
-        Return : list[item_id,  number of booking associated].
         """
+        Query the database in ORM mode to get characteristics of an offer.
+        Return : list[item_id,  number of booking associated].
+
+        """
+
         offer_characteristics = await self.get_item(db, offer_id)
         iris_id = None
         offer = o.Offer(

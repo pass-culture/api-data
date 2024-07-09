@@ -39,6 +39,21 @@ def to_int(x: t.Optional[int] = None):
 
 
 class RankingEndpoint(AbstractEndpoint):
+    """
+    Represents an endpoint for ranking offers based on user preferences.
+
+    Attributes:
+        user (UserContext): The user context.
+        call_id (str): The call ID.
+        params_in (PlaylistParams): The playlist parameters.
+        context (str): The context.
+
+    Methods:
+        init_input: Initializes the input parameters.
+        model_score: Calculates the model score for recommendable offers.
+
+    """
+
     def init_input(
         self, user: UserContext, params_in: PlaylistParams, call_id: str, context: str
     ):
@@ -56,7 +71,10 @@ class RankingEndpoint(AbstractEndpoint):
 
 
 class ItemRankRankingEndpoint(RankingEndpoint):
-    """Returns the list sorted by item_rank ascending."""
+    """
+    Returns the list sorted by item_rank ascending.
+
+    """
 
     MODEL_ORIGIN = "item_rank"
 
@@ -83,7 +101,10 @@ class ItemRankRankingEndpoint(RankingEndpoint):
 
 
 class DistanceRankingEndpoint(RankingEndpoint):
-    """Returns the list sorted by distance ascending."""
+    """
+    Returns the list sorted by distance ascending.
+
+    """
 
     MODEL_ORIGIN = "distance"
 
@@ -110,7 +131,10 @@ class DistanceRankingEndpoint(RankingEndpoint):
 
 
 class ModelRankingEndpoint(RankingEndpoint):
-    """Calls LGBM model to sort offers."""
+    """
+    Calls LGBM model to sort offers.
+
+    """
 
     MODEL_ORIGIN = "model"
 
@@ -222,7 +246,10 @@ class ModelRankingEndpoint(RankingEndpoint):
 
 
 class NoPopularModelRankingEndpoint(ModelRankingEndpoint):
-    """Calls LGBM model to sort offers without booking_number variable."""
+    """
+    Calls LGBM model to sort offers without booking_number variable.
+
+    """
 
     MODEL_ORIGIN = "no_popular_model"
 

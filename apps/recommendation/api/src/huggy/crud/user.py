@@ -17,9 +17,11 @@ class UserContextDB:
     async def get_user_context(
         self, db: AsyncSession, user_id: str, latitude: float, longitude: float
     ) -> user_sh.UserContext:
-        """Query the database in ORM mode to get additional information about
+        """
+        Query the database in ORM mode to get additional information about
         an user. (age, number of bookings, number of clicks, number of favorites,
         amount of remaining deposit).
+
         """
 
         iris_id = await Iris().get_iris_from_coordinates(

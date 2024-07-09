@@ -30,7 +30,11 @@ async def test_tables_should_exist(
     table_name: str,
     expected_result: bool,  # noqa: FBT001
 ):
-    """This test should return all available tables in default context."""
+    """
+    This test should return all available tables in default context.
+
+    """
+
     result = await check_table_exists(setup_default_database, table_name)
 
     # assert result is not None
@@ -51,7 +55,11 @@ async def only_tmp_tables_should_exist(
     table_name: str,
     expected_result: bool,  # noqa: FBT001
 ):
-    """This test should return only available tables in tmp database context."""
+    """
+    This test should return only available tables in tmp database context.
+
+    """
+
     result = await check_table_exists(setup_tmp_database, table_name)
     assert result is expected_result
 
@@ -66,7 +74,11 @@ async def only_tmp_tables_should_exist(
 async def test_materialized_views(
     setup_default_database: AsyncSession, base_db, expected_result
 ):
-    """This test should return the default tables."""
+    """
+    This test should return the default tables.
+
+    """
+
     table = await base_db().get_available_table(setup_default_database)
     assert table.__tablename__ == expected_result
 

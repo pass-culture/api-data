@@ -182,7 +182,11 @@ SIMILAR_OFFER_ENDPOINTS = {
 
 
 def select_reco_model_params(model_endpoint: str, user: UserContext) -> ForkOut:
-    """Choose the model to apply Recommendation based on user interaction."""
+    """
+    Choose the model to apply Recommendation based on user interaction.
+
+    """
+
     model_endpoint = parse_model_enpoint(model_endpoint, model_type="recommendation")
     model_name = model_endpoint.model_name
     if model_endpoint.custom_configuration is not None:
@@ -197,7 +201,11 @@ def select_reco_model_params(model_endpoint: str, user: UserContext) -> ForkOut:
 def select_sim_model_params(
     model_endpoint: str, offer: Offer, offers: list[Offer]
 ) -> ForkOut:
-    """Choose the model to apply for Similar Offers based on offer interaction."""
+    """
+    Choose the model to apply for Similar Offers based on offer interaction.
+
+    """
+
     model_endpoint = parse_model_enpoint(model_endpoint, model_type="similar_offer")
     model_name = model_endpoint.model_name
     if model_endpoint.custom_configuration is not None:
@@ -215,6 +223,7 @@ def parse_model_enpoint(model_endpoint: str, model_type: str) -> ModelEnpointInp
     """
     Returns a custom generated modelEndpoint or the defaults.
     model_endpoint can be a utf-8 encode hex json. or a json string.
+
     """
     model_name = model_endpoint
     custom_configuration = None

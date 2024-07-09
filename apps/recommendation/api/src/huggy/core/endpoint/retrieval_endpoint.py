@@ -85,6 +85,22 @@ class EqParams:
 
 
 class RetrievalEndpoint(AbstractEndpoint):
+    """
+    Represents an endpoint to retrieve offers.
+
+    Attributes:
+        user (UserContext): The user context.
+        call_id (str): The call ID.
+        params_in (PlaylistParams): The playlist parameters.
+        context (str): The context.
+
+    Methods:
+        init_input: Initializes the input parameters.
+        get_instance: Initializes the payload transmitted to vertexAI endpoint
+        model_score: Calculates the model score for recommendable offers.
+
+    """
+
     def init_input(self, user: UserContext, params_in: PlaylistParams, call_id: str):
         self.user = user
         self.call_id = call_id
