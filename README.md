@@ -2,7 +2,7 @@
 
 # Linter and precommit install
 
-## Preriquisites
+## Prerequisites
 
 ### Pyenv and `Python 3.9`
 
