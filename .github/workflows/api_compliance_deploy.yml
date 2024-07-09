@@ -7,7 +7,7 @@ on:
       - staging
       - production
     paths:
-      - 'fraud/compliance/api/src/**'
+      - 'apps/fraud/compliance/api/src/**'
   workflow_dispatch:
 
 jobs:
