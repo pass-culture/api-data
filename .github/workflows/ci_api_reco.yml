@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'apps/recommendation/**'
+  workflow_call:
 
 jobs:
   linter:
@@ -24,7 +25,7 @@ jobs:
     needs: linter
     runs-on: ubuntu-latest
     defaults:
-     run: 
+     run:
        working-directory: "apps/recommendation/api"
     services:
       postgres:
