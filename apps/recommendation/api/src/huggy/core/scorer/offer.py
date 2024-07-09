@@ -1,24 +1,21 @@
 import asyncio
-
 import typing as t
-from typing import List
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
-from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
+import huggy.schemas.item as i
+import huggy.schemas.offer as o
 import huggy.schemas.playlist_params as pp
 import huggy.schemas.recommendable_offer as r_o
-import huggy.schemas.item as i
 import huggy.schemas.user as u
-import huggy.schemas.offer as o
-from huggy.schemas.model_selection.model_configuration import QueryOrderChoices
+from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
+from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
 from huggy.crud.non_recommendable_offer import get_non_recommendable_items
 from huggy.crud.recommendable_offer import RecommendableOffer as RecommendableOfferDB
+from huggy.schemas.model_selection.model_configuration import QueryOrderChoices
 from huggy.utils.cloud_logging import logger
-from sqlalchemy.exc import ProgrammingError
-from huggy.utils.exception import log_error
 from huggy.utils.distance import haversine_distance
+from huggy.utils.exception import log_error
+from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class OfferScorer:
@@ -26,7 +23,7 @@ class OfferScorer:
         self,
         user: u.UserContext,
         params_in: pp.PlaylistParams,
-        retrieval_endpoints: List[RetrievalEndpoint],
+        retrieval_endpoints: list[RetrievalEndpoint],
         ranking_endpoint: RankingEndpoint,
         model_params,
         offer: t.Optional[o.Offer] = None,
@@ -49,8 +46,8 @@ class OfferScorer:
         self,
         db: AsyncSession,
         call_id: str,
-    ) -> List[r_o.RankedOffer]:
-        prediction_items: List[i.RecommendableItem] = []
+    ) -> list[r_o.RankedOffer]:
+        prediction_items: list[i.RecommendableItem] = []
         endpoints_stats = {}
 
         # // call
@@ -113,8 +110,8 @@ class OfferScorer:
     async def get_recommendable_offers(
         self,
         db: AsyncSession,
-        recommendable_items: List[i.RecommendableItem],
-    ) -> List[r_o.RecommendableOffer]:
+        recommendable_items: list[i.RecommendableItem],
+    ) -> list[r_o.RecommendableOffer]:
         non_recommendable_items = await get_non_recommendable_items(db, self.user)
         recommendable_items_ids = {
             item.item_id: item
@@ -162,14 +159,14 @@ class OfferScorer:
         self,
         db: AsyncSession,
         user: u.UserContext,
-        recommendable_items_ids: t.Dict[str, i.RecommendableItem],
+        recommendable_items_ids: dict[str, i.RecommendableItem],
         limit: int = 500,
         offer: t.Optional[o.Offer] = None,
         query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK,
-    ) -> List[r_o.RecommendableOffer]:
+    ) -> list[r_o.RecommendableOffer]:
         recommendable_offers = []
         multiple_item_offers = []
-        for k, v in recommendable_items_ids.items():
+        for v in recommendable_items_ids.values():
             if v.total_offers == 1 or not v.is_geolocated:
                 user_distance, within_radius = await self.get_distance(
                     v, user, offer, default_max_distance=100_000

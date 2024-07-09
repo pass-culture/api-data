@@ -1,24 +1,25 @@
 import copy
-from dataclasses import dataclass
 import typing as t
-from pydantic import BaseModel, ConfigDict, Field
+from dataclasses import dataclass
+
+import huggy.core.model_selection.endpoint.user_ranking as user_ranking
 import huggy.core.scorer.offer as offer_scorer
 from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
 from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
+from huggy.schemas.model_selection.model_configuration import (
+    ColdStartModelTypeDefaultInput,
+    DiversificationChoices,
+    DiversificationParamsInput,
+    ForkParamsInput,
+    ModelTypeInput,
+    QueryOrderChoices,
+    RankingChoices,
+    WarnModelTypeDefaultInput,
+)
 from huggy.schemas.offer import Offer
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
-import huggy.core.model_selection.endpoint.user_ranking as user_ranking
-from huggy.schemas.model_selection.model_configuration import (
-    ModelTypeInput,
-    WarnModelTypeDefaultInput,
-    ForkParamsInput,
-    ColdStartModelTypeDefaultInput,
-    DiversificationParamsInput,
-    DiversificationChoices,
-    RankingChoices,
-)
-from huggy.schemas.model_selection.model_configuration import QueryOrderChoices
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DiversificationParams(BaseModel):
@@ -27,7 +28,7 @@ class DiversificationParams(BaseModel):
     mixing_features: str
     order_column: str
     order_ascending: bool
-    submixing_feature_dict: t.Optional[t.Dict[str, str]] = None
+    submixing_feature_dict: t.Optional[dict[str, str]] = None
 
     async def to_dict(self):
         return {
@@ -44,7 +45,7 @@ class ModelConfiguration:
     name: str
     description: str
     scorer: offer_scorer.OfferScorer
-    retrieval_endpoints: t.List[RetrievalEndpoint]
+    retrieval_endpoints: list[RetrievalEndpoint]
     ranking_endpoint: RankingEndpoint
     diversification_params: DiversificationParams
     query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK
@@ -129,7 +130,7 @@ class ModelFork:
         )
 
     def get_offer_status(
-        self, offer: Offer, offers: t.List[Offer], model_origin: str
+        self, offer: Offer, offers: list[Offer], model_origin: str
     ) -> ForkOut:
         """Get model status based on Offer interactions"""
         if offers:
@@ -236,7 +237,7 @@ class ModelConfigurationInput(BaseModel):
             RankingChoices.OFF: user_ranking.off_ranking_endpoint,
         }.get(model_type, model)
 
-    def get_retrieval(self, model_type) -> t.List[RetrievalEndpoint]:
+    def get_retrieval(self, model_type) -> list[RetrievalEndpoint]:
         pass
 
     def generate(self) -> ModelFork:

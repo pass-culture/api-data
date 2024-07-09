@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.logger import logger
@@ -16,7 +17,6 @@ from pcpapillon.utils.security import (
     authenticate_user,
     create_access_token,
 )
-from typing_extensions import Annotated
 
 main_router = APIRouter(tags=["main"])
 

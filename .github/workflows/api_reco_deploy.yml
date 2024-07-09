@@ -31,7 +31,7 @@ jobs:
           fi
   api-reco-coverage-tests:
     needs: setup-job
-    uses: ./.github/workflows/reusable_api_reco_coverage_tests.yml
+    uses: ./.github/workflows/ci_api_reco.yml
   deploy-api-reco:
     needs: [api-reco-coverage-tests, setup-job]
     uses: ./.github/workflows/reusable_build_and_deploy_api.yml

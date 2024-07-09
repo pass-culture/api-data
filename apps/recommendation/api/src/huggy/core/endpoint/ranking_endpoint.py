@@ -3,7 +3,6 @@ from abc import abstractmethod
 from datetime import datetime
 
 from fastapi.encoders import jsonable_encoder
-
 from huggy.core.endpoint import AbstractEndpoint
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.recommendable_offer import RankedOffer, RecommendableOffer
@@ -16,25 +15,25 @@ def to_days(dt: datetime):
     try:
         if dt is not None:
             return (dt - datetime.now()).days
-    except Exception as e:
+    except Exception:
         pass
     return None
 
 
-def to_float(x: float = None):
+def to_float(x: t.Optional[float] = None):
     try:
         if x is not None:
             return float(x)
-    except Exception as e:
+    except Exception:
         pass
     return None
 
 
-def to_int(x: int = None):
+def to_int(x: t.Optional[int] = None):
     try:
         if x is not None:
             return int(x)
-    except Exception as e:
+    except Exception:
         pass
     return None
 
@@ -51,8 +50,8 @@ class RankingEndpoint(AbstractEndpoint):
 
     @abstractmethod
     async def model_score(
-        self, recommendable_offers: t.List[RecommendableOffer]
-    ) -> t.List[RankedOffer]:
+        self, recommendable_offers: list[RecommendableOffer]
+    ) -> list[RankedOffer]:
         pass
 
 
@@ -62,8 +61,8 @@ class ItemRankRankingEndpoint(RankingEndpoint):
     MODEL_ORIGIN = "item_rank"
 
     async def model_score(
-        self, recommendable_offers: t.List[RecommendableOffer]
-    ) -> t.List[RankedOffer]:
+        self, recommendable_offers: list[RecommendableOffer]
+    ) -> list[RankedOffer]:
         ranked_offers = []
         recommendable_offers = sorted(
             recommendable_offers, key=lambda x: x.item_rank, reverse=False
@@ -78,7 +77,7 @@ class ItemRankRankingEndpoint(RankingEndpoint):
                 )
             )
         logger.debug(
-            f"ranking_endpoint {str(self.user.user_id)} out : {len(ranked_offers)}"
+            f"ranking_endpoint {self.user.user_id!s} out : {len(ranked_offers)}"
         )
         return ranked_offers
 
@@ -89,8 +88,8 @@ class DistanceRankingEndpoint(RankingEndpoint):
     MODEL_ORIGIN = "distance"
 
     async def model_score(
-        self, recommendable_offers: t.List[RecommendableOffer]
-    ) -> t.List[RankedOffer]:
+        self, recommendable_offers: list[RecommendableOffer]
+    ) -> list[RankedOffer]:
         ranked_offers = []
         recommendable_offers = sorted(
             recommendable_offers, key=lambda x: x.user_distance or 0, reverse=False
@@ -105,7 +104,7 @@ class DistanceRankingEndpoint(RankingEndpoint):
                 )
             )
         logger.debug(
-            f"ranking_endpoint {str(self.user.user_id)} out : {len(ranked_offers)}"
+            f"ranking_endpoint {self.user.user_id!s} out : {len(ranked_offers)}"
         )
         return ranked_offers
 
@@ -116,8 +115,8 @@ class ModelRankingEndpoint(RankingEndpoint):
     MODEL_ORIGIN = "model"
 
     def get_instance(
-        self, recommendable_offers: t.List[RecommendableOffer]
-    ) -> t.List[t.Dict]:
+        self, recommendable_offers: list[RecommendableOffer]
+    ) -> list[dict]:
         offers_list = []
         for row in recommendable_offers:
             offers_list.append(
@@ -159,8 +158,8 @@ class ModelRankingEndpoint(RankingEndpoint):
         return offers_list
 
     async def model_score(
-        self, recommendable_offers: t.List[RecommendableOffer]
-    ) -> t.List[RankedOffer]:
+        self, recommendable_offers: list[RecommendableOffer]
+    ) -> list[RankedOffer]:
         instances = self.get_instance(recommendable_offers)
         prediction_result = await endpoint_score(
             instances=instances, endpoint_name=self.endpoint_name
@@ -179,7 +178,7 @@ class ModelRankingEndpoint(RankingEndpoint):
             )
         }
         logger.debug(
-            f"ranking_endpoint {str(self.user.user_id)} offers : {len(recommendable_offers)}",
+            f"ranking_endpoint {self.user.user_id!s} offers : {len(recommendable_offers)}",
             extra=prediction_dict,
         )
 
@@ -202,7 +201,7 @@ class ModelRankingEndpoint(RankingEndpoint):
 
         if len(not_found) > 0:
             logger.warn(
-                f"ranking_endpoint, offer not found",
+                "ranking_endpoint, offer not found",
                 extra=jsonable_encoder(
                     {
                         "event_name": "ranking",
@@ -217,7 +216,7 @@ class ModelRankingEndpoint(RankingEndpoint):
             )
 
         logger.debug(
-            f"ranking_endpoint {str(self.user.user_id)} out : {len(ranked_offers)}"
+            f"ranking_endpoint {self.user.user_id!s} out : {len(ranked_offers)}"
         )
         return sorted(ranked_offers, key=lambda x: x.offer_rank, reverse=False)
 
@@ -228,8 +227,8 @@ class NoPopularModelRankingEndpoint(ModelRankingEndpoint):
     MODEL_ORIGIN = "no_popular_model"
 
     def get_instance(
-        self, recommendable_offers: t.List[RecommendableOffer]
-    ) -> t.List[t.Dict]:
+        self, recommendable_offers: list[RecommendableOffer]
+    ) -> list[dict]:
         offers_list = []
         for row in recommendable_offers:
             offers_list.append(

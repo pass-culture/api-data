@@ -1,18 +1,12 @@
-import typing as t
-
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from huggy.models.non_recommendable_items import NonRecommendableItems
 from huggy.schemas.user import UserContext
-from sqlalchemy.exc import ProgrammingError
 from huggy.utils.exception import log_error
-from huggy.utils.cloud_logging import logger
+from sqlalchemy import select
+from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def get_non_recommendable_items(
-    db: AsyncSession, user: UserContext
-) -> t.List[str]:
+async def get_non_recommendable_items(db: AsyncSession, user: UserContext) -> list[str]:
     try:
         non_recommendable_items_table: NonRecommendableItems = (
             await NonRecommendableItems().get_available_table(db)

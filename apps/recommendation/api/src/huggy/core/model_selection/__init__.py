@@ -1,30 +1,28 @@
-import typing as t
-
+from fastapi.exceptions import HTTPException
 from huggy.core.model_selection.model_configuration.configuration import (
     ForkOut,
     ModelEnpointInput,
 )
-from huggy.core.model_selection.model_configuration.similar_offer import (
-    SimilarModelConfigurationInput,
-)
 from huggy.core.model_selection.model_configuration.recommendation import (
     RecoModelConfigurationInput,
 )
-from huggy.schemas.offer import Offer
-from huggy.schemas.user import UserContext
+from huggy.core.model_selection.model_configuration.similar_offer import (
+    SimilarModelConfigurationInput,
+)
 from huggy.schemas.model_selection.model_configuration import (
-    ModelTypeInput,
-    ForkParamsInput,
     DiversificationChoices,
     DiversificationParamsInput,
-    RetrievalChoices,
-    RankingChoices,
+    ForkParamsInput,
+    ModelTypeInput,
     QueryOrderChoices,
+    RankingChoices,
+    RetrievalChoices,
 )
-from huggy.utils.env_vars import DEFAULT_RECO_MODEL, DEFAULT_SIMILAR_OFFER_MODEL
-from fastapi.exceptions import HTTPException
-from pydantic import ValidationError
+from huggy.schemas.offer import Offer
+from huggy.schemas.user import UserContext
 from huggy.schemas.utils import parse_input
+from huggy.utils.env_vars import DEFAULT_RECO_MODEL, DEFAULT_SIMILAR_OFFER_MODEL
+from pydantic import ValidationError
 
 RECOMMENDATION_ENDPOINTS = {
     # Default endpoint
@@ -197,7 +195,7 @@ def select_reco_model_params(model_endpoint: str, user: UserContext) -> ForkOut:
 
 
 def select_sim_model_params(
-    model_endpoint: str, offer: Offer, offers: t.List[Offer]
+    model_endpoint: str, offer: Offer, offers: list[Offer]
 ) -> ForkOut:
     """Choose the model to apply for Similar Offers based on offer interaction."""
     model_endpoint = parse_model_enpoint(model_endpoint, model_type="similar_offer")

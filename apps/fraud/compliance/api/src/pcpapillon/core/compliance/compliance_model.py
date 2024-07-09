@@ -51,12 +51,12 @@ class ComplianceModel:
             feature_type,
             sentence_transformer_name,
         ) in self.model_config.pre_trained_model_for_embedding_extraction.items():
-            prepoc_models[
-                feature_type
-            ] = self.model_handler.get_model_with_metadata_by_name(
-                model_name=sentence_transformer_name,
-                model_type=self.PREPROC_MODEL_TYPE,
-            ).model
+            prepoc_models[feature_type] = (
+                self.model_handler.get_model_with_metadata_by_name(
+                    model_name=sentence_transformer_name,
+                    model_type=self.PREPROC_MODEL_TYPE,
+                ).model
+            )
 
         custom_logger.info(
             f"Preprocessing models for {self.MODEL_NAME} : {prepoc_models}"

@@ -1,8 +1,6 @@
 from geoalchemy2 import Geography
-from sqlalchemy import Column, DateTime, Float, Integer, String
-from sqlalchemy.types import Boolean
-
 from huggy.database.base import Base, MaterializedBase
+from sqlalchemy import Column, DateTime, Float, Integer, String
 
 
 class RecommendableOffersRaw(MaterializedBase):

@@ -1,13 +1,11 @@
 import typing as t
 
 from geoalchemy2.elements import WKTElement
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from huggy.models.iris_france import IrisFrance
-from sqlalchemy.exc import ProgrammingError
 from huggy.utils.exception import log_error
-from huggy.utils.cloud_logging import logger
+from sqlalchemy import func, select
+from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class Iris:

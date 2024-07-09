@@ -1,5 +1,7 @@
 import contextlib
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
+
+from sqlalchemy.exc import TimeoutError
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncEngine,
@@ -7,7 +9,6 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.exc import TimeoutError
 
 
 class DatabaseSessionManager:

@@ -1,13 +1,13 @@
 import logging
 
-from sqlalchemy import insert, inspect, text
-
 from huggy.models.item_ids import ItemIdsMv
 from huggy.models.recommendable_offers_raw import (
     RecommendableOffersRawMv,
     RecommendableOffersRawMvOld,
     RecommendableOffersRawMvTmp,
 )
+from sqlalchemy import insert, text
+
 from tests.db.models.recommendable_offer_raw import FakeRecommendableOffersRaw
 from tests.db.schema.offer import raw_data
 from tests.db.utils import create_model
@@ -19,7 +19,7 @@ async def create_fake_mv(session, table_name):
     raw_table_name = FakeRecommendableOffersRaw.__tablename__
     sql = f"""
         CREATE TABLE {table_name} AS
-        SELECT *, ST_SetSRID(ST_MakePoint(ro.venue_longitude, ro.venue_latitude), 4326)::geography as venue_geo  
+        SELECT *, ST_SetSRID(ST_MakePoint(ro.venue_longitude, ro.venue_latitude), 4326)::geography as venue_geo
         FROM {raw_table_name} ro;
     """
 

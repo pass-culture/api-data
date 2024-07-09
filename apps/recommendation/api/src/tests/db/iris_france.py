@@ -1,10 +1,10 @@
-from sqlalchemy import insert
-
 from huggy.models.iris_france import (
     IrisFranceMv,
     IrisFranceMvOld,
     IrisFranceMvTmp,
 )
+from sqlalchemy import insert
+
 from tests.db.schema.iris import raw_data
 from tests.db.utils import create_model
 

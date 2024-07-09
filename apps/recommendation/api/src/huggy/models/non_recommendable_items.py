@@ -1,7 +1,5 @@
-from sqlalchemy import Column, String
-
-from huggy.database.base import Base
 from huggy.database.base import Base, MaterializedBase
+from sqlalchemy import Column, String
 
 
 class NonRecommendableItems(MaterializedBase):

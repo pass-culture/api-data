@@ -1,9 +1,6 @@
-import typing as t
-
+from huggy.database.base import Base, MaterializedBase
 from sqlalchemy import Column, Float, String
 from sqlalchemy.types import Boolean
-from huggy.database.base import Base
-from huggy.database.base import Base, MaterializedBase
 
 
 class ItemIds(MaterializedBase):

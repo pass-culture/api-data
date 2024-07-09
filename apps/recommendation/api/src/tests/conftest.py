@@ -1,18 +1,20 @@
+import asyncio
 import logging
-import os
-from typing import Any, Dict
+from collections.abc import AsyncGenerator
+from contextlib import ExitStack
+from typing import Any
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.testclient import TestClient
+from huggy import init_app
+from huggy.database.config import config
 from huggy.database.database import sessionmanager
 from huggy.database.session import get_db
-from huggy.database.config import config
 from huggy.models.enriched_user import (
     EnrichedUserMv,
     EnrichedUserMvOld,
     EnrichedUserMvTmp,
 )
-from huggy.utils.env_vars import SQL_BASE_DATABASE
 from huggy.models.iris_france import (
     IrisFranceMv,
     IrisFranceMvOld,
@@ -25,17 +27,7 @@ from huggy.models.recommendable_offers_raw import (
     RecommendableOffersRawMvOld,
     RecommendableOffersRawMvTmp,
 )
-
-import asyncio
-from contextlib import ExitStack
-import pytest
-from fastapi.testclient import TestClient
-from huggy import init_app
-from tests.db.utils import clean_db, drop_restore_db
-
-logger = logging.getLogger(__name__)
-
-import asyncio
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from tests.db import (
     create_enriched_user_mv,
@@ -51,6 +43,10 @@ from tests.db import (
     create_recommendable_offers_raw_mv_old,
     create_recommendable_offers_raw_mv_tmp,
 )
+from tests.db.utils import clean_db
+
+logger = logging.getLogger(__name__)
+
 
 MODELS = [
     ItemIdsMv,
@@ -80,7 +76,7 @@ def client(app):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def app_config() -> Dict[str, Any]:
+def app_config() -> dict[str, Any]:
     return {}
 
 
@@ -92,15 +88,15 @@ def event_loop(request):
 
 
 @pytest.fixture(scope="session", autouse=True)
-async def connection_test(event_loop):
+async def _connection_test(event_loop):
     sessionmanager.init(config.DB_CONFIG)
-    async with sessionmanager.session() as session:
+    async with sessionmanager.session():
         yield
     await sessionmanager.close()
 
 
 @pytest.fixture(scope="session", autouse=True)
-async def setup_default_database(connection_test):
+async def setup_default_database(_connection_test):
     async with sessionmanager.session() as session:
         await clean_db(session, models=MODELS)
         await create_recommendable_offers_raw(session)
@@ -119,8 +115,8 @@ async def setup_default_database(connection_test):
         yield session
 
 
-@pytest.fixture(scope="function", autouse=True)
-async def session_override(app, connection_test):
+@pytest.fixture(autouse=True)
+async def _session_override(app, _connection_test):
     async def get_db_override():
         async with sessionmanager.session() as session:
             yield session
@@ -129,7 +125,9 @@ async def session_override(app, connection_test):
 
 
 @pytest.fixture()
-async def drop_mv_database(connection_test, app_config: Dict[str, Any]) -> AsyncSession:
+async def drop_mv_database(
+    _connection_test, app_config: dict[str, Any]
+) -> AsyncGenerator[Any, Any]:
     """Removes the enriched_user_mv and recommendable_offers_raw_mv in order to test the switch."""
     async with sessionmanager.session() as session:
         await clean_db(session, models=[EnrichedUserMv, RecommendableOffersRawMv])
@@ -143,9 +141,12 @@ async def drop_mv_database(connection_test, app_config: Dict[str, Any]) -> Async
 
 @pytest.fixture()
 async def drop_mv_and_tmp_database(
-    connection_test, app_config: Dict[str, Any]
-) -> AsyncSession:
-    """Removes the enriched_user_(mv and tmp) and recommendable_offers_raw_(mv and tmp) in order to test the switch."""
+    _connection_test, app_config: dict[str, Any]
+) -> AsyncGenerator[Any, Any]:
+    """
+    Removes the enriched_user_(mv and tmp) and recommendable_offers_raw_(mv and tmp)
+        in order to test the switch.
+    """
     async with sessionmanager.session() as session:
         await clean_db(
             session,
@@ -166,6 +167,6 @@ async def drop_mv_and_tmp_database(
 
 
 @pytest.fixture()
-async def setup_empty_database(app_config: Dict[str, Any]) -> AsyncSession:
+async def setup_empty_database(app_config: dict[str, Any]) -> AsyncSession:
     async with sessionmanager.session() as session:
         yield session

@@ -1,23 +1,22 @@
-import concurrent.futures
+import traceback
 from dataclasses import dataclass
-from fastapi.encoders import jsonable_encoder
-from typing import Dict, List, Union
-from huggy.utils.cloud_logging import logger
+from typing import Union
+
 import grpc
+from aiocache import Cache, cached
+from fastapi.encoders import jsonable_encoder
 from google.api_core.exceptions import DeadlineExceeded
 from google.cloud import aiplatform
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value
-import traceback
 from huggy.utils.cloud_logging import logger
 from huggy.utils.env_vars import GCP_PROJECT
-from aiocache import cached, Cache
 
 
 @dataclass
 class PredictionResult:
     status: str
-    predictions: List[str]
+    predictions: list[str]
     model_version: str
     model_display_name: str
 
@@ -28,7 +27,7 @@ async def get_model(endpoint_name, location):
 
 
 async def __get_model(endpoint_name, location):
-    endpoint = aiplatform.Endpoint.list(
+    endpoint = aiplatform.Endpoinlist(
         filter=f"display_name={endpoint_name}", location=location, project=GCP_PROJECT
     )[0]
     endpoint_dict = endpoint.to_dict()
@@ -48,9 +47,11 @@ async def get_client(api_endpoint):
 async def endpoint_score(
     endpoint_name,
     instances,
-    fallback_endpoints=[],
+    fallback_endpoints=None,
 ) -> PredictionResult:
-    for endpoint in [endpoint_name] + fallback_endpoints:
+    if fallback_endpoints is None:
+        fallback_endpoints = []
+    for endpoint in [endpoint_name, *fallback_endpoints]:
         response = await predict_model(
             endpoint_name=endpoint,
             location="europe-west1",
@@ -74,19 +75,19 @@ async def endpoint_score(
 
 async def predict_model(
     endpoint_name: str,
-    instances: Union[Dict, List[Dict]],
+    instances: Union[dict, list[dict]],
     location: str = "europe-west1",
     api_endpoint: str = "europe-west1-aiplatform.googleapis.com",
-) -> Dict:
+) -> dict:
     return await __predict_model(endpoint_name, instances, location, api_endpoint)
 
 
 async def __predict_model(
     endpoint_name: str,
-    instances: Union[Dict, List[Dict]],
+    instances: Union[dict, list[dict]],
     location: str = "europe-west1",
     api_endpoint: str = "europe-west1-aiplatform.googleapis.com",
-) -> Dict:
+) -> dict:
     """
     `instances` can be either single instance of type dict or a list
     of instances.
@@ -102,20 +103,19 @@ async def __predict_model(
 
         try:
             model_params = await get_model(endpoint_name, location)
-
-        except:
+        except Exception:
             model_params = await __get_model(endpoint_name, location)
             logger.warn(
-                f"__predict_endpoint : Could not get model",
+                "__predict_endpoint : Could not get model",
                 extra={
                     "event_name": "predict_model",
                     "endpoint_name": endpoint_name,
                 },
             )
-        instances = instances if type(instances) == list else [instances]
+        instances = instances if isinstance(instances, list) else [instances]
 
         logger.debug(
-            f"__predict_endpoint : predict",
+            "__predict_endpoint : predict",
             extra={
                 "event_name": "predict_model",
                 "endpoint_name": endpoint_name,
@@ -144,7 +144,7 @@ async def __predict_model(
                 "model_display_name": model_params["model_name"],
             }
             logger.warn(
-                f"__predict_endpoint : Timeout",
+                "__predict_endpoint : Timeout",
                 extra=dict(
                     {
                         "event_name": "predict_model",
@@ -168,18 +168,16 @@ async def __predict_model(
             "model_display_name": model_params["model_name"],
         }
         logger.debug(
-            f"__predict_endpoint : results",
-            extra=dict(
-                {
-                    "event_name": "predict_model",
-                    "endpoint_name": endpoint_name,
-                },
-            ),
+            "__predict_endpoint : results",
+            extra={
+                "event_name": "predict_model",
+                "endpoint_name": endpoint_name,
+            },
         )
     except grpc._channel._InactiveRpcError as e:
         tb = traceback.format_exc()
         logger.warn(
-            f"__predict_endpoint : error",
+            "__predict_endpoint : error",
             extra=dict(
                 {
                     "event_name": "predict_model",
@@ -199,7 +197,7 @@ async def __predict_model(
     except Exception as e:
         tb = traceback.format_exc()
         logger.warn(
-            f"__predict_endpoint : error",
+            "__predict_endpoint : error",
             extra=dict(
                 {
                     "event_name": "predict_model",
