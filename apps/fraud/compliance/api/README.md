@@ -60,9 +60,20 @@ Le dossier contient:
 ```
 dans le dossier 'apps/fraud/compliance/api/'
 mkdir ./src/pcpapillon/local_model
+```
+**Pour l'offer categorization**
+```
+gsutil cp <GSC_PATH> ./src/pcpapillon/local_model/
+mv ./src/pcpapillon/local_model/model.cb ./src/pcpapillon/local_model/offer_categorization_model.cb
+
+```
+**Pour la compliance**
+```
 gsutil cp <GSC_PATH> ./src/pcpapillon/local_model/
 ```
-Vous pouvez trouver le GSC_PATH sur MLflow
+Vous pouvez trouver le GSC_PATH sur MLflow \
+<b>NB: bien respecté l'ordre d'import des deux modèles
+</b>
 ``` 
 export API_LOCAL=True
 Si nécessaire 'pip install -r requirements.txt'
