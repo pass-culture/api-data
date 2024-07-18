@@ -50,6 +50,7 @@ Le dossier contient:
 
 ### Pour tester l'API en local
 
+
 1. Récupérer les paths des modèles sur GCS via l'App MLFlow : [GSC_PATH_COMPLIANCE](https://mlflow.staging.passculture.team/#/models/compliance_default_stg) et le [GSC_PATH_OFFER_CATEGORISATION](https://mlflow.staging.passculture.team/#/models/offer_categorisation_stg) :
     - Cliquer sur la version du modèle désirée (la dernière par exemple)
     - Cliquer sur le lien après "Source Run:", en haut de la page

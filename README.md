@@ -75,3 +75,7 @@ To format code, run static analysis and to apply auto-fixes:
 ```bash
 make ruff-fix
 ```
+
+## To run check micro service README
+* [Recommendation documentation](apps/recommendation/README.md)
+* [Compliance documentation](apps/fraud/compliance/api/README.md)
