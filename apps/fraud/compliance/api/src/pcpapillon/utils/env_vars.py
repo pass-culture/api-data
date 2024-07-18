@@ -20,6 +20,7 @@ SA_ACCOUNT = f"algo-training-{ENV_SHORT_NAME}"
 # API_LOCAL is string to match terraform boolean handling
 API_LOCAL = os.environ.get("API_LOCAL", False)
 IS_API_LOCAL = API_LOCAL == "True"
+
 # API
 API_SECRET_KET_SECRET_ID = os.environ.get(
     "API_SECRET_KET_SECRET_ID", "api-papillon-auth-secret-key-dev"
@@ -28,15 +29,10 @@ SECRET_KEY = access_secret(GCP_PROJECT, API_SECRET_KET_SECRET_ID)
 HASH_ALGORITHM = os.environ.get("VALIDATION_LOGIN_KEY", "HS256")
 LOGIN_TOKEN_EXPIRATION = os.environ.get("LOGIN_TOKEN_EXPIRATION", 30)
 
-if IS_API_LOCAL:
-    API_USER = "user_local"
-    API_PWD = "pwd_local"
-
-else:
-    API_USER_SECRET_ID = os.environ.get("API_USER_SECRET_ID", "api-papillon-user-dev")
-    API_USER = access_secret(GCP_PROJECT, API_USER_SECRET_ID)
-    API_PWD_SECRET_ID = os.environ.get("API_PWD_SECRET_ID", "api-papillon-password-dev")
-    API_PWD = access_secret(GCP_PROJECT, API_PWD_SECRET_ID)
+API_USER_SECRET_ID = os.environ.get("API_USER_SECRET_ID", "api-papillon-user-dev")
+API_PWD_SECRET_ID = os.environ.get("API_PWD_SECRET_ID", "api-papillon-password-dev")
+API_USER = access_secret(GCP_PROJECT, API_USER_SECRET_ID)
+API_PWD = access_secret(GCP_PROJECT, API_PWD_SECRET_ID)
 users_db = {
     API_USER: {
         "username": API_USER,

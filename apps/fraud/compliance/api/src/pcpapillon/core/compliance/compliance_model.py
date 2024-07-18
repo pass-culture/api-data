@@ -7,9 +7,6 @@ from pcpapillon.core.compliance.predict import get_prediction_and_main_contribut
 from pcpapillon.core.compliance.preprocess import preprocess
 from pcpapillon.utils.config_handler import ConfigHandler
 from pcpapillon.utils.constants import APIType, ModelName, ModelType
-from pcpapillon.utils.env_vars import (
-    IS_API_LOCAL,
-)
 from pcpapillon.utils.model_handler import ModelHandler
 from sentence_transformers import SentenceTransformer
 
@@ -23,7 +20,7 @@ class ModelData:
 
 class ComplianceModel:
     MODEL_NAME = ModelName.COMPLIANCE
-    MODEL_TYPE = ModelType.LOCAL if IS_API_LOCAL else ModelType.DEFAULT
+    MODEL_TYPE = ModelType.DEFAULT
     PREPROC_MODEL_TYPE = MODEL_TYPE.PREPROCESSING
 
     def __init__(self):

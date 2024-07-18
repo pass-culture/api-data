@@ -11,9 +11,6 @@ from pcpapillon.utils.constants import (
 from pcpapillon.utils.data_model import (
     OfferCategorisationInput,
 )
-from pcpapillon.utils.env_vars import (
-    IS_API_LOCAL,
-)
 from pcpapillon.utils.model_handler import ModelHandler
 from sentence_transformers import SentenceTransformer
 
@@ -22,7 +19,7 @@ class OfferCategorisationModel:
     LABEL_MAPPING_PATH = "pcpapillon/data/offer_categorisation_label_mapping.parquet"  # Will be removed when model predict is updated
     PREPROCESSOR_NAME = "sentence-transformers/all-MiniLM-L6-v2"  # Will be removed when model predict is updated
     MODEL_NAME = ModelName.OFFER_CATEGORISATION
-    MODEL_TYPE = ModelType.LOCAL if IS_API_LOCAL else ModelType.DEFAULT
+    MODEL_TYPE = ModelType.DEFAULT
     PREPROC_MODEL_TYPE = ModelType.PREPROCESSING
 
     def __init__(self):
