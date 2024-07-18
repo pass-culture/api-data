@@ -40,10 +40,11 @@ users_db = {
         "disabled": False,
     }
 }
-# Configs
+
 # logger
 cloud_trace_context = contextvars.ContextVar("cloud_trace_context", default="")
 http_request_context = contextvars.ContextVar("http_request_context", default={})
+
 # MLFlow
 MLFLOW_SECRET_ID = os.environ.get("MLFLOW_SECRET_ID", "mlflow_client_id")
 MLFLOW_CLIENT_ID = access_secret(GCP_PROJECT, MLFLOW_SECRET_ID)
@@ -53,10 +54,3 @@ MLFLOW_TRACKING_TOKEN = os.environ.get("MLFLOW_TRACKING_TOKEN", None)
 # Model metadata
 MODEL_DEFAULT = os.environ.get("MODEL_DEFAULT", "compliance_model_dev")
 MODEL_STAGE = os.environ.get("MODEL_STAGE", "Production")
-COMPLIANCE_MODEL_PATH = os.environ.get(
-    "COMPLIANCE_MODEL_PATH", "pcpapillon/local_model/compliance_model.cb"
-)
-OFFER_CATEGORISATION_MODEL_PATH = os.environ.get(
-    "OFFER_CATEGORISATION_MODEL_PATH",
-    "pcpapillon/local_model/offer_categorisation_model.cb",
-)
