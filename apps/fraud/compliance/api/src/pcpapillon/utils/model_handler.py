@@ -12,7 +12,6 @@ from pcpapillon.utils.constants import MODEL_PATHS, ModelName, ModelType
 from pcpapillon.utils.env_vars import (
     ENV_SHORT_NAME,
     IS_API_LOCAL,
-    MLFLOW_CLIENT_ID,
 )
 from pcpapillon.utils.tools import connect_remote_mlflow
 from sentence_transformers import SentenceTransformer
@@ -30,7 +29,7 @@ class ModelHandler:
     def __init__(self) -> None:
         if not IS_API_LOCAL:
             custom_logger.info("Connecting to mlflow")
-            connect_remote_mlflow(MLFLOW_CLIENT_ID)
+            connect_remote_mlflow()
             self.mlflow_client = MlflowClient()
         else:
             custom_logger.info("Local API, no mlflow client")
