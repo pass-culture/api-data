@@ -1,10 +1,5 @@
 from enum import Enum
 
-from pcpapillon.utils.env_vars import (
-    COMPLIANCE_MODEL_PATH,
-    OFFER_CATEGORISATION_MODEL_PATH,
-)
-
 
 class ModelName(Enum):
     """
@@ -40,9 +35,3 @@ class APIType(Enum):
     """
 
     DEFAULT = "default"
-
-
-MODEL_PATHS = {
-    ModelName.COMPLIANCE: COMPLIANCE_MODEL_PATH,
-    ModelName.OFFER_CATEGORISATION: OFFER_CATEGORISATION_MODEL_PATH,
-}
