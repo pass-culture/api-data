@@ -1,10 +1,9 @@
 import pytest
-from sqlalchemy import inspect, text
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from huggy.database.utils import check_table_exists
 from huggy.models.enriched_user import EnrichedUser
 from huggy.models.recommendable_offers_raw import RecommendableOffersRaw
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def test_extensions(setup_empty_database: AsyncSession):
@@ -17,7 +16,7 @@ async def test_extensions(setup_empty_database: AsyncSession):
 
 
 @pytest.mark.parametrize(
-    "table_name, expected_result",
+    ("table_name", "expected_result"),
     [
         ("enriched_user_mv", True),
         ("recommendable_offers_raw_mv", True),
@@ -27,9 +26,15 @@ async def test_extensions(setup_empty_database: AsyncSession):
     ],
 )
 async def test_tables_should_exist(
-    setup_default_database: AsyncSession, table_name: str, expected_result: bool
+    setup_default_database: AsyncSession,
+    table_name: str,
+    expected_result: bool,  # noqa: FBT001
 ):
-    """This test should return all available tables in default context."""
+    """
+    This test should return all available tables in default context.
+
+    """
+
     result = await check_table_exists(setup_default_database, table_name)
 
     # assert result is not None
@@ -37,7 +42,7 @@ async def test_tables_should_exist(
 
 
 @pytest.mark.parametrize(
-    "table_name, expected_result",
+    ("table_name", "expected_result"),
     [
         ("enriched_user_mv", False),
         ("recommendable_offers_raw_mv", False),
@@ -46,15 +51,21 @@ async def test_tables_should_exist(
     ],
 )
 async def only_tmp_tables_should_exist(
-    setup_tmp_database: AsyncSession, table_name: str, expected_result: bool
+    setup_tmp_database: AsyncSession,
+    table_name: str,
+    expected_result: bool,  # noqa: FBT001
 ):
-    """This test should return only available tables in tmp database context."""
+    """
+    This test should return only available tables in tmp database context.
+
+    """
+
     result = await check_table_exists(setup_tmp_database, table_name)
     assert result is expected_result
 
 
 @pytest.mark.parametrize(
-    "base_db, expected_result",
+    ("base_db", "expected_result"),
     [
         (EnrichedUser, "enriched_user_mv"),
         (RecommendableOffersRaw, "recommendable_offers_raw_mv"),
@@ -63,7 +74,11 @@ async def only_tmp_tables_should_exist(
 async def test_materialized_views(
     setup_default_database: AsyncSession, base_db, expected_result
 ):
-    """This test should return the default tables."""
+    """
+    This test should return the default tables.
+
+    """
+
     table = await base_db().get_available_table(setup_default_database)
     assert table.__tablename__ == expected_result
 

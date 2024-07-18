@@ -1,34 +1,34 @@
+from fastapi.exceptions import HTTPException
 from huggy.core.model_selection.model_configuration.configuration import (
     ForkOut,
     ModelEnpointInput,
 )
-from huggy.core.model_selection.model_configuration.similar_offer import (
-    SimilarModelConfigurationInput,
-)
 from huggy.core.model_selection.model_configuration.recommendation import (
     RecoModelConfigurationInput,
 )
-from huggy.schemas.offer import Offer
-from huggy.schemas.user import UserContext
+from huggy.core.model_selection.model_configuration.similar_offer import (
+    SimilarModelConfigurationInput,
+)
 from huggy.schemas.model_selection.model_configuration import (
-    ModelTypeInput,
-    ForkParamsInput,
     DiversificationChoices,
     DiversificationParamsInput,
-    RetrievalChoices,
-    RankingChoices,
+    ForkParamsInput,
+    ModelTypeInput,
     QueryOrderChoices,
+    RankingChoices,
+    RetrievalChoices,
 )
-from huggy.utils.env_vars import DEFAULT_RECO_MODEL, DEFAULT_SIMILAR_OFFER_MODEL
-from fastapi.exceptions import HTTPException
-from pydantic import ValidationError
+from huggy.schemas.offer import Offer
+from huggy.schemas.user import UserContext
 from huggy.schemas.utils import parse_input
+from huggy.utils.env_vars import DEFAULT_RECO_MODEL, DEFAULT_SIMILAR_OFFER_MODEL
+from pydantic import ValidationError
 
 RECOMMENDATION_ENDPOINTS = {
     # Default endpoint
     "default": RecoModelConfigurationInput(
         name="default",
-        description="""Default Configuration.""",
+        description="""Default Configuration (cache).""",
         diversification_params=DiversificationParamsInput(
             diversication_type=DiversificationChoices.ON,
         ),
@@ -140,7 +140,7 @@ RECOMMENDATION_ENDPOINTS = {
 SIMILAR_OFFER_ENDPOINTS = {
     "default": SimilarModelConfigurationInput(
         name="default",
-        description="""Default similar offer configuration.""",
+        description="""Default similar offer configuration (cache).""",
         diversification_params=DiversificationParamsInput(
             diversication_type=DiversificationChoices.OFF,
         ),
@@ -182,7 +182,11 @@ SIMILAR_OFFER_ENDPOINTS = {
 
 
 def select_reco_model_params(model_endpoint: str, user: UserContext) -> ForkOut:
-    """Choose the model to apply Recommendation based on user interaction."""
+    """
+    Choose the model to apply Recommendation based on user interaction.
+
+    """
+
     model_endpoint = parse_model_enpoint(model_endpoint, model_type="recommendation")
     model_name = model_endpoint.model_name
     if model_endpoint.custom_configuration is not None:
@@ -194,8 +198,14 @@ def select_reco_model_params(model_endpoint: str, user: UserContext) -> ForkOut:
     return model_fork.get_user_status(user=user, model_origin=model_name)
 
 
-def select_sim_model_params(model_endpoint: str, offer: Offer) -> ForkOut:
-    """Choose the model to apply for Similar Offers based on offer interaction."""
+def select_sim_model_params(
+    model_endpoint: str, offer: Offer, offers: list[Offer]
+) -> ForkOut:
+    """
+    Choose the model to apply for Similar Offers based on offer interaction.
+
+    """
+
     model_endpoint = parse_model_enpoint(model_endpoint, model_type="similar_offer")
     model_name = model_endpoint.model_name
     if model_endpoint.custom_configuration is not None:
@@ -204,13 +214,16 @@ def select_sim_model_params(model_endpoint: str, offer: Offer) -> ForkOut:
         if model_name not in list(SIMILAR_OFFER_ENDPOINTS.keys()):
             model_name = DEFAULT_SIMILAR_OFFER_MODEL
         model_fork = SIMILAR_OFFER_ENDPOINTS[model_name].generate()
-    return model_fork.get_offer_status(offer=offer, model_origin=model_name)
+    return model_fork.get_offer_status(
+        offer=offer, offers=offers, model_origin=model_name
+    )
 
 
 def parse_model_enpoint(model_endpoint: str, model_type: str) -> ModelEnpointInput:
     """
     Returns a custom generated modelEndpoint or the defaults.
     model_endpoint can be a utf-8 encode hex json. or a json string.
+
     """
     model_name = model_endpoint
     custom_configuration = None

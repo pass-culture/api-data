@@ -1,8 +1,9 @@
 import logging
+
 from google.cloud.logging_v2.handlers import CloudLoggingFilter
 from pcpapillon.utils.env_vars import (
-    http_request_context,
     cloud_trace_context,
+    http_request_context,
 )
 
 
@@ -14,9 +15,6 @@ class GoogleCloudLogFilter(CloudLoggingFilter):
         split_header = trace.split("/", 1)
 
         record.trace = f"projects/{self.project}/traces/{split_header[0]}"
-
-        # header_suffix = split_header[1]
-        # record.span_id = re.findall(r'^\w+', header_suffix)[0]
 
         super().filter(record)
 

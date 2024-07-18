@@ -1,10 +1,9 @@
 import uuid
 
 from fastapi import HTTPException, Request
-
 from huggy.utils.env_vars import (
-    API_TOKEN,
     API_LOCAL,
+    API_TOKEN,
     call_id_trace_context,
     cloud_trace_context,
 )

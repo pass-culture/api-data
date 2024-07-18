@@ -1,0 +1,21 @@
+name: "CI API Offer"
+
+on:
+  pull_request:
+    paths:
+      - 'apps/fraud/**'
+
+jobs:
+  linter:
+    name: "linter job"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.9
+      - uses: yezz123/setup-uv@v4
+      - name : "Install Ruff Linter "
+        run: uv pip install --system -r linter-requirements.txt
+      - name: "Run Ruff"
+        run: make ruff-check

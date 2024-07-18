@@ -1,30 +1,36 @@
-import typing as t
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Optional
 
+from aiocache import Cache
+from aiocache.serializers import PickleSerializer
 from fastapi.encoders import jsonable_encoder
-
 from huggy.core.endpoint import AbstractEndpoint
 from huggy.schemas.item import RecommendableItem
 from huggy.schemas.offer import Offer
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
 from huggy.utils.cloud_logging import logger
+from huggy.utils.hash import hash_from_keys
 from huggy.utils.vertex_ai import endpoint_score
+
+VERTEX_CACHE = Cache(
+    Cache.MEMORY, ttl=6000, serializer=PickleSerializer(), namespace="vertex_cache"
+)
 
 
 def to_datetime(ts):
     try:
         return datetime.fromtimestamp(float(ts))
-    except:
+    except Exception:
         return datetime.fromtimestamp(0.0)
 
 
 @dataclass
 class ListParams:
     label: str
-    values: t.List[str] = None
+    values: list[str] = None
 
     def filter(self):
         if self.values is not None and len(self.values) > 0:
@@ -79,12 +85,40 @@ class EqParams:
 
 
 class RetrievalEndpoint(AbstractEndpoint):
+    """
+    Represents an endpoint to retrieve offers.
+
+    Attributes:
+        user (UserContext): The user context.
+        call_id (str): The call ID.
+        params_in (PlaylistParams): The playlist parameters.
+        context (str): The context.
+
+    Methods:
+        init_input: Initializes the input parameters.
+        get_instance: Initializes the payload transmitted to vertexAI endpoint
+        model_score: Calculates the model score for recommendable offers.
+
+    """
+
     def init_input(self, user: UserContext, params_in: PlaylistParams, call_id: str):
         self.user = user
         self.call_id = call_id
         self.params_in = params_in
         self.user_input = str(self.user.user_id)
         self.is_geolocated = self.user.is_geolocated
+
+    def _get_instance_hash(
+        self, instance: dict, ignore_keys: Optional[list] = None
+    ) -> str:
+        """
+        Generate a hash from the instance to use as a key for caching
+        """
+        # drop call_id from instance
+        if ignore_keys is None:
+            ignore_keys = ["call_id"]
+        keys = [k for k in instance if k not in ignore_keys]
+        return hash_from_keys(instance, keys=keys)
 
     @abstractmethod
     def get_instance(self, size):
@@ -98,7 +132,7 @@ class RetrievalEndpoint(AbstractEndpoint):
         params = []
 
         if not self.is_geolocated:
-            params.append(EqParams(label="is_geolocated", value=float(0.0)))
+            params.append(EqParams(label="is_geolocated", value=0.0))
 
         if self.user.age and self.user.age < 18:
             params.append(EqParams(label="is_underage_recommendable", value=float(1)))
@@ -127,7 +161,7 @@ class RetrievalEndpoint(AbstractEndpoint):
                 self.user.user_deposit_remaining_credit, self.params_in.price_max
             )
         else:
-            price_max = self.user.user_deposit_remaining_credit
+            price_max = round(self.user.user_deposit_remaining_credit)
 
         params.append(
             RangeParams(
@@ -171,13 +205,11 @@ class RetrievalEndpoint(AbstractEndpoint):
 
         return filters
 
-    async def model_score(self) -> t.List[RecommendableItem]:
-        instances = self.get_instance(self.size)
+    async def _vertex_retrieval_score(self, instance: dict) -> list[RecommendableItem]:
         prediction_result = await endpoint_score(
-            instances=instances,
+            instances=instance,
             endpoint_name=self.endpoint_name,
             fallback_endpoints=self.fallback_endpoints,
-            cached=self.cached,
         )
         self.model_version = prediction_result.model_version
         self.model_display_name = prediction_result.model_display_name
@@ -212,6 +244,36 @@ class RetrievalEndpoint(AbstractEndpoint):
             )
             for r in prediction_result.predictions
         ]
+
+    async def model_score(self) -> list[RecommendableItem]:
+        instance = self.get_instance(self.size)
+        # Retrieve cache if exists
+        if self.cached:
+            instance_hash = self._get_instance_hash(instance)
+            cache_key = f"{self.endpoint_name}:{instance_hash}"
+            result = await VERTEX_CACHE.get(cache_key)
+            # Compute retrieval if cache not found or used
+            if result is not None:
+                self._log_cache_usage(cache_key, "Used")
+                return result
+
+        result = await self._vertex_retrieval_score(instance)
+        # Update Cache
+        if self.cached:
+            await VERTEX_CACHE.set(cache_key, result)
+            self._log_cache_usage(cache_key, "Set")
+
+        return result
+
+    def _log_cache_usage(self, cache_key: str, action: str) -> None:
+        logger.debug(
+            f"{action} cache in retrieval_endpoint {cache_key}",
+            extra={
+                "event_name": "cache_retrieval_endpoint",
+                "endpoint_name": self.endpoint_name,
+                "hash": cache_key,
+            },
+        )
 
 
 class FilterRetrievalEndpoint(RetrievalEndpoint):
@@ -276,19 +338,26 @@ class OfferRetrievalEndpoint(RetrievalEndpoint):
     MODEL_TYPE = "user_based"
 
     def init_input(
-        self, user: UserContext, offer: Offer, params_in: PlaylistParams, call_id: str
+        self,
+        user: UserContext,
+        offer: Offer,
+        params_in: PlaylistParams,
+        call_id: str,
     ):
         self.user = user
         self.offer = offer
         self.call_id = call_id
-        self.item_id = str(self.offer.item_id)
+        if params_in.offers:
+            self.items = [offer.item_id for offer in params_in.offers]
+        else:
+            self.items = [str(self.offer.item_id)]
         self.params_in = params_in
-        self.is_geolocated = self.offer.is_geolocated
+        self.is_geolocated = self.offer.is_geolocated if self.offer else False
 
     def get_instance(self, size: int):
         return {
             "model_type": "similar_offer",
-            "offer_id": str(self.item_id),
+            "items": self.items,
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,

@@ -8,6 +8,7 @@ blinker==1.8.2
     # via flask
 cachetools==5.4.0
     # via google-auth
+apscheduler==3.10.4
 catboost==1.2
     # via -r requirements.in
 certifi==2024.7.4

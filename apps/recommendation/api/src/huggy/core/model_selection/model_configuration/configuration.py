@@ -1,24 +1,25 @@
 import copy
-from dataclasses import dataclass
 import typing as t
-from pydantic import BaseModel, ConfigDict, Field
+from dataclasses import dataclass
+
+import huggy.core.model_selection.endpoint.user_ranking as user_ranking
 import huggy.core.scorer.offer as offer_scorer
 from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
 from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
+from huggy.schemas.model_selection.model_configuration import (
+    ColdStartModelTypeDefaultInput,
+    DiversificationChoices,
+    DiversificationParamsInput,
+    ForkParamsInput,
+    ModelTypeInput,
+    QueryOrderChoices,
+    RankingChoices,
+    WarnModelTypeDefaultInput,
+)
 from huggy.schemas.offer import Offer
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
-import huggy.core.model_selection.endpoint.user_ranking as user_ranking
-from huggy.schemas.model_selection.model_configuration import (
-    ModelTypeInput,
-    WarnModelTypeDefaultInput,
-    ForkParamsInput,
-    ColdStartModelTypeDefaultInput,
-    DiversificationParamsInput,
-    DiversificationChoices,
-    RankingChoices,
-)
-from huggy.schemas.model_selection.model_configuration import QueryOrderChoices
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class DiversificationParams(BaseModel):
@@ -27,7 +28,7 @@ class DiversificationParams(BaseModel):
     mixing_features: str
     order_column: str
     order_ascending: bool
-    submixing_feature_dict: t.Optional[t.Dict[str, str]] = None
+    submixing_feature_dict: t.Optional[dict[str, str]] = None
 
     async def to_dict(self):
         return {
@@ -44,7 +45,7 @@ class ModelConfiguration:
     name: str
     description: str
     scorer: offer_scorer.OfferScorer
-    retrieval_endpoints: t.List[RetrievalEndpoint]
+    retrieval_endpoints: list[RetrievalEndpoint]
     ranking_endpoint: RankingEndpoint
     diversification_params: DiversificationParams
     query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK
@@ -54,6 +55,7 @@ class ModelConfiguration:
     ) -> DiversificationParams:
         """
         Overwrite default params
+
         """
         if params_in.is_reco_shuffled is not None:
             self.diversification_params.is_reco_shuffled = params_in.is_reco_shuffled
@@ -75,8 +77,6 @@ class ModelConfiguration:
 
 @dataclass
 class ForkOut:
-    """"""
-
     model_configuration: ModelConfiguration
     reco_origin: str
     model_origin: str
@@ -91,7 +91,11 @@ class ModelFork:
     favorites_count: int = None
 
     def get_user_status(self, user: UserContext, model_origin: str) -> ForkOut:
-        """Get model status based on UserContext interactions"""
+        """
+        Get model status based on UserContext interactions
+
+        """
+
         if not user.found:
             return ForkOut(
                 copy.deepcopy(self.cold_start_model),
@@ -128,8 +132,21 @@ class ModelFork:
             model_origin=model_origin,
         )
 
-    def get_offer_status(self, offer: Offer, model_origin: str) -> ForkOut:
-        """Get model status based on Offer interactions"""
+    def get_offer_status(
+        self, offer: Offer, offers: list[Offer], model_origin: str
+    ) -> ForkOut:
+        """
+        Get model status based on Offer interactions
+
+        """
+
+        if offers:
+            return ForkOut(
+                copy.deepcopy(self.warm_start_model),
+                reco_origin="algo",
+                model_origin=model_origin,
+            )
+
         if not offer.found:
             return ForkOut(
                 copy.deepcopy(self.cold_start_model),
@@ -151,7 +168,10 @@ class ModelFork:
 
 
 class ModelConfigurationInput(BaseModel):
-    """Custom modelEndpoint model"""
+    """
+    Custom modelEndpoint model
+
+    """
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -227,7 +247,7 @@ class ModelConfigurationInput(BaseModel):
             RankingChoices.OFF: user_ranking.off_ranking_endpoint,
         }.get(model_type, model)
 
-    def get_retrieval(self, model_type) -> t.List[RetrievalEndpoint]:
+    def get_retrieval(self, model_type) -> list[RetrievalEndpoint]:
         pass
 
     def generate(self) -> ModelFork:

@@ -1,16 +1,15 @@
+import typing as t
+
+import huggy.schemas.playlist_params as p
 from fastapi import APIRouter, Depends
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from huggy.core.model_engine.recommendation import Recommendation
 from huggy.core.model_engine.similar_offer import SimilarOffer
 from huggy.crud.offer import Offer
 from huggy.crud.user import UserContextDB
 from huggy.database.session import get_db
-import huggy.schemas.playlist_params as p
-from huggy.utils.cloud_logging import logger
-from huggy.views.common import setup_trace, get_call_id, check_token
-import typing as t
+from huggy.views.common import check_token, get_call_id, setup_trace
+from sqlalchemy.ext.asyncio import AsyncSession
 
 offer_router = r = APIRouter(tags=["offer"])
 
@@ -63,12 +62,12 @@ async def __similar_offers(
     "/similar_offers/{offer_id}",
     dependencies=[Depends(setup_trace), Depends(check_token)],
 )
-async def similar_offers(
+async def post_similar_offers(
     offer_id: str,
     playlist_params: p.PostSimilarOfferPlaylistParams,
-    token: str = None,
-    latitude: float = None,
-    longitude: float = None,
+    token: t.Optional[str] = None,
+    latitude: t.Optional[float] = None,
+    longitude: t.Optional[float] = None,
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):
@@ -86,12 +85,12 @@ async def similar_offers(
     "/similar_offers/{offer_id}",
     dependencies=[Depends(setup_trace), Depends(check_token)],
 )
-async def similar_offers(
+async def get_similar_offers(
     offer_id: str,
     playlist_params: p.GetSimilarOfferPlaylistParams = Depends(),
-    token: str = None,
-    latitude: float = None,
-    longitude: float = None,
+    token: t.Optional[str] = None,
+    latitude: t.Optional[float] = None,
+    longitude: t.Optional[float] = None,
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):

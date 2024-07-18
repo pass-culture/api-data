@@ -1,11 +1,9 @@
 import datetime
-import typing as t
 from abc import ABC, abstractmethod
-from typing import List
-from fastapi.encoders import jsonable_encoder
-import pytz
-from sqlalchemy.ext.asyncio import AsyncSession
 
+import huggy.schemas.offer as o
+import pytz
+from fastapi.encoders import jsonable_encoder
 from huggy.core.model_selection.model_configuration.configuration import (
     ForkOut,
 )
@@ -16,10 +14,33 @@ from huggy.schemas.recommendable_offer import RankedOffer
 from huggy.schemas.user import UserContext
 from huggy.utils.env_vars import NUMBER_OF_RECOMMENDATIONS
 from huggy.utils.mixing import order_offers_by_score_and_diversify_features
-import huggy.schemas.offer as o
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ModelEngine(ABC):
+    """
+    Abstract base class to build the scoring pipeline used in the recommendation system.
+
+    Attributes:
+        user (UserContext): The user context.
+        params_in (PlaylistParams): The playlist parameters.
+        call_id (str): The call ID.
+        context (str): The context.
+        offer (o.Offer, optional): The offer. Defaults to None.
+        reco_origin (str): The recommendation origin. One of "unknown", "cold_start", "algo".
+        model_origin (str): The model origin.
+        model_params (ModelConfiguration): The model configuration.
+        scorer (OfferScorer): The offer scorer.
+
+    Methods:
+        get_model_configuration: Method to get the model configuration.
+        get_scorer: Initializes the endpoints (retrieval and ranking) and returns the offer scorer.
+        get_scoring: Returns a list of offer IDs to be sent to the user.
+        save_context: Saves the context and offer information to the database.
+        log_extra_data: Logs extra data related to the model engine.
+
+    """
+
     def __init__(
         self,
         user: UserContext,
@@ -30,6 +51,9 @@ class ModelEngine(ABC):
     ):
         self.user = user
         self.offer = offer
+        self.offers = (
+            list(params_in.offers) if isinstance(params_in.offers, list) else [offer]
+        )
         self.params_in = params_in
         self.call_id = call_id
         self.context = context
@@ -68,10 +92,11 @@ class ModelEngine(ABC):
             offer=self.offer,
         )
 
-    async def get_scoring(self, db: AsyncSession) -> List[str]:
+    async def get_scoring(self, db: AsyncSession) -> list[str]:
         """
         Returns a list of offer_id to be send to the user
         Depends of the scorer method.
+
         """
         scored_offers = await self.scorer.get_scoring(db, self.call_id)
         if len(scored_offers) == 0:
@@ -106,7 +131,7 @@ class ModelEngine(ABC):
     async def save_context(
         self,
         session: AsyncSession,
-        offers: t.List[RankedOffer],
+        offers: list[RankedOffer],
         context: str,
         user: UserContext,
     ) -> None:

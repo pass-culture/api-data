@@ -1,12 +1,12 @@
+from huggy.database.base import Base
 from sqlalchemy import Column, DateTime, Float, Integer, String
 from sqlalchemy.types import Boolean
-
-from huggy.database.base import Base
 
 
 class FakeRecommendableOffersRaw(Base):
     """
     Fake Database model of recommendable_offers table.
+
     """
 
     __tablename__ = "recommendable_offer_raw"

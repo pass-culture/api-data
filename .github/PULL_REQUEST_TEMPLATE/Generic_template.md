@@ -4,9 +4,9 @@
 
 Please include a summary of the changes:
 
-This PR [adds/removes/fixes/replaces] the [feature/bug/etc]. 
+This PR [adds/removes/fixes/replaces] the [feature/bug/etc].
 
-Tag a reviewer if necessacy  @github/username 
+Tag a reviewer if necessacy  @github/username
 
 ## Jira ticket number and/or notion link
 
@@ -26,11 +26,12 @@ JIRA-ticket_number
 - [ ] CI
 - [ ] Config
 
-      
+
 ### Checklist before requesting a review
 - [ ] I have performed a self-review of my code
 - [ ] My code passes CI/CD tests
 - [ ] I updated README.md
+- [ ] My PR contains only a single commit (squash them if needed)
 - [ ] I will create a review on slack and ensure to specify the duration of the review task: short (<10min), medium (<30min), long (>30min)
 
 ### Added tests?
