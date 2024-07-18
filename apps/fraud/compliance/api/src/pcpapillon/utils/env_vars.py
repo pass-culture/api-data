@@ -1,24 +1,22 @@
 import contextvars
 import os
 
-from google.auth.exceptions import DefaultCredentialsError
 from google.cloud import secretmanager
 
 
-def access_secret(project_id, secret_id, version_id="latest", default=None):
-    try:
-        client = secretmanager.SecretManagerServiceClient()
-        name = f"projects/{project_id}/secrets/{secret_id}/versions/{version_id}"
-        response = client.access_secret_version(request={"name": name})
-        return response.payload.data.decode("UTF-8")
-    except DefaultCredentialsError:
-        return default
+def access_secret(project_id, secret_id):
+    client = secretmanager.SecretManagerServiceClient()
+    name = f"projects/{project_id}/secrets/{secret_id}/versions/latest"
+    response = client.access_secret_version(request={"name": name})
+    return response.payload.data.decode("UTF-8")
 
 
 # Project vars
 GCS_BUCKET = os.environ.get("GCS_BUCKET", "data-bucket-dev")
 GCP_PROJECT = os.environ.get("GCP_PROJECT", "passculture-data-ehp")
 ENV_SHORT_NAME = os.environ.get("ENV_SHORT_NAME", "dev")
+SA_ACCOUNT = f"algo-training-{ENV_SHORT_NAME}"
+
 # API_LOCAL is string to match terraform boolean handling
 API_LOCAL = os.environ.get("API_LOCAL", False)
 IS_API_LOCAL = API_LOCAL == "True"
