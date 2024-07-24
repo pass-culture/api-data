@@ -12,4 +12,5 @@ def connect_remote_mlflow(client_id):
             Request(), client_id
         )
     uri = MLFLOW_URL
+    print(f"Connecting to mlflow with uri: {uri}")
     mlflow.set_tracking_uri(uri)
