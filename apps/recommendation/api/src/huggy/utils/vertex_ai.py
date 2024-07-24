@@ -27,7 +27,7 @@ async def get_model(endpoint_name, location):
 
 
 async def __get_model(endpoint_name, location):
-    endpoint = aiplatform.Endpoinlist(
+    endpoint = aiplatform.Endpoint.list(
         filter=f"display_name={endpoint_name}", location=location, project=GCP_PROJECT
     )[0]
     endpoint_dict = endpoint.to_dict()
