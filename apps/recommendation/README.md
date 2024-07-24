@@ -1,4 +1,4 @@
-# Data Recommendation API 
+# Data Recommendation API
 
 Recommendation API with FastAPI + Psql + VertexAI endpoints
 
@@ -10,15 +10,15 @@ Recommendation API with FastAPI + Psql + VertexAI endpoints
 +-- src
 | + huggy
 |  +-- core
-|    +-- model_engine - orchestration of the scoring pipeline 
-|    +-- model_selection - model selection based on the model_endpoint parameter 
-|    +-- scorer - retrieve the base of recommendable offers and score them 
-|    +-- utils
-|  +-- crud - functions for reading/writing to the database 
+|    +-- endpoint - configuration of VertexAi endpoint for retrieval and ranking
+|    +-- model_engine - orchestration of the scoring pipeline
+|    +-- model_selection - model selection based on the model_endpoint parameter
+|    +-- scorer - retrieve the base of recommendable offers and score them
+|  +-- crud - functions for reading/writing to the database
 |  +-- database - logic for handling db connexion
-|  +-- models - model of the database tables - 1 file per table 
-|  +-- schemas - definition of object properties 
-|  +-- utils 
+|  +-- models - model of the database tables - 1 file per table
+|  +-- schemas - definition of object properties
+|  +-- utils
 |  +-- views - router views
 |
 +-- main.py
@@ -28,7 +28,7 @@ Recommendation API with FastAPI + Psql + VertexAI endpoints
 
 ## How to DEV
 
-### Set-up a dev-env: 
+### Set-up a dev-env:
 
 Install pyenv and install `python 3.9``
 
@@ -37,12 +37,12 @@ pyenv install 3.9
 ```
 
 Create a virtual env
-```sh 
+```sh
 pyenv virtualenv 3.9 reco_fastapi
 pyenv shell reco_fastapi
 ```
 
-```sh 
+```sh
 cd apps/recommendation/api/
 pip3 install -r requirements.txt
 ```
@@ -50,7 +50,7 @@ pip3 install -r requirements.txt
 ### Run tests
 
 ```sh
-pip install "psycopg[binary,pool]"           
+pip install "psycopg[binary,pool]"
 ```
 
 Set up a testdb :
@@ -67,16 +67,16 @@ export API_LOCAL=1
 pytest
 ```
 
-In case you have some troubles to run tests 
+In case you have some troubles to run tests
 
 Connect to db, create db database, add postgis extension
-```sh 
+```sh
 
 docker exec -it <docker_id> /bin/sh
 psql -U postgres
 
 create database db;
-\c db; 
+\c db;
 create extension postgis;
 ```
 
@@ -91,14 +91,14 @@ uvicorn main:app --reload
 ## How to PROD
 
 ### CI-CD
- 
+
 github-actions handle de CI/CD deployment
 
 - we have a `main` (testing), `staging` and `production` branches that deploy for each environment. Everything is done automatically.
 
 #### Deploy by hand
 
-In case of emergency you still can deploy the api by hand: 
+In case of emergency you still can deploy the api by hand:
 
 
 **1:** Build
@@ -130,7 +130,7 @@ gcloud run deploy <SERVICE> \
 
 **Staging**
 ```sh
-gcloud builds submit --tag eu.gcr.io/passculture-data-ehp/data-gcp/apireco-stg 
+gcloud builds submit --tag eu.gcr.io/passculture-data-ehp/data-gcp/apireco-stg
 
 gcloud run deploy apireco-stg \
 --image eu.gcr.io/passculture-data-ehp/data-gcp/apireco-stg:latest \

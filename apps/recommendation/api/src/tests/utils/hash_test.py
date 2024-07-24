@@ -1,7 +1,7 @@
-import typing as t
-from huggy.utils.hash import hash_from_keys
-import pytest
 import uuid
+
+import pytest
+from huggy.utils.hash import hash_from_keys
 
 SIMILAR_OFFER_INSTANCE = {
     "model_type": "similar_offer",
@@ -22,7 +22,7 @@ FILTER_INSTANCE = {
 
 
 @pytest.mark.parametrize(
-    ["test_dict", "columns", "expected_hash"],
+    ("test_dict", "columns", "expected_hash"),
     [
         (
             SIMILAR_OFFER_INSTANCE,

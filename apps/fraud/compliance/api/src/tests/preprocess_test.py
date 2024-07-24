@@ -4,7 +4,7 @@ from pcpapillon.core.compliance.preprocess import prepare_features
 
 class PreprocessTest:
     @pytest.mark.parametrize(
-        ["input_body", "expected_preprocess"],
+        ("input_body", "expected_preprocess"),
         [
             (
                 {

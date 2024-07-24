@@ -1,3 +1,6 @@
+import contextlib
+import itertools
+
 from catboost import Pool
 from pcpapillon.core.compliance.extract_embedding import extract_embedding
 
@@ -13,7 +16,9 @@ def preprocess(api_config, model_config, data, prepoc_models):
         data_clean, api_config.features_to_extract_embedding, prepoc_models
     )
 
-    scoring_features = sum(model_config.catboost_features_types.values(), [])
+    scoring_features = list(
+        itertools.chain.from_iterable(model_config.catboost_features_types.values())
+    )
     data_w_emb_clean = {}
     for feature in scoring_features:
         data_w_emb_clean[feature] = data_w_emb[feature]
@@ -30,17 +35,15 @@ def prepare_features(data, params):
         - Fill string null values with "none"
         - Convert boolean columns to int
     """
-    try:
+    with contextlib.suppress(KeyError):
         del data["offer_id"]
-    except KeyError:
-        pass
 
-    for key in data.keys():
+    for key in data:
         if key in params["text_features"]:
             data[key] = "" if data[key] is None else str(data[key])
         if key in params["numerical_features"]:
             data[key] = 0 if data[key] is None else int(data[key])
-    if "macro_text" in params.keys():
+    if "macro_text" in params:
         semantic_content = " ".join(
             [semantic_feature.lower() for semantic_feature in params["macro_text"]]
         )
@@ -52,7 +55,7 @@ def convert_data_to_catboost_pool(data, features_type_dict):
     """
     Convert json data to catboost pool:
         - inputs:
-            - Features names: List of features name (same order as list of features)
+            - Features names: list of features name (same order as list of features)
             - cat_features: list of categorical features names
             - text_features: list of text features names
             - embedding_features: list of embedding features names

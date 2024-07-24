@@ -1,10 +1,8 @@
-import typing as t
-
 from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def get_table_names(session: AsyncSession) -> t.List[str]:
+async def get_table_names(session: AsyncSession) -> list[str]:
     def __get(engine):
         inspector = inspect(engine)
         return inspector.get_table_names()

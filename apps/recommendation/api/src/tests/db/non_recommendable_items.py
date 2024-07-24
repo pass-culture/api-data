@@ -1,6 +1,6 @@
+from huggy.models.non_recommendable_items import NonRecommendableItemsMv
 from sqlalchemy import insert
 
-from huggy.models.non_recommendable_items import NonRecommendableItemsMv
 from tests.db.utils import create_model
 
 

@@ -1,11 +1,9 @@
 import logging
-import os
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
 from huggy.crud.user import UserContextDB
 from huggy.schemas.user import UserProfileDB
+from sqlalchemy.ext.asyncio import AsyncSession
 from tests.db.schema.iris import IrisTestExample, iris_nok, iris_paris_chatelet
 from tests.db.schema.user import (
     user_profile_111,
@@ -22,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 class UserTest:
     @pytest.mark.parametrize(
-        ["user", "found"],
+        ("user", "found"),
         [
             (user_profile_111, True),
             (user_profile_112, True),
@@ -34,7 +32,10 @@ class UserTest:
         ],
     )
     async def test_get_user_profile(
-        self, setup_default_database: AsyncSession, user: UserProfileDB, found: bool
+        self,
+        setup_default_database: AsyncSession,
+        user: UserProfileDB,
+        found: bool,  # noqa: FBT001
     ):
         result_user = await UserContextDB().get_user_profile(
             setup_default_database, user.user_id
@@ -42,24 +43,24 @@ class UserTest:
         result_found = result_user is not None
         assert found == result_found, "user was found in DB"
         if found:
-            assert result_user.user_id == user.user_id, f"user_id is right"
-            assert result_user.age == user.age, f"age is right"
+            assert result_user.user_id == user.user_id, "user_id is right"
+            assert result_user.age == user.age, "age is right"
             assert (
                 result_user.user_deposit_remaining_credit
                 == user.user_deposit_remaining_credit
-            ), f"user_deposit_remaining_credit is right"
+            ), "user_deposit_remaining_credit is right"
             assert (
                 result_user.clicks_count == user.clicks_count
-            ), f"clicks_count is right"
+            ), "clicks_count is right"
             assert (
                 result_user.bookings_count == user.bookings_count
-            ), f"bookings_count is right"
+            ), "bookings_count is right"
             assert (
                 result_user.favorites_count == user.favorites_count
-            ), f"favorites_count is right"
+            ), "favorites_count is right"
 
     @pytest.mark.parametrize(
-        ["user", "iris", "found"],
+        ("user", "iris", "found"),
         [
             (user_profile_117, iris_paris_chatelet, True),
             (user_profile_112, iris_nok, True),
@@ -72,7 +73,7 @@ class UserTest:
         setup_default_database: AsyncSession,
         user: UserProfileDB,
         iris: IrisTestExample,
-        found: bool,
+        found: bool,  # noqa: FBT001
     ):
         geolocated = iris.iris_id is not None
         result_user = await UserContextDB().get_user_context(
@@ -81,21 +82,21 @@ class UserTest:
             latitude=iris.latitude,
             longitude=iris.longitude,
         )
-        assert result_user.age == user.age, f"age is right"
+        assert result_user.age == user.age, "age is right"
         assert (
             result_user.user_deposit_remaining_credit
             == user.user_deposit_remaining_credit
-        ), f"user_deposit_remaining_credit is right"
-        assert result_user.clicks_count == user.clicks_count, f"clicks_count is right"
+        ), "user_deposit_remaining_credit is right"
+        assert result_user.clicks_count == user.clicks_count, "clicks_count is right"
         assert (
             result_user.bookings_count == user.bookings_count
-        ), f"bookings_count is right"
+        ), "bookings_count is right"
         assert (
             result_user.favorites_count == user.favorites_count
-        ), f"favorites_count is right"
-        assert result_user.user_id == user.user_id, f"user_id is right"
-        assert result_user.longitude == iris.longitude, f"longitude is right"
-        assert result_user.latitude == iris.latitude, f"latitude is right"
-        assert result_user.iris_id == iris.iris_id, f"iris_id is right"
-        assert result_user.found == found, f"found is right"
-        assert result_user.is_geolocated == geolocated, f"is_geolocated is right"
+        ), "favorites_count is right"
+        assert result_user.user_id == user.user_id, "user_id is right"
+        assert result_user.longitude == iris.longitude, "longitude is right"
+        assert result_user.latitude == iris.latitude, "latitude is right"
+        assert result_user.iris_id == iris.iris_id, "iris_id is right"
+        assert result_user.found == found, "found is right"
+        assert result_user.is_geolocated == geolocated, "is_geolocated is right"

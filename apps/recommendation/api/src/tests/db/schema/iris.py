@@ -1,7 +1,6 @@
-import pandas as pd
 import typing as t
-from geoalchemy2 import Geometry
-from sqlalchemy import Column, Integer, String
+
+import pandas as pd
 from pydantic import BaseModel
 
 

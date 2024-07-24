@@ -1,15 +1,14 @@
 import logging
 import typing as t
 
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import TypeAdapter
 import huggy.models.enriched_user as user_db
 import huggy.schemas.user as user_sh
 from huggy.crud.iris import Iris
-from sqlalchemy.exc import ProgrammingError
 from huggy.utils.exception import log_error
-from huggy.utils.cloud_logging import logger
+from pydantic import TypeAdapter
+from sqlalchemy import func, select
+from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +17,11 @@ class UserContextDB:
     async def get_user_context(
         self, db: AsyncSession, user_id: str, latitude: float, longitude: float
     ) -> user_sh.UserContext:
-        """Query the database in ORM mode to get additional information about
+        """
+        Query the database in ORM mode to get additional information about
         an user. (age, number of bookings, number of clicks, number of favorites,
         amount of remaining deposit).
+
         """
 
         iris_id = await Iris().get_iris_from_coordinates(

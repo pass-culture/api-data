@@ -4,7 +4,10 @@ from pydantic import BaseModel, ConfigDict
 
 
 class OfferInput(BaseModel):
-    """Acceptable input in a API request for offer"""
+    """
+    Acceptable input in a API request for offer
+
+    """
 
     offer_id: str
     longitude: float = None
@@ -12,7 +15,10 @@ class OfferInput(BaseModel):
 
 
 class Offer(BaseModel):
-    """Characteristics of an offer."""
+    """
+    Characteristics of an offer.
+
+    """
 
     offer_id: str
     item_id: t.Optional[str] = None
@@ -26,7 +32,10 @@ class Offer(BaseModel):
 
 
 class OfferDistance(BaseModel):
-    """Offer details in a recommendation context."""
+    """
+    Offer details in a recommendation context.
+
+    """
 
     model_config = ConfigDict(from_attributes=True)
     offer_id: str
