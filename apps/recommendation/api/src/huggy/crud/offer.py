@@ -1,14 +1,12 @@
 import typing as t
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 import huggy.schemas.offer as o
 from huggy.crud.iris import Iris
 from huggy.models.item_ids import ItemIds
-
-from sqlalchemy.exc import ProgrammingError
 from huggy.utils.exception import log_error
-from huggy.utils.cloud_logging import logger
+from sqlalchemy import select
+from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class Offer:
@@ -33,9 +31,12 @@ class Offer:
     async def get_offer_characteristics(
         self, db: AsyncSession, offer_id: str
     ) -> o.Offer:
-        """Query the database in ORM mode to get characteristics of an offer.
-        Return : List[item_id,  number of booking associated].
         """
+        Query the database in ORM mode to get characteristics of an offer.
+        Return : list[item_id,  number of booking associated].
+
+        """
+
         offer_characteristics = await self.get_item(db, offer_id)
         iris_id = None
         offer = o.Offer(
@@ -63,7 +64,7 @@ class Offer:
                     is_geolocated=iris_id is not None,
                     item_id=offer_characteristics.item_id,
                     booking_number=offer_characteristics.booking_number,
-                    is_sensitive=True if offer_characteristics.is_sensitive else False,
+                    is_sensitive=bool(offer_characteristics.is_sensitive),
                     found=True,
                 )
         except ProgrammingError as exc:

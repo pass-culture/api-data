@@ -1,18 +1,15 @@
-import typing as t
 from abc import abstractmethod
 
+from huggy.database.utils import check_table_exists
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import declarative_base
-
-from huggy.database.utils import check_table_exists
-from aiocache import cached, Cache
 
 Base = declarative_base()
 
 
 class MaterializedBase:
     @abstractmethod
-    def materialized_tables(self) -> t.List[Base]:
+    def materialized_tables(self) -> list[Base]:
         pass
 
     async def get_available_table(self, session: AsyncSession) -> Base:

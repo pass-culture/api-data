@@ -1,10 +1,12 @@
 import typing as t
+
 from huggy.schemas.item import RecommendableItem
 
 
 class RecommendableOffer(RecommendableItem):
     """
     Retrieved Offer in a given context (latitude and longitude)
+
     """
 
     offer_id: str
@@ -17,6 +19,7 @@ class RankedOffer(RecommendableOffer):
     """
     Ranked Recommendable Offer object based on RecommendableOffer model
     Contains the scoring of a Ranking Model.
+
     """
 
     offer_rank: float  # final output (lower = better)

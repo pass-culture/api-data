@@ -1,24 +1,25 @@
-import typing as t
-
+from huggy.database.base import Base, MaterializedBase
 from sqlalchemy import Column, Float, String
 from sqlalchemy.types import Boolean
-from huggy.database.base import Base
-from huggy.database.base import Base, MaterializedBase
 
 
 class ItemIds(MaterializedBase):
     """
     Database model of recommendable_offers table.
+
     """
 
     def materialized_tables(self):
+        """
+        Database model of item_ids materialized view.
+
+        """
+
         return [
             ItemIdsMv,
             ItemIdsMvOld,
             ItemIdsMvTmp,
         ]
-
-    """Database model of item_ids materialized view."""
 
     item_id = Column(String)
     offer_id = Column(String, primary_key=True)

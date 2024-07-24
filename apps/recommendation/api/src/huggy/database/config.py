@@ -1,10 +1,11 @@
 import os
+
 from huggy.utils.env_vars import (
     SQL_BASE_DATABASE,
-    SQL_BASE_PASSWORD,
-    SQL_BASE_USER,
     SQL_BASE_HOST,
+    SQL_BASE_PASSWORD,
     SQL_BASE_PORT,
+    SQL_BASE_USER,
 )
 
 

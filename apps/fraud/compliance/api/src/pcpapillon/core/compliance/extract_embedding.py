@@ -1,3 +1,4 @@
+import contextlib
 import io
 
 import numpy as np
@@ -25,10 +26,8 @@ def extract_embedding(data, params, prepoc_models):
             model = prepoc_models[feature["type"]]
             url = data[feature["name"]]
             data["image_embedding"] = _encode_img_from_url(model, url)
-            try:
+            with contextlib.suppress(KeyError):
                 del data[feature["name"]]
-            except KeyError:
-                pass
         if feature["type"] == "text":
             model = prepoc_models[feature["type"]]
             embedding = model.encode(data[feature["name"]])
@@ -49,6 +48,6 @@ def _encode_img_from_url(model, url):
     try:
         img_emb = model.encode(Image.open(io.BytesIO(requests.get(url).content)))
         offer_img_embs = img_emb
-    except:
+    except Exception:
         offer_img_embs = np.array([0] * 512)
     return offer_img_embs

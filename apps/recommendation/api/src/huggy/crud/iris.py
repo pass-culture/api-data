@@ -1,13 +1,11 @@
 import typing as t
 
 from geoalchemy2.elements import WKTElement
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from huggy.models.iris_france import IrisFrance
-from sqlalchemy.exc import ProgrammingError
 from huggy.utils.exception import log_error
-from huggy.utils.cloud_logging import logger
+from sqlalchemy import func, select
+from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class Iris:
@@ -17,7 +15,11 @@ class Iris:
         latitude: t.Optional[float],
         longitude: t.Optional[float],
     ) -> str:
-        """Query the database in ORM mode to get iris_id from a set of coordinates."""
+        """
+        Query the database in ORM mode to get iris_id from a set of coordinates.
+
+        """
+
         iris_id = None
         try:
             if latitude is not None and longitude is not None:

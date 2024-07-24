@@ -1,9 +1,9 @@
 import hashlib
 import pickle
-import typing as t
+from typing import Optional
 
 
-def hash_from_keys(data: t.Dict, keys: t.List[str] = None) -> str:
+def hash_from_keys(data: dict, keys: Optional[list[str]] = None) -> str:
     """
     Create a hash from a dictionary based on the values of the keys.
 

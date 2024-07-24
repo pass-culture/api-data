@@ -1,16 +1,13 @@
 import logging
-import os
-import typing as t
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from huggy.crud.recommendable_offer import RecommendableOffer as RecommendableOfferDB
+from huggy.schemas.item import RecommendableItem
 from huggy.schemas.offer import OfferDistance
 from huggy.schemas.recommendable_offer import RecommendableOffer
-from huggy.schemas.item import RecommendableItem
 from huggy.schemas.user import UserContext
 from huggy.utils.distance import haversine_distance
+from sqlalchemy.ext.asyncio import AsyncSession
 from tests.db.schema.iris import (
     iris_marseille_cours_julien,
     iris_marseille_vieux_port,
@@ -19,25 +16,17 @@ from tests.db.schema.iris import (
 from tests.db.schema.offer_context import (
     items_all,
     items_books_marseille,
-    items_books_paris_below_30_euros,
     items_no_geolocated,
     items_paris,
-    offers_below_30_euros_distance,
     offers_books_nearest_cours_julien_marseille_distance,
     offers_books_nearest_vieux_port_marseille_distance,
-    offers_books_paris_30_euros_distance,
     offers_no_geolocated_distance,
     offers_paris_distance,
-    offers_underage_and_below_30_euros_distance,
-    offers_underage_books_paris_30_euros_distance,
 )
 from tests.db.schema.user_context import (
     user_context_111_cours_julien_marseille,
     user_context_111_paris,
-    user_context_111_unknown,
     user_context_111_vieux_port_marseille,
-    user_context_117_paris,
-    user_context_118_paris,
     user_context_null_nok,
     user_context_unknown_paris,
 )
@@ -171,18 +160,16 @@ class RecommendableOfferTest:
         self, setup_default_database: AsyncSession, pool: dict
     ):
         user: UserContext = pool["user"]
-        items: t.List[RecommendableItem] = pool["items"]
-        expected_offers: t.List[RecommendableOffer] = pool["expected_offers"]
+        items: list[RecommendableItem] = pool["items"]
+        expected_offers: list[RecommendableOffer] = pool["expected_offers"]
         description = pool["description"]
         result_offers = await RecommendableOfferDB().get_nearest_offers(
             setup_default_database, user=user, recommendable_items_ids=items
         )
         expected_offers_ids = sorted([x.offer_id for x in expected_offers])
         result_offers_ids = sorted([x.offer_id for x in result_offers])
-        assert (
-            result_offers_ids == expected_offers_ids
-        ), f"""
-            {description} should have the same length. 
+        assert result_offers_ids == expected_offers_ids, f"""
+            {description} should have the same length.
             User details : {user}
             Expected : {expected_offers}
             Result : {result_offers}
@@ -193,8 +180,8 @@ class RecommendableOfferTest:
         self, setup_default_database: AsyncSession, pool: dict
     ):
         user: UserContext = pool["user"]
-        offer_list: t.List[str] = pool["offers"]
-        expected_offers: t.List[OfferDistance] = pool["expected_offers"]
+        offer_list: list[str] = pool["offers"]
+        expected_offers: list[OfferDistance] = pool["expected_offers"]
 
         result_offers = await RecommendableOfferDB().get_user_offer_distance(
             setup_default_database, user=user, offer_list=offer_list
@@ -210,4 +197,4 @@ class RecommendableOfferTest:
             assert x.offer_id == x.offer_id, "Offer shoud be the same."
             assert (
                 x.user_distance - y.user_distance
-            ) // 1000 == 0, f"Distance should be the same in KM."
+            ) // 1000 == 0, "Distance should be the same in KM."

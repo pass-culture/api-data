@@ -1,8 +1,8 @@
-import pytest
-from huggy.schemas.playlist_params import PlaylistParams
 import json
-from huggy.core.model_selection.model_configuration import parse_model_enpoint
 
+import pytest
+from huggy.core.model_selection.model_configuration import parse_model_enpoint
+from huggy.schemas.playlist_params import PlaylistParams
 
 model_endpoint = {
     "name": "default_endpoint",
@@ -16,7 +16,7 @@ model_endpoint = {
 
 class PlaylistParamsTest:
     @pytest.mark.parametrize(
-        ["input_params"],
+        "input_params",
         [
             (
                 {
@@ -38,7 +38,7 @@ class PlaylistParamsTest:
         )
 
     @pytest.mark.parametrize(
-        ["input_params"],
+        "input_params",
         [
             ({"modelEndpoint": "default"}, "default"),
             ({"modelEndpoint": "not_existing"}, "default"),
@@ -51,4 +51,4 @@ class PlaylistParamsTest:
     def test_model_params(self, input_params, output_name):
         output_playlist_params = PlaylistParams(**input_params)
         model_enpoint = parse_model_enpoint(output_playlist_params)
-        model_enpoint.model_name == output_name
+        assert model_enpoint.model_name == output_name

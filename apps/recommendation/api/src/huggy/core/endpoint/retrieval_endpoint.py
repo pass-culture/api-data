@@ -1,22 +1,19 @@
-import typing as t
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Optional
 
+from aiocache import Cache
+from aiocache.serializers import PickleSerializer
 from fastapi.encoders import jsonable_encoder
-
 from huggy.core.endpoint import AbstractEndpoint
 from huggy.schemas.item import RecommendableItem
 from huggy.schemas.offer import Offer
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
 from huggy.utils.cloud_logging import logger
-from huggy.utils.vertex_ai import endpoint_score
 from huggy.utils.hash import hash_from_keys
-
-from aiocache import Cache
-from aiocache.serializers import PickleSerializer
-
+from huggy.utils.vertex_ai import endpoint_score
 
 VERTEX_CACHE = Cache(
     Cache.MEMORY, ttl=6000, serializer=PickleSerializer(), namespace="vertex_cache"
@@ -26,14 +23,14 @@ VERTEX_CACHE = Cache(
 def to_datetime(ts):
     try:
         return datetime.fromtimestamp(float(ts))
-    except:
+    except Exception:
         return datetime.fromtimestamp(0.0)
 
 
 @dataclass
 class ListParams:
     label: str
-    values: t.List[str] = None
+    values: list[str] = None
 
     def filter(self):
         if self.values is not None and len(self.values) > 0:
@@ -88,6 +85,22 @@ class EqParams:
 
 
 class RetrievalEndpoint(AbstractEndpoint):
+    """
+    Represents an endpoint to retrieve offers.
+
+    Attributes:
+        user (UserContext): The user context.
+        call_id (str): The call ID.
+        params_in (PlaylistParams): The playlist parameters.
+        context (str): The context.
+
+    Methods:
+        init_input: Initializes the input parameters.
+        get_instance: Initializes the payload transmitted to vertexAI endpoint
+        model_score: Calculates the model score for recommendable offers.
+
+    """
+
     def init_input(self, user: UserContext, params_in: PlaylistParams, call_id: str):
         self.user = user
         self.call_id = call_id
@@ -96,13 +109,15 @@ class RetrievalEndpoint(AbstractEndpoint):
         self.is_geolocated = self.user.is_geolocated
 
     def _get_instance_hash(
-        self, instance: t.Dict, ignore_keys: t.List = ["call_id"]
+        self, instance: dict, ignore_keys: Optional[list] = None
     ) -> str:
         """
         Generate a hash from the instance to use as a key for caching
         """
         # drop call_id from instance
-        keys = [k for k in instance.keys() if k not in ignore_keys]
+        if ignore_keys is None:
+            ignore_keys = ["call_id"]
+        keys = [k for k in instance if k not in ignore_keys]
         return hash_from_keys(instance, keys=keys)
 
     @abstractmethod
@@ -117,7 +132,7 @@ class RetrievalEndpoint(AbstractEndpoint):
         params = []
 
         if not self.is_geolocated:
-            params.append(EqParams(label="is_geolocated", value=float(0.0)))
+            params.append(EqParams(label="is_geolocated", value=0.0))
 
         if self.user.age and self.user.age < 18:
             params.append(EqParams(label="is_underage_recommendable", value=float(1)))
@@ -190,9 +205,7 @@ class RetrievalEndpoint(AbstractEndpoint):
 
         return filters
 
-    async def _vertex_retrieval_score(
-        self, instance: dict
-    ) -> t.List[RecommendableItem]:
+    async def _vertex_retrieval_score(self, instance: dict) -> list[RecommendableItem]:
         prediction_result = await endpoint_score(
             instances=instance,
             endpoint_name=self.endpoint_name,
@@ -232,7 +245,7 @@ class RetrievalEndpoint(AbstractEndpoint):
             for r in prediction_result.predictions
         ]
 
-    async def model_score(self) -> t.List[RecommendableItem]:
+    async def model_score(self) -> list[RecommendableItem]:
         instance = self.get_instance(self.size)
         # Retrieve cache if exists
         if self.cached:

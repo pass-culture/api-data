@@ -1,5 +1,7 @@
-import typing as t
 from huggy.schemas.item import RecommendableItem
+from huggy.schemas.offer import OfferDistance
+from huggy.utils.distance import haversine_distance
+
 from tests.db.schema.iris import (
     IrisTestExample,
     iris_marseille_cours_julien,
@@ -20,16 +22,12 @@ from tests.db.schema.offer import (
     movie_offer_underage_paris,
     spectacle_offer_paris,
 )
-from huggy.schemas.item import RecommendableItem
-from huggy.schemas.offer import OfferDistance
-
-from huggy.utils.distance import haversine_distance
 
 
 def to_items(
-    offers: t.List[RecommendableOffersRawExample],
-) -> t.List[RecommendableItem]:
-    items: t.Dict[str, RecommendableOffersRawExample] = {x.item_id: x for x in offers}
+    offers: list[RecommendableOffersRawExample],
+) -> list[RecommendableItem]:
+    items: dict[str, RecommendableOffersRawExample] = {x.item_id: x for x in offers}
 
     return [
         RecommendableItem(
@@ -64,8 +62,8 @@ def to_items(
 
 
 def to_offer_distance(
-    offers: t.List[RecommendableOffersRawExample], iris_context: IrisTestExample
-) -> t.List[OfferDistance]:
+    offers: list[RecommendableOffersRawExample], iris_context: IrisTestExample
+) -> list[OfferDistance]:
     offer_distances = []
     for o in offers:
         user_distance = haversine_distance(

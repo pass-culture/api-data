@@ -1,11 +1,14 @@
 import typing as t
 
-from pydantic import BaseModel, field_validator, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic_core.core_schema import ValidationInfo
 
 
 class UserInput(BaseModel):
-    """UserContext input from the API endpoint."""
+    """
+    UserContext input from the API endpoint.
+
+    """
 
     user_id: str
     longitude: float = None
@@ -13,7 +16,10 @@ class UserInput(BaseModel):
 
 
 class UserProfileDB(BaseModel):
-    """ORM model from the crud.enriched_user base."""
+    """
+    ORM model from the crud.enriched_user base.
+
+    """
 
     model_config = ConfigDict(validate_assignment=True, from_attributes=True)
 
@@ -52,7 +58,10 @@ class UserProfileDB(BaseModel):
 
 
 class UserContext(UserProfileDB):
-    """Characteristics of the user and the context to recommend."""
+    """
+    Characteristics of the user and the context to recommend.
+
+    """
 
     longitude: t.Optional[float] = None
     latitude: t.Optional[float] = None
