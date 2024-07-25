@@ -1,10 +1,10 @@
 import json
 import os
+import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
 from time import sleep
 from urllib.parse import parse_qs, urlparse
-from webbrowser import open_new_tab
 
 import requests
 from google.auth import default
@@ -37,15 +37,29 @@ class MyHandlerForHTTP(BaseHTTPRequestHandler):
 
         if code:
             self.server.output = code
+            message = "OAuth Code received. You can close this page."
         else:
             self.server.output = "Code not found"
+            message = "OAuth Code not found. You can close this page."
+        self.wfile.write(message.encode())
 
 
 def start_server(output):
     server_address = ("", SERVER_HTTP_PORT)
-    with HTTPServer(server_address, MyHandlerForHTTP) as httpd:
+    httpd = HTTPServer(server_address, MyHandlerForHTTP)
+
+    def run_server():
         httpd.handle_request()
         output[0] = httpd.output
+        httpd.server_close()  # Close the server after handling the request
+
+    server_thread = Thread(target=run_server)
+    server_thread.start()
+
+    # Open the URL in the default web browser
+    webbrowser.open(f"http://localhost:{SERVER_HTTP_PORT}")
+
+    server_thread.join()
 
 
 def get_auth_code(client_id):
@@ -53,9 +67,10 @@ def get_auth_code(client_id):
     t = Thread(target=start_server, args=(output,))
     t.start()
     auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?client_id={client_id}&response_type=code&scope=openid%20email&access_type=offline&redirect_uri=http://localhost:{SERVER_HTTP_PORT}&cred_ref=true"
-    open_new_tab(auth_url)
+    webbrowser.open_new_tab(auth_url)
     sleep(1)
     t.join()
+
     return output[0]
 
 
