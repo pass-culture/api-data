@@ -1,9 +1,9 @@
 import json
 import os
-import re
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
 from time import sleep
+from urllib.parse import parse_qs, urlparse
 from webbrowser import open_new_tab
 
 import requests
@@ -27,11 +27,18 @@ class MyHandlerForHTTP(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "text/plain")
         self.end_headers()
-        path = self.path
-        pattern = "/?code=(.*)&scope=.*&authuser=.*&hd=.*&prompt=consent"
-        search = re.search(pattern, path)
-        code = search.group(1)
-        self.server.output = code
+
+        # Parse the URL and query parameters
+        parsed_url = urlparse(self.path)
+        query_params = parse_qs(parsed_url.query)
+
+        # Extract the 'code' parameter if it exists
+        code = query_params.get("code", [None])[0]
+
+        if code:
+            self.server.output = code
+        else:
+            self.server.output = "Code not found"
 
 
 def start_server(output):
