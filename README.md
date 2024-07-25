@@ -55,6 +55,14 @@ UV is a tool that aims to replace pip and pip-tools for managing Python dependen
 make install
 ```
 
+### IAP Refresh Token
+
+During the installation, you will be asked to connect to your Google Cloud account to generate an IAP refresh token. This token is used to authenticate the application to the Google Cloud services. The token is stored in your .bashrc or .zshrc file. If you want to regenerate the refresh token, you can run the following command:
+
+```bash
+make get_iap_refresh_token
+```
+
 ## Formatting and static analysis
 
 ### Checking formatting and static analysis with `ruff`
@@ -77,5 +85,7 @@ make ruff-fix
 ```
 
 ## To run check micro service README
-* [Recommendation documentation](apps/recommendation/README.md)
-* [Compliance documentation](apps/fraud/compliance/api/README.md)
+
+- [Recommendation documentation](apps/recommendation/README.md)
+
+- [Compliance documentation](apps/fraud/compliance/api/README.md)
