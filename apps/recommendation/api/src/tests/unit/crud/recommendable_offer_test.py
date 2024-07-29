@@ -168,7 +168,9 @@ class RecommendableOfferTest:
         )
         expected_offers_ids = sorted([x.offer_id for x in expected_offers])
         result_offers_ids = sorted([x.offer_id for x in result_offers])
-        assert result_offers_ids == expected_offers_ids, f"""
+        assert (
+            result_offers_ids == expected_offers_ids
+        ), f"""
             {description} should have the same length.
             User details : {user}
             Expected : {expected_offers}

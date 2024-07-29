@@ -14,6 +14,7 @@ from huggy.schemas.user import UserContext
 from huggy.utils.cloud_logging import logger
 from huggy.utils.hash import hash_from_keys
 from huggy.utils.vertex_ai import endpoint_score
+from huggy.core.endpoint import PredictionResultIem
 
 VERTEX_CACHE = Cache(
     Cache.MEMORY, ttl=6000, serializer=PickleSerializer(), namespace="vertex_cache"
@@ -205,65 +206,73 @@ class RetrievalEndpoint(AbstractEndpoint):
 
         return filters
 
-    async def _vertex_retrieval_score(self, instance: dict) -> list[RecommendableItem]:
+    async def _vertex_retrieval_score(self, instance: dict) -> PredictionResultIem:
         prediction_result = await endpoint_score(
             instances=instance,
             endpoint_name=self.endpoint_name,
             fallback_endpoints=self.fallback_endpoints,
         )
-        self.model_version = prediction_result.model_version
-        self.model_display_name = prediction_result.model_display_name
-        # smaller = better (cosine similarity or dot_product)
-        return [
-            RecommendableItem(
-                item_id=r["item_id"],
-                item_rank=r["idx"],
-                item_score=r.get("_distance", None),
-                item_origin=self.MODEL_TYPE,
-                item_cluster_id=r.get("cluster_id", None),
-                item_topic_id=r.get("topic_id", None),
-                semantic_emb_mean=r.get("semantic_emb_mean", None),
-                is_geolocated=bool(r["is_geolocated"]),
-                booking_number=r["booking_number"],
-                booking_number_last_7_days=r["booking_number_last_7_days"],
-                booking_number_last_14_days=r["booking_number_last_14_days"],
-                booking_number_last_28_days=r["booking_number_last_28_days"],
-                stock_price=r["stock_price"],
-                category=r["category"],
-                subcategory_id=r["subcategory_id"],
-                search_group_name=r["search_group_name"],
-                offer_creation_date=to_datetime(r["offer_creation_date"]),
-                stock_beginning_date=to_datetime(r["stock_beginning_date"]),
-                gtl_id=r["gtl_id"],
-                gtl_l3=r["gtl_l3"],
-                gtl_l4=r["gtl_l4"],
-                total_offers=r["total_offers"],
-                example_offer_id=r["example_offer_id"],
-                example_venue_latitude=r["example_venue_latitude"],
-                example_venue_longitude=r["example_venue_longitude"],
-            )
-            for r in prediction_result.predictions
-        ]
+
+        return PredictionResultIem(
+            model_version=prediction_result.model_version,
+            model_display_name=prediction_result.model_display_name,
+            recommendable_items=[
+                RecommendableItem(
+                    item_id=r["item_id"],
+                    item_rank=r["idx"],
+                    item_score=r.get("_distance", None),
+                    item_origin=self.MODEL_TYPE,
+                    item_cluster_id=r.get("cluster_id", None),
+                    item_topic_id=r.get("topic_id", None),
+                    semantic_emb_mean=r.get("semantic_emb_mean", None),
+                    is_geolocated=bool(r["is_geolocated"]),
+                    booking_number=r["booking_number"],
+                    booking_number_last_7_days=r["booking_number_last_7_days"],
+                    booking_number_last_14_days=r["booking_number_last_14_days"],
+                    booking_number_last_28_days=r["booking_number_last_28_days"],
+                    stock_price=r["stock_price"],
+                    category=r["category"],
+                    subcategory_id=r["subcategory_id"],
+                    search_group_name=r["search_group_name"],
+                    offer_creation_date=to_datetime(r["offer_creation_date"]),
+                    stock_beginning_date=to_datetime(r["stock_beginning_date"]),
+                    gtl_id=r["gtl_id"],
+                    gtl_l3=r["gtl_l3"],
+                    gtl_l4=r["gtl_l4"],
+                    total_offers=r["total_offers"],
+                    example_offer_id=r["example_offer_id"],
+                    example_venue_latitude=r["example_venue_latitude"],
+                    example_venue_longitude=r["example_venue_longitude"],
+                )
+                for r in prediction_result.predictions
+            ],
+        )
 
     async def model_score(self) -> list[RecommendableItem]:
+        # TODO same for ranking
         instance = self.get_instance(self.size)
         # Retrieve cache if exists
-        if self.cached:
+        if self.use_cache:
             instance_hash = self._get_instance_hash(instance)
             cache_key = f"{self.endpoint_name}:{instance_hash}"
             result = await VERTEX_CACHE.get(cache_key)
             # Compute retrieval if cache not found or used
             if result is not None:
+                self.cached = True
                 self._log_cache_usage(cache_key, "Used")
                 return result
 
         result = await self._vertex_retrieval_score(instance)
         # Update Cache
-        if self.cached:
+        if self.use_cache:
             await VERTEX_CACHE.set(cache_key, result)
             self._log_cache_usage(cache_key, "Set")
 
-        return result
+        # set model version and model display name for logging purposes
+        self.model_display_name = result.model_display_name
+        self.model_version = result.model_version
+
+        return result.recommendable_items
 
     def _log_cache_usage(self, cache_key: str, action: str) -> None:
         logger.debug(
