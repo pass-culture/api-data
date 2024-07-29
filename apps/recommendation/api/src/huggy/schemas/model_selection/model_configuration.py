@@ -11,13 +11,14 @@ class RetrievalChoices(Enum):
     RECOMMENDATION = "reco"
     MIX_RECOMMENDATION = "mix_reco"
     RAW_RECOMMENDATION = "raw_reco"
-    RECOMMENDATION_VERSIONB = "reco_b"
+    RECOMMENDATION_VERSION_B = "reco_b"
     MIX_VERSION_B = "mix_b"
     SEMANTIC = "sm"
 
 
 class RankingChoices(Enum):
     MODEL = "model"
+    VERSION_B = "version_b"
     DISTANCE = "dist"
     NO_POPULARITY = "no_pop"
     OFF = "off"
