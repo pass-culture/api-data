@@ -6,7 +6,7 @@ from typing import Optional
 from aiocache import Cache
 from aiocache.serializers import PickleSerializer
 from fastapi.encoders import jsonable_encoder
-from huggy.core.endpoint import AbstractEndpoint
+from huggy.core.endpoint import AbstractEndpoint, PredictionResultIem
 from huggy.schemas.item import RecommendableItem
 from huggy.schemas.offer import Offer
 from huggy.schemas.playlist_params import PlaylistParams
@@ -14,7 +14,6 @@ from huggy.schemas.user import UserContext
 from huggy.utils.cloud_logging import logger
 from huggy.utils.hash import hash_from_keys
 from huggy.utils.vertex_ai import endpoint_score
-from huggy.core.endpoint import PredictionResultIem
 
 VERTEX_CACHE = Cache(
     Cache.MEMORY, ttl=6000, serializer=PickleSerializer(), namespace="vertex_cache"

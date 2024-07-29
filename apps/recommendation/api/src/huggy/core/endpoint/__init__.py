@@ -1,5 +1,6 @@
 from abc import ABC
 from dataclasses import dataclass
+
 from huggy.schemas.item import RecommendableItem
 
 
