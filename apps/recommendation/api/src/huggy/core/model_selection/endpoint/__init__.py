@@ -15,3 +15,6 @@ class RetrievalEndpointName(enum.Enum):
 
 class RankingEndpointName(enum.Enum):
     recommendation_user_ranking = f"recommendation_user_ranking_{ENV_SHORT_NAME}"
+    recommendation_user_ranking_version_b = (
+        f"recommendation_user_ranking_version_b_{ENV_SHORT_NAME}"
+    )
