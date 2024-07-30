@@ -15,7 +15,7 @@ user_ranking_endpoint = ModelRankingEndpoint(
 user_ranking_endpoint_version_b = ModelRankingEndpoint(
     endpoint_name=RankingEndpointName.recommendation_user_ranking_version_b,
     size=50,
-    cached=False,
+    use_cache=False,
 )
 
 user_distance_ranking_endpoint = DistanceRankingEndpoint(
