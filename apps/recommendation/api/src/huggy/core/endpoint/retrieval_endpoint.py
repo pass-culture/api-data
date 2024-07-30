@@ -254,12 +254,12 @@ class RetrievalEndpoint(AbstractEndpoint):
         if self.use_cache:
             instance_hash = self._get_instance_hash(instance)
             cache_key = f"{self.endpoint_name}:{instance_hash}"
-            result = await VERTEX_CACHE.get(cache_key)
+            result: PredictionResultIem = await VERTEX_CACHE.get(cache_key)
             # Compute retrieval if cache not found or used
             if result is not None:
                 self.cached = True
                 self._log_cache_usage(cache_key, "Used")
-                return result
+                return result.recommendable_items
 
         result = await self._vertex_retrieval_score(instance)
         # Update Cache
