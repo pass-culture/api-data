@@ -28,7 +28,7 @@ RECOMMENDATION_ENDPOINTS = {
     # Default endpoint
     "default": RecoModelConfigurationInput(
         name="default",
-        description="""Default Configuration (cache).""",
+        description="""Default Configuration.""",
         diversification_params=DiversificationParamsInput(
             diversication_type=DiversificationChoices.ON,
         ),
@@ -40,6 +40,28 @@ RECOMMENDATION_ENDPOINTS = {
         cold_start_model_type=ModelTypeInput(
             retrieval=RetrievalChoices.TOPS,
             ranking=RankingChoices.MODEL,
+            query_order=QueryOrderChoices.ITEM_RANK,
+        ),
+        fork_params=ForkParamsInput(
+            bookings_count=2,
+            clicks_count=25,
+            favorites_count=None,
+        ),
+    ),
+    "version_b": RecoModelConfigurationInput(
+        name="version_b",
+        description="""Configuration Ranking Version B.""",
+        diversification_params=DiversificationParamsInput(
+            diversication_type=DiversificationChoices.ON,
+        ),
+        warn_model_type=ModelTypeInput(
+            retrieval=RetrievalChoices.MIX,
+            ranking=RankingChoices.VERSION_B,
+            query_order=QueryOrderChoices.ITEM_RANK,
+        ),
+        cold_start_model_type=ModelTypeInput(
+            retrieval=RetrievalChoices.TOPS,
+            ranking=RankingChoices.VERSION_B,
             query_order=QueryOrderChoices.ITEM_RANK,
         ),
         fork_params=ForkParamsInput(
@@ -152,6 +174,26 @@ SIMILAR_OFFER_ENDPOINTS = {
         cold_start_model_type=ModelTypeInput(
             retrieval=RetrievalChoices.MIX,
             ranking=RankingChoices.MODEL,
+            query_order=QueryOrderChoices.ITEM_RANK,
+        ),
+        fork_params=ForkParamsInput(
+            bookings_count=0,
+        ),
+    ),
+    "version_b": SimilarModelConfigurationInput(
+        name="version_b",
+        description="""Similar offers (ranking version b).""",
+        diversification_params=DiversificationParamsInput(
+            diversication_type=DiversificationChoices.OFF,
+        ),
+        warn_model_type=ModelTypeInput(
+            retrieval=RetrievalChoices.MIX,
+            ranking=RankingChoices.VERSION_B,
+            query_order=QueryOrderChoices.ITEM_RANK,
+        ),
+        cold_start_model_type=ModelTypeInput(
+            retrieval=RetrievalChoices.MIX,
+            ranking=RankingChoices.VERSION_B,
             query_order=QueryOrderChoices.ITEM_RANK,
         ),
         fork_params=ForkParamsInput(

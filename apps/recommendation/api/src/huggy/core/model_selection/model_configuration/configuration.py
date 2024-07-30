@@ -242,6 +242,7 @@ class ModelConfigurationInput(BaseModel):
         model = user_ranking.user_ranking_endpoint
         return {
             RankingChoices.MODEL: model,
+            RankingChoices.VERSION_B: user_ranking.user_ranking_endpoint_version_b,
             RankingChoices.DISTANCE: user_ranking.user_distance_ranking_endpoint,
             RankingChoices.NO_POPULARITY: user_ranking.no_popular_ranking_endpoint,
             RankingChoices.OFF: user_ranking.off_ranking_endpoint,
