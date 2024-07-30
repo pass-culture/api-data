@@ -1,4 +1,14 @@
 from abc import ABC
+from dataclasses import dataclass
+
+from huggy.schemas.item import RecommendableItem
+
+
+@dataclass
+class PredictionResultIem:
+    model_version: str
+    model_display_name: str
+    recommendable_items: list[RecommendableItem]
 
 
 class AbstractEndpoint(ABC):  # noqa: B024
@@ -9,7 +19,7 @@ class AbstractEndpoint(ABC):  # noqa: B024
         endpoint_name: str,
         size,
         fallback_endpoints=None,
-        cached: bool = False,  # noqa: FBT001
+        use_cache: bool = False,  # noqa: FBT001
     ) -> None:
         """
         endpoint_name : Default endpoint
@@ -20,9 +30,11 @@ class AbstractEndpoint(ABC):  # noqa: B024
         self.endpoint_name = str(endpoint_name.value)
         self.size = size
         self.fallback_endpoints = [str(x.value) for x in fallback_endpoints]
+        self.use_cache = use_cache
+        # Theses variables will be set by the model.
         self.model_version = None
         self.model_display_name = None
-        self.cached = cached
+        self.cached = False
 
     async def to_dict(self):
         return {
@@ -31,4 +43,5 @@ class AbstractEndpoint(ABC):  # noqa: B024
             "model_version": self.model_version,
             "model_display_name": self.model_display_name,
             "cached": self.cached,
+            "use_cache": self.use_cache,
         }
