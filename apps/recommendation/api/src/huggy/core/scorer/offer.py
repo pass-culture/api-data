@@ -124,18 +124,6 @@ class OfferScorer:
 
         return recommendable_offers
 
-    def _get_instance_hash(
-        self, instance: dict, ignore_keys: t.Optional[list] = None
-    ) -> str:
-        """
-        Generate a hash from the instance to use as a key for caching
-        """
-        # drop call_id from instance
-        if ignore_keys is None:
-            ignore_keys = ["call_id"]
-        keys = [k for k in instance if k not in ignore_keys]
-        return hash_from_keys(instance, keys=keys)
-
     async def get_recommendable_offers(
         self,
         db: AsyncSession,
@@ -150,7 +138,7 @@ class OfferScorer:
 
         result: CacheRecommendableOfferResult = None
         if self.use_cache:
-            instance_hash = self._get_instance_hash(
+            instance_hash = hash_from_keys(
                 {"item_ids": sorted(recommendable_items_ids.keys())}
             )
             cache_key = f"{self.user.iris_id}:{instance_hash}"
