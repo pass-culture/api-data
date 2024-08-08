@@ -1,23 +1,22 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
-from aiocache import Cache
-from aiocache.serializers import PickleSerializer
 from fastapi.encoders import jsonable_encoder
-from huggy.core.endpoint import AbstractEndpoint, PredictionResultIem
+from huggy.core.endpoint import VERTEX_CACHE, AbstractEndpoint
 from huggy.schemas.item import RecommendableItem
 from huggy.schemas.offer import Offer
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
 from huggy.utils.cloud_logging import logger
-from huggy.utils.hash import hash_from_keys
 from huggy.utils.vertex_ai import endpoint_score
 
-VERTEX_CACHE = Cache(
-    Cache.MEMORY, ttl=6000, serializer=PickleSerializer(), namespace="vertex_cache"
-)
+
+@dataclass
+class RetrievalPredictionResultItem:
+    model_version: str
+    model_display_name: str
+    recommendable_items: list[RecommendableItem]
 
 
 def to_datetime(ts):
@@ -108,18 +107,6 @@ class RetrievalEndpoint(AbstractEndpoint):
         self.user_input = str(self.user.user_id)
         self.is_geolocated = self.user.is_geolocated
 
-    def _get_instance_hash(
-        self, instance: dict, ignore_keys: Optional[list] = None
-    ) -> str:
-        """
-        Generate a hash from the instance to use as a key for caching
-        """
-        # drop call_id from instance
-        if ignore_keys is None:
-            ignore_keys = ["call_id"]
-        keys = [k for k in instance if k not in ignore_keys]
-        return hash_from_keys(instance, keys=keys)
-
     @abstractmethod
     def get_instance(self, size):
         pass
@@ -205,14 +192,16 @@ class RetrievalEndpoint(AbstractEndpoint):
 
         return filters
 
-    async def _vertex_retrieval_score(self, instance: dict) -> PredictionResultIem:
+    async def _vertex_retrieval_score(
+        self, instance: dict
+    ) -> RetrievalPredictionResultItem:
         prediction_result = await endpoint_score(
             instances=instance,
             endpoint_name=self.endpoint_name,
             fallback_endpoints=self.fallback_endpoints,
         )
 
-        return PredictionResultIem(
+        return RetrievalPredictionResultItem(
             model_version=prediction_result.model_version,
             model_display_name=prediction_result.model_display_name,
             recommendable_items=[
@@ -248,29 +237,27 @@ class RetrievalEndpoint(AbstractEndpoint):
         )
 
     async def model_score(self) -> list[RecommendableItem]:
-        # TODO same for ranking
+        result: RetrievalPredictionResultItem = None
         instance = self.get_instance(self.size)
         # Retrieve cache if exists
         if self.use_cache:
             instance_hash = self._get_instance_hash(instance)
             cache_key = f"{self.endpoint_name}:{instance_hash}"
-            result: PredictionResultIem = await VERTEX_CACHE.get(cache_key)
-            # Compute retrieval if cache not found or used
-            if result is not None:
-                self.cached = True
-                self._log_cache_usage(cache_key, "Used")
-                return result.recommendable_items
+            result: RetrievalPredictionResultItem = await VERTEX_CACHE.get(cache_key)
 
-        result = await self._vertex_retrieval_score(instance)
-        # Update Cache
-        if self.use_cache:
-            await VERTEX_CACHE.set(cache_key, result)
-            self._log_cache_usage(cache_key, "Set")
+        if result is not None:
+            self.cached = True
+            self._log_cache_usage(cache_key, "Used")
+        # Compute retrieval if cache not found or used
+        else:
+            result = await self._vertex_retrieval_score(instance)
+            if self.use_cache and result is not None:
+                await VERTEX_CACHE.set(cache_key, result)
+                self._log_cache_usage(cache_key, "Set")
 
         # set model version and model display name for logging purposes
         self.model_display_name = result.model_display_name
         self.model_version = result.model_version
-
         return result.recommendable_items
 
     def _log_cache_usage(self, cache_key: str, action: str) -> None:

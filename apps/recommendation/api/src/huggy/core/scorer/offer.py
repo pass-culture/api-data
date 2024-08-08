@@ -1,11 +1,14 @@
 import asyncio
 import typing as t
+from dataclasses import dataclass
 
 import huggy.schemas.item as i
 import huggy.schemas.offer as o
 import huggy.schemas.playlist_params as pp
 import huggy.schemas.recommendable_offer as r_o
 import huggy.schemas.user as u
+from aiocache import Cache
+from aiocache.serializers import PickleSerializer
 from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
 from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
 from huggy.crud.non_recommendable_offer import get_non_recommendable_items
@@ -14,8 +17,18 @@ from huggy.schemas.model_selection.model_configuration import QueryOrderChoices
 from huggy.utils.cloud_logging import logger
 from huggy.utils.distance import haversine_distance
 from huggy.utils.exception import log_error
+from huggy.utils.hash import hash_from_keys
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+OFFER_DB_CACHE = Cache(
+    Cache.MEMORY, ttl=6000, serializer=PickleSerializer(), namespace="offer_db_cache"
+)
+
+
+@dataclass
+class RecommendableOfferResult:
+    recommendable_offer: list[r_o.RecommendableOffer]
 
 
 class OfferScorer:
@@ -35,6 +48,8 @@ class OfferScorer:
         self.params_in = params_in
         self.retrieval_endpoints = retrieval_endpoints
         self.ranking_endpoint = ranking_endpoint
+        self.use_cache = True
+        self.offer_cached = False
 
     async def to_dict(self):
         return {
@@ -84,6 +99,8 @@ class OfferScorer:
                 "call_id": call_id,
                 "user_id": self.user.user_id,
                 "total_offers": len(recommendable_offers),
+                "offer_cached": self.offer_cached,
+                "use_cache": self.use_cache,
             },
         )
 
@@ -118,13 +135,31 @@ class OfferScorer:
             for item in recommendable_items
             if item.item_id not in non_recommendable_items and item.item_id is not None
         }
-        return await self.get_nearest_offers(
-            db,
-            self.user,
-            recommendable_items_ids,
-            offer=self.offer,
-            query_order=self.model_params.query_order,
-        )
+
+        result: RecommendableOfferResult = None
+        if self.use_cache:
+            instance_hash = hash_from_keys(
+                {"item_ids": sorted(recommendable_items_ids.keys())}
+            )
+            cache_key = f"{self.user.iris_id}:{instance_hash}"
+            result: RecommendableOfferResult = await OFFER_DB_CACHE.get(cache_key)
+
+        if result is not None:
+            self.offer_cached = True
+
+        else:
+            # get nearest offers
+            result = await self.get_nearest_offers(
+                db,
+                self.user,
+                recommendable_items_ids,
+                offer=self.offer,
+                query_order=self.model_params.query_order,
+            )
+            if self.use_cache and result is not None:
+                await OFFER_DB_CACHE.set(cache_key, result)
+
+        return result.recommendable_offer
 
     async def get_distance(
         self,
@@ -163,7 +198,7 @@ class OfferScorer:
         limit: int = 500,
         offer: t.Optional[o.Offer] = None,
         query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK,
-    ) -> list[r_o.RecommendableOffer]:
+    ) -> RecommendableOfferResult:
         recommendable_offers = []
         multiple_item_offers = []
         for v in recommendable_items_ids.values():
@@ -207,4 +242,4 @@ class OfferScorer:
 
         except ProgrammingError as exc:
             log_error(exc, message="Exception error on get_nearest_offers")
-        return recommendable_offers
+        return RecommendableOfferResult(recommendable_offer=recommendable_offers)

@@ -1,14 +1,13 @@
 from abc import ABC
-from dataclasses import dataclass
+from typing import Optional
 
-from huggy.schemas.item import RecommendableItem
+from aiocache import Cache
+from aiocache.serializers import PickleSerializer
+from huggy.utils.hash import hash_from_keys
 
-
-@dataclass
-class PredictionResultIem:
-    model_version: str
-    model_display_name: str
-    recommendable_items: list[RecommendableItem]
+VERTEX_CACHE = Cache(
+    Cache.MEMORY, ttl=6000, serializer=PickleSerializer(), namespace="vertex_cache"
+)
 
 
 class AbstractEndpoint(ABC):  # noqa: B024
@@ -45,3 +44,15 @@ class AbstractEndpoint(ABC):  # noqa: B024
             "cached": self.cached,
             "use_cache": self.use_cache,
         }
+
+    def _get_instance_hash(
+        self, instance: dict, ignore_keys: Optional[list] = None
+    ) -> str:
+        """
+        Generate a hash from the instance to use as a key for caching
+        """
+        # drop call_id from instance
+        if ignore_keys is None:
+            ignore_keys = ["call_id"]
+        keys = [k for k in instance if k not in ignore_keys]
+        return hash_from_keys(instance, keys=keys)
