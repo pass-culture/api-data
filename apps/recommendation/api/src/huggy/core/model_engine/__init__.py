@@ -142,7 +142,7 @@ class ModelEngine(ABC):
             if self.offer is not None:
                 context_extra_data["offer_origin_id"] = self.offer.offer_id
 
-            for o in offers:
+            for idx, o in enumerate(offers):
                 session.add(
                     PastOfferContext(
                         call_id=self.call_id,
@@ -171,7 +171,7 @@ class ModelEngine(ABC):
                         offer_subcategory_id=o.subcategory_id,
                         offer_item_rank=o.item_rank,
                         offer_item_score=o.item_score,
-                        offer_order=o.offer_rank,
+                        offer_order=idx,  # order in the final recommendation output list
                         offer_venue_id=None,
                         offer_extra_data={
                             "offer_ranking_score": o.offer_score,
