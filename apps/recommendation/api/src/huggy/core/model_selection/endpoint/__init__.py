@@ -1,6 +1,6 @@
 import enum
 
-from huggy.utils.env_vars import ENV_SHORT_NAME
+from huggy.utils.env_vars import ENV_SHORT_NAME, RANKING_VERSION_B_ENDPOINT_NAME
 
 
 class RetrievalEndpointName(enum.Enum):
@@ -15,6 +15,4 @@ class RetrievalEndpointName(enum.Enum):
 
 class RankingEndpointName(enum.Enum):
     recommendation_user_ranking = f"recommendation_user_ranking_{ENV_SHORT_NAME}"
-    recommendation_user_ranking_version_b = (
-        f"recommendation_user_ranking_version_b_{ENV_SHORT_NAME}"
-    )
+    recommendation_user_ranking_version_b = RANKING_VERSION_B_ENDPOINT_NAME
