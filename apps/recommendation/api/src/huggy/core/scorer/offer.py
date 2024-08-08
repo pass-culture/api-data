@@ -27,7 +27,7 @@ OFFER_DB_CACHE = Cache(
 
 
 @dataclass
-class CacheRecommendableOfferResult:
+class RecommendableOfferResult:
     recommendable_offer: list[r_o.RecommendableOffer]
 
 
@@ -49,7 +49,7 @@ class OfferScorer:
         self.retrieval_endpoints = retrieval_endpoints
         self.ranking_endpoint = ranking_endpoint
         self.use_cache = True
-        self.cached = False
+        self.offer_cached = False
 
     async def to_dict(self):
         return {
@@ -136,13 +136,13 @@ class OfferScorer:
             if item.item_id not in non_recommendable_items and item.item_id is not None
         }
 
-        result: CacheRecommendableOfferResult = None
+        result: RecommendableOfferResult = None
         if self.use_cache:
             instance_hash = hash_from_keys(
                 {"item_ids": sorted(recommendable_items_ids.keys())}
             )
             cache_key = f"{self.user.iris_id}:{instance_hash}"
-            result: CacheRecommendableOfferResult = await OFFER_DB_CACHE.get(cache_key)
+            result: RecommendableOfferResult = await OFFER_DB_CACHE.get(cache_key)
 
         if result is not None:
             self.offer_cached = True
@@ -198,7 +198,7 @@ class OfferScorer:
         limit: int = 500,
         offer: t.Optional[o.Offer] = None,
         query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK,
-    ) -> list[r_o.RecommendableOffer]:
+    ) -> RecommendableOfferResult:
         recommendable_offers = []
         multiple_item_offers = []
         for v in recommendable_items_ids.values():
@@ -242,4 +242,4 @@ class OfferScorer:
 
         except ProgrammingError as exc:
             log_error(exc, message="Exception error on get_nearest_offers")
-        return recommendable_offers
+        return RecommendableOfferResult(recommendable_offer=recommendable_offers)
