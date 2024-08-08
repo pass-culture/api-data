@@ -55,6 +55,10 @@ UV is a tool that aims to replace pip and pip-tools for managing Python dependen
 make install
 ```
 
+### Troubleshooting
+
+- If `make install` fails due to pre-commit not found, please run once more `make install`.
+
 ## Formatting and static analysis
 
 ### Checking formatting and static analysis with `ruff`
@@ -77,5 +81,7 @@ make ruff-fix
 ```
 
 ## To run check micro service README
-* [Recommendation documentation](apps/recommendation/README.md)
-* [Compliance documentation](apps/fraud/compliance/api/README.md)
+
+- [Recommendation documentation](apps/recommendation/README.md)
+
+- [Compliance documentation](apps/fraud/compliance/api/README.md)
