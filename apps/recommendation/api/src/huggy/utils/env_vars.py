@@ -43,4 +43,8 @@ http_request_context = contextvars.ContextVar("http_request_context", default={}
 # config
 DEFAULT_SIMILAR_OFFER_MODEL = os.environ.get("DEFAULT_SIMILAR_OFFER_MODEL", "default")
 DEFAULT_RECO_MODEL = os.environ.get("DEFAULT_RECO_MODEL", "default")
+RANKING_VERSION_B_ENDPOINT_NAME = os.environ.get(
+    "RANKING_VERSION_B_ENDPOINT_NAME",
+    f"recommendation_user_ranking_version_b_{ENV_SHORT_NAME}",
+)
 NUMBER_OF_RECOMMENDATIONS = 40
