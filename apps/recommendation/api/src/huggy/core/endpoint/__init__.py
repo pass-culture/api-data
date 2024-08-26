@@ -45,9 +45,8 @@ class AbstractEndpoint(ABC):  # noqa: B024
             "use_cache": self.use_cache,
         }
 
-    def _get_instance_hash(
-        self, instance: dict, ignore_keys: Optional[list] = None
-    ) -> str:
+    @staticmethod
+    def _get_instance_hash(instance: dict, ignore_keys: Optional[list] = None) -> str:
         """
         Generate a hash from the instance to use as a key for caching
         """

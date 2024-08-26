@@ -21,14 +21,19 @@ from huggy.schemas.model_selection.model_configuration import (
 from huggy.schemas.offer import Offer
 from huggy.schemas.user import UserContext
 from huggy.schemas.utils import parse_input
-from huggy.utils.env_vars import DEFAULT_RECO_MODEL, DEFAULT_SIMILAR_OFFER_MODEL
+from huggy.utils.env_vars import (
+    DEFAULT_RECO_MODEL,
+    DEFAULT_RECO_MODEL_DESCRIPTION,
+    DEFAULT_SIMILAR_OFFER_DESCRIPTION,
+    DEFAULT_SIMILAR_OFFER_MODEL,
+)
 from pydantic import ValidationError
 
 RECOMMENDATION_ENDPOINTS = {
     # Default endpoint
     "default": RecoModelConfigurationInput(
         name="default",
-        description="""Default Configuration.""",
+        description=DEFAULT_RECO_MODEL_DESCRIPTION,
         diversification_params=DiversificationParamsInput(
             diversication_type=DiversificationChoices.ON,
         ),
@@ -162,7 +167,7 @@ RECOMMENDATION_ENDPOINTS = {
 SIMILAR_OFFER_ENDPOINTS = {
     "default": SimilarModelConfigurationInput(
         name="default",
-        description="""Default similar offer configuration (cache).""",
+        description=DEFAULT_SIMILAR_OFFER_DESCRIPTION,
         diversification_params=DiversificationParamsInput(
             diversication_type=DiversificationChoices.OFF,
         ),
