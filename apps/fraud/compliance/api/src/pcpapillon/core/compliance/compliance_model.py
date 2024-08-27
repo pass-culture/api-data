@@ -3,11 +3,8 @@ from typing import Union
 
 import mlflow
 from main import custom_logger
-from pcpapillon.core.compliance.predict import get_prediction_and_main_contribution
-from pcpapillon.core.compliance.preprocess import preprocess
-from pcpapillon.utils.config_handler import ConfigHandler
-from pcpapillon.utils.constants import APIType, ModelName, ModelType
-from pcpapillon.utils.model_handler import ModelHandler
+from pcpapillon.utils.constants import ModelName, ModelType
+from pcpapillon.utils.model_handler import ModelHandler, ModelWithMetadata
 from sentence_transformers import SentenceTransformer
 
 
@@ -24,44 +21,17 @@ class ComplianceModel:
     PREPROC_MODEL_TYPE = MODEL_TYPE.PREPROCESSING
 
     def __init__(self):
-        self.api_config = ConfigHandler.get_api_config(APIType.DEFAULT)
-        self.model_config = ConfigHandler.get_model_config(ModelType.DEFAULT)
         self.model_handler = ModelHandler()
         model_data = self._load_models()
-        self.classfier_model = model_data.classification_model
-        self.classifier_model_identifier = model_data.model_identifier
-        self.prepoc_models = model_data.preprocessing_models
+        self.model = model_data.model
+        self.model_identifier = model_data.model_identifier
 
     def _load_models(
         self,
-    ) -> ModelData:
-        custom_logger.info("load classification model..")
-        catboost_model_with_metadata = (
-            self.model_handler.get_model_with_metadata_by_name(
-                model_name=self.MODEL_NAME, model_type=self.MODEL_TYPE
-            )
-        )
-
-        custom_logger.info("load preprocessings model..")
-        prepoc_models = {}
-        for (
-            feature_type,
-            sentence_transformer_name,
-        ) in self.model_config.pre_trained_model_for_embedding_extraction.items():
-            prepoc_models[feature_type] = (
-                self.model_handler.get_model_with_metadata_by_name(
-                    model_name=sentence_transformer_name,
-                    model_type=self.PREPROC_MODEL_TYPE,
-                ).model
-            )
-
-        custom_logger.info(
-            f"Preprocessing models for {self.MODEL_NAME} : {prepoc_models}"
-        )
-        return ModelData(
-            classification_model=catboost_model_with_metadata.model,
-            model_identifier=catboost_model_with_metadata.model_identifier,
-            preprocessing_models=prepoc_models,
+    ) -> ModelWithMetadata:
+        custom_logger.info(f"load {self.MODEL_NAME} model..")
+        return self.model_handler.get_model_with_metadata_by_name(
+            model_name=self.MODEL_NAME, model_type=self.MODEL_TYPE
         )
 
     def predict(self, data):
@@ -70,7 +40,6 @@ class ComplianceModel:
 
         Args:
             api_config (dict): Configuration parameters for the API.
-            model_config (dict): Configuration parameters for the model.
             data (list): Input data to be predicted.
 
         Returns:
@@ -80,16 +49,7 @@ class ComplianceModel:
                 main features contributing to increase validation probability
                 main features contributing to reduce validation probability
         """
-
-        # Preprocess the data and the embedder
-        pool, data_w_emb = preprocess(
-            self.api_config, self.model_config, data, self.prepoc_models
-        )
-
-        # Run the prediction
-        return get_prediction_and_main_contribution(
-            self.classfier_model, data_w_emb, pool
-        )
+        return self.model.predict(data)
 
     def _is_newer_model_available(self) -> bool:
         return (

@@ -22,28 +22,39 @@ class ModelWithMetadata:
 
 
 class ModelHandler:
-    MODEL_STAGE = "Production"
-
     def __init__(self) -> None:
         custom_logger.info("Connecting to mlflow")
         connect_remote_mlflow()
         self.mlflow_client = MlflowClient()
 
     def get_model_with_metadata_by_name(
-        self, model_name, model_type=ModelType.DEFAULT
+        self, model_name: str, model_type=ModelType.DEFAULT
     ) -> ModelWithMetadata:
-        if model_type == ModelType.DEFAULT:
-            loaded_model = mlflow.catboost.load_model(
-                model_uri=f"models:/{self._get_mlflow_model_name(model_name)}/{self.MODEL_STAGE}"
+        print("model_name", model_name)
+        print("model_type", model_type)
+        if model_name == ModelName.COMPLIANCE:
+            loaded_model = mlflow.pyfunc.load_model(
+                model_uri=f"models:/{self._get_mlflow_model_name(model_name)}"
             )
             model_hash = self.get_model_hash_from_mlflow(model_name=model_name)
-            return ModelWithMetadata(model=loaded_model, model_identifier=model_hash)
 
-        elif model_type == ModelType.PREPROCESSING:
-            return ModelWithMetadata(
-                model=SentenceTransformer(model_name),
-                model_identifier=model_name,
+        elif model_name == ModelName.OFFER_CATEGORISATION:
+            loaded_model = mlflow.catboost.load_model(
+                model_uri=f"models:/{self._get_mlflow_model_name(model_name)}"
             )
+            model_hash = self.get_model_hash_from_mlflow(model_name=model_name)
+        else:
+            if model_type == ModelType.PREPROCESSING:
+                loaded_model = SentenceTransformer(model_name)
+                model_hash = f"hash_preproc_{model_name}"
+            else:
+                raise ValueError(
+                    f"Model name {model_name} not found with type {model_type}"
+                )
+        return ModelWithMetadata(
+            model=loaded_model,
+            model_identifier=model_hash,
+        )
 
     @staticmethod
     def _get_hash(obj):
@@ -51,20 +62,18 @@ class ModelHandler:
         return hashlib.md5(obj_bytes).hexdigest()
 
     def get_model_hash_from_mlflow(self, model_name: str):
-        mlflow_model_name = self._get_mlflow_model_name(model_name=model_name)
-        if not self.mlflow_client:
-            raise ValueError("No mlflow client connected")
+        # mlflow_model_name = self._get_mlflow_model_name(model_name=model_name)
+        # if not self.mlflow_client:
+        #     raise ValueError("No mlflow client connected")
 
-        model_version = self.mlflow_client.get_latest_versions(
-            mlflow_model_name, stages=[self.MODEL_STAGE]
-        )
+        # model_version = self.mlflow_client.get_latest_versions(mlflow_model_name)
 
-        return self._get_hash(model_version)
+        # return self._get_hash(model_version)
+        return f"{model_name}-12345"
 
     @staticmethod
     def _get_mlflow_model_name(model_name: ModelName):
         if model_name == ModelName.COMPLIANCE:
-            return f"{model_name.value}_default_{ENV_SHORT_NAME}"
+            return f"api_{model_name.value}_default_{ENV_SHORT_NAME}@production"
         elif model_name == ModelName.OFFER_CATEGORISATION:
-            return f"{model_name.value}_{ENV_SHORT_NAME}"
-        raise ValueError(f"Only {ModelName.__members__} are registered in mlflow")
+            return f"{model_name.value}_{ENV_SHORT_NAME}/production"

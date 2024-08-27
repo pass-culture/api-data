@@ -33,19 +33,14 @@ def model_compliance_scoring(scoring_input: ComplianceInput):
         "scoring_input": scoring_input.dict(),
     }
 
-    (
-        proba_validation,
-        proba_rejection,
-        top_validation,
-        top_rejection,
-    ) = compliance_model.predict(data=scoring_input.dict())
+    predictions = compliance_model.predict(data=scoring_input.dict())
 
     validation_response_dict = {
         "offer_id": scoring_input.dict()["offer_id"],
-        "probability_validated": proba_validation,
-        "validation_main_features": top_validation,
-        "probability_rejected": proba_rejection,
-        "rejection_main_features": top_rejection,
+        "probability_validated": predictions.probability_validated,
+        "validation_main_features": predictions.validation_main_features,
+        "probability_rejected": predictions.probability_rejected,
+        "rejection_main_features": predictions.rejection_main_features,
     }
     custom_logger.info(validation_response_dict, extra=log_extra_data)
     return validation_response_dict
