@@ -43,12 +43,8 @@ class ComplianceModel:
             data (ComplianceInput): Input data to be predicted.
 
         Returns:
-
-            tuple: A tuple containing the predicted class labels and the main contribution.
-                offer validition probability
-                offer rejection probability (=1-proba_val)
-                main features contributing to increase validation probability
-                main features contributing to reduce validation probability
+            ComplianceOutput: An object containing the predicted class labels
+                and the main contributions.
         """
         predictions = self.model.predict(data.dict())
         return ComplianceOutput(

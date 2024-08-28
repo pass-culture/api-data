@@ -1,5 +1,6 @@
 import hashlib
 import pickle
+import re
 from dataclasses import dataclass
 from typing import Union
 
@@ -30,8 +31,6 @@ class ModelHandler:
     def get_model_with_metadata_by_name(
         self, model_name: str, model_type=ModelType.DEFAULT
     ) -> ModelWithMetadata:
-        print("model_name", model_name)
-        print("model_type", model_type)
         if model_name == ModelName.COMPLIANCE:
             loaded_model = mlflow.pyfunc.load_model(
                 model_uri=f"models:/{self._get_mlflow_model_name(model_name)}"
@@ -62,14 +61,15 @@ class ModelHandler:
         return hashlib.md5(obj_bytes).hexdigest()
 
     def get_model_hash_from_mlflow(self, model_name: str):
-        # mlflow_model_name = self._get_mlflow_model_name(model_name=model_name)
-        # if not self.mlflow_client:
-        #     raise ValueError("No mlflow client connected")
+        SPLIT_PATTERN = "/|@"
 
-        # model_version = self.mlflow_client.get_latest_versions(mlflow_model_name)
+        mlflow_model_name = self._get_mlflow_model_name(model_name=model_name)
+        mlflow_model_name_stripped = re.split(SPLIT_PATTERN, mlflow_model_name)[0]
 
-        # return self._get_hash(model_version)
-        return f"{model_name}-12345"
+        model_version = self.mlflow_client.get_latest_versions(
+            mlflow_model_name_stripped
+        )
+        return self._get_hash(model_version)
 
     @staticmethod
     def _get_mlflow_model_name(model_name: ModelName):
