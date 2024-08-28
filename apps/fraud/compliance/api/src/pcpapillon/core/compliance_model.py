@@ -4,6 +4,7 @@ from typing import Union
 import mlflow
 from main import custom_logger
 from pcpapillon.utils.constants import ModelName, ModelType
+from pcpapillon.utils.data_model import ComplianceInput, ComplianceOutput
 from pcpapillon.utils.model_handler import ModelHandler, ModelWithMetadata
 from sentence_transformers import SentenceTransformer
 
@@ -34,22 +35,29 @@ class ComplianceModel:
             model_name=self.MODEL_NAME, model_type=self.MODEL_TYPE
         )
 
-    def predict(self, data):
+    def predict(self, data: ComplianceInput) -> ComplianceOutput:
         """
         Predicts the class labels for the given data using the trained classifier model.
 
         Args:
-            api_config (dict): Configuration parameters for the API.
-            data (list): Input data to be predicted.
+            data (ComplianceInput): Input data to be predicted.
 
         Returns:
+
             tuple: A tuple containing the predicted class labels and the main contribution.
                 offer validition probability
                 offer rejection probability (=1-proba_val)
                 main features contributing to increase validation probability
                 main features contributing to reduce validation probability
         """
-        return self.model.predict(data)
+        predictions = self.model.predict(data.dict())
+        return ComplianceOutput(
+            offer_id=data.offer_id,
+            probability_validated=predictions.probability_validated,
+            validation_main_features=predictions.validation_main_features,
+            probability_rejected=predictions.probability_rejected,
+            rejection_main_features=predictions.rejection_main_features,
+        )
 
     def _is_newer_model_available(self) -> bool:
         return (

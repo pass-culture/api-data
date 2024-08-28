@@ -15,7 +15,6 @@ class ModelType(Enum):
     Enum class for model types
     """
 
-    LOCAL = "local"
     DEFAULT = "default"
     PREPROCESSING = "custom_sentence_transformer"
 
