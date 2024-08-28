@@ -1,5 +1,5 @@
 init:
-	pyenv install 3.9 -s
+	pyenv install 3.10 -s
 	@eval "$$(pyenv init -)" && pyenv virtualenv 3.9 api-data-fraud-compliance && pyenv local api-data-fraud-compliance
 
 install_with_uv:

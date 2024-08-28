@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 from main import custom_logger, setup_trace
-from pcpapillon.core.offer_categorisation.offer_categorisation_model import (
+from pcpapillon.core.offer_categorisation_model import (
     OfferCategorisationModel,
 )
 from pcpapillon.utils.data_model import (
