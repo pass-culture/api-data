@@ -43,26 +43,21 @@ class ComplianceModel:
         )
 
     def _is_newer_model_available(self) -> bool:
-        return (
-            self.classifier_model_identifier
-            != self.model_handler.get_model_hash_from_mlflow(self.MODEL_NAME)
+        return self.model_identifier != self.model_handler.get_model_hash_from_mlflow(
+            self.MODEL_NAME
         )
 
     def reload_model_if_newer_is_available(self):
         custom_logger.debug("Checking if newer model is available...")
         if self._is_newer_model_available():
             custom_logger.info("New model available: Loading it...")
-            classfier_model_with_metadata = (
-                self.model_handler.get_model_with_metadata_by_name(
-                    model_name=self.MODEL_NAME, model_type=self.MODEL_TYPE
-                )
+            new_model = self.model_handler.get_model_with_metadata_by_name(
+                model_name=self.MODEL_NAME, model_type=self.MODEL_TYPE
             )
-            self.classfier_model, self.classifier_model_identifier = (
-                classfier_model_with_metadata.model,
-                classfier_model_with_metadata.model_identifier,
+            self.classfier_model, self.model_identifier = (
+                new_model.model,
+                new_model.model_identifier,
             )
-            custom_logger.info(
-                f"...New model loaded with hash {self.classifier_model_identifier}"
-            )
+            custom_logger.info(f"...New model loaded with hash {self.model_identifier}")
         else:
             custom_logger.debug("...No newer model available")

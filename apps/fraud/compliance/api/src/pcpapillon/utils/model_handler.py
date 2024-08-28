@@ -44,7 +44,7 @@ class ModelHandler:
             model_hash = self.get_model_hash_from_mlflow(model_name=model_name)
         else:
             if model_type == ModelType.PREPROCESSING:
-                loaded_model = SentenceTransformer(model_name)
+                loaded_model = SentenceTransformer(model_name, device="cpu")
                 model_hash = f"hash_preproc_{model_name}"
             else:
                 raise ValueError(
