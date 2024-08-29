@@ -1,14 +1,13 @@
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 from main import custom_logger, setup_trace
-from pcpapillon.core.compliance.compliance_model import (
+from pcpapillon.core.compliance_model import (
     ComplianceModel,
 )
 from pcpapillon.utils.data_model import (
     ComplianceInput,
     ComplianceOutput,
 )
-from pcpapillon.utils.env_vars import IS_API_LOCAL
 from pcpapillon.utils.scheduler import init_scheduler
 
 compliance_router = APIRouter(tags=["compliance"])
@@ -16,10 +15,9 @@ compliance_router = APIRouter(tags=["compliance"])
 
 # Init model and scheduler
 compliance_model = ComplianceModel()
-if not IS_API_LOCAL:
-    compliance_scheduler = init_scheduler(
-        compliance_model.reload_model_if_newer_is_available, time_interval=600
-    )
+compliance_scheduler = init_scheduler(
+    compliance_model.reload_model_if_newer_is_available, time_interval=600
+)
 
 
 @compliance_router.post(
@@ -35,19 +33,7 @@ def model_compliance_scoring(scoring_input: ComplianceInput):
         "scoring_input": scoring_input.dict(),
     }
 
-    (
-        proba_validation,
-        proba_rejection,
-        top_validation,
-        top_rejection,
-    ) = compliance_model.predict(data=scoring_input.dict())
+    predictions = compliance_model.predict(data=scoring_input)
 
-    validation_response_dict = {
-        "offer_id": scoring_input.dict()["offer_id"],
-        "probability_validated": proba_validation,
-        "validation_main_features": top_validation,
-        "probability_rejected": proba_rejection,
-        "rejection_main_features": top_rejection,
-    }
-    custom_logger.info(validation_response_dict, extra=log_extra_data)
-    return validation_response_dict
+    custom_logger.info(predictions.dict(), extra=log_extra_data)
+    return predictions

@@ -4,12 +4,15 @@ alembic==1.13.2
     # via mlflow
 anyio==4.4.0
     # via starlette
+apscheduler==3.10.4
+    # via -r requirements.in
+asttokens==2.4.1
+    # via stack-data
 blinker==1.8.2
     # via flask
 cachetools==5.4.0
     # via google-auth
-apscheduler==3.10.4
-catboost==1.2
+catboost==1.2.5
     # via -r requirements.in
 certifi==2024.7.4
     # via requests
@@ -17,23 +20,23 @@ charset-normalizer==3.3.2
     # via requests
 click==8.1.7
     # via
-    #   databricks-cli
     #   flask
     #   mlflow
     #   nltk
     #   uvicorn
-cloudpickle==2.2.1
+cloudpickle==3.0.0
     # via
+    #   -r requirements.in
     #   mlflow
     #   shap
 contourpy==1.2.1
     # via matplotlib
 cycler==0.12.1
     # via matplotlib
-databricks-cli==0.18.0
-    # via mlflow
 dataclass-wizard==0.22.2
     # via -r requirements.in
+decorator==5.1.1
+    # via ipython
 docker==6.1.3
     # via mlflow
 ecdsa==0.19.0
@@ -41,7 +44,11 @@ ecdsa==0.19.0
 entrypoints==0.4
     # via mlflow
 exceptiongroup==1.2.2
-    # via anyio
+    # via
+    #   anyio
+    #   ipython
+executing==2.0.1
+    # via stack-data
 fastapi==0.95.1
     # via
     #   -r requirements.in
@@ -152,14 +159,13 @@ idna==3.7
     #   anyio
     #   requests
 importlib-metadata==6.11.0
-    # via
-    #   flask
-    #   markdown
-    #   mlflow
-importlib-resources==6.4.0
-    # via matplotlib
+    # via mlflow
+ipython==8.24.0
+    # via -r requirements.in
 itsdangerous==2.2.0
     # via flask
+jedi==0.19.1
+    # via ipython
 jinja2==3.1.4
     # via
     #   flask
@@ -186,11 +192,14 @@ markupsafe==2.1.5
     #   jinja2
     #   mako
     #   werkzeug
-matplotlib==3.8.4
+matplotlib==3.9.2
     # via
+    #   -r requirements.in
     #   catboost
     #   mlflow
-mlflow==2.3.1
+matplotlib-inline==0.1.7
+    # via ipython
+mlflow==2.10.2
     # via -r requirements.in
 mpmath==1.3.0
     # via sympy
@@ -200,7 +209,7 @@ nltk==3.8.1
     # via sentence-transformers
 numba==0.60.0
     # via shap
-numpy==1.22.0
+numpy==1.26.4
     # via
     #   -r requirements.in
     #   catboost
@@ -249,8 +258,6 @@ nvidia-nvtx-cu12==12.1.105
     # via torch
 oauth2client==4.1.3
     # via -r requirements.in
-oauthlib==3.2.2
-    # via databricks-cli
 packaging==23.2
     # via
     #   docker
@@ -260,18 +267,24 @@ packaging==23.2
     #   plotly
     #   shap
     #   transformers
-pandas==2.0.1
+pandas==2.2.0
     # via
     #   -r requirements.in
     #   catboost
     #   mlflow
     #   shap
+parso==0.8.4
+    # via jedi
+pexpect==4.9.0
+    # via ipython
 pillow==10.4.0
     # via
     #   matplotlib
     #   torchvision
 plotly==5.22.0
     # via catboost
+prompt-toolkit==3.0.47
+    # via ipython
 proto-plus==1.24.0
     # via
     #   google-cloud-appengine-logging
@@ -288,6 +301,12 @@ protobuf==3.20.3
     #   grpcio-status
     #   mlflow
     #   proto-plus
+psutil==5.9.8
+    # via -r requirements.in
+ptyprocess==0.7.0
+    # via pexpect
+pure-eval==0.2.3
+    # via stack-data
 pyarrow==11.0.0
     # via mlflow
 pyasn1==0.6.0
@@ -302,8 +321,8 @@ pyasn1-modules==0.4.0
     #   oauth2client
 pydantic==1.10.17
     # via fastapi
-pyjwt==2.8.0
-    # via databricks-cli
+pygments==2.18.0
+    # via ipython
 pyparsing==3.1.2
     # via
     #   httplib2
@@ -318,6 +337,7 @@ python-multipart==0.0.6
     # via -r requirements.in
 pytz==2023.4
     # via
+    #   apscheduler
     #   mlflow
     #   pandas
 pyyaml==6.0.1
@@ -334,7 +354,6 @@ regex==2024.5.15
     #   transformers
 requests==2.32.3
     # via
-    #   databricks-cli
     #   docker
     #   google-api-core
     #   google-cloud-storage
@@ -350,13 +369,15 @@ ruff==0.4.7
     # via -r requirements.in
 safetensors==0.4.3
     # via transformers
-scikit-learn==1.5.1
+scikit-learn==1.5.0
     # via
+    #   -r requirements.in
     #   mlflow
     #   sentence-transformers
     #   shap
-scipy==1.11.4
+scipy==1.13.1
     # via
+    #   -r requirements.in
     #   catboost
     #   mlflow
     #   scikit-learn
@@ -368,18 +389,19 @@ sentencepiece==0.2.0
     # via sentence-transformers
 setuptools==70.3.0
     # via gunicorn
-shap==0.41.0
+shap==0.46.0
     # via -r requirements.in
 six==1.16.0
     # via
+    #   apscheduler
+    #   asttokens
     #   catboost
-    #   databricks-cli
     #   ecdsa
     #   google-api-python-client
     #   oauth2client
     #   python-dateutil
     #   querystring-parser
-slicer==0.0.7
+slicer==0.0.8
     # via shap
 smmap==5.0.1
     # via gitdb
@@ -391,14 +413,14 @@ sqlalchemy==2.0.31
     #   mlflow
 sqlparse==0.5.1
     # via mlflow
+stack-data==0.6.3
+    # via ipython
 starlette==0.26.1
     # via
     #   fastapi
     #   fastapi-versioning
 sympy==1.13.0
     # via torch
-tabulate==0.9.0
-    # via databricks-cli
 tenacity==8.5.0
     # via plotly
 threadpoolctl==3.5.0
@@ -418,6 +440,10 @@ tqdm==4.66.4
     #   sentence-transformers
     #   shap
     #   transformers
+traitlets==5.14.3
+    # via
+    #   ipython
+    #   matplotlib-inline
 transformers==4.42.4
     # via sentence-transformers
 triton==2.3.1
@@ -426,28 +452,28 @@ typing-extensions==4.12.2
     # via
     #   alembic
     #   anyio
-    #   dataclass-wizard
     #   huggingface-hub
+    #   ipython
     #   pydantic
     #   sqlalchemy
-    #   starlette
     #   torch
 tzdata==2024.1
     # via pandas
+tzlocal==5.2
+    # via apscheduler
 uritemplate==3.0.1
     # via google-api-python-client
 urllib3==2.2.2
     # via
-    #   databricks-cli
     #   docker
     #   requests
 uvicorn==0.22.0
     # via -r requirements.in
+wcwidth==0.2.13
+    # via prompt-toolkit
 websocket-client==1.8.0
     # via docker
 werkzeug==3.0.3
     # via flask
 zipp==3.19.2
-    # via
-    #   importlib-metadata
-    #   importlib-resources
+    # via importlib-metadata
