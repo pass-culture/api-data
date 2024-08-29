@@ -1,12 +1,11 @@
 from main import custom_logger
-from pcpapillon.utils.constants import ModelName, ModelType
+from pcpapillon.utils.constants import ModelName
 from pcpapillon.utils.data_model import ComplianceInput, ComplianceOutput
 from pcpapillon.utils.model_handler import ModelHandler, ModelWithMetadata
 
 
 class ComplianceModel:
     MODEL_NAME = ModelName.COMPLIANCE
-    MODEL_TYPE = ModelType.DEFAULT
 
     def __init__(self):
         self.model_handler = ModelHandler()
