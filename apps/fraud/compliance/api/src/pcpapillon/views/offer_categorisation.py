@@ -29,13 +29,9 @@ def model_categorisation(input: OfferCategorisationInput):
         "scoring_input": input.dict(),
     }
 
-    most_probable_subcategories = offer_categorisation_model.predict(
+    formatted_predictions = offer_categorisation_model.predict(
         input=input,
-        num_offers_to_return=NUM_OFFERS_TO_RETURN,
     )
 
-    output_data = {
-        "most_probable_subcategories": most_probable_subcategories,
-    }
-    custom_logger.info(output_data, extra=log_extra_data)
-    return output_data
+    custom_logger.info(formatted_predictions.dict(), extra=log_extra_data)
+    return formatted_predictions

@@ -30,7 +30,8 @@ class OfferCategorisationModel:
         """
         predictions = self.model.predict(data.dict())
         print(predictions)
-        return predictions
+
+        return OfferCategorisationOutput(most_probable_subcategories=predictions)
 
     def _load_models(self) -> ModelWithMetadata:
         custom_logger.info("Load offer categorisation model..")
