@@ -18,7 +18,7 @@ class ComplianceModel:
     ) -> ModelWithMetadata:
         custom_logger.info(f"load {self.MODEL_NAME} model..")
         return self.model_handler.get_model_with_metadata_by_name(
-            model_name=self.MODEL_NAME, model_type=self.MODEL_TYPE
+            model_name=self.MODEL_NAME
         )
 
     def predict(self, data: ComplianceInput) -> ComplianceOutput:

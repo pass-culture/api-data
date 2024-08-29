@@ -2,13 +2,13 @@ import time
 
 import numpy as np
 import pandas as pd
-from api.src.pcpapillon.utils.data_model import (
-    OfferCategorisationInput,
-    OfferCategorisationOutput,
-)
 from main import custom_logger
 from pcpapillon.utils.constants import (
     ModelName,
+)
+from pcpapillon.utils.data_model import (
+    OfferCategorisationInput,
+    OfferCategorisationOutput,
 )
 from pcpapillon.utils.model_handler import ModelHandler, ModelWithMetadata
 
