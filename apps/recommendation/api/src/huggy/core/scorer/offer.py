@@ -22,7 +22,7 @@ from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 OFFER_DB_CACHE = Cache(
-    Cache.MEMORY, ttl=6000, serializer=PickleSerializer(), namespace="offer_db_cache"
+    Cache.MEMORY, ttl=3000, serializer=PickleSerializer(), namespace="offer_db_cache"
 )
 
 
