@@ -6,7 +6,7 @@ from aiocache.serializers import PickleSerializer
 from huggy.utils.hash import hash_from_keys
 
 VERTEX_CACHE = Cache(
-    Cache.MEMORY, ttl=6000, serializer=PickleSerializer(), namespace="vertex_cache"
+    Cache.MEMORY, ttl=3000, serializer=PickleSerializer(), namespace="vertex_cache"
 )
 
 
