@@ -22,10 +22,12 @@ from huggy.schemas.offer import Offer
 from huggy.schemas.user import UserContext
 from huggy.schemas.utils import parse_input
 from huggy.utils.env_vars import (
-    DEFAULT_RECO_MODEL,
     DEFAULT_RECO_MODEL_DESCRIPTION,
     DEFAULT_SIMILAR_OFFER_DESCRIPTION,
-    DEFAULT_SIMILAR_OFFER_MODEL,
+    RECO_MODEL_CONTEXT,
+    SIMILAR_OFFER_MODEL_CONTEXT,
+    VERSION_B_RECO_MODEL_DESCRIPTION,
+    VERSION_B_SIMILAR_OFFER_DESCRIPTION,
 )
 from pydantic import ValidationError
 
@@ -55,7 +57,7 @@ RECOMMENDATION_ENDPOINTS = {
     ),
     "version_b": RecoModelConfigurationInput(
         name="version_b",
-        description="""Configuration Ranking Version B.""",
+        description=VERSION_B_RECO_MODEL_DESCRIPTION,
         diversification_params=DiversificationParamsInput(
             diversication_type=DiversificationChoices.ON,
         ),
@@ -187,7 +189,7 @@ SIMILAR_OFFER_ENDPOINTS = {
     ),
     "version_b": SimilarModelConfigurationInput(
         name="version_b",
-        description="""Similar offers (ranking version b).""",
+        description=VERSION_B_SIMILAR_OFFER_DESCRIPTION,
         diversification_params=DiversificationParamsInput(
             diversication_type=DiversificationChoices.OFF,
         ),
@@ -240,7 +242,7 @@ def select_reco_model_params(model_endpoint: str, user: UserContext) -> ForkOut:
         model_fork = model_endpoint.custom_configuration.generate()
     else:
         if model_name not in list(RECOMMENDATION_ENDPOINTS.keys()):
-            model_name = DEFAULT_RECO_MODEL
+            model_name = RECO_MODEL_CONTEXT
         model_fork = RECOMMENDATION_ENDPOINTS[model_name].generate()
     return model_fork.get_user_status(user=user, model_origin=model_name)
 
@@ -259,7 +261,7 @@ def select_sim_model_params(
         model_fork = model_endpoint.custom_configuration.generate()
     else:
         if model_name not in list(SIMILAR_OFFER_ENDPOINTS.keys()):
-            model_name = DEFAULT_SIMILAR_OFFER_MODEL
+            model_name = SIMILAR_OFFER_MODEL_CONTEXT
         model_fork = SIMILAR_OFFER_ENDPOINTS[model_name].generate()
     return model_fork.get_offer_status(
         offer=offer, offers=offers, model_origin=model_name

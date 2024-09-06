@@ -15,9 +15,8 @@ class RecommendableOffer:
     async def is_geolocated(self, user: UserContext, offer: o.Offer) -> bool:
         if user is not None and user.is_geolocated:
             return True
-        if offer is not None and offer.is_geolocated:
-            return True
-        return False
+        else:
+            return bool(offer is not None and offer.is_geolocated)
 
     async def get_nearest_offers(
         self,
