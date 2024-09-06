@@ -41,16 +41,23 @@ call_id_trace_context = contextvars.ContextVar("call_id_context", default="")
 http_request_context = contextvars.ContextVar("http_request_context", default={})
 
 # config
-DEFAULT_SIMILAR_OFFER_MODEL = os.environ.get("DEFAULT_SIMILAR_OFFER_MODEL", "default")
+SIMILAR_OFFER_MODEL_CONTEXT = os.environ.get("SIMILAR_OFFER_MODEL_CONTEXT", "default")
+RECO_MODEL_CONTEXT = os.environ.get("RECO_MODEL_CONTEXT", "default")
+
 DEFAULT_SIMILAR_OFFER_DESCRIPTION = os.environ.get(
     "DEFAULT_SIMILAR_OFFER_DESCRIPTION", "Similar Offer Configuration (default)"
 )
 
-DEFAULT_RECO_MODEL = os.environ.get("DEFAULT_RECO_MODEL", "default")
 DEFAULT_RECO_MODEL_DESCRIPTION = os.environ.get(
     "DEFAULT_RECO_MODEL_DESCRIPTION", "Recommendation Configuration (default)"
 )
 
+VERSION_B_RECO_MODEL_DESCRIPTION = os.environ.get(
+    "VERSION_B_RECO_MODEL_DESCRIPTION", "Recommendation Configuration (version B)"
+)
+VERSION_B_SIMILAR_OFFER_DESCRIPTION = os.environ.get(
+    "VERSION_B_SIMILAR_OFFER_DESCRIPTION", "Similar Offer Configuration (version B)"
+)
 # endpoints
 RANKING_VERSION_B_ENDPOINT_NAME = os.environ.get(
     "RANKING_VERSION_B_ENDPOINT_NAME",
