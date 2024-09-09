@@ -17,7 +17,7 @@ on:
 env:
   DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
   API_LOCAL: 1
-  API_RECO_SECRET_NAME: ${{ vars.API_RECO_SECRET_NAME }}
+  API_BACKEND_REFRESH_TOKEN_NAME: ${{ vars.API_BACKEND_REFRESH_TOKEN_NAME }}
 
 jobs:
   tests-integration-api-reco:
@@ -27,10 +27,9 @@ jobs:
     permissions:
       contents: 'write'
       id-token: 'write'
-    container: postman/newman:5.3
     defaults:
-     run: 
-       working-directory: "apps/recommendation/api/postman"
+     run:
+       working-directory: "apps/recommendation/api/api_tests"
     steps:
       - uses: actions/checkout@v4
       - name: "Connect to Secret Manager"
@@ -52,17 +51,24 @@ jobs:
         with:
           workload_identity_provider: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
+      - uses: actions/setup-python@v4.7.0
+        with:
+         python-version: "3.10"
       - name: "Get secrets data for Slack"
         id: 'secrets-data'
         uses: 'google-github-actions/get-secretmanager-secrets@v2'
         with:
           secrets: |-
-            API_RECO_TOKEN:${{ env.DATA_GCP_PROJECT }}/${{ env.API_RECO_SECRET_NAME }}
-      - name: "Run tests collection"
+            API_REFRESH_TOKEN:${{ env.DATA_GCP_PROJECT }}/${{ env.API_BACKEND_REFRESH_TOKEN_NAME }}
+      - uses: yezz123/setup-uv@v4
+      - name : "Install requirements"
+        run: uv pip install --system -r requirements.txt
+
+      - name : "Run tests"
         run: |
-          newman run api_integration_tests.postman_collection.json \
-            --environment ${{ inputs.TARGET_ENV }}.postman_environment.json \
-            --env-var "api_token=${{ steps.secrets-data.outputs.API_RECO_TOKEN }}"
+          export ENV_SHORT_NAME='${{ inputs.TARGET_ENV }}'
+          export REFRESH_TOKEN='${{ steps.secrets-data.outputs.API_REFRESH_TOKEN }}'
+          pytest --cov
       - name: "Post to a Slack channel"
         if: failure()
         uses: slackapi/slack-github-action@v1.23.0
