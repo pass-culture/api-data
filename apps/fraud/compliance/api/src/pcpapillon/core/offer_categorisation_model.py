@@ -12,14 +12,15 @@ from pcpapillon.utils.model_handler import ModelHandler, ModelWithMetadata
 
 class OfferCategorisationModel:
     MODEL_NAME = ModelName.OFFER_CATEGORISATION
-    NUM_OFFERS_TO_RETURN = 3
 
     def __init__(self):
         self.model_handler = ModelHandler()
         model_data = self._load_models()
         self.model = model_data.model
 
-    def predict(self, data: OfferCategorisationInput) -> OfferCategorisationOutput:
+    def predict(
+        self, data: OfferCategorisationInput, num_offers_to_return: int
+    ) -> OfferCategorisationOutput:
         """
         Predicts the class labels for the given data using the trained classifier model.
 
@@ -31,6 +32,8 @@ class OfferCategorisationModel:
                 and the main contributions.
         """
         predictions = self.model.predict(data.dict())
+
+        num_offers_to_return = min(num_offers_to_return, len(predictions.subcategory))
         predictions_df = (
             pd.DataFrame(
                 {
@@ -39,7 +42,7 @@ class OfferCategorisationModel:
                 }
             )
             .sort_values("probability", ascending=False)
-            .iloc[: self.NUM_OFFERS_TO_RETURN]
+            .iloc[:num_offers_to_return]
         )
 
         return OfferCategorisationOutput(
