@@ -57,6 +57,4 @@ class ModelHandler:
 
     @staticmethod
     def _get_mlflow_model_name(model_name: ModelName):
-        return (
-            f"api_{model_name.value}_default_{ENV_SHORT_NAME}{ModelHandler.MODEL_ALIAS}"
-        )
+        return f"api_{model_name.value}_{ENV_SHORT_NAME}{ModelHandler.MODEL_ALIAS}"
