@@ -30,7 +30,7 @@ def model_categorisation(input: OfferCategorisationInput):
     }
 
     formatted_predictions = offer_categorisation_model.predict(
-        input=input,
+        data=input,
     )
 
     custom_logger.info(formatted_predictions.dict(), extra=log_extra_data)

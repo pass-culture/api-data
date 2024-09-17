@@ -1,3 +1,4 @@
+import pandas as pd
 from main import custom_logger
 from pcpapillon.utils.constants import (
     ModelName,
@@ -11,6 +12,7 @@ from pcpapillon.utils.model_handler import ModelHandler, ModelWithMetadata
 
 class OfferCategorisationModel:
     MODEL_NAME = ModelName.OFFER_CATEGORISATION
+    NUM_OFFERS_TO_RETURN = 3
 
     def __init__(self):
         self.model_handler = ModelHandler()
@@ -29,9 +31,20 @@ class OfferCategorisationModel:
                 and the main contributions.
         """
         predictions = self.model.predict(data.dict())
-        print(predictions)
+        predictions_df = (
+            pd.DataFrame(
+                {
+                    "subcategory": predictions.subcategory,
+                    "probability": predictions.probability,
+                }
+            )
+            .sort_values("probability", ascending=False)
+            .iloc[: self.NUM_OFFERS_TO_RETURN]
+        )
 
-        return OfferCategorisationOutput(most_probable_subcategories=predictions)
+        return OfferCategorisationOutput(
+            most_probable_subcategories=predictions_df.to_dict(orient="records")
+        )
 
     def _load_models(self) -> ModelWithMetadata:
         custom_logger.info("Load offer categorisation model..")
