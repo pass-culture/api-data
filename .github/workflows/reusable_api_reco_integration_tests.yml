@@ -29,8 +29,8 @@ jobs:
       id-token: 'write'
     container: postman/newman:5.3
     defaults:
-     run: 
-       working-directory: "apps/recommendation/api/postman"
+     run:
+       working-directory: "apps/recommendation/api/postman/backend"
     steps:
       - uses: actions/checkout@v4
       - name: "Connect to Secret Manager"
@@ -60,9 +60,8 @@ jobs:
             API_RECO_TOKEN:${{ env.DATA_GCP_PROJECT }}/${{ env.API_RECO_SECRET_NAME }}
       - name: "Run tests collection"
         run: |
-          newman run api_integration_tests.postman_collection.json \
-            --environment ${{ inputs.TARGET_ENV }}.postman_environment.json \
-            --env-var "api_token=${{ steps.secrets-data.outputs.API_RECO_TOKEN }}"
+          newman run api_integration_tests_backend.postman_collection.json \
+            --environment ${{ inputs.TARGET_ENV }}_backend.postman_environment.json
       - name: "Post to a Slack channel"
         if: failure()
         uses: slackapi/slack-github-action@v1.23.0
