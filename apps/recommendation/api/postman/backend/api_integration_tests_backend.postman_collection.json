@@ -7,6 +7,41 @@
 	},
 	"item": [
 		{
+			"name": "/similar_offers/offer_id wakeup call",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"pm.test(\"Response time is less than 20s\", function () {\r",
+							"    pm.expect(pm.response.responseTime).to.be.below(20000);\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{api_url}}/similar_offers/{{offer_id}}",
+					"host": [
+						"{{api_url}}"
+					],
+					"path": [
+						"similar_offers",
+						"{{offer_id}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "/similar_offers/offer_id no params",
 			"event": [
 				{
@@ -71,7 +106,7 @@
 			"response": []
 		},
 		{
-			"name": "/similar_offers/offer_id geoloc Copy",
+			"name": "/similar_offers/offer_id geoloc",
 			"event": [
 				{
 					"listen": "test",
