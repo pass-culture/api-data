@@ -1,41 +1,15 @@
-import typing as t
+import asyncio
 from abc import abstractmethod
 from datetime import datetime
 
 from fastapi.encoders import jsonable_encoder
 from huggy.core.endpoint import AbstractEndpoint
+from huggy.core.endpoint.utils import to_days, to_float, to_int
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.recommendable_offer import RankedOffer, RecommendableOffer
 from huggy.schemas.user import UserContext
 from huggy.utils.cloud_logging import logger
 from huggy.utils.vertex_ai import endpoint_score
-
-
-def to_days(dt: datetime):
-    try:
-        if dt is not None:
-            return (dt - datetime.now()).days
-    except Exception:
-        pass
-    return None
-
-
-def to_float(x: t.Optional[float] = None):
-    try:
-        if x is not None:
-            return float(x)
-    except Exception:
-        pass
-    return None
-
-
-def to_int(x: t.Optional[int] = None):
-    try:
-        if x is not None:
-            return int(x)
-    except Exception:
-        pass
-    return None
 
 
 class RankingEndpoint(AbstractEndpoint):
@@ -138,6 +112,12 @@ class ModelRankingEndpoint(RankingEndpoint):
 
     MODEL_ORIGIN = "model"
 
+    @staticmethod
+    def batch_events(events, batch_size=200):
+        """Batch large predictions."""
+        for i in range(0, len(events), batch_size):
+            yield events[i : i + batch_size]
+
     def get_instance(
         self, recommendable_offers: list[RecommendableOffer]
     ) -> list[dict]:
@@ -184,46 +164,13 @@ class ModelRankingEndpoint(RankingEndpoint):
     async def model_score(
         self, recommendable_offers: list[RecommendableOffer]
     ) -> list[RankedOffer]:
-        instances = self.get_instance(recommendable_offers)
-        prediction_result = await endpoint_score(
-            instances=instances, endpoint_name=self.endpoint_name
-        )
-        self.model_version = prediction_result.model_version
-        self.model_display_name = prediction_result.model_display_name
-        # sort model output dict
-        prediction_dict = {
-            str(r["offer_id"]): {"offer_rank": idx, "offer_score": r["score"]}
-            for idx, r in enumerate(
-                sorted(
-                    prediction_result.predictions,
-                    key=lambda x: x["score"],
-                    reverse=True,
-                )
+        result = await self._get_predictions(recommendable_offers)
+
+        if len(result) > 0:
+            ranked_offers = self._rank_offers_by_predictions(
+                result, recommendable_offers
             )
-        }
-        logger.debug(
-            f"ranking_endpoint {self.user.user_id!s} offers : {len(recommendable_offers)}",
-            extra=prediction_dict,
-        )
-
-        ranked_offers = []
-        not_found = []
-        for row in recommendable_offers:
-            current_score = prediction_dict.get(str(row.offer_id), {})
-            offer_rank = current_score.get("offer_rank", None)
-            if offer_rank is not None:
-                ranked_offers.append(
-                    RankedOffer(
-                        offer_rank=offer_rank,
-                        offer_score=current_score.get("offer_score", None),
-                        offer_origin=self.MODEL_ORIGIN,
-                        **row.model_dump(),
-                    )
-                )
-            else:
-                not_found.append(row)
-
-        if len(not_found) > 0:
+        else:
             logger.warn(
                 "ranking_endpoint, offer not found",
                 extra=jsonable_encoder(
@@ -231,18 +178,90 @@ class ModelRankingEndpoint(RankingEndpoint):
                         "event_name": "ranking",
                         "event_details": "offer not found",
                         "user_id": self.user.user_id,
-                        "total_not_found": len(not_found),
                         "total_recommendable_offers": len(recommendable_offers),
-                        "total_ranked_offers": len(ranked_offers),
-                        "not_found": [x.dict() for x in not_found],
+                        "total_ranked_offers": 0,
+                        "recommendable_offers": recommendable_offers,
                     }
                 ),
             )
+            ranked_offers = self._rank_offers_fallback(recommendable_offers)
 
         logger.debug(
             f"ranking_endpoint {self.user.user_id!s} out : {len(ranked_offers)}"
         )
         return sorted(ranked_offers, key=lambda x: x.offer_rank, reverse=False)
+
+    async def _get_predictions(
+        self, recommendable_offers: list[RecommendableOffer]
+    ) -> list[dict]:
+        instances = self.get_instance(recommendable_offers)
+        """Retrieve predictions from the model asynchronously."""
+        results = await asyncio.gather(
+            *[
+                endpoint_score(instances=x, endpoint_name=self.endpoint_name)
+                for x in list(self.batch_events(instances, batch_size=200))
+            ]
+        )
+
+        predictions = []
+        for prediction_result in results:
+            predictions.extend(prediction_result.predictions)
+            self.model_version = prediction_result.model_version
+            self.model_display_name = prediction_result.model_display_name
+
+        return predictions
+
+    def _rank_offers_by_predictions(
+        self, predictions: list, recommendable_offers: list
+    ) -> list[RankedOffer]:
+        """Rank offers based on the model's predictions."""
+        ranked_offers = []
+
+        # Create a dictionary of offer_id -> rank and score
+        prediction_dict = {
+            str(r["offer_id"]): {"offer_rank": idx, "offer_score": r["score"]}
+            for idx, r in enumerate(
+                sorted(predictions, key=lambda x: x["score"], reverse=True)
+            )
+        }
+
+        logger.debug(
+            f"ranking_endpoint {self.user.user_id!s} offers : {len(recommendable_offers)}",
+            extra=prediction_dict,
+        )
+
+        for row in recommendable_offers:
+            current_score = prediction_dict.get(str(row.offer_id), {})
+            offer_rank = current_score.get("offer_rank")
+            if offer_rank is not None:
+                ranked_offers.append(
+                    RankedOffer(
+                        offer_rank=offer_rank,
+                        offer_score=current_score.get("offer_score"),
+                        offer_origin=self.MODEL_ORIGIN,
+                        **row.model_dump(),
+                    )
+                )
+
+        return ranked_offers
+
+    def _rank_offers_fallback(
+        self, recommendable_offers: list[RecommendableOffer]
+    ) -> list[RankedOffer]:
+        """Rank offers using a fallback method when ranking predictions are not available."""
+        recommendable_offers = sorted(
+            recommendable_offers, key=lambda x: x.item_rank, reverse=False
+        )
+
+        return [
+            RankedOffer(
+                offer_rank=float(idx),
+                offer_score=None,
+                offer_origin=self.MODEL_ORIGIN,
+                **row.model_dump(),
+            )
+            for idx, row in enumerate(recommendable_offers)
+        ]
 
 
 class NoPopularModelRankingEndpoint(ModelRankingEndpoint):
