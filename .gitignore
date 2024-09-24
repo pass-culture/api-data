@@ -170,3 +170,5 @@ cython_debug/
 
 #Locust
 *locustfile.py
+
+**/secret/*.json
