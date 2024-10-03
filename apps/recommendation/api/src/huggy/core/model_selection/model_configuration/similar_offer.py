@@ -10,16 +10,13 @@ class SimilarModelConfigurationInput(ModelConfigurationInput):
     def get_retrieval(self, model_type) -> list[RetrievalEndpoint]:
         default = [
             offer_retrieval.offer_retrieval_endpoint,
-            # offer_retrieval.semantic_offer_retrieval_endpoint,
         ]
         return {
             RetrievalChoices.MIX: default,
-            RetrievalChoices.SEMANTIC: [
-                offer_retrieval.semantic_offer_retrieval_endpoint,
+            RetrievalChoices.MIX_VERSION_B: [
+                offer_retrieval.offer_retrieval_endpoint_version_b
             ],
-            RetrievalChoices.MIX_TOPS: [
-                offer_retrieval.offer_retrieval_endpoint,
-                offer_retrieval.offer_filter_retrieval_endpoint,
+            RetrievalChoices.SEMANTIC: [
                 offer_retrieval.semantic_offer_retrieval_endpoint,
             ],
         }.get(model_type, default)

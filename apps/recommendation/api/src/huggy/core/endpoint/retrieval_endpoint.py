@@ -360,6 +360,7 @@ class OfferRetrievalEndpoint(RetrievalEndpoint):
             "similarity_metric": "l2",
             "prefilter": 1,
             "vector_column_name": "raw_embeddings",
+            "user_id": str(self.user.user_id),
         }
 
 
