@@ -282,6 +282,7 @@ class FilterRetrievalEndpoint(RetrievalEndpoint):
             "call_id": self.call_id,
             "debug": 1,
             "vector_column_name": "booking_number_desc",
+            "similarity_metric": "dot",
         }
 
 
@@ -296,6 +297,7 @@ class CreationTrendRetrievalEndpoint(RetrievalEndpoint):
             "call_id": self.call_id,
             "debug": 1,
             "vector_column_name": "booking_creation_trend_desc",
+            "similarity_metric": "dot",
         }
 
 
@@ -310,6 +312,7 @@ class ReleaseTrendRetrievalEndpoint(RetrievalEndpoint):
             "call_id": self.call_id,
             "debug": 1,
             "vector_column_name": "booking_release_trend_desc",
+            "similarity_metric": "dot",
         }
 
 
@@ -326,6 +329,7 @@ class RecommendationRetrievalEndpoint(RetrievalEndpoint):
             "debug": 1,
             "prefilter": 1,
             "vector_column_name": "raw_embeddings",
+            "similarity_metric": "dot",
         }
 
 
@@ -392,4 +396,5 @@ class OfferFilterRetrievalEndpoint(OfferRetrievalEndpoint):
             "call_id": self.call_id,
             "debug": 1,
             "vector_column_name": "booking_number_desc",
+            "similarity_metric": "dot",
         }
