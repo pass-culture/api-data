@@ -1,9 +1,10 @@
-name: Build
+name: Build SonarCloud Scan
 on:
   push:
     branches:
-      - main
-      - add-sonarcloud-cicd
+        - main
+        - staging
+        - production
   pull_request:
     types: [opened, synchronize, reopened]
 jobs:
@@ -16,6 +17,7 @@ jobs:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master
+        if: ${{ github.actor != 'dependabot[bot]' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
