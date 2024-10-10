@@ -6,7 +6,7 @@ on:
 jobs:
   run_code_review:
     runs-on: ubuntu-latest
-    if: github.event.comment.body == '/gpt-check'
+    if: ${{ github.event.comment.body == '/gpt-check' && github.event.comment.user.association == 'CONTRIBUTOR' }}
     steps:
       - uses: actions/checkout@v3
         with:
