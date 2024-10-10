@@ -21,6 +21,10 @@ class ModelWithMetadata:
     model_identifier: str
 
 
+def fake_model(a: int, b: str):
+    return a + b
+
+
 class ModelHandler:
     MODEL_ALIAS = "@production"
 
