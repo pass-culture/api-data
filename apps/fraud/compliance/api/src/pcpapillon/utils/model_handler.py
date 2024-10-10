@@ -21,6 +21,10 @@ class ModelWithMetadata:
     model_identifier: str
 
 
+def my_function(a: int, b: str) -> str:
+    return a + b
+
+
 class ModelHandler:
     MODEL_ALIAS = "@production"
 
