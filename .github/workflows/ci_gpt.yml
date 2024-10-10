@@ -6,12 +6,11 @@ on:
 jobs:
   run_code_review:
     runs-on: ubuntu-latest
-    if: ${{ github.event.comment.body == '/gpt-check' && github.event.comment.user.association == 'CONTRIBUTOR' }}
+    if: ${{ github.event.comment.body == '/gpt-check' && contains('lmontier-pass,valoumiaou,dcuesta-pass,LucileRainteau,cdelabre', github.event.pull_request.user.login)  }}
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
       - name: Code Review GPT
         uses: mattzcarey/code-review-gpt@v0.1.10
         with:
