@@ -39,11 +39,10 @@ class OfferScorer:
         retrieval_endpoints: list[RetrievalEndpoint],
         ranking_endpoint: RankingEndpoint,
         model_params,
-        offer: t.Optional[o.Offer] = None,
+        input_offers: t.Optional[list[o.Offer]] = None,
     ):
         self.user = user
-        self.offer = offer
-        self.offers = params_in.offers
+        self.input_offers = input_offers
         self.model_params = model_params
         self.params_in = params_in
         self.retrieval_endpoints = retrieval_endpoints
@@ -153,7 +152,7 @@ class OfferScorer:
                 db,
                 self.user,
                 recommendable_items_ids,
-                offer=self.offer,
+                input_offers=self.input_offers,
                 query_order=self.model_params.query_order,
             )
             if self.use_cache and result is not None:
@@ -165,8 +164,9 @@ class OfferScorer:
         self,
         item: i.RecommendableItem,
         user: u.UserContext,
-        offer: o.Offer,
         default_max_distance: int,
+        offer_latitude: t.Optional[float] = None,
+        offer_longitude: t.Optional[float] = None,
     ) -> float:
         # If item is not geolocated then return
         if not item.is_geolocated:
@@ -180,15 +180,29 @@ class OfferScorer:
                 user.longitude,
             )
 
-        if offer is not None and offer.is_geolocated:
+        if offer_latitude is not None and offer_longitude is not None:
             distance = haversine_distance(
                 item.example_venue_latitude,
                 item.example_venue_longitude,
-                offer.latitude,
-                offer.longitude,
+                offer_latitude,
+                offer_longitude,
             )
         within_radius = distance <= default_max_distance
         return distance, within_radius
+
+    async def get_offer_coordinates(
+        self, input_offers: t.Optional[list[o.Offer]] = None
+    ) -> tuple[t.Optional[float], t.Optional[float]]:
+        geolocated_offers = [offer for offer in input_offers if offer.is_geolocated]
+        if len(geolocated_offers) > 0:
+            longitude = sum([offer.longitude for offer in geolocated_offers]) / len(
+                geolocated_offers
+            )
+            latitude = sum([offer.latitude for offer in geolocated_offers]) / len(
+                geolocated_offers
+            )
+            return latitude, longitude
+        return None, None
 
     async def get_nearest_offers(
         self,
@@ -196,15 +210,24 @@ class OfferScorer:
         user: u.UserContext,
         recommendable_items_ids: dict[str, i.RecommendableItem],
         limit: int = 500,
-        offer: t.Optional[o.Offer] = None,
+        input_offers: t.Optional[list[o.Offer]] = None,
         query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK,
     ) -> RecommendableOfferResult:
         recommendable_offers = []
         multiple_item_offers = []
+
+        offer_latitude, offer_longitude = await self.get_offer_coordinates(
+            db, input_offers
+        )
+
         for v in recommendable_items_ids.values():
             if v.total_offers == 1 or not v.is_geolocated:
                 user_distance, within_radius = await self.get_distance(
-                    v, user, offer, default_max_distance=100_000
+                    v,
+                    user,
+                    default_max_distance=100_000,
+                    offer_latitude=offer_latitude,
+                    offer_longitude=offer_longitude,
                 )
                 if within_radius:
                     recommendable_offers.append(
@@ -225,7 +248,7 @@ class OfferScorer:
                     user=user,
                     recommendable_items_ids=multiple_item_offers,
                     limit=limit,
-                    offer=offer,
+                    input_offers=input_offers,
                     query_order=query_order,
                 )
                 for found_offers in offer_distances:

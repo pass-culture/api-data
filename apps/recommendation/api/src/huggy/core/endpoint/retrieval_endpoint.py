@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Optional
 
 from fastapi.encoders import jsonable_encoder
 from huggy.core.endpoint import VERTEX_CACHE, AbstractEndpoint
@@ -271,12 +272,12 @@ class RetrievalEndpoint(AbstractEndpoint):
         )
 
 
-class FilterRetrievalEndpoint(RetrievalEndpoint):
-    MODEL_TYPE = "filter"
+class BookingNumberRetrievalEndpoint(RetrievalEndpoint):
+    MODEL_TYPE = "tops"
 
     def get_instance(self, size: int):
         return {
-            "model_type": "filter",
+            "model_type": "tops",
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,
@@ -286,11 +287,11 @@ class FilterRetrievalEndpoint(RetrievalEndpoint):
 
 
 class CreationTrendRetrievalEndpoint(RetrievalEndpoint):
-    MODEL_TYPE = "filter"
+    MODEL_TYPE = "tops"
 
     def get_instance(self, size: int):
         return {
-            "model_type": "filter",
+            "model_type": "tops",
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,
@@ -300,11 +301,11 @@ class CreationTrendRetrievalEndpoint(RetrievalEndpoint):
 
 
 class ReleaseTrendRetrievalEndpoint(RetrievalEndpoint):
-    MODEL_TYPE = "filter"
+    MODEL_TYPE = "tops"
 
     def get_instance(self, size: int):
         return {
-            "model_type": "filter",
+            "model_type": "tops",
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,
@@ -335,19 +336,16 @@ class OfferRetrievalEndpoint(RetrievalEndpoint):
     def init_input(
         self,
         user: UserContext,
-        offer: Offer,
+        input_offers: Optional[list[Offer]],
         params_in: PlaylistParams,
         call_id: str,
     ):
         self.user = user
-        self.offer = offer
+        self.input_offers = input_offers
         self.call_id = call_id
-        if params_in.offers:
-            self.items = [offer.item_id for offer in params_in.offers]
-        else:
-            self.items = [str(self.offer.item_id)]
         self.params_in = params_in
-        self.is_geolocated = self.offer.is_geolocated if self.offer else False
+        self.items = [offer.item_id for offer in self.input_offers]
+        self.is_geolocated = any(offer.is_geolocated for offer in self.input_offers)
 
     def get_instance(self, size: int):
         return {
@@ -359,7 +357,7 @@ class OfferRetrievalEndpoint(RetrievalEndpoint):
             "debug": 1,
             "similarity_metric": "l2",
             "prefilter": 1,
-            "vector_column_name": "raw_embeddings",
+            "user_id": self.user.user_id,
         }
 
 
@@ -369,26 +367,27 @@ class OfferSemanticRetrievalEndpoint(OfferRetrievalEndpoint):
     def get_instance(self, size: int):
         return {
             "model_type": "similar_offer",
-            "offer_id": str(self.item_id),
+            "items": self.items,
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,
             "debug": 1,
             "similarity_metric": "l2",
             "prefilter": 1,
-            "vector_column_name": "raw_embeddings",
+            "user_id": self.user.user_id,
         }
 
 
-class OfferFilterRetrievalEndpoint(OfferRetrievalEndpoint):
-    MODEL_TYPE = "filter"
+class OfferBookingNumberRetrievalEndpoint(OfferRetrievalEndpoint):
+    MODEL_TYPE = "tops"
 
     def get_instance(self, size: int):
         return {
-            "model_type": "filter",
+            "model_type": "tops",
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,
             "debug": 1,
             "vector_column_name": "booking_number_desc",
+            "user_id": self.user.user_id,
         }

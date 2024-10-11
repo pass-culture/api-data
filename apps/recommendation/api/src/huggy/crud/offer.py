@@ -10,6 +10,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class Offer:
+    @staticmethod
+    async def parse_offer_list(
+        db: AsyncSession, offer_list: list[str]
+    ) -> list[o.Offer]:
+        return [
+            await Offer().get_offer_characteristics(db, offer_id)
+            for offer_id in offer_list
+        ]
+
     async def get_item(self, db: AsyncSession, offer_id: str) -> t.Optional[ItemIds]:
         try:
             item_table: ItemIds = await ItemIds().get_available_table(db)

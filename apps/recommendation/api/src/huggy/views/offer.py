@@ -3,8 +3,7 @@ import typing as t
 import huggy.schemas.playlist_params as p
 from fastapi import APIRouter, Depends
 from fastapi.encoders import jsonable_encoder
-from huggy.core.model_engine.recommendation import Recommendation
-from huggy.core.model_engine.similar_offer import SimilarOffer
+from huggy.core.model_engine.factory import ModelEngineFactory, ModelEngineOut
 from huggy.crud.offer import Offer
 from huggy.crud.user import UserContextDB
 from huggy.database.session import get_db
@@ -22,36 +21,30 @@ async def __similar_offers(
     longitude: t.Optional[float],
     call_id: str,
 ):
-    offer_recommendations = []
+    # legacy: include main offer_id in the list of offers
+    playlist_params.add_offer(offer_id)
+
     user = await UserContextDB().get_user_context(
         db, playlist_params.user_id, latitude, longitude
     )
+    input_offers = await Offer().parse_offer_list(db, playlist_params.input_offers)
 
-    offer = await Offer().get_offer_characteristics(db, offer_id)
-
-    scoring = SimilarOffer(
-        user, playlist_params, call_id=call_id, context="similar_offer", offer=offer
+    model_engine_out: ModelEngineOut = await ModelEngineFactory.handle_prediction(
+        db,
+        user=user,
+        playlist_params=playlist_params,
+        call_id=call_id,
+        context="similar_offer",
+        input_offers=input_offers,
+        use_fallback=True,
     )
-
-    if not offer.is_sensitive:
-        offer_recommendations = await scoring.get_scoring(db)
-
-        # fallback to reco
-        if len(offer_recommendations) == 0:
-            scoring = Recommendation(
-                user,
-                params_in=playlist_params,
-                call_id=call_id,
-                context="recommendation_fallback",
-            )
-            offer_recommendations = await scoring.get_scoring(db)
 
     return jsonable_encoder(
         {
-            "results": offer_recommendations,
+            "results": model_engine_out.results,
             "params": {
-                "reco_origin": scoring.reco_origin,
-                "model_origin": scoring.model_origin,
+                "reco_origin": model_engine_out.model.reco_origin,
+                "model_origin": model_engine_out.model.model_origin,
                 "call_id": call_id,
             },
         }
@@ -64,7 +57,7 @@ async def __similar_offers(
 )
 async def post_similar_offers(
     offer_id: str,
-    playlist_params: p.PostSimilarOfferPlaylistParams,
+    playlist_params: p.PlaylistParams,
     token: t.Optional[str] = None,
     latitude: t.Optional[float] = None,
     longitude: t.Optional[float] = None,

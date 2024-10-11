@@ -1,12 +1,12 @@
 from huggy.core.endpoint.retrieval_endpoint import (
+    BookingNumberRetrievalEndpoint,
     CreationTrendRetrievalEndpoint,
-    FilterRetrievalEndpoint,
     RecommendationRetrievalEndpoint,
     ReleaseTrendRetrievalEndpoint,
 )
 from huggy.core.model_selection.endpoint import RetrievalEndpointName
 
-filter_retrieval_endpoint = FilterRetrievalEndpoint(
+filter_retrieval_endpoint = BookingNumberRetrievalEndpoint(
     endpoint_name=RetrievalEndpointName.recommendation_user_retrieval,
     size=150,
     use_cache=True,

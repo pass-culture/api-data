@@ -12,11 +12,16 @@ from sqlalchemy.sql.expression import literal_column
 
 
 class RecommendableOffer:
-    async def is_geolocated(self, user: UserContext, offer: o.Offer) -> bool:
+    async def is_geolocated(
+        self, user: UserContext, input_offers: Optional[list[o.Offer]]
+    ) -> bool:
         if user is not None and user.is_geolocated:
             return True
-        else:
-            return bool(offer is not None and offer.is_geolocated)
+        elif input_offers is not None:
+            return any(
+                offer is not None and offer.is_geolocated for offer in input_offers
+            )
+        return False
 
     async def get_nearest_offers(
         self,
@@ -24,14 +29,16 @@ class RecommendableOffer:
         user: UserContext,
         recommendable_items_ids: list[RecommendableItem],
         limit: int = 500,
-        offer: Optional[o.Offer] = None,
+        input_offers: Optional[list[o.Offer]] = None,
         query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK,
     ) -> list[o.OfferDistance]:
-        if await self.is_geolocated(user, offer):
+        if await self.is_geolocated(user, input_offers):
             offer_table: RecommendableOffersRaw = (
                 await RecommendableOffersRaw().get_available_table(db)
             )
-            user_distance = self.get_st_distance(user, offer_table, offer=offer)
+            user_distance = self.get_st_distance(
+                user, offer_table, input_offers=input_offers
+            )
 
             recommendable_items = self.get_items(recommendable_items_ids)
 
@@ -99,8 +106,13 @@ class RecommendableOffer:
         self,
         user: UserContext,
         offer_table: RecommendableOffersRaw,
-        offer: o.Offer = None,
+        input_offers: Optional[list[o.Offer]] = None,
     ):
+        if input_offers:
+            geolocated_offers = [offer for offer in input_offers if offer.is_geolocated]
+        else:
+            geolocated_offers = []
+
         if user is not None and user.is_geolocated:
             user_point = func.ST_GeographyFromText(
                 f"POINT({user.longitude} {user.latitude})"
@@ -108,10 +120,15 @@ class RecommendableOffer:
             return func.ST_Distance(user_point, offer_table.venue_geo).label(
                 "user_distance"
             )
-        elif offer is not None and offer.is_geolocated:
-            offer_point = func.ST_GeographyFromText(
-                f"POINT({offer.longitude} {offer.latitude})"
+        elif geolocated_offers:
+            longitude = sum([offer.longitude for offer in geolocated_offers]) / len(
+                geolocated_offers
             )
+            latitude = sum([offer.latitude for offer in geolocated_offers]) / len(
+                geolocated_offers
+            )
+
+            offer_point = func.ST_GeographyFromText(f"POINT({longitude} {latitude})")
             return func.ST_Distance(offer_point, offer_table.venue_geo).label(
                 "user_distance"
             )
