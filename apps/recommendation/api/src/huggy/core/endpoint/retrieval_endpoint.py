@@ -283,6 +283,7 @@ class BookingNumberRetrievalEndpoint(RetrievalEndpoint):
             "call_id": self.call_id,
             "debug": 1,
             "vector_column_name": "booking_number_desc",
+            "similarity_metric": "dot",
         }
 
 
@@ -297,6 +298,7 @@ class CreationTrendRetrievalEndpoint(RetrievalEndpoint):
             "call_id": self.call_id,
             "debug": 1,
             "vector_column_name": "booking_creation_trend_desc",
+            "similarity_metric": "dot",
         }
 
 
@@ -311,6 +313,7 @@ class ReleaseTrendRetrievalEndpoint(RetrievalEndpoint):
             "call_id": self.call_id,
             "debug": 1,
             "vector_column_name": "booking_release_trend_desc",
+            "similarity_metric": "dot",
         }
 
 
@@ -327,6 +330,7 @@ class RecommendationRetrievalEndpoint(RetrievalEndpoint):
             "debug": 1,
             "prefilter": 1,
             "vector_column_name": "raw_embeddings",
+            "similarity_metric": "dot",
         }
 
 
@@ -357,7 +361,8 @@ class OfferRetrievalEndpoint(RetrievalEndpoint):
             "debug": 1,
             "similarity_metric": "l2",
             "prefilter": 1,
-            "user_id": self.user.user_id,
+            "vector_column_name": "raw_embeddings",
+            "user_id": str(self.user.user_id),
         }
 
 
@@ -374,7 +379,7 @@ class OfferSemanticRetrievalEndpoint(OfferRetrievalEndpoint):
             "debug": 1,
             "similarity_metric": "l2",
             "prefilter": 1,
-            "user_id": self.user.user_id,
+            "user_id": str(self.user.user_id),
         }
 
 
@@ -390,4 +395,5 @@ class OfferBookingNumberRetrievalEndpoint(OfferRetrievalEndpoint):
             "debug": 1,
             "vector_column_name": "booking_number_desc",
             "user_id": self.user.user_id,
+            "similarity_metric": "dot",
         }

@@ -1,0 +1,19 @@
+name: Code Review GPT
+
+on:
+  pull_request_review_comment:
+
+jobs:
+  run_code_review:
+    runs-on: ubuntu-latest
+    if: ${{ contains('\gpt,/gpt', github.event.comment.body) && contains('lmontier-pass,valoumiaou,dcuesta-pass,LucileRainteau,cdelabre', github.event.pull_request.user.login)  }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Code Review GPT
+        uses: mattzcarey/code-review-gpt@v0.1.10
+        with:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          MODEL: 'gpt-4o'
+          GITHUB_TOKEN: ${{ github.token }}

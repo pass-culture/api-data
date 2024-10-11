@@ -47,7 +47,7 @@ RECOMMENDATION_ENDPOINTS = {
             query_order=QueryOrderChoices.ITEM_RANK,
         ),
         cold_start_model_type=ModelTypeInput(
-            retrieval=RetrievalChoices.TOPS,
+            retrieval=RetrievalChoices.MIX_TOPS,
             ranking=RankingChoices.MODEL,
             query_order=QueryOrderChoices.ITEM_RANK,
         ),
@@ -64,13 +64,13 @@ RECOMMENDATION_ENDPOINTS = {
             diversication_type=DiversificationChoices.ON,
         ),
         warn_model_type=ModelTypeInput(
-            retrieval=RetrievalChoices.MIX,
-            ranking=RankingChoices.VERSION_B,
+            retrieval=RetrievalChoices.MIX_VERSION_B,
+            ranking=RankingChoices.MODEL,
             query_order=QueryOrderChoices.ITEM_RANK,
         ),
         cold_start_model_type=ModelTypeInput(
-            retrieval=RetrievalChoices.TOPS,
-            ranking=RankingChoices.VERSION_B,
+            retrieval=RetrievalChoices.MIX_TOPS_VERSION_B,
+            ranking=RankingChoices.MODEL,
             query_order=QueryOrderChoices.ITEM_RANK,
         ),
         fork_params=ForkParamsInput(
@@ -196,13 +196,13 @@ SIMILAR_OFFER_ENDPOINTS = {
             diversication_type=DiversificationChoices.OFF,
         ),
         warn_model_type=ModelTypeInput(
-            retrieval=RetrievalChoices.MIX,
-            ranking=RankingChoices.VERSION_B,
+            retrieval=RetrievalChoices.MIX_VERSION_B,
+            ranking=RankingChoices.MODEL,
             query_order=QueryOrderChoices.ITEM_RANK,
         ),
         cold_start_model_type=ModelTypeInput(
-            retrieval=RetrievalChoices.MIX,
-            ranking=RankingChoices.VERSION_B,
+            retrieval=RetrievalChoices.MIX_VERSION_B,
+            ranking=RankingChoices.MODEL,
             query_order=QueryOrderChoices.ITEM_RANK,
         ),
         fork_params=ForkParamsInput(
