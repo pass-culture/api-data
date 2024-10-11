@@ -14,10 +14,11 @@ class Offer:
     async def parse_offer_list(
         db: AsyncSession, offer_list: list[str]
     ) -> list[o.Offer]:
-        return [
+        offers = [
             await Offer().get_offer_characteristics(db, offer_id)
             for offer_id in offer_list
         ]
+        return [o for o in offers if o.found]
 
     async def get_item(self, db: AsyncSession, offer_id: str) -> t.Optional[ItemIds]:
         try:
