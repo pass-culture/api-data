@@ -6,8 +6,16 @@ on:
 jobs:
   run_code_review:
     runs-on: ubuntu-latest
-    if: ${{ contains('\gpt,/gpt', github.event.comment.body) && contains('lmontier-pass,valoumiaou,dcuesta-pass,LucileRainteau,cdelabre', github.event.pull_request.user.login)  }}
+    if: ${{ contains('\gpt,/gpt', github.event.comment.body) }}
     steps:
+      - name: Check if allowed user and command
+        id: check_if_run
+        run: |
+          if [[ "${{ secrets.GPT_ALLOWED_USERS }}" == *"${{ github.event.pull_request.user.login }}"* ]]; then
+            echo "run_code_review=true" >> $GITHUB_ENV
+          else
+            echo "run_code_review=false" >> $GITHUB_ENV
+          fi
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
