@@ -20,6 +20,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Code Review GPT
+        if: env.run_code_review == 'true'
         uses: mattzcarey/code-review-gpt@v0.1.10
         with:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
