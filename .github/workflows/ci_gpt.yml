@@ -13,7 +13,7 @@ jobs:
         run: |
           # Split allowed users into an array and check for exact match
           IFS=',' read -ra allowed_users <<< "${{ secrets.GPT_ALLOWED_USERS }}"
-          current_user="${{ github.event.pull_request.user.login }}"
+          current_user="${{ github.event.comment.user.login }}"
 
           # Iterate over the allowed users array to check for an exact match
           for user in "${allowed_users[@]}"; do
