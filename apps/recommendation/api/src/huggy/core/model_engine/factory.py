@@ -58,7 +58,7 @@ class ModelEngineFactory:
         params_in: PlaylistParams,
         call_id: str,
         context: str,
-        input_offers: list[o.Offer],
+        input_offers: Optional[list[o.Offer]],
     ) -> ModelEngine:
         """
         Determines the appropriate model engine based on the context and input offers.
@@ -79,26 +79,27 @@ class ModelEngineFactory:
         user: UserContext,
         params_in: PlaylistParams,
         call_id: str,
-        input_offers: list[o.Offer],
+        input_offers: Optional[list[o.Offer]],
     ) -> ModelEngine:
         """
         Selects a model engine for the 'similar_offer' context.
         """
-        if any(offer.is_sensitive for offer in input_offers):
-            return Recommendation(
-                user=user,
-                params_in=params_in,
-                call_id=call_id,
-                context="recommendation_fallback",
-            )
-        elif input_offers:
-            return SimilarOffer(
-                user=user,
-                params_in=params_in,
-                call_id=call_id,
-                context="similar_offer",
-                input_offers=input_offers,
-            )
+        if input_offers:
+            if any(offer.is_sensitive for offer in input_offers):
+                return Recommendation(
+                    user=user,
+                    params_in=params_in,
+                    call_id=call_id,
+                    context="recommendation_fallback",
+                )
+            else:
+                return SimilarOffer(
+                    user=user,
+                    params_in=params_in,
+                    call_id=call_id,
+                    context="similar_offer",
+                    input_offers=input_offers,
+                )
         else:
             return Recommendation(
                 user=user,
@@ -112,7 +113,7 @@ class ModelEngineFactory:
         user: UserContext,
         params_in: PlaylistParams,
         call_id: str,
-        input_offers: list[o.Offer],
+        input_offers: Optional[list[o.Offer]],
     ) -> ModelEngine:
         """
         Selects a model engine for the 'recommendation' context.
@@ -138,7 +139,7 @@ class ModelEngineFactory:
         user: UserContext,
         params_in: PlaylistParams,
         call_id: str,
-        input_offers: list[o.Offer],
+        input_offers: Optional[list[o.Offer]],
     ) -> ModelEngine:
         """
         Handles fallback by using the 'recommendation_fallback' model.

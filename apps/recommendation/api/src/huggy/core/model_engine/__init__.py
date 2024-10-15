@@ -20,26 +20,34 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 class ModelEngine(ABC):
     """
-    Abstract base class to build the scoring pipeline used in the recommendation system.
+    Abstract base class for building the scoring pipeline used in the recommendation system.
 
     Attributes:
-        user (UserContext): The user context.
-        params_in (PlaylistParams): The playlist parameters.
-        call_id (str): The call ID.
-        context (str): The context.
-        input_offers (list[o.Offer], optional): The offer. Defaults to None.
-        reco_origin (str): The recommendation origin. One of "unknown", "cold_start", "algo".
-        model_origin (str): The model origin.
-        model_params (ModelConfiguration): The model configuration.
-        scorer (OfferScorer): The offer scorer.
+        user (UserContext): Contains user-specific data used for generating personalized recommendations.
+        params_in (PlaylistParams): Input parameters defining the playlist or set of offers being processed.
+        call_id (str): Unique identifier for the recommendation call session.
+        context (str): Additional context regarding the recommendation, such as session data or request origin.
+        input_offers (list[o.Offer], optional): List of offer objects to be scored. Defaults to None if no offers are provided.
+        reco_origin (str): Indicates the origin of the recommendation. It can be "unknown", "cold_start", or "algo".
+        model_origin (str): Identifies the origin of the model used for scoring (e.g., algorithm type).
+        model_params (ModelConfiguration): Configuration object containing the model parameters.
+        scorer (OfferScorer): Initialized scorer object responsible for evaluating and ranking the offers.
 
     Methods:
-        get_model_configuration: Method to get the model configuration.
-        get_scorer: Initializes the endpoints (retrieval and ranking) and returns the offer scorer.
-        get_scoring: Returns a list of offer IDs to be sent to the user.
-        save_context: Saves the context and offer information to the database.
-        log_extra_data: Logs extra data related to the model engine.
+        get_model_configuration(user, params_in):
+            Retrieves the model configuration based on user data and playlist parameters.
 
+        get_scorer():
+            Initializes the scoring mechanisms (retrieval and ranking) and returns an OfferScorer instance.
+
+        get_scoring():
+            Generates and returns a list of offer IDs, scored and ranked, to be presented to the user.
+
+        save_context():
+            Saves the current recommendation context, including the offers and user session data, to the database for tracking and auditing.
+
+        log_extra_data():
+            Logs any additional data related to the model's execution, such as performance metrics or anomalies, for monitoring and debugging.
     """
 
     def __init__(
@@ -138,14 +146,9 @@ class ModelEngine(ABC):
             context_extra_data = await self.log_extra_data()
             # add similar offer_id origin input.
             if self.input_offers is not None:
-                if len(self.input_offers) == 1:
-                    context_extra_data["offer_origin_id"] = self.input_offers[
-                        0
-                    ].offer_id
-                else:
-                    context_extra_data["offer_origin_ids"] = ":".join(
-                        [offer.offer_id for offer in self.input_offers]
-                    )
+                context_extra_data["offer_origin_ids"] = ":".join(
+                    [offer.offer_id for offer in self.input_offers]
+                )
 
             for idx, o in enumerate(scored_offers):
                 session.add(

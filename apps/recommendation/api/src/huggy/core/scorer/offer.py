@@ -190,7 +190,7 @@ class OfferScorer:
         within_radius = distance <= default_max_distance
         return distance, within_radius
 
-    async def get_offer_coordinates(
+    async def get_mean_offer_coordinates(
         self, input_offers: t.Optional[list[o.Offer]] = None
     ) -> tuple[t.Optional[float], t.Optional[float]]:
         geolocated_offers = [offer for offer in input_offers if offer.is_geolocated]
@@ -216,7 +216,7 @@ class OfferScorer:
         recommendable_offers = []
         multiple_item_offers = []
 
-        offer_latitude, offer_longitude = await self.get_offer_coordinates(
+        offer_latitude, offer_longitude = await self.get_mean_offer_coordinates(
             db, input_offers
         )
 
