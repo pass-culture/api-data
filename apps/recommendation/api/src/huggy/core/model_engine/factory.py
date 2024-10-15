@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Optional
 
 import huggy.schemas.offer as o
@@ -9,6 +10,7 @@ from huggy.schemas.user import UserContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
+@dataclass
 class ModelEngineOut:
     model: ModelEngine
     results: list[str]
@@ -44,7 +46,7 @@ class ModelEngineFactory:
         results = await model_engine.get_scoring(db)
 
         # Handle fallback scenario if enabled and no results are found
-        if use_fallback and not results:
+        if use_fallback and len(results) == 0:
             model_engine = await ModelEngineFactory._handle_fallback(
                 user, params_in, call_id, input_offers
             )

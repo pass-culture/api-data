@@ -217,7 +217,7 @@ class OfferScorer:
         multiple_item_offers = []
 
         offer_latitude, offer_longitude = await self.get_mean_offer_coordinates(
-            db, input_offers
+            input_offers
         )
 
         for v in recommendable_items_ids.values():

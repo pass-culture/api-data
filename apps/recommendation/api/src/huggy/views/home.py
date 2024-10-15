@@ -36,7 +36,7 @@ async def playlist_recommendation(
     model_engine_out: ModelEngineOut = await ModelEngineFactory.handle_prediction(
         db,
         user=user,
-        playlist_params=playlist_params,
+        params_in=playlist_params,
         call_id=call_id,
         context="recommendation",
         input_offers=input_offers,

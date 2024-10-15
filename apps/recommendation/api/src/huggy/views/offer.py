@@ -32,7 +32,7 @@ async def __similar_offers(
     model_engine_out: ModelEngineOut = await ModelEngineFactory.handle_prediction(
         db,
         user=user,
-        playlist_params=playlist_params,
+        params_in=playlist_params,
         call_id=call_id,
         context="similar_offer",
         input_offers=input_offers,
