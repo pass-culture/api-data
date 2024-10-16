@@ -193,15 +193,16 @@ class OfferScorer:
     async def get_mean_offer_coordinates(
         self, input_offers: t.Optional[list[o.Offer]] = None
     ) -> tuple[t.Optional[float], t.Optional[float]]:
-        geolocated_offers = [offer for offer in input_offers if offer.is_geolocated]
-        if len(geolocated_offers) > 0:
-            longitude = sum([offer.longitude for offer in geolocated_offers]) / len(
-                geolocated_offers
-            )
-            latitude = sum([offer.latitude for offer in geolocated_offers]) / len(
-                geolocated_offers
-            )
-            return latitude, longitude
+        if input_offers:
+            geolocated_offers = [offer for offer in input_offers if offer.is_geolocated]
+            if len(geolocated_offers) > 0:
+                longitude = sum([offer.longitude for offer in geolocated_offers]) / len(
+                    geolocated_offers
+                )
+                latitude = sum([offer.latitude for offer in geolocated_offers]) / len(
+                    geolocated_offers
+                )
+                return latitude, longitude
         return None, None
 
     async def get_nearest_offers(
