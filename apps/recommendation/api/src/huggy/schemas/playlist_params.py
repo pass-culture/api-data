@@ -29,7 +29,7 @@ class PlaylistParams(BaseModel):
     model_config = ConfigDict(
         alias_generator=to_camel, populate_by_name=True, protected_namespaces=()
     )
-    input_offers: list[str] = []
+    input_offers: Optional[list[str]] = None
     user_id: Optional[str] = None
     model_endpoint: Optional[str] = None
     start_date: Optional[datetime] = None
@@ -39,7 +39,7 @@ class PlaylistParams(BaseModel):
     price_max: Optional[float] = None
     price_min: Optional[float] = None
     is_reco_shuffled: Optional[bool] = None
-    is_restrained: Optional[str] = None
+    is_restrained: Optional[bool] = None
     is_digital: Optional[bool] = None
     categories: Optional[list[str]] = None
     subcategories: Optional[list[str]] = None
@@ -86,6 +86,8 @@ class PlaylistParams(BaseModel):
         return "GenericRecommendations"
 
     def add_offer(self, offer_id: str) -> None:
+        if self.input_offers is None:
+            self.input_offers = []
         self.input_offers.append(offer_id)
 
     def add_model_endpoint(self, model_endpoint: str) -> None:
