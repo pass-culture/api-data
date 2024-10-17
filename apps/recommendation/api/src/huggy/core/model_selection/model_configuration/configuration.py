@@ -1,6 +1,7 @@
 import copy
 import typing as t
 from dataclasses import dataclass
+from typing import Optional
 
 import huggy.core.model_selection.endpoint.user_ranking as user_ranking
 import huggy.core.scorer.offer as offer_scorer
@@ -133,36 +134,17 @@ class ModelFork:
         )
 
     def get_offer_status(
-        self, offer: Offer, offers: list[Offer], model_origin: str
+        self, input_offers: Optional[list[Offer]], model_origin: str
     ) -> ForkOut:
         """
         Get model status based on Offer interactions
 
         """
-
-        if offers:
-            return ForkOut(
-                copy.deepcopy(self.warm_start_model),
-                reco_origin="algo",
-                model_origin=model_origin,
-            )
-
-        if not offer.found:
-            return ForkOut(
-                copy.deepcopy(self.cold_start_model),
-                reco_origin="unknown",
-                model_origin=model_origin,
-            )
-        if self.bookings_count is not None:
-            if offer.booking_number >= self.bookings_count:
-                return ForkOut(
-                    copy.deepcopy(self.warm_start_model),
-                    reco_origin="algo",
-                    model_origin=model_origin,
-                )
+        # No cold start logic for similar offer.
+        # TODO: remove cold_start logic for recommendation
         return ForkOut(
-            copy.deepcopy(self.cold_start_model),
-            reco_origin="cold_start",
+            copy.deepcopy(self.warm_start_model),
+            reco_origin="algo",
             model_origin=model_origin,
         )
 

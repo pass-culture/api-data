@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi.exceptions import HTTPException
 from huggy.core.model_selection.model_configuration.configuration import (
     ForkOut,
@@ -248,7 +250,7 @@ def select_reco_model_params(model_endpoint: str, user: UserContext) -> ForkOut:
 
 
 def select_sim_model_params(
-    model_endpoint: str, offer: Offer, offers: list[Offer]
+    model_endpoint: str, input_offers: Optional[list[Offer]]
 ) -> ForkOut:
     """
     Choose the model to apply for Similar Offers based on offer interaction.
@@ -264,7 +266,7 @@ def select_sim_model_params(
             model_name = SIMILAR_OFFER_MODEL_CONTEXT
         model_fork = SIMILAR_OFFER_ENDPOINTS[model_name].generate()
     return model_fork.get_offer_status(
-        offer=offer, offers=offers, model_origin=model_name
+        input_offers=input_offers, model_origin=model_name
     )
 
 

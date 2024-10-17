@@ -7,7 +7,7 @@ from huggy.utils.env_vars import NUMBER_OF_RECOMMENDATIONS
 
 
 def order_offers_by_score_and_diversify_features(
-    offers: list[RankedOffer],
+    scored_offers: list[RankedOffer],
     score_column="offer_rank",
     score_order_ascending=True,
     shuffle_recommendation=None,
@@ -17,7 +17,7 @@ def order_offers_by_score_and_diversify_features(
     submixing_feature_dict=None,
 ) -> list[RankedOffer]:
     """
-    Group offers by feature.
+    Group scored_offers by feature.
     Order offer groups by decreasing number of offers in each group and decreasing maximal score.
     Order each offers within a group by increasing score.
     Sort offers by taking the last offer of each group (maximum score), by decreasing size of group.
@@ -28,11 +28,11 @@ def order_offers_by_score_and_diversify_features(
 
     diversified_offers = []
     if shuffle_recommendation:
-        for recommendation in offers:
+        for recommendation in scored_offers:
             setattr(recommendation, score_column, random.random())
 
     offers_by_feature = _get_offers_grouped_by_feature(
-        offers, feature
+        scored_offers, feature
     )  # here we group offers by cat (and score)
 
     to_submixed_data = {}
@@ -90,11 +90,11 @@ def order_offers_by_score_and_diversify_features(
 
 
 def _get_offers_grouped_by_feature(
-    offers: list[RankedOffer], feature="subcategory_id"
+    scored_offers: list[RankedOffer], feature="subcategory_id"
 ) -> dict:
     offers_by_feature = {}
     product_ids = set()
-    for offer in offers:
+    for offer in scored_offers:
         offer_feature = getattr(offer, feature)
         offer_product_id = offer.item_id
         if offer_feature in offers_by_feature:  # Here we filter subcat
