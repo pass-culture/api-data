@@ -278,12 +278,14 @@ class BookingNumberRetrievalEndpoint(RetrievalEndpoint):
     def get_instance(self, size: int):
         return {
             "model_type": "tops",
+            "user_id": str(self.user.user_id),
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,
             "debug": 1,
             "vector_column_name": "booking_number_desc",
             "similarity_metric": "dot",
+            "re_rank": 1,
         }
 
 
@@ -293,12 +295,14 @@ class CreationTrendRetrievalEndpoint(RetrievalEndpoint):
     def get_instance(self, size: int):
         return {
             "model_type": "tops",
+            "user_id": str(self.user.user_id),
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,
             "debug": 1,
             "vector_column_name": "booking_creation_trend_desc",
             "similarity_metric": "dot",
+            "re_rank": 1,
         }
 
 
@@ -308,12 +312,14 @@ class ReleaseTrendRetrievalEndpoint(RetrievalEndpoint):
     def get_instance(self, size: int):
         return {
             "model_type": "tops",
+            "user_id": str(self.user.user_id),
             "size": size,
             "params": self.get_params(),
             "call_id": self.call_id,
             "debug": 1,
             "vector_column_name": "booking_release_trend_desc",
             "similarity_metric": "dot",
+            "re_rank": 1,
         }
 
 
@@ -329,7 +335,6 @@ class RecommendationRetrievalEndpoint(RetrievalEndpoint):
             "call_id": self.call_id,
             "debug": 1,
             "prefilter": 1,
-            "vector_column_name": "raw_embeddings",
             "similarity_metric": "dot",
         }
 
@@ -361,8 +366,8 @@ class OfferRetrievalEndpoint(RetrievalEndpoint):
             "debug": 1,
             "similarity_metric": "l2",
             "prefilter": 1,
-            "vector_column_name": "raw_embeddings",
             "user_id": str(self.user.user_id),
+            "re_rank": 1,
         }
 
 
@@ -379,8 +384,6 @@ class OfferSemanticRetrievalEndpoint(OfferRetrievalEndpoint):
             "debug": 1,
             "similarity_metric": "l2",
             "prefilter": 1,
-            "vector_column_name": "raw_embeddings",
-            "user_id": str(self.user.user_id),
         }
 
 
@@ -395,6 +398,7 @@ class OfferBookingNumberRetrievalEndpoint(OfferRetrievalEndpoint):
             "call_id": self.call_id,
             "debug": 1,
             "vector_column_name": "booking_number_desc",
-            "user_id": self.user.user_id,
+            "user_id": str(self.user.user_id),
             "similarity_metric": "dot",
+            "re_rank": 1,
         }
