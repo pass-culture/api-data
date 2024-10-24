@@ -18,12 +18,14 @@ repos:
   - id: format-fix
     name: Formatting (ruff)
     entry: ruff format
-    language: system
+    language: python
     types: [python]
     stages: [commit]
+    additional_dependencies: [ruff==0.4.8]
   - id: lint-check
     name: Linting (ruff)
     entry: ruff check --fix
-    language: system
+    language: python
     types: [python]
     stages: [commit]
+    additional_dependencies: [ruff==0.4.8]
