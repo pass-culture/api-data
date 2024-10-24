@@ -59,6 +59,7 @@ class CategoryOutput(BaseModel):
 
 class OfferCategorisationOutput(BaseModel):
     most_probable_subcategories: list[CategoryOutput]
+    call_id: str
 
 
 class ModelParams(BaseModel):
