@@ -54,7 +54,13 @@ class OfferCategorisationModel:
                 "model_version": self.model_identifier,
             },
         )
-        return predictions_df.to_dict(orient="records")
+        return [
+            CategoryOutput(
+                subcategory=prediction["subcategory"],
+                probability=prediction["probability"],
+            )
+            for prediction in predictions_df.to_dict(orient="records")
+        ]
 
     def _load_models(self) -> ModelWithMetadata:
         custom_logger.info("Load offer categorisation model..")
