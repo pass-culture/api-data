@@ -47,7 +47,12 @@ class OfferCategorisationModel:
         )
 
         custom_logger.info(
-            f"Predicted subcategories: {predictions_df.to_dict(orient='records')} for input: {data.dict()} and model version: {self.model_identifier}"
+            "Offer categorisation done",
+            extra={
+                "predicted_subcategories": predictions_df.to_dict(orient="records"),
+                "input_data": data.dict(),
+                "model_version": self.model_identifier,
+            },
         )
         return predictions_df.to_dict(orient="records")
 
