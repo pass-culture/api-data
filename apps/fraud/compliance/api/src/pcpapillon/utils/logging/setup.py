@@ -1,10 +1,10 @@
 import logging
 
 import google.cloud.logging
-from fastapi.logger import logger
-from pcpapillon.utils.cloud_logging.custom_logger import CustomLogger
-from pcpapillon.utils.cloud_logging.google_cloud_log_filter import GoogleCloudLogFilter
+from fastapi.logger import logger as fastapi_logger
 from pcpapillon.utils.env_vars import IS_API_LOCAL
+from pcpapillon.utils.logging.custom_logger import CustomLogger
+from pcpapillon.utils.logging.google_cloud_log_filter import GoogleCloudLogFilter
 
 
 def setup_logging():
@@ -17,8 +17,9 @@ def setup_logging():
         handler.setLevel(logging.DEBUG)
         handler.filters = []
         handler.addFilter(GoogleCloudLogFilter(project=client.project))
-        logger.handlers = []
-        logger.addHandler(handler)
-        logger.setLevel(logging.DEBUG)
-        api_logger = CustomLogger()
-    return api_logger
+        api_logger = fastapi_logger
+        api_logger.handlers = []
+        api_logger.addHandler(handler)
+        api_logger.setLevel(logging.DEBUG)
+
+    return CustomLogger(logger=api_logger)

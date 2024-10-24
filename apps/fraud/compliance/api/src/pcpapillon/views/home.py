@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.logger import logger
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi_versioning import version
-from main import custom_logger, setup_trace
+from main import custom_logger
 from pcpapillon.utils.data_model import (
     Token,
 )
@@ -13,26 +13,36 @@ from pcpapillon.utils.env_vars import (
     LOGIN_TOKEN_EXPIRATION,
     users_db,
 )
+from pcpapillon.utils.logging.trace import get_call_id, setup_trace
 from pcpapillon.utils.security import (
     authenticate_user,
     create_access_token,
 )
 
-main_router = APIRouter(tags=["main"])
+main_router = APIRouter(tags=["home"])
 
 
-@main_router.get("/")
+@main_router.get(
+    "/",
+    dependencies=[Depends(get_call_id), Depends(setup_trace)],
+)
 async def read_root():
     custom_logger.info("Auth user welcome to : Validation API test")
     return "Auth user welcome to : Validation API test"
 
 
-@main_router.get("/health/api")
+@main_router.get(
+    "/health/api", dependencies=[Depends(get_call_id), Depends(setup_trace)]
+)
 async def read_health():
     return "OK"
 
 
-@main_router.post("/token", response_model=Token, dependencies=[Depends(setup_trace)])
+@main_router.post(
+    "/token",
+    response_model=Token,
+    dependencies=[Depends(get_call_id), Depends(setup_trace)],
+)
 @version(1, 0)
 async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],

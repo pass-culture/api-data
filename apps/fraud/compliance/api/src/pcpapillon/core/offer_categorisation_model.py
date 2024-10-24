@@ -4,8 +4,8 @@ from pcpapillon.utils.constants import (
     ModelName,
 )
 from pcpapillon.utils.data_model import (
+    CategoryOutput,
     OfferCategorisationInput,
-    OfferCategorisationOutput,
 )
 from pcpapillon.utils.model_handler import ModelHandler, ModelWithMetadata
 
@@ -17,10 +17,11 @@ class OfferCategorisationModel:
         self.model_handler = ModelHandler()
         model_data = self._load_models()
         self.model = model_data.model
+        self.model_identifier = model_data.model_identifier
 
     def predict(
         self, data: OfferCategorisationInput, num_offers_to_return: int
-    ) -> OfferCategorisationOutput:
+    ) -> list[CategoryOutput]:
         """
         Predicts the class labels for the given data using the trained classifier model.
 
@@ -45,9 +46,21 @@ class OfferCategorisationModel:
             .iloc[:num_offers_to_return]
         )
 
-        return OfferCategorisationOutput(
-            most_probable_subcategories=predictions_df.to_dict(orient="records")
+        custom_logger.info(
+            "Offer categorisation done",
+            extra={
+                "predicted_subcategories": predictions_df.to_dict(orient="records"),
+                "input_data": data.dict(),
+                "model_version": self.model_identifier,
+            },
         )
+        return [
+            CategoryOutput(
+                subcategory=prediction["subcategory"],
+                probability=prediction["probability"],
+            )
+            for prediction in predictions_df.to_dict(orient="records")
+        ]
 
     def _load_models(self) -> ModelWithMetadata:
         custom_logger.info("Load offer categorisation model..")
