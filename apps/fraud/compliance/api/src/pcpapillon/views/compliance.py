@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
-from main import custom_logger, setup_trace
 from pcpapillon.core.compliance_model import (
     ComplianceModel,
 )
@@ -8,6 +7,7 @@ from pcpapillon.utils.data_model import (
     ComplianceInput,
     ComplianceOutput,
 )
+from pcpapillon.utils.logging.trace import custom_logger, get_call_id, setup_trace
 from pcpapillon.utils.scheduler import init_scheduler
 
 compliance_router = APIRouter(tags=["compliance"])
@@ -23,7 +23,7 @@ compliance_scheduler = init_scheduler(
 @compliance_router.post(
     "/model/compliance/scoring",
     response_model=ComplianceOutput,
-    dependencies=[Depends(setup_trace)],
+    dependencies=[Depends(get_call_id), Depends(setup_trace)],
 )
 @version(1, 0)
 def model_compliance_scoring(scoring_input: ComplianceInput):
