@@ -1,21 +1,7 @@
 # from __future__ import annotations
-from dataclasses import dataclass
 from typing import Union
 
-from dataclass_wizard import JSONWizard
 from pydantic import BaseModel
-
-
-@dataclass
-class APIConfig(JSONWizard):
-    features_to_extract_embedding: list[dict]
-    preprocess_features_type: dict[str]
-
-
-@dataclass
-class ModelConfig(JSONWizard):
-    pre_trained_model_for_embedding_extraction: dict[str]
-    catboost_features_types: dict[str]
 
 
 class User(BaseModel):
@@ -73,6 +59,7 @@ class CategoryOutput(BaseModel):
 
 class OfferCategorisationOutput(BaseModel):
     most_probable_subcategories: list[CategoryOutput]
+    call_id: str
 
 
 class ModelParams(BaseModel):
