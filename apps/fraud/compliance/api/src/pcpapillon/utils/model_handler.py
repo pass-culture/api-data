@@ -54,9 +54,13 @@ class ModelHandler:
         mlflow_model_name = self._get_mlflow_model_name(model_name=model_name)
         mlflow_model_name_stripped = mlflow_model_name.rstrip(ModelHandler.MODEL_ALIAS)
 
+        custom_logger.info(
+            f"Retrieving model version for {mlflow_model_name} registered as {mlflow_model_name_stripped}..."
+        )
         model_version = self.mlflow_client.get_latest_versions(
             mlflow_model_name_stripped
         )
+        custom_logger.info(f"...Model version retrieved: {model_version}")
         return self._get_hash(model_version)
 
     @staticmethod
