@@ -51,9 +51,9 @@ class ComplianceModel:
         if self._is_newer_model_available():
             custom_logger.info("New model available: Loading it...")
             new_model = self.model_handler.get_model_with_metadata_by_name(
-                model_name=self.MODEL_NAME, model_type=self.MODEL_TYPE
+                model_name=self.MODEL_NAME
             )
-            self.classfier_model, self.model_identifier = (
+            self.model, self.model_identifier = (
                 new_model.model,
                 new_model.model_identifier,
             )
