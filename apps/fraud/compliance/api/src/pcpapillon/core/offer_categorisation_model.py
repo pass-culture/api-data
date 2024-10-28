@@ -65,5 +65,5 @@ class OfferCategorisationModel:
     def _load_models(self) -> ModelWithMetadata:
         custom_logger.info("Load offer categorisation model..")
         return self.model_handler.get_model_with_metadata_by_name(
-            model_name=self.MODEL_NAME
+            model_name=self.MODEL_NAME.value
         )
