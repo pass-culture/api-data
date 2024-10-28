@@ -18,7 +18,7 @@ class ComplianceModel:
     ) -> ModelWithMetadata:
         custom_logger.info(f"load {self.MODEL_NAME} model..")
         return self.model_handler.get_model_with_metadata_by_name(
-            model_name=self.MODEL_NAME
+            model_name=self.MODEL_NAME.value
         )
 
     def predict(self, data: ComplianceInput) -> ComplianceOutput:
@@ -43,7 +43,7 @@ class ComplianceModel:
 
     def _is_newer_model_available(self) -> bool:
         return self.model_identifier != self.model_handler.get_model_hash_from_mlflow(
-            self.MODEL_NAME
+            self.MODEL_NAME.value
         )
 
     def reload_model_if_newer_is_available(self):
@@ -51,7 +51,7 @@ class ComplianceModel:
         if self._is_newer_model_available():
             custom_logger.info("New model available: Loading it...")
             new_model = self.model_handler.get_model_with_metadata_by_name(
-                model_name=self.MODEL_NAME
+                model_name=self.MODEL_NAME.value
             )
             self.model, self.model_identifier = (
                 new_model.model,

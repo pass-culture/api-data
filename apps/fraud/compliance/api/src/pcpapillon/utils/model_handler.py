@@ -7,7 +7,6 @@ import mlflow
 import mlflow.pyfunc
 from main import custom_logger
 from mlflow import MlflowClient
-from pcpapillon.utils.constants import ModelName
 from pcpapillon.utils.env_vars import (
     ENV_SHORT_NAME,
 )
@@ -33,9 +32,14 @@ class ModelHandler:
         self,
         model_name: str,
     ) -> ModelWithMetadata:
+        mlflow_model_name = self._get_mlflow_model_name(model_name=model_name)
+
+        custom_logger.info(f"Loading model {mlflow_model_name}...")
         loaded_model = mlflow.pyfunc.load_model(
-            model_uri=f"models:/{self._get_mlflow_model_name(model_name)}"
+            model_uri=f"models:/{mlflow_model_name}"
         )
+        custom_logger.info(f"...Model {mlflow_model_name} loaded")
+
         model_hash = self.get_model_hash_from_mlflow(model_name=model_name)
         return ModelWithMetadata(
             model=loaded_model,
@@ -56,5 +60,5 @@ class ModelHandler:
         return self._get_hash(model_version)
 
     @staticmethod
-    def _get_mlflow_model_name(model_name: ModelName):
-        return f"api_{model_name.value}_{ENV_SHORT_NAME}{ModelHandler.MODEL_ALIAS}"
+    def _get_mlflow_model_name(model_name: str):
+        return f"api_{model_name}_{ENV_SHORT_NAME}{ModelHandler.MODEL_ALIAS}"
