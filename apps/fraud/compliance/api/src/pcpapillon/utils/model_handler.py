@@ -52,7 +52,9 @@ class ModelHandler:
 
     def get_model_hash_from_mlflow(self, model_name: str):
         mlflow_model_name = self._get_mlflow_model_name(model_name=model_name)
-        mlflow_model_name_stripped = mlflow_model_name.rstrip(ModelHandler.MODEL_ALIAS)
+        mlflow_model_name_stripped = mlflow_model_name.removesuffix(
+            ModelHandler.MODEL_ALIAS
+        )
 
         custom_logger.info(
             f"Retrieving model version for {mlflow_model_name} registered as {mlflow_model_name_stripped}..."
