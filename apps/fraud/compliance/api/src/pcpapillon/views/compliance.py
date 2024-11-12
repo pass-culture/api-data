@@ -27,13 +27,24 @@ compliance_scheduler = init_scheduler(
 )
 @version(1, 0)
 def model_compliance_scoring(scoring_input: ComplianceInput):
+    # To remove once we figure out the real issue
+    hotfix_input = scoring_input
+    hotfix_input.offer_subcategory_id = (
+        hotfix_input.offer_subcategoryid
+        if (
+            hotfix_input.offer_subcategoryid != ""
+            and hotfix_input.offer_subcategory_id == ""
+        )
+        else hotfix_input.offer_subcategory_id
+    )
+
     log_extra_data = {
         "model_version": "default_model",
-        "offer_id": scoring_input.dict()["offer_id"],
-        "scoring_input": scoring_input.dict(),
+        "offer_id": hotfix_input.dict()["offer_id"],
+        "scoring_input": hotfix_input.dict(),
     }
 
-    predictions = compliance_model.predict(data=scoring_input)
+    predictions = compliance_model.predict(data=hotfix_input)
 
     custom_logger.info(predictions.dict(), extra=log_extra_data)
     return predictions
