@@ -34,13 +34,14 @@ def model_compliance_scoring(scoring_input: ComplianceInput):
         if "offer_subcategoryid" in input_dict
         else input_dict["offer_subcategory_id"]
     )
+
     log_extra_data = {
         "model_version": "default_model",
-        "offer_id": scoring_input.dict()["offer_id"],
-        "scoring_input": scoring_input.dict(),
+        "offer_id": input_dict["offer_id"],
+        "scoring_input": input_dict,
     }
 
-    predictions = compliance_model.predict(data=scoring_input)
+    predictions = compliance_model.predict(data=input_dict)
 
     custom_logger.info(predictions.dict(), extra=log_extra_data)
     return predictions
