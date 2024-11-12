@@ -27,6 +27,13 @@ compliance_scheduler = init_scheduler(
 )
 @version(1, 0)
 def model_compliance_scoring(scoring_input: ComplianceInput):
+    # To remove once we figure out the real issue
+    input_dict = scoring_input.dict()
+    input_dict["offer_subcategory_id"] = (
+        input_dict["offer_subcategoryid"]
+        if "offer_subcategoryid" in input_dict
+        else input_dict["offer_subcategory_id"]
+    )
     log_extra_data = {
         "model_version": "default_model",
         "offer_id": scoring_input.dict()["offer_id"],
