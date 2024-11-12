@@ -50,7 +50,6 @@ Le dossier contient:
 
 ### Pour tester l'API en local
 
-
 1. Récupérer les paths des modèles sur GCS via l'App MLFlow : [GSC_PATH_COMPLIANCE](https://mlflow.staging.passculture.team/#/models/compliance_default_stg) et le [GSC_PATH_OFFER_CATEGORISATION](https://mlflow.staging.passculture.team/#/models/offer_categorisation_stg) :
     - Cliquer sur la version du modèle désirée (la dernière par exemple)
     - Cliquer sur le lien après "Source Run:", en haut de la page
@@ -60,14 +59,11 @@ Le dossier contient:
 
     ```bash
     dans le dossier 'apps/fraud/compliance/api/'
-    mkdir ./src/pcpapillon/local_model
-    gsutil cp <GSC_PATH_COMPLIANCE> ./src/pcpapillon/local_model/compliance_model.cb
-    gsutil cp <GSC_PATH_OFFER_CATEGORISATION> ./src/pcpapillon/local_model/offer_categorisation_model.cb
     ```
 
 3. Installer le projet et les requirements
     - `make init` pour créer le virtualenv
-    - `make install`, ou `make install_with_uv` si vous utilisez uv au lieu de pip (plus rapide)
+    - `make install`
 
 4. Lancer l'API
 
