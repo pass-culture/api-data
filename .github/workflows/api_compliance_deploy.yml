@@ -40,6 +40,9 @@ jobs:
     secrets:
       GCP_EHP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
       GCP_EHP_SERVICE_ACCOUNT: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
+    permissions:
+      id-token: write
+      contents: write
   slack-notification:
     runs-on: ubuntu-latest
     environment: ${{ needs.setup-job.outputs.env_name }}
