@@ -54,3 +54,28 @@ trend_creation_date_retrieval_endpoint_version_b = CreationTrendRetrievalEndpoin
     size=150,
     use_cache=True,
 )
+
+# version C
+filter_retrieval_endpoint_version_c = BookingNumberRetrievalEndpoint(
+    endpoint_name=RetrievalEndpointName.recommendation_user_retrieval_version_c,
+    size=150,
+    use_cache=True,
+)
+
+recommendation_retrieval_endpoint_version_c = RecommendationRetrievalEndpoint(
+    endpoint_name=RetrievalEndpointName.recommendation_user_retrieval_version_c,
+    size=150,
+    use_cache=True,
+)
+
+trend_release_date_retrieval_endpoint_version_c = ReleaseTrendRetrievalEndpoint(
+    endpoint_name=RetrievalEndpointName.recommendation_user_retrieval_version_c,
+    size=150,
+    use_cache=True,
+)
+
+trend_creation_date_retrieval_endpoint_version_c = CreationTrendRetrievalEndpoint(
+    endpoint_name=RetrievalEndpointName.recommendation_user_retrieval_version_c,
+    size=150,
+    use_cache=True,
+)
