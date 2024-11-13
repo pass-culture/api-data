@@ -1,5 +1,5 @@
 FROM python:3.10-slim
-COPY --from=ghcr.io/astral-sh/uv:0.3.4 /uv /bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.4.23 /uv /bin/uv
 
 ENV PYTHONUNBUFFERED=True
 ENV APP_HOME=/app
@@ -7,7 +7,7 @@ WORKDIR $APP_HOME
 
 # Install libraries
 COPY ./requirements.txt ./
-RUN uv pip install -r requirements.txt --system
+RUN UV_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu uv pip sync requirements.txt --index-strategy unsafe-best-match --system
 COPY ./src .
 
 # Conditionally copy the Google Cloud credentials file based on the argument

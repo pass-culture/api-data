@@ -43,6 +43,9 @@ jobs:
     secrets:
       GCP_EHP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
       GCP_EHP_SERVICE_ACCOUNT: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
+    permissions:
+      id-token: write
+      contents: write
   api-reco-test-integration:
     if: ${{ needs.setup-job.outputs.env_name != 'dev'}}
     uses: ./.github/workflows/reusable_api_reco_integration_tests.yml
