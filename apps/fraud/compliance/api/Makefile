@@ -11,3 +11,6 @@ start_with_gunicorn:
 
 start_as_not_local:
 	source .venv/bin/activate && cd src && uvicorn main:app --reload
+
+compile_requirements:
+	UV_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu uv pip compile requirements.in -o requirements.txt --index-strategy unsafe-best-match
