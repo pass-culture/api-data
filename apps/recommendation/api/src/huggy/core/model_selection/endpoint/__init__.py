@@ -8,6 +8,9 @@ class RetrievalEndpointName(enum.Enum):
     recommendation_user_retrieval_version_b = (
         f"recommendation_user_retrieval_version_b_{ENV_SHORT_NAME}"
     )
+    recommendation_user_retrieval_version_c = (
+        f"recommendation_user_retrieval_version_c_{ENV_SHORT_NAME}"
+    )
     recommendation_semantic_retrieval = (
         f"recommendation_semantic_retrieval_{ENV_SHORT_NAME}"
     )

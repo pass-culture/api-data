@@ -16,6 +16,9 @@ class SimilarModelConfigurationInput(ModelConfigurationInput):
             RetrievalChoices.MIX_VERSION_B: [
                 offer_retrieval.offer_retrieval_endpoint_version_b
             ],
+            RetrievalChoices.MIX_VERSION_C: [
+                offer_retrieval.offer_retrieval_endpoint_version_c
+            ],
             RetrievalChoices.SEMANTIC: [
                 offer_retrieval.semantic_offer_retrieval_endpoint,
             ],
