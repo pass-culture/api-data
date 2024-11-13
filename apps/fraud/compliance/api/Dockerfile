@@ -7,7 +7,7 @@ WORKDIR $APP_HOME
 
 # Install libraries
 COPY ./requirements.txt ./
-RUN uv pip install -r requirements.txt --system
+RUN UV_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu uv pip install -r requirements.txt --index-strategy unsafe-best-match --system
 COPY ./src .
 
 # Conditionally copy the Google Cloud credentials file based on the argument
