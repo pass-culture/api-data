@@ -26,7 +26,6 @@ class ComplianceInput(BaseModel):
     offer_id: Union[str, None] = ""
     offer_name: Union[str, None] = ""
     offer_description: Union[str, None] = ""
-    offer_subcategoryid: Union[str, None] = ""
     offer_subcategory_id: Union[str, None] = ""
     rayon: Union[str, None] = ""
     macro_rayon: Union[str, None] = ""
