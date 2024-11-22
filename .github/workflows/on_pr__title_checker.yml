@@ -2,7 +2,7 @@ name: "1. [on_pr] Check PR title format"
 
 on:
   pull_request:
-    branches: [master]
+    branches: [main]
     types:
       - opened
       - edited
