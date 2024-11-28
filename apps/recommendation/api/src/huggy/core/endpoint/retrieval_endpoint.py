@@ -258,7 +258,9 @@ class RetrievalEndpoint(AbstractEndpoint):
                     await VERTEX_CACHE.set(cache_key, result)
                     self._log_cache_usage(cache_key, "Set")
                 except Exception as e:
-                    logger.error(f"Failed to set cache for {cache_key}: {e}", exc_info=True)
+                    logger.error(
+                        f"Failed to set cache for {cache_key}: {e}", exc_info=True
+                    )
 
         # Check result before accessing attributes
         if result is None:

@@ -190,7 +190,9 @@ class RecommendableOfferTest:
 
         # Sort the results for comparison
         result_offers = sorted(result_offers, key=lambda x: x.offer_id, reverse=True)
-        expected_offers = sorted(expected_offers, key=lambda x: x.offer_id, reverse=True)
+        expected_offers = sorted(
+            expected_offers, key=lambda x: x.offer_id, reverse=True
+        )
 
         # Assert that the list sizes match
         assert len(result_offers) == len(

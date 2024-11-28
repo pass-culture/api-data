@@ -161,15 +161,20 @@ class OfferScorer:
                 try:
                     await OFFER_DB_CACHE.set(cache_key, result)
                 except Exception as e:
-                    logger.error(f"Failed to set cache for {cache_key}: {e}", exc_info=True)
+                    logger.error(
+                        f"Failed to set cache for {cache_key}: {e}", exc_info=True
+                    )
 
         # Check result and its recommendable_offer attribute
-        if result is None or not hasattr(result, "recommendable_offer") or result.recommendable_offer is None:
+        if (
+            result is None
+            or not hasattr(result, "recommendable_offer")
+            or result.recommendable_offer is None
+        ):
             logger.error("Recommendable offers could not be retrieved.")
             return []
 
         return result.recommendable_offer
-
 
     async def get_distance(
         self,
