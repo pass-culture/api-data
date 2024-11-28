@@ -2,7 +2,7 @@ aiocache==0.12.2
 asyncpg==0.28.0
 fastapi-cloud-logging==1.1.0
 fastapi-versioning==0.10.0
-fastapi==0.104.0
+fastapi==0.115.5
 geoalchemy2==0.14.0
 google-cloud-aiplatform==1.31.0
 google-cloud-secret-manager==2.2.0
@@ -19,4 +19,5 @@ pytest-postgresql==6.0.0
 python-dateutil==2.9.0.post0
 pytz==2023.3
 sqlalchemy==2.0.22
+starlette==0.41.3
 uvicorn==0.22.0

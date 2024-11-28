@@ -228,10 +228,6 @@ sqlalchemy==2.0.22
     # via
     #   -r requirements.in
     #   geoalchemy2
-starlette==0.27.0
-    # via
-    #   fastapi
-    #   fastapi-versioning
 tomli==2.0.1
     # via pytest
 typing-extensions==4.12.2
