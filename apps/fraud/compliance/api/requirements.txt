@@ -219,7 +219,6 @@ numpy==1.26.4
     #   mlflow
     #   numba
     #   pandas
-    #   pyarrow
     #   scikit-learn
     #   scipy
     #   sentence-transformers
@@ -274,8 +273,10 @@ protobuf==3.20.3
     #   grpcio-status
     #   mlflow-skinny
     #   proto-plus
-pyarrow==11.0.0
-    # via mlflow
+pyarrow==18.1.0
+    # via
+    #   -r requirements.in
+    #   mlflow
 pyasn1==0.6.0
     # via
     #   oauth2client
