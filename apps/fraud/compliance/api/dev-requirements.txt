@@ -54,7 +54,7 @@ exceptiongroup==1.2.2
     #   pytest
 executing==2.1.0
     # via stack-data
-fastapi==0.95.1
+fastapi==0.115.5
     # via
     #   -r requirements.in
     #   fastapi-cloud-logging
@@ -415,8 +415,9 @@ sqlparse==0.5.1
     # via mlflow-skinny
 stack-data==0.6.3
     # via ipython
-starlette==0.26.1
+starlette==0.41.3
     # via
+    #   -r requirements.in
     #   fastapi
     #   fastapi-versioning
 sympy==1.13.0
@@ -453,6 +454,7 @@ typing-extensions==4.12.2
     # via
     #   alembic
     #   anyio
+    #   fastapi
     #   graphene
     #   huggingface-hub
     #   ipython

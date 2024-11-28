@@ -45,7 +45,7 @@ ecdsa==0.19.0
     # via python-jose
 exceptiongroup==1.2.2
     # via anyio
-fastapi==0.95.1
+fastapi==0.115.5
     # via
     #   -r requirements.in
     #   fastapi-cloud-logging
@@ -375,8 +375,9 @@ sqlalchemy==2.0.31
     #   mlflow
 sqlparse==0.5.1
     # via mlflow-skinny
-starlette==0.26.1
+starlette==0.41.3
     # via
+    #   -r requirements.in
     #   fastapi
     #   fastapi-versioning
 sympy==1.13.0
@@ -407,6 +408,7 @@ typing-extensions==4.12.2
     # via
     #   alembic
     #   anyio
+    #   fastapi
     #   graphene
     #   huggingface-hub
     #   opentelemetry-sdk
