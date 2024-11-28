@@ -183,18 +183,26 @@ class RecommendableOfferTest:
         offer_list: list[str] = pool["offers"]
         expected_offers: list[OfferDistance] = pool["expected_offers"]
 
+        # Retrieve offers using the method to be tested
         result_offers = await RecommendableOfferDB().get_user_offer_distance(
             setup_default_database, user=user, offer_list=offer_list
         )
+
+        # Sort the results for comparison
         result_offers = sorted(result_offers, key=lambda x: x.offer_id, reverse=True)
-        expected_offers = sorted(
-            expected_offers, key=lambda x: x.offer_id, reverse=True
-        )
+        expected_offers = sorted(expected_offers, key=lambda x: x.offer_id, reverse=True)
+
+        # Assert that the list sizes match
         assert len(result_offers) == len(
             expected_offers
-        ), "list should have the same size."
-        for x, y in zip(result_offers, expected_offers):
-            assert x.offer_id == x.offer_id, "Offer shoud be the same."
+        ), "Lists should have the same size."
+
+        # Compare each result and expected offer
+        for result, expected in zip(result_offers, expected_offers):
+            # Fix: Compare result.offer_id with expected.offer_id, not itself
+            assert result.offer_id == expected.offer_id, "Offer IDs should match."
+
+            # Assert that the distances are approximately equal in kilometers
             assert (
-                x.user_distance - y.user_distance
-            ) // 1000 == 0, "Distance should be the same in KM."
+                abs(result.user_distance - expected.user_distance) // 1000 == 0
+            ), "Distances should be the same in kilometers."
