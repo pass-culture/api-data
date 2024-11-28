@@ -20,4 +20,5 @@ RUN if [ "$LOCAL" = "true" ]; then \
     fi
 
 # Run the container
-CMD exec gunicorn -k uvicorn.workers.UvicornWorker --bind :$PORT --workers 1 --threads 10 --preload --timeout 0 main:app
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--bind", ":$PORT", "--workers", "1", "--threads", "10", "--preload", "--timeout", "0", "main:app"]
+
