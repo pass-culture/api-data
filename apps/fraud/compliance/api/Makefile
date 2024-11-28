@@ -15,3 +15,4 @@ start_as_not_local:
 
 compile_requirements:
 	UV_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu uv pip compile requirements.in -o requirements.txt --index-strategy unsafe-best-match
+	UV_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu uv pip compile dev-requirements.in -o dev-requirements.txt --index-strategy unsafe-best-match
