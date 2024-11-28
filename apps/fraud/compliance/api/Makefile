@@ -1,7 +1,8 @@
 SHELL := /bin/bash
 
 install:
-	uv venv --python 3.10 && uv pip install -r dev-requirements.txt
+	uv venv --python 3.10
+	source .venv/bin/activate && UV_EXTRA_INDEX_URL=https://download.pytorch.org/whl/cpu uv pip sync dev-requirements.txt --index-strategy unsafe-best-match
 
 start:
 	source .venv/bin/activate && cd src && API_LOCAL=True uvicorn main:app --reload
