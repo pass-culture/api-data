@@ -140,7 +140,7 @@ grpcio==1.64.1
     #   grpcio-status
 grpcio-status==1.48.2
     # via google-api-core
-gunicorn==20.0.4
+gunicorn==23.0.0
     # via
     #   -r requirements.in
     #   mlflow
@@ -237,6 +237,7 @@ opentelemetry-semantic-conventions==0.49b2
 packaging==23.2
     # via
     #   docker
+    #   gunicorn
     #   huggingface-hub
     #   matplotlib
     #   mlflow-skinny
@@ -345,8 +346,8 @@ sentence-transformers==2.2.2
     # via -r requirements.in
 sentencepiece==0.2.0
     # via sentence-transformers
-setuptools==70.3.0
-    # via gunicorn
+setuptools==75.6.0
+    # via -r requirements.in
 shap==0.46.0
     # via -r requirements.in
 six==1.16.0
