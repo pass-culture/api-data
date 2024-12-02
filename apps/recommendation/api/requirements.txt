@@ -108,7 +108,7 @@ grpcio==1.64.1
     #   grpcio-status
 grpcio-status==1.48.2
     # via google-api-core
-gunicorn==20.0.4
+gunicorn==23.0.0
     # via -r requirements.in
 h11==0.14.0
     # via
@@ -140,6 +140,7 @@ packaging==24.1
     #   geoalchemy2
     #   google-cloud-aiplatform
     #   google-cloud-bigquery
+    #   gunicorn
     #   pytest
 pandas==2.2.2
     # via -r requirements.in
@@ -214,9 +215,7 @@ requests==2.32.3
 rsa==4.9
     # via google-auth
 setuptools==70.3.0
-    # via
-    #   gunicorn
-    #   pytest-postgresql
+    # via pytest-postgresql
 shapely==1.8.5.post1
     # via google-cloud-aiplatform
 six==1.16.0
@@ -229,10 +228,6 @@ sqlalchemy==2.0.22
     # via
     #   -r requirements.in
     #   geoalchemy2
-starlette==0.27.0
-    # via
-    #   fastapi
-    #   fastapi-versioning
 tomli==2.0.1
     # via pytest
 typing-extensions==4.12.2
