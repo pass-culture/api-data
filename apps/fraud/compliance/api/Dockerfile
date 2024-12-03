@@ -14,11 +14,11 @@ COPY ./src .
 ARG LOCAL=false
 ARG GOOGLE_CLOUD_PROJECT
 ENV GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
+ENV PORT=8080
 RUN if [ "$LOCAL" = "true" ]; then \
     mkdir -p /root/.config/gcloud && \
     cp ./application_default_credentials.json /root/.config/gcloud/application_default_credentials.json; \
     fi
 
 # Run the container
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--bind", ":$PORT", "--workers", "1", "--threads", "10", "--preload", "--timeout", "0", "main:app"]
-
+CMD exec gunicorn -k uvicorn.workers.UvicornWorker --bind :$PORT --workers 1 --threads 10 --preload --timeout 0 main:app
