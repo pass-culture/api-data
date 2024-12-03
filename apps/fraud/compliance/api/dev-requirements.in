@@ -1,0 +1,5 @@
+-r requirements.in
+pytest==8.2.2
+ipython==8.24.0
+matplotlib==3.9.2
+psutil==5.9.8
