@@ -45,23 +45,6 @@ class ComplianceOutput(BaseModel):
     rejection_main_features: list[str]
 
 
-class OfferCategorisationInput(BaseModel):
-    offer_name: Union[str, None] = ""
-    offer_description: Union[str, None] = ""
-    venue_type_label: Union[str, None] = ""
-    offerer_name: Union[str, None] = ""
-
-
-class CategoryOutput(BaseModel):
-    subcategory: str
-    probability: float
-
-
-class OfferCategorisationOutput(BaseModel):
-    most_probable_subcategories: list[CategoryOutput]
-    call_id: str
-
-
 class ModelParams(BaseModel):
     name: str = "default"
     type: str = "default"
