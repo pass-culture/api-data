@@ -14,6 +14,7 @@ COPY ./src .
 ARG LOCAL=false
 ARG GOOGLE_CLOUD_PROJECT
 ENV GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
+ENV PORT=8080
 RUN if [ "$LOCAL" = "true" ]; then \
     mkdir -p /root/.config/gcloud && \
     cp ./application_default_credentials.json /root/.config/gcloud/application_default_credentials.json; \

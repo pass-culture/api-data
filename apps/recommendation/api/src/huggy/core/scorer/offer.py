@@ -129,6 +129,7 @@ class OfferScorer:
         recommendable_items: list[i.RecommendableItem],
     ) -> list[r_o.RecommendableOffer]:
         non_recommendable_items = await get_non_recommendable_items(db, self.user)
+
         recommendable_items_ids = {
             item.item_id: item
             for item in recommendable_items
@@ -136,18 +137,19 @@ class OfferScorer:
         }
 
         result: RecommendableOfferResult = None
+
+        # Attempt to retrieve from cache
         if self.use_cache:
             instance_hash = hash_from_keys(
                 {"item_ids": sorted(recommendable_items_ids.keys())}
             )
             cache_key = f"{self.user.iris_id}:{instance_hash}"
-            result: RecommendableOfferResult = await OFFER_DB_CACHE.get(cache_key)
+            result = await OFFER_DB_CACHE.get(cache_key)
 
         if result is not None:
             self.offer_cached = True
-
         else:
-            # get nearest offers
+            # Compute nearest offers if not found in cache
             result = await self.get_nearest_offers(
                 db,
                 self.user,
@@ -156,7 +158,21 @@ class OfferScorer:
                 query_order=self.model_params.query_order,
             )
             if self.use_cache and result is not None:
-                await OFFER_DB_CACHE.set(cache_key, result)
+                try:
+                    await OFFER_DB_CACHE.set(cache_key, result)
+                except Exception as e:
+                    logger.error(
+                        f"Failed to set cache for {cache_key}: {e}", exc_info=True
+                    )
+
+        # Check result and its recommendable_offer attribute
+        if (
+            result is None
+            or not hasattr(result, "recommendable_offer")
+            or result.recommendable_offer is None
+        ):
+            logger.error("Recommendable offers could not be retrieved.")
+            return []
 
         return result.recommendable_offer
 

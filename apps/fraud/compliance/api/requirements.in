@@ -1,3 +1,5 @@
+# Use CPU for pytorch
+# uv pip compile requirements.in -o requirements.txt --index-strategy unsafe-best-match --python-platform=linux --extra-index-url  https://download.pytorch.org/whl/cpu
 apscheduler==3.10.4
 catboost==1.2.5
 cloudpickle==3.0.0
@@ -10,7 +12,7 @@ google-cloud-secret-manager==2.2.0
 google-cloud-storage==2.9.0
 gunicorn==23.0.0
 loguru==0.7.0
-mlflow==2.18.0
+mlflow==2.20.1
 nltk==3.9.1
 numpy==1.26.4
 oauth2client==4.1.3
