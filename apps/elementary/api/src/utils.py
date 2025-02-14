@@ -1,9 +1,9 @@
 from datetime import datetime
 
-from constants import file_prefix
+from constants import GCP_PROJECT_ID, file_prefix
 from google.cloud import storage
 
-storage_client = storage.Client()
+storage_client = storage.Client(project=GCP_PROJECT_ID)
 
 
 def download_blob(bucket_name, source_blob_name):
