@@ -1,0 +1,92 @@
+name: "Deploy elementary"
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+      - production
+    paths:
+      - 'apps/elementary/api/src/**'
+  workflow_dispatch:
+
+jobs:
+  setup-job:
+    runs-on: ubuntu-latest
+    outputs:
+      env_name: ${{ steps.set-variable.outputs.env_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Set environment variable"
+        id: "set-variable"
+        run: |
+          if [ ${{ github.ref }} = 'refs/heads/main' ]; then
+            echo "env_name=dev" | tee -a $GITHUB_OUTPUT
+          elif [ ${{ github.ref }} = 'refs/heads/staging' ]; then
+            echo "env_name=staging" | tee -a $GITHUB_OUTPUT
+          elif [ ${{ github.ref }} = 'refs/heads/production' ]; then
+            echo "env_name=production" | tee -a $GITHUB_OUTPUT
+          else
+            echo "env_name=dev" | tee -a $GITHUB_OUTPUT
+          fi
+  deploy-api-elementary:
+    needs: [setup-job]
+    uses: ./.github/workflows/reusable_build_and_deploy_api.yml
+    with:
+      API_NAME: elementary-data
+      API_SOURCE_PATH: "apps/elementary/api"
+      TARGET_ENV: ${{ needs.setup-job.outputs.env_name }}
+      API_SERVICE_NAME: "elementapi"
+    secrets:
+      GCP_EHP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_EHP_SERVICE_ACCOUNT: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
+    permissions:
+      id-token: write
+      contents: write
+
+  slack-notification:
+    runs-on: ubuntu-latest
+    environment: ${{ needs.setup-job.outputs.env_name }}
+    needs: [setup-job, deploy-api-elementary]
+    permissions:
+      id-token: write
+      contents: write
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Connect to Secret Manager"
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
+      - name: "Get secrets for Slack"
+        id: 'secrets'
+        uses: 'google-github-actions/get-secretmanager-secrets@v2'
+        with:
+          secrets: |-
+            SLACK_BOT_TOKEN:passculture-metier-ehp/passculture-ci-slack-bot-token
+      - uses: technote-space/workflow-conclusion-action@v3
+      - name: "Post to a Slack channel"
+        if: always()
+        uses: slackapi/slack-github-action@v1.23.0
+        env:
+          SLACK_BOT_TOKEN: ${{ steps.secrets.outputs.SLACK_BOT_TOKEN }}
+        with:
+          channel-id: "C01GVAXM02W" # alerts_data
+          payload: |
+            {
+              "attachments": [
+                {
+                  "mrkdwn_in": ["text"],
+                  "color": "${{ fromJSON('["#36a64f", "#A30002"]')[ env.WORKFLOW_CONCLUSION == 'failure'] }}",
+                  "author_name": "${{github.actor}}",
+                  "author_link": "https://github.com/${{github.actor}}",
+                  "author_icon": "https://github.com/${{github.actor}}.png",
+                  "title": "API elementary Deployment",
+                  "title_link": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}",
+                  "text": "Le déploiement de `l'API reco sur ${{ needs.setup-job.outputs.env_name }}` est ${{ fromJSON('["réussi", "échoué"]')[env.WORKFLOW_CONCLUSION == 'failure'] }} ${{ fromJSON('[":muscle:", ":boom:"]')[env.WORKFLOW_CONCLUSION == 'failure'] }}"
+                }
+              ],
+              "unfurl_links": false,
+              "unfurl_media": false
+            }
