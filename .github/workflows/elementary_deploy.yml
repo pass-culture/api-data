@@ -84,7 +84,7 @@ jobs:
                   "author_icon": "https://github.com/${{github.actor}}.png",
                   "title": "API elementary Deployment",
                   "title_link": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}",
-                  "text": "Le déploiement de `l'API reco sur ${{ needs.setup-job.outputs.env_name }}` est ${{ fromJSON('["réussi", "échoué"]')[env.WORKFLOW_CONCLUSION == 'failure'] }} ${{ fromJSON('[":muscle:", ":boom:"]')[env.WORKFLOW_CONCLUSION == 'failure'] }}"
+                  "text": "Le déploiement de `l'API elementary sur ${{ needs.setup-job.outputs.env_name }}` est ${{ fromJSON('["réussi", "échoué"]')[env.WORKFLOW_CONCLUSION == 'failure'] }} ${{ fromJSON('[":muscle:", ":boom:"]')[env.WORKFLOW_CONCLUSION == 'failure'] }}"
                 }
               ],
               "unfurl_links": false,
