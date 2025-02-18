@@ -240,6 +240,7 @@ class RetrievalEndpoint(AbstractEndpoint):
     async def model_score(self) -> list[RecommendableItem]:
         result: RetrievalPredictionResultItem = None
         instance = self.get_instance(self.size)
+
         # Retrieve cache if exists
         if self.use_cache:
             instance_hash = self._get_instance_hash(instance)
@@ -249,16 +250,27 @@ class RetrievalEndpoint(AbstractEndpoint):
         if result is not None:
             self.cached = True
             self._log_cache_usage(cache_key, "Used")
-        # Compute retrieval if cache not found or used
         else:
+            # Compute retrieval if cache not found
             result = await self._vertex_retrieval_score(instance)
             if self.use_cache and result is not None:
-                await VERTEX_CACHE.set(cache_key, result)
-                self._log_cache_usage(cache_key, "Set")
+                try:
+                    await VERTEX_CACHE.set(cache_key, result)
+                    self._log_cache_usage(cache_key, "Set")
+                except Exception as e:
+                    logger.error(
+                        f"Failed to set cache for {cache_key}: {e}", exc_info=True
+                    )
 
-        # set model version and model display name for logging purposes
+        # Check result before accessing attributes
+        if result is None:
+            logger.error("Result is None. Unable to proceed.")
+            return []
+
+        # Set model version and display name for logging purposes
         self.model_display_name = result.model_display_name
         self.model_version = result.model_version
+
         return result.recommendable_items
 
     def _log_cache_usage(self, cache_key: str, action: str) -> None:
