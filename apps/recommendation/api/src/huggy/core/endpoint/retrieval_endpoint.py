@@ -376,7 +376,7 @@ class OfferRetrievalEndpoint(RetrievalEndpoint):
             "params": self.get_params(),
             "call_id": self.call_id,
             "debug": 1,
-            "similarity_metric": "l2",
+            "similarity_metric": "dot",
             "prefilter": 1,
             "user_id": str(self.user.user_id),
             "re_rank": 0,
@@ -394,7 +394,7 @@ class OfferSemanticRetrievalEndpoint(OfferRetrievalEndpoint):
             "params": self.get_params(),
             "call_id": self.call_id,
             "debug": 1,
-            "similarity_metric": "l2",
+            "similarity_metric": "dot",
             "prefilter": 1,
         }
 
