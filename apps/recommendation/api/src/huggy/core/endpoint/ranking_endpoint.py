@@ -157,6 +157,7 @@ class ModelRankingEndpoint(RankingEndpoint):
                     "offer_stock_beginning_days": to_days(row.stock_beginning_date),
                     "day_of_the_week": to_int(datetime.today().weekday()),
                     "hour_of_the_day": to_int(datetime.now().hour),
+                    "offer_semantic_embedding": row.semantic_embedding,
                 }
             )
         return offers_list
