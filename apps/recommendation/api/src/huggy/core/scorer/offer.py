@@ -16,6 +16,7 @@ from huggy.crud.recommendable_offer import RecommendableOffer as RecommendableOf
 from huggy.schemas.model_selection.model_configuration import QueryOrderChoices
 from huggy.utils.cloud_logging import logger
 from huggy.utils.distance import haversine_distance
+from huggy.utils.diversification import DiversificationPipeline
 from huggy.utils.exception import log_error
 from huggy.utils.hash import hash_from_keys
 from sqlalchemy.exc import ProgrammingError
@@ -107,6 +108,7 @@ class OfferScorer:
         if len(recommendable_offers) == 0:
             return []
 
+        # Send to model for scoring
         recommendable_offers = await self.ranking_endpoint.model_score(
             recommendable_offers=recommendable_offers
         )
@@ -120,8 +122,36 @@ class OfferScorer:
                 "total_offers": len(recommendable_offers),
             },
         )
-
+        recommendable_offers = self.apply_semantic_ranking(recommendable_offers)
+        logger.debug(
+            f"DPP Output: {self.user.user_id}: DPP sampling -> {len(recommendable_offers)}",
+            extra={
+                "event_name": "DPP_sampling",
+                "call_id": call_id,
+                "user_id": self.user.user_id,
+                "total_offers": len(recommendable_offers),
+            },
+        )
         return recommendable_offers
+
+    def apply_semantic_ranking(self, scored_offers):
+        valid_offers = [
+            item for item in scored_offers if item.semantic_embedding is not None
+        ]
+        sampled_offer_ids = DiversificationPipeline(
+            item_semantic_embeddings=[item.semantic_embedding for item in valid_offers],
+            ids=[item.offer_id for item in valid_offers],
+            scores=[item.offer_score for item in valid_offers],
+        ).get_sampled_ids()
+        sampled_offer_ids_set = set(sampled_offer_ids)
+        # Filter scored_offers to get recommendable_offers_diverisified
+        recommendable_offers_diverisified = [
+            row for row in valid_offers if row.offer_id in sampled_offer_ids_set
+        ]
+        # Sort by offer_rank
+        recommendable_offers_diverisified.sort(key=lambda x: x.offer_rank)
+
+        return recommendable_offers_diverisified
 
     async def get_recommendable_offers(
         self,

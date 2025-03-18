@@ -214,6 +214,7 @@ class RetrievalEndpoint(AbstractEndpoint):
                     item_cluster_id=r.get("cluster_id", None),
                     item_topic_id=r.get("topic_id", None),
                     semantic_emb_mean=r.get("semantic_emb_mean", None),
+                    semantic_embedding=r.get("semantic_embedding", None),
                     is_geolocated=bool(r["is_geolocated"]),
                     booking_number=r["booking_number"],
                     booking_number_last_7_days=r["booking_number_last_7_days"],
