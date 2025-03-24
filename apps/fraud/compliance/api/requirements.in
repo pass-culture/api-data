@@ -26,5 +26,6 @@ setuptools==75.6.0
 shap==0.46.0
 starlette==0.41.3
 torch==2.4.1+cpu
+transformers==4.49.0
 uvicorn==0.22.0
 werkzeug==3.1.3

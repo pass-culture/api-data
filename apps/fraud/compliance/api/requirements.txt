@@ -151,7 +151,7 @@ httplib2==0.22.0
     #   google-api-python-client
     #   google-auth-httplib2
     #   oauth2client
-huggingface-hub==0.23.5
+huggingface-hub==0.29.3
     # via
     #   sentence-transformers
     #   tokenizers
@@ -379,7 +379,7 @@ tenacity==8.5.0
     # via plotly
 threadpoolctl==3.5.0
     # via scikit-learn
-tokenizers==0.19.1
+tokenizers==0.21.1
     # via transformers
 torch==2.4.1+cpu
     # via
@@ -392,8 +392,10 @@ tqdm==4.66.4
     #   sentence-transformers
     #   shap
     #   transformers
-transformers==4.42.4
-    # via sentence-transformers
+transformers==4.49.0
+    # via
+    #   -r requirements.in
+    #   sentence-transformers
 typing-extensions==4.12.2
     # via
     #   alembic
