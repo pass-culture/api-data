@@ -21,10 +21,11 @@ pyarrow==18.1.0
 python-multipart==0.0.17
 ruff==0.4.7
 scipy==1.13.1
-sentence-transformers==2.2.2
+sentence-transformers==2.7
 setuptools==75.6.0
 shap==0.46.0
 starlette==0.41.3
-torch==2.3.1+cpu
+torch==2.4.1+cpu
+transformers==4.49.0
 uvicorn==0.22.0
 werkzeug==3.1.3
