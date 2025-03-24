@@ -1,4 +1,4 @@
-name: "Deploy API Compliance"
+name: "Deploy elementary"
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
       - staging
       - production
     paths:
-      - "apps/fraud/compliance/api/src/**"
+      - 'apps/elementary/api/src/**'
   workflow_dispatch:
 
 jobs:
@@ -20,31 +20,34 @@ jobs:
       - name: "Set environment variable"
         id: "set-variable"
         run: |
-          if [ ${{ github.ref }} = 'refs/heads/staging' ]; then
-            echo "env_name=staging" >> $GITHUB_OUTPUT
+          if [ ${{ github.ref }} = 'refs/heads/main' ]; then
+            echo "env_name=dev" | tee -a $GITHUB_OUTPUT
+          elif [ ${{ github.ref }} = 'refs/heads/staging' ]; then
+            echo "env_name=staging" | tee -a $GITHUB_OUTPUT
           elif [ ${{ github.ref }} = 'refs/heads/production' ]; then
-            echo "env_name=production" >> $GITHUB_OUTPUT
+            echo "env_name=production" | tee -a $GITHUB_OUTPUT
           else
-            echo "env_name=dev" >> $GITHUB_OUTPUT
+            echo "env_name=dev" | tee -a $GITHUB_OUTPUT
           fi
-  deploy-api-compliance:
-    needs: setup-job
+  deploy-api-elementary:
+    needs: [setup-job]
     uses: ./.github/workflows/reusable_build_and_deploy_api.yml
     with:
-      API_NAME: "compliance"
-      API_SOURCE_PATH: "apps/fraud/compliance/api"
+      API_NAME: elementary-data
+      API_SOURCE_PATH: "apps/elementary/api"
       TARGET_ENV: ${{ needs.setup-job.outputs.env_name }}
-      API_SERVICE_NAME: "api-compliance"
+      API_SERVICE_NAME: "elementapi"
     secrets:
       GCP_EHP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
       GCP_EHP_SERVICE_ACCOUNT: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
     permissions:
       id-token: write
       contents: write
+
   slack-notification:
     runs-on: ubuntu-latest
     environment: ${{ needs.setup-job.outputs.env_name }}
-    needs: [deploy-api-compliance, setup-job]
+    needs: [setup-job, deploy-api-elementary]
     permissions:
       id-token: write
       contents: write
@@ -52,13 +55,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: "Connect to Secret Manager"
-        uses: "google-github-actions/auth@v2"
+        uses: 'google-github-actions/auth@v2'
         with:
           workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
       - name: "Get secrets for Slack"
-        id: "secrets"
-        uses: "google-github-actions/get-secretmanager-secrets@v2"
+        id: 'secrets'
+        uses: 'google-github-actions/get-secretmanager-secrets@v2'
         with:
           secrets: |-
             SLACK_BOT_TOKEN:passculture-metier-ehp/passculture-ci-slack-bot-token
@@ -79,9 +82,9 @@ jobs:
                   "author_name": "${{github.actor}}",
                   "author_link": "https://github.com/${{github.actor}}",
                   "author_icon": "https://github.com/${{github.actor}}.png",
-                  "title": "API Compliance Deployment",
+                  "title": "API elementary Deployment",
                   "title_link": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}",
-                  "text": "Le déploiement de `l'API Compliance sur ${{ needs.setup-job.outputs.env_name }}` est ${{ fromJSON('["réussi", "échoué"]')[env.WORKFLOW_CONCLUSION == 'failure'] }} ${{ fromJSON('[":muscle:", ":boom:"]')[env.WORKFLOW_CONCLUSION == 'failure'] }}"
+                  "text": "Le déploiement de `l'API elementary sur ${{ needs.setup-job.outputs.env_name }}` est ${{ fromJSON('["réussi", "échoué"]')[env.WORKFLOW_CONCLUSION == 'failure'] }} ${{ fromJSON('[":muscle:", ":boom:"]')[env.WORKFLOW_CONCLUSION == 'failure'] }}"
                 }
               ],
               "unfurl_links": false,
