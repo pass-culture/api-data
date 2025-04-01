@@ -3,8 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 from dateutil.parser import parse
-from fastapi import Query
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 from pydantic_core.core_schema import ValidationInfo
 
@@ -105,9 +104,6 @@ class PlaylistParams(BaseModel):
 
 class GetSimilarOfferPlaylistParams(PlaylistParams):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-    user_id: Optional[str] = Field(Query(None))
-    categories: Optional[list[str]] = Field(Query([]))
-    subcategories: Optional[list[str]] = Field(Query([]))
 
     def playlist_type(self):
         if len(self.categories) > 1:

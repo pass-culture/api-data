@@ -1,7 +1,7 @@
 import typing as t
 
 import huggy.schemas.playlist_params as p
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi.encoders import jsonable_encoder
 from huggy.core.model_engine.factory import ModelEngineFactory, ModelEngineOut
 from huggy.crud.offer import Offer
@@ -51,42 +51,28 @@ async def __similar_offers(
     )
 
 
-@r.post(
-    "/similar_offers/{offer_id}",
-    dependencies=[Depends(setup_trace), Depends(check_token)],
-)
-async def post_similar_offers(
-    offer_id: str,
-    playlist_params: p.PlaylistParams,
-    token: t.Optional[str] = None,
-    latitude: t.Optional[float] = None,
-    longitude: t.Optional[float] = None,
-    db: AsyncSession = Depends(get_db),
-    call_id: str = Depends(get_call_id),
-):
-    return await __similar_offers(
-        db,
-        offer_id=offer_id,
-        playlist_params=playlist_params,
-        latitude=latitude,
-        longitude=longitude,
-        call_id=call_id,
-    )
-
-
 @r.get(
     "/similar_offers/{offer_id}",
     dependencies=[Depends(setup_trace), Depends(check_token)],
 )
 async def get_similar_offers(
     offer_id: str,
-    playlist_params: p.GetSimilarOfferPlaylistParams = Depends(),
-    token: t.Optional[str] = None,
     latitude: t.Optional[float] = None,
     longitude: t.Optional[float] = None,
+    user_id: t.Optional[str] = None,
+    categories: t.Optional[list[str]] = Query(None),
+    subcategories: t.Optional[list[str]] = Query(None),
+    search_group_names: t.Optional[list[str]] = Query(None),
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):
+    playlist_params = p.GetSimilarOfferPlaylistParams(
+        user_id=user_id,
+        categories=categories,
+        subcategories=subcategories,
+        search_group_names=search_group_names,
+    )
+
     return await __similar_offers(
         db,
         offer_id=offer_id,
