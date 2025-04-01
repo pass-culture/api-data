@@ -12,6 +12,7 @@ class RecommendableItem(BaseModel):
     item_cluster_id: t.Optional[str]
     item_topic_id: t.Optional[str]
     semantic_emb_mean: t.Optional[float]
+    semantic_embedding: t.Optional[list[float]]
     is_geolocated: t.Optional[bool]
     booking_number: float
     booking_number_last_7_days: float
