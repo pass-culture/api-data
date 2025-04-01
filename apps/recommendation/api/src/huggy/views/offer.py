@@ -57,6 +57,7 @@ async def __similar_offers(
 )
 async def get_similar_offers(
     offer_id: str,
+    token: t.Optional[str] = None,
     latitude: t.Optional[float] = None,
     longitude: t.Optional[float] = None,
     user_id: t.Optional[str] = None,
