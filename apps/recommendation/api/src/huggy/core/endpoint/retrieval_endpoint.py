@@ -160,7 +160,7 @@ class RetrievalEndpoint(AbstractEndpoint):
         )
         params.append(
             ListParams(label="search_group_name", values=self.params_in.categories)
-        )  # Hack beacause the backend call us with categroy instead of search_group_name
+        )  # Hack because the backend call us with categroy instead of search_group_name
         params.append(
             ListParams(
                 label="search_group_name", values=self.params_in.search_group_names
