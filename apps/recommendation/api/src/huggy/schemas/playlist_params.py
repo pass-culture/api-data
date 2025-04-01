@@ -43,6 +43,7 @@ class PlaylistParams(BaseModel):
     is_digital: Optional[bool] = None
     categories: Optional[list[str]] = None
     subcategories: Optional[list[str]] = None
+    search_group_names: Optional[list[str]] = None
     offer_type_list: Optional[list[dict]] = None
     gtl_ids: Optional[list[str]] = None
     gtl_l1: Optional[list[str]] = None
@@ -77,12 +78,16 @@ class PlaylistParams(BaseModel):
     def playlist_type(self):
         if self.categories and len(self.categories) > 1:
             return "multipleCategoriesRecommendations"
-        if self.categories and len(self.categories) == 1:
+        elif self.categories and len(self.categories) == 1:
             return "singleCategoryRecommendations"
-        if self.subcategories and len(self.subcategories) > 1:
+        elif self.subcategories and len(self.subcategories) > 1:
             return "multipleSubCategoriesRecommendations"
-        if self.subcategories and len(self.subcategories) == 1:
+        elif self.subcategories and len(self.subcategories) == 1:
             return "singleSubCategoryRecommendations"
+        elif self.search_group_names and len(self.search_group_names) > 1:
+            return "multipleSearchGroupNamesRecommendations"
+        elif self.search_group_names and len(self.search_group_names) == 1:
+            return "singleSearchGroupNameRecommendations"
         return "GenericRecommendations"
 
     def add_offer(self, offer_id: str) -> None:
@@ -107,10 +112,14 @@ class GetSimilarOfferPlaylistParams(PlaylistParams):
     def playlist_type(self):
         if len(self.categories) > 1:
             return "otherCategoriesSimilarOffers"
-        if len(self.subcategories) > 1:
+        elif len(self.subcategories) > 1:
             return "otherSubCategoriesSimilarOffers"
-        if len(self.categories) == 1:
+        elif len(self.categories) == 1:
             return "sameCategorySimilarOffers"
-        if len(self.subcategories) == 1:
+        elif len(self.subcategories) == 1:
             return "sameSubCategorySimilarOffers"
+        elif len(self.search_group_names) > 1:
+            return "otherSearchGroupNamesSimilarOffers"
+        elif len(self.search_group_names) == 1:
+            return "sameSearchGroupNameSimilarOffers"
         return "GenericSimilarOffers"
