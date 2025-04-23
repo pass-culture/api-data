@@ -45,11 +45,6 @@ deprecated==1.2.15
     #   opentelemetry-semantic-conventions
 docker==6.1.3
     # via mlflow
-exceptiongroup==1.2.2
-    # via
-    #   anyio
-    #   ipython
-    #   pytest
 executing==2.1.0
     # via stack-data
 fastapi==0.115.5
@@ -383,7 +378,9 @@ scipy==1.13.1
 sentence-transformers==2.7.0
     # via -r requirements.in
 setuptools==75.6.0
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   torch
 shap==0.46.0
     # via -r requirements.in
 six==1.16.0
@@ -413,7 +410,7 @@ starlette==0.41.3
     #   -r requirements.in
     #   fastapi
     #   fastapi-versioning
-sympy==1.13.0
+sympy==1.13.1
     # via torch
 tenacity==8.5.0
     # via plotly
@@ -421,9 +418,7 @@ threadpoolctl==3.5.0
     # via scikit-learn
 tokenizers==0.21.1
     # via transformers
-tomli==2.2.1
-    # via pytest
-torch==2.4.1+cpu
+torch==2.6.0+cpu
     # via
     #   -r requirements.in
     #   sentence-transformers
@@ -445,11 +440,9 @@ transformers==4.49.0
 typing-extensions==4.12.2
     # via
     #   alembic
-    #   anyio
     #   fastapi
     #   graphene
     #   huggingface-hub
-    #   ipython
     #   mlflow-skinny
     #   opentelemetry-sdk
     #   pydantic
