@@ -3,7 +3,9 @@
 alembic==1.13.2
     # via mlflow
 anyio==4.4.0
-    # via starlette
+    # via
+    #   -r requirements.in
+    #   starlette
 apscheduler==3.10.4
     # via -r requirements.in
 blinker==1.8.2
@@ -373,7 +375,7 @@ starlette==0.41.3
     #   -r requirements.in
     #   fastapi
     #   fastapi-versioning
-sympy==1.13.0
+sympy==1.13.1
     # via torch
 tenacity==8.5.0
     # via plotly
@@ -381,7 +383,7 @@ threadpoolctl==3.5.0
     # via scikit-learn
 tokenizers==0.21.1
     # via transformers
-torch==2.4.1+cpu
+torch==2.6.0+cpu
     # via
     #   -r requirements.in
     #   sentence-transformers
