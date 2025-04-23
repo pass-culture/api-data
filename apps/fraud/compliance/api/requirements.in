@@ -1,5 +1,6 @@
 # Use CPU for pytorch
 # uv pip compile requirements.in -o requirements.txt --index-strategy unsafe-best-match --python-platform=linux --extra-index-url  https://download.pytorch.org/whl/cpu
+anyio==4.4.0
 apscheduler==3.10.4
 catboost==1.2.5
 cloudpickle==3.0.0
@@ -25,7 +26,7 @@ sentence-transformers==2.7
 setuptools==75.6.0
 shap==0.46.0
 starlette==0.41.3
-torch==2.4.1+cpu
+torch==2.6.0+cpu
 transformers==4.49.0
 uvicorn==0.22.0
 werkzeug==3.1.3
