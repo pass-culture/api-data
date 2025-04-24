@@ -65,6 +65,8 @@ VERSION_C_RECO_MODEL_DESCRIPTION = os.environ.get(
 VERSION_C_SIMILAR_OFFER_DESCRIPTION = os.environ.get(
     "VERSION_C_SIMILAR_OFFER_DESCRIPTION", "Similar Offer Configuration (version C)"
 )
+
+
 # endpoints
 RANKING_VERSION_B_ENDPOINT_NAME = os.environ.get(
     "RANKING_VERSION_B_ENDPOINT_NAME",
