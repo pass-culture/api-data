@@ -189,6 +189,28 @@ RECOMMENDATION_ENDPOINTS = {
             bookings_count=0,
         ),
     ),
+    "raw_retrieval": RecoModelConfigurationInput(
+        name="default",
+        description=DEFAULT_RECO_MODEL_DESCRIPTION,
+        diversification_params=DiversificationParamsInput(
+            diversication_type=DiversificationChoices.OFF,
+        ),
+        warn_model_type=ModelTypeInput(
+            retrieval=RetrievalChoices.RAW_RETRIEVAL,
+            ranking=RankingChoices.MODEL,
+            query_order=QueryOrderChoices.ITEM_RANK,
+        ),
+        cold_start_model_type=ModelTypeInput(
+            retrieval=RetrievalChoices.MIX_TOPS,
+            ranking=RankingChoices.MODEL,
+            query_order=QueryOrderChoices.ITEM_RANK,
+        ),
+        fork_params=ForkParamsInput(
+            bookings_count=2,
+            clicks_count=25,
+            favorites_count=None,
+        ),
+    ),
 }
 
 
