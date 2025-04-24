@@ -65,6 +65,11 @@ VERSION_C_RECO_MODEL_DESCRIPTION = os.environ.get(
 VERSION_C_SIMILAR_OFFER_DESCRIPTION = os.environ.get(
     "VERSION_C_SIMILAR_OFFER_DESCRIPTION", "Similar Offer Configuration (version C)"
 )
+RAW_RECOMMENDATION_MODEL_DESCRIPTION = os.environ.get(
+    "RAW_RECOMMENDATION_MODEL_DESCRIPTION",
+    "model created for dpp research to only get the raw retrieval items (no mix with top-offers or trending items) and with no diversification",
+)
+
 # endpoints
 RANKING_VERSION_B_ENDPOINT_NAME = os.environ.get(
     "RANKING_VERSION_B_ENDPOINT_NAME",
