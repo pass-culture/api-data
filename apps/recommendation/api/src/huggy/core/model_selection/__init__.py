@@ -26,7 +26,6 @@ from huggy.schemas.utils import parse_input
 from huggy.utils.env_vars import (
     DEFAULT_RECO_MODEL_DESCRIPTION,
     DEFAULT_SIMILAR_OFFER_DESCRIPTION,
-    RAW_RECOMMENDATION_MODEL_DESCRIPTION,
     RECO_MODEL_CONTEXT,
     SIMILAR_OFFER_MODEL_CONTEXT,
     VERSION_B_RECO_MODEL_DESCRIPTION,
@@ -194,7 +193,7 @@ RECOMMENDATION_ENDPOINTS = {
     # and with no diversification and retrieve 1000 offers
     "raw_retrieval": RecoModelConfigurationInput(
         name="raw_retrieval",
-        description=RAW_RECOMMENDATION_MODEL_DESCRIPTION,
+        description="model created for dpp research to only get the raw retrieval items (no mix with top-offers or trending items) and with no diversification",
         diversification_params=DiversificationParamsInput(
             diversication_type=DiversificationChoices.OFF,
         ),
