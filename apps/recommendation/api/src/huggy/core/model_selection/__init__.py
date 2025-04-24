@@ -190,7 +190,8 @@ RECOMMENDATION_ENDPOINTS = {
             bookings_count=0,
         ),
     ),
-    # Endpoint created for dpp research to only get the raw retrieval items (no mix with top-offers or trending items) and with no diversification
+    # Endpoint created for dpp research to only get the raw retrieval items (no mix with top-offers or trending items)
+    # and with no diversification and retrieve 1000 offers
     "raw_retrieval": RecoModelConfigurationInput(
         name="raw_retrieval",
         description=RAW_RECOMMENDATION_MODEL_DESCRIPTION,
