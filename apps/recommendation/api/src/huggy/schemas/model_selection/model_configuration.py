@@ -10,7 +10,7 @@ class RetrievalChoices(Enum):
     MIX_TOPS = "m&t"
     RECOMMENDATION = "reco"
     MIX_RECOMMENDATION = "mix_reco"
-    RAW_RECOMMENDATION = "raw_reco"
+    RAW_RETRIEVAL = "raw_retrieval"
     RECOMMENDATION_VERSION_B = "reco_b"
     MIX_VERSION_B = "mix_b"
     MIX_VERSION_C = "mix_c"
