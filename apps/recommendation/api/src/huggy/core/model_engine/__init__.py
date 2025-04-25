@@ -134,6 +134,29 @@ class ModelEngine(ABC):
 
         return [offer.offer_id for offer in scored_offers][:scoring_size]
 
+    async def get_scoring_with_scores(self, db: AsyncSession) -> list[str]:
+        """
+        Returns a list of offer_id to be send to the user
+        Depends of the scorer method.
+
+        """
+        # list[r_o.RankedOffer]
+        scored_offers = await self.scorer.get_scoring(db, self.call_id)
+        if len(scored_offers) == 0:
+            return []
+
+        scoring_size = min(len(scored_offers), NUMBER_OF_RECOMMENDATIONS)
+        await self.save_context(
+            session=db,
+            scored_offers=scored_offers[:scoring_size],
+            context=self.context,
+            user=self.user,
+        )
+
+        return [offer.offer_id for offer in scored_offers][:scoring_size], [
+            offer.offer_score for offer in scored_offers
+        ][:scoring_size]
+
     async def save_context(
         self,
         session: AsyncSession,

@@ -16,6 +16,14 @@ class ModelEngineOut:
     results: list[str]
 
 
+@dataclass
+class ModelEngineOutScores:
+    model: ModelEngine
+    results: list[str]
+    ## get scores from API for dpp
+    scores: list[float]
+
+
 class ModelEngineFactory:
     """
     Factory for creating the appropriate model engine handler.
@@ -53,6 +61,39 @@ class ModelEngineFactory:
             results = await model_engine.get_scoring(db)
 
         return ModelEngineOut(model=model_engine, results=results)
+
+    @staticmethod
+    async def handle_prediction_with_scores(
+        db: AsyncSession,
+        user: UserContext,
+        params_in: PlaylistParams,
+        call_id: str,
+        context: str,
+        *,
+        use_fallback: bool,
+        input_offers: Optional[list[o.Offer]] = None,
+    ) -> ModelEngineOutScores:
+        """
+        Returns the appropriate model engine based on input context and offers.
+        Fallback to default recommendation if no results are found or specific conditions apply.
+        """
+        input_offers = input_offers or []
+
+        model_engine = ModelEngineFactory._determine_model_engine(
+            user, params_in, call_id, context, input_offers
+        )
+
+        # Get results from the selected model engine
+        results, scores = await model_engine.get_scoring_with_scores(db)
+
+        # Handle fallback scenario if enabled and no results are found
+        if use_fallback and len(results) == 0:
+            model_engine = await ModelEngineFactory._handle_fallback(
+                user, params_in, call_id, input_offers
+            )
+            results = await model_engine.get_scoring(db)
+
+        return ModelEngineOutScores(model=model_engine, results=results, scores=scores)
 
     @staticmethod
     def _determine_model_engine(
