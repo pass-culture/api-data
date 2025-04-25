@@ -39,7 +39,7 @@ filter_retrieval_endpoint_version_b = BookingNumberRetrievalEndpoint(
 
 recommendation_retrieval_endpoint_version_b = RecommendationRetrievalEndpoint(
     endpoint_name=RetrievalEndpointName.recommendation_user_retrieval_version_b,
-    size=150,
+    size=450,
     use_cache=True,
 )
 
