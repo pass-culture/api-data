@@ -23,10 +23,7 @@ class RecoModelConfigurationInput(ModelConfigurationInput):
                 user_retrieval.trend_creation_date_retrieval_endpoint_version_b,
             ],
             RetrievalChoices.MIX_VERSION_C: [
-                user_retrieval.filter_retrieval_endpoint_version_c,
                 user_retrieval.recommendation_retrieval_endpoint_version_c,
-                user_retrieval.trend_release_date_retrieval_endpoint_version_c,
-                user_retrieval.trend_creation_date_retrieval_endpoint_version_c,
             ],
             RetrievalChoices.MIX_TOPS: [
                 user_retrieval.filter_retrieval_endpoint,
