@@ -1,4 +1,5 @@
 import asyncio
+import time
 import typing as t
 from dataclasses import dataclass
 
@@ -64,7 +65,7 @@ class OfferScorer:
     ) -> list[r_o.RankedOffer]:
         prediction_items: list[i.RecommendableItem] = []
         endpoints_stats = {}
-
+        start_time = time.time()
         # // call
         details_list = await asyncio.gather(
             *[endpoint.model_score() for endpoint in self.retrieval_endpoints]
@@ -73,8 +74,8 @@ class OfferScorer:
             endpoints_stats[endpoint.endpoint_name] = len(out)
             prediction_items.extend(out)
 
-        logger.debug(
-            f"Retrieval: {self.user.user_id}: predicted_items -> {len(prediction_items)}",
+        logger.info(
+            f"Retrieval: {self.user.user_id}: predicted_items -> {len(prediction_items)},execution_time -> {time.time() - start_time}",
             extra={
                 "event_name": "retrieval",
                 "call_id": call_id,
@@ -92,8 +93,8 @@ class OfferScorer:
         # Transform items in offers
         recommendable_offers = await self.get_recommendable_offers(db, prediction_items)
 
-        logger.debug(
-            f"Recommendable Offers: {self.user.user_id}: recommendable_offers -> {len(recommendable_offers)}",
+        logger.info(
+            f"Recommendable Offers: {self.user.user_id}: recommendable_offers -> {len(recommendable_offers)},execution_time -> {time.time() - start_time}",
             extra={
                 "event_name": "recommendable_offers",
                 "call_id": call_id,
@@ -113,8 +114,8 @@ class OfferScorer:
             recommendable_offers=recommendable_offers
         )
 
-        logger.debug(
-            f"Ranking Offers: {self.user.user_id}: ranking_endpoint -> {len(recommendable_offers)}",
+        logger.info(
+            f"Ranking Offers: {self.user.user_id}: ranking_endpoint -> {len(recommendable_offers)},execution_time -> {time.time() - start_time}",
             extra={
                 "event_name": "ranking",
                 "call_id": call_id,
@@ -123,8 +124,8 @@ class OfferScorer:
             },
         )
         recommendable_offers = self.apply_semantic_ranking(recommendable_offers)
-        logger.debug(
-            f"DPP Output: {self.user.user_id}: DPP sampling -> {len(recommendable_offers)}",
+        logger.info(
+            f"DPP Output: {self.user.user_id}: DPP sampling -> {len(recommendable_offers)},execution_time -> {time.time() - start_time}",
             extra={
                 "event_name": "DPP_sampling",
                 "call_id": call_id,
