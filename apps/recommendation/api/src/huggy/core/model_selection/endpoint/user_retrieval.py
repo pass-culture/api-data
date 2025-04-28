@@ -14,7 +14,7 @@ filter_retrieval_endpoint = BookingNumberRetrievalEndpoint(
 
 recommendation_retrieval_endpoint = RecommendationRetrievalEndpoint(
     endpoint_name=RetrievalEndpointName.recommendation_user_retrieval,
-    size=150,
+    size=500,
     use_cache=True,
 )
 

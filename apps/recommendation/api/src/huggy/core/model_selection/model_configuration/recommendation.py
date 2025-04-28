@@ -9,10 +9,7 @@ from huggy.schemas.model_selection.model_configuration import RetrievalChoices
 class RecoModelConfigurationInput(ModelConfigurationInput):
     def get_retrieval(self, model_type) -> list[RetrievalEndpoint]:
         default = [
-            user_retrieval.filter_retrieval_endpoint,
             user_retrieval.recommendation_retrieval_endpoint,
-            user_retrieval.trend_release_date_retrieval_endpoint,
-            user_retrieval.trend_creation_date_retrieval_endpoint,
         ]
         return {
             RetrievalChoices.MIX: default,
