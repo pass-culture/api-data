@@ -190,9 +190,7 @@ class ModelRankingEndpoint(RankingEndpoint):
             f"ranking_endpoint {self.user.user_id!s} out : {len(ranked_offers)}"
         )
         # return sorted(ranked_offers, key=lambda x: x.offer_rank, reverse=False)
-        return sorted(
-            ranked_offers, key=lambda x: x.offer_booking_number, reverse=False
-        )
+        return sorted(ranked_offers, key=lambda x: x.booking_number, reverse=False)
 
     async def _get_predictions(
         self, recommendable_offers: list[RecommendableOffer]
