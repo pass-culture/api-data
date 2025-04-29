@@ -50,6 +50,9 @@ class RecoModelConfigurationInput(ModelConfigurationInput):
             RetrievalChoices.RAW_RETRIEVAL: [
                 user_retrieval.recommendation_retrieval_endpoint_raw,
             ],
+            RetrievalChoices.RAW_RETRIEVAL_DPP: [
+                user_retrieval.recommendation_retrieval_endpoint_raw_dpp,
+            ],
             RetrievalChoices.TOPS: [
                 user_retrieval.filter_retrieval_endpoint,
             ],

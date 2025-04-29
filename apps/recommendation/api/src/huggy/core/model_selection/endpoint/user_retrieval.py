@@ -81,9 +81,16 @@ trend_creation_date_retrieval_endpoint_version_c = CreationTrendRetrievalEndpoin
     use_cache=True,
 )
 
-# Raw retrieval for dpp
+# Raw retrieval
 recommendation_retrieval_endpoint_raw = RecommendationRetrievalEndpoint(
     endpoint_name=RetrievalEndpointName.recommendation_user_retrieval,
-    size=1000,
+    size=60,
+    use_cache=True,
+)
+
+# Raw retrieval for dpp
+recommendation_retrieval_endpoint_raw_dpp = RecommendationRetrievalEndpoint(
+    endpoint_name=RetrievalEndpointName.recommendation_user_retrieval_version_b,
+    size=60,
     use_cache=True,
 )
