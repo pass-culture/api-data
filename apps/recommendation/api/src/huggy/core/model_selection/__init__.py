@@ -213,6 +213,50 @@ RECOMMENDATION_ENDPOINTS = {
             favorites_count=None,
         ),
     ),
+    "raw_retrieval_version_b": RecoModelConfigurationInput(
+        name="raw_retrieval_version_b",
+        description="model created for dpp research to only get the raw retrieval items (no mix with top-offers or trending items) and with no diversification",
+        diversification_params=DiversificationParamsInput(
+            diversication_type=DiversificationChoices.OFF,
+        ),
+        warn_model_type=ModelTypeInput(
+            retrieval=RetrievalChoices.RAW_RETRIEVAL_VERSION_B,
+            ranking=RankingChoices.MODEL,
+            query_order=QueryOrderChoices.ITEM_RANK,
+        ),
+        cold_start_model_type=ModelTypeInput(
+            retrieval=RetrievalChoices.MIX_TOPS,
+            ranking=RankingChoices.MODEL,
+            query_order=QueryOrderChoices.ITEM_RANK,
+        ),
+        fork_params=ForkParamsInput(
+            bookings_count=2,
+            clicks_count=25,
+            favorites_count=None,
+        ),
+    ),
+    "raw_retrieval_version_c": RecoModelConfigurationInput(
+        name="raw_retrieval_version_c",
+        description="model created for dpp research to only get the raw retrieval items (no mix with top-offers or trending items) and with no diversification",
+        diversification_params=DiversificationParamsInput(
+            diversication_type=DiversificationChoices.OFF,
+        ),
+        warn_model_type=ModelTypeInput(
+            retrieval=RetrievalChoices.RAW_RETRIEVAL_VERSION_C,
+            ranking=RankingChoices.MODEL,
+            query_order=QueryOrderChoices.ITEM_RANK,
+        ),
+        cold_start_model_type=ModelTypeInput(
+            retrieval=RetrievalChoices.MIX_TOPS,
+            ranking=RankingChoices.MODEL,
+            query_order=QueryOrderChoices.ITEM_RANK,
+        ),
+        fork_params=ForkParamsInput(
+            bookings_count=2,
+            clicks_count=25,
+            favorites_count=None,
+        ),
+    ),
 }
 
 
