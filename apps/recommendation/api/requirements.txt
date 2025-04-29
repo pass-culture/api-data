@@ -6,7 +6,6 @@ annotated-types==0.7.0
     # via pydantic
 anyio==3.7.1
     # via
-    #   fastapi
     #   httpx
     #   starlette
 asyncpg==0.28.0
@@ -22,13 +21,19 @@ charset-normalizer==3.3.2
     # via requests
 click==8.1.7
     # via uvicorn
+contourpy==1.3.0
+    # via matplotlib
 coverage==7.6.0
     # via pytest-cov
+cycler==0.12.1
+    # via matplotlib
+dppy==0.3.3
+    # via -r requirements.in
 exceptiongroup==1.2.2
     # via
     #   anyio
     #   pytest
-fastapi==0.104.0
+fastapi==0.115.5
     # via
     #   -r requirements.in
     #   fastapi-cloud-logging
@@ -37,6 +42,8 @@ fastapi-cloud-logging==1.1.0
     # via -r requirements.in
 fastapi-versioning==0.10.0
     # via -r requirements.in
+fonttools==4.57.0
+    # via matplotlib
 geoalchemy2==0.14.0
     # via -r requirements.in
 google-api-core==1.34.1
@@ -123,27 +130,40 @@ idna==3.7
     #   anyio
     #   httpx
     #   requests
+importlib-resources==6.5.2
+    # via matplotlib
 iniconfig==2.0.0
     # via pytest
+kiwisolver==1.4.7
+    # via matplotlib
 libcst==1.4.0
     # via google-cloud-secret-manager
 loguru==0.7.0
     # via -r requirements.in
+matplotlib==3.9.4
+    # via dppy
 mirakuru==2.5.2
     # via pytest-postgresql
 numpy==1.26.0
     # via
     #   -r requirements.in
+    #   contourpy
+    #   dppy
+    #   matplotlib
     #   pandas
+    #   scipy
 packaging==24.1
     # via
     #   geoalchemy2
     #   google-cloud-aiplatform
     #   google-cloud-bigquery
     #   gunicorn
+    #   matplotlib
     #   pytest
 pandas==2.2.2
     # via -r requirements.in
+pillow==11.2.1
+    # via matplotlib
 pluggy==1.5.0
     # via pytest
 port-for==0.7.2
@@ -185,6 +205,8 @@ pydantic==2.5.2
     #   fastapi
 pydantic-core==2.14.5
     # via pydantic
+pyparsing==3.2.3
+    # via matplotlib
 pytest==8.2.2
     # via
     #   pytest-asyncio
@@ -200,6 +222,7 @@ python-dateutil==2.9.0.post0
     # via
     #   -r requirements.in
     #   google-cloud-bigquery
+    #   matplotlib
     #   pandas
 pytz==2023.3
     # via
@@ -214,6 +237,8 @@ requests==2.32.3
     #   google-cloud-storage
 rsa==4.9
     # via google-auth
+scipy==1.13.1
+    # via dppy
 setuptools==70.3.0
     # via pytest-postgresql
 shapely==1.8.5.post1
@@ -228,6 +253,11 @@ sqlalchemy==2.0.22
     # via
     #   -r requirements.in
     #   geoalchemy2
+starlette==0.41.3
+    # via
+    #   -r requirements.in
+    #   fastapi
+    #   fastapi-versioning
 tomli==2.0.1
     # via pytest
 typing-extensions==4.12.2
@@ -244,3 +274,5 @@ urllib3==2.2.2
     # via requests
 uvicorn==0.22.0
     # via -r requirements.in
+zipp==3.21.0
+    # via importlib-resources
