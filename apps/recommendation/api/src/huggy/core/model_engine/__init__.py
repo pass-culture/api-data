@@ -14,7 +14,6 @@ from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.recommendable_offer import RankedOffer
 from huggy.schemas.user import UserContext
 from huggy.utils.env_vars import NUMBER_OF_RECOMMENDATIONS
-from huggy.utils.mixing import order_offers_by_score_and_diversify_features
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -108,21 +107,21 @@ class ModelEngine(ABC):
         if len(scored_offers) == 0:
             return []
 
-        diversification_params = self.model_params.get_diversification_params(
-            self.params_in
-        )
+        # diversification_params = self.model_params.get_diversification_params(
+        #     self.params_in
+        # )
 
-        # apply diversification filter
-        if diversification_params.is_active:
-            scored_offers = order_offers_by_score_and_diversify_features(
-                scored_offers=scored_offers,
-                score_column=diversification_params.order_column,
-                score_order_ascending=diversification_params.order_ascending,
-                shuffle_recommendation=diversification_params.is_reco_shuffled,
-                feature=diversification_params.mixing_features,
-                nb_reco_display=NUMBER_OF_RECOMMENDATIONS,
-                submixing_feature_dict=diversification_params.submixing_feature_dict,
-            )
+        # # apply diversification filter
+        # if diversification_params.is_active:
+        #     scored_offers = order_offers_by_score_and_diversify_features(
+        #         scored_offers=scored_offers,
+        #         score_column=diversification_params.order_column,
+        #         score_order_ascending=diversification_params.order_ascending,
+        #         shuffle_recommendation=diversification_params.is_reco_shuffled,
+        #         feature=diversification_params.mixing_features,
+        #         nb_reco_display=NUMBER_OF_RECOMMENDATIONS,
+        #         submixing_feature_dict=diversification_params.submixing_feature_dict,
+        #     )
 
         scoring_size = min(len(scored_offers), NUMBER_OF_RECOMMENDATIONS)
         await self.save_context(
