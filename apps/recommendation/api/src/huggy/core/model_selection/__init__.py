@@ -193,7 +193,7 @@ RECOMMENDATION_ENDPOINTS = {
     # and with no diversification and retrieve 1000 offers
     "raw_retrieval": RecoModelConfigurationInput(
         name="raw_retrieval",
-        description="model created for dpp research to only get the raw retrieval items (no mix with top-offers or trending items) and with no diversification",
+        description=VERSION_B_RECO_MODEL_DESCRIPTION,
         diversification_params=DiversificationParamsInput(
             diversication_type=DiversificationChoices.OFF,
         ),
@@ -215,7 +215,7 @@ RECOMMENDATION_ENDPOINTS = {
     ),
     "raw_retrieval_version_b": RecoModelConfigurationInput(
         name="raw_retrieval_version_b",
-        description="model created for dpp research to only get the raw retrieval items (no mix with top-offers or trending items) and with no diversification",
+        description=VERSION_B_RECO_MODEL_DESCRIPTION,
         diversification_params=DiversificationParamsInput(
             diversication_type=DiversificationChoices.OFF,
         ),
@@ -237,7 +237,7 @@ RECOMMENDATION_ENDPOINTS = {
     ),
     "raw_retrieval_version_c": RecoModelConfigurationInput(
         name="raw_retrieval_version_c",
-        description="model created for dpp research to only get the raw retrieval items (no mix with top-offers or trending items) and with no diversification",
+        description=VERSION_B_RECO_MODEL_DESCRIPTION,
         diversification_params=DiversificationParamsInput(
             diversication_type=DiversificationChoices.OFF,
         ),
