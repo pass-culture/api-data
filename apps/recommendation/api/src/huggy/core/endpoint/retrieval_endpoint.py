@@ -158,9 +158,7 @@ class RetrievalEndpoint(AbstractEndpoint):
                 max_val=price_max,
             )
         )
-        params.append(
-            ListParams(label="search_group_name", values=self.params_in.categories)
-        )  # Hack because the backend call us with categroy instead of search_group_name
+        params.append(ListParams(label="category", values=self.params_in.categories))
         params.append(
             ListParams(
                 label="search_group_name", values=self.params_in.search_group_names
