@@ -138,3 +138,13 @@ gcloud run deploy apireco-stg \
 --allow-unauthenticated \
 --platform managed
 ```
+
+**Prod**
+```sh
+gcloud builds submit --tag eu.gcr.io/passculture-data-prod/data-gcp/apireco-prod
+
+gcloud run deploy apireco-prod \--image eu.gcr.io/passculture-data-prod/data-gcp/apireco-prod:latest \
+--region europe-west1 \
+--allow-unauthenticated \
+--platform managed
+```
