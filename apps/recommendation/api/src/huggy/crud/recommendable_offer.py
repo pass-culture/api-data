@@ -172,6 +172,18 @@ class RecommendableOffer:
                     user_distance.label("user_distance"),
                     offer_table.venue_latitude.label("venue_latitude"),
                     offer_table.venue_longitude.label("venue_longitude"),
+                    offer_table.new_offer_is_geolocated.label(
+                        "new_offer_is_geolocated"
+                    ),
+                    offer_table.new_offer_creation_days.label(
+                        "new_offer_creation_days"
+                    ),
+                    offer_table.new_offer_stock_price.label("new_offer_stock_price"),
+                    offer_table.new_offer_stock_beginning_days.label(
+                        "new_offer_stock_beginning_days"
+                    ),
+                    offer_table.new_offer_centroid_x.label("new_offer_centroid_x"),
+                    offer_table.new_offer_centroid_y.label("new_offer_centroid_y"),
                 ).where(offer_table.offer_id.in_(list(offer_list)))
             )
         ).fetchall()

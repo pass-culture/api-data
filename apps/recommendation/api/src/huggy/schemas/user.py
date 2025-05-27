@@ -1,5 +1,6 @@
 import typing as t
 
+from huggy.utils.constants import DEFAULT_NUMERICAL
 from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic_core.core_schema import ValidationInfo
 
@@ -25,9 +26,9 @@ class UserProfileDB(BaseModel):
 
     user_id: t.Optional[str] = "-1"
     age: t.Optional[float] = 18
-    bookings_count: t.Optional[int] = 0
-    clicks_count: t.Optional[int] = 0
-    favorites_count: t.Optional[int] = 0
+    bookings_count: t.Optional[int] = DEFAULT_NUMERICAL
+    clicks_count: t.Optional[int] = DEFAULT_NUMERICAL
+    favorites_count: t.Optional[int] = DEFAULT_NUMERICAL
     user_deposit_remaining_credit: t.Optional[float] = 300
 
     @field_validator("user_deposit_remaining_credit")

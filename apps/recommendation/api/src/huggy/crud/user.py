@@ -4,6 +4,7 @@ import typing as t
 import huggy.models.enriched_user as user_db
 import huggy.schemas.user as user_sh
 from huggy.crud.iris import Iris
+from huggy.utils.constants import DEFAULT_NUMERICAL
 from huggy.utils.exception import log_error
 from pydantic import TypeAdapter
 from sqlalchemy import func, select
@@ -70,14 +71,15 @@ class UserContextDB:
                             func.date_part(
                                 "year", func.age(user_table.user_birth_date)
                             ).label("age"),
-                            func.coalesce(user_table.booking_cnt, 0).label(
-                                "bookings_count"
-                            ),
-                            func.coalesce(user_table.consult_offer, 0).label(
-                                "clicks_count"
-                            ),
                             func.coalesce(
-                                user_table.has_added_offer_to_favorites, 0
+                                user_table.booking_cnt, DEFAULT_NUMERICAL
+                            ).label("bookings_count"),
+                            func.coalesce(
+                                user_table.consult_offer, DEFAULT_NUMERICAL
+                            ).label("clicks_count"),
+                            func.coalesce(
+                                user_table.has_added_offer_to_favorites,
+                                DEFAULT_NUMERICAL,
                             ).label("favorites_count"),
                             func.coalesce(
                                 user_table.user_theoretical_remaining_credit,
