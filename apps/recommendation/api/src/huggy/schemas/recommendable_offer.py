@@ -13,6 +13,12 @@ class RecommendableOffer(RecommendableItem):
     user_distance: t.Optional[float]
     venue_latitude: t.Optional[float]
     venue_longitude: t.Optional[float]
+    new_offer_is_geolocated: t.Optional[bool]
+    new_offer_creation_days: t.Optional[int]
+    new_offer_stock_price: t.Optional[float]
+    new_offer_stock_beginning_days: t.Optional[int]
+    new_offer_centroid_x: t.Optional[float]
+    new_offer_centroid_y: t.Optional[float]
 
 
 class RankedOffer(RecommendableOffer):

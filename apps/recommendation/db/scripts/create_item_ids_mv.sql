@@ -18,7 +18,7 @@ OR REPLACE FUNCTION get_item_ids() RETURNS TABLE (
         ro.booking_number,
         ro.is_sensitive,
         ro.venue_latitude,
-        ro.venue_longitude
+        ro.venue_longitude,
     FROM
         recommendable_offers_raw ro;
 

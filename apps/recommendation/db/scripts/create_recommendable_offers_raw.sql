@@ -1,20 +1,26 @@
 DROP FUNCTION IF EXISTS get_recommendable_offers_raw_{{ ts_nodash  }} CASCADE;
 CREATE OR REPLACE FUNCTION get_recommendable_offers_raw_{{ ts_nodash  }}()
-RETURNS TABLE (   
+RETURNS TABLE (
                 offer_id varchar,
                 item_id varchar,
                 offer_creation_date TIMESTAMP,
                 stock_beginning_date TIMESTAMP,
                 booking_number INTEGER,
-                venue_latitude DECIMAL, 
+                venue_latitude DECIMAL,
                 venue_longitude DECIMAL,
                 venue_geo GEOGRAPHY,
                 default_max_distance INTEGER,
-                unique_id VARCHAR
+                unique_id VARCHAR,
+                new_offer_is_geolocated BOOLEAN,
+                new_offer_creation_days INTEGER,
+                new_offer_stock_price DECIMAL,
+                new_offer_stock_beginning_days INTEGER,
+                new_offer_centroid_x DECIMAL,
+                new_offer_centroid_y DECIMAL
                 ) AS
 $body$
 BEGIN
-    RETURN QUERY 
+    RETURN QUERY
     SELECT
         ro.offer_id,
         ro.item_id,
@@ -25,9 +31,15 @@ BEGIN
         ro.venue_longitude,
         ST_MakePoint(ro.venue_longitude, ro.venue_latitude)::geography as venue_geo,
         ro.default_max_distance,
-        ro.unique_id
+        ro.unique_id,
+        ro.new_offer_is_geolocated,
+        ro.new_offer_creation_days,
+        ro.new_offer_stock_price,
+        ro.new_offer_stock_beginning_days,
+        ro.new_offer_centroid_x,
+        ro.new_offer_centroid_y
     FROM public.recommendable_offers_raw ro
-    WHERE is_geolocated AND not is_sensitive ; 
+    WHERE is_geolocated AND not is_sensitive ;
 END;
 $body$
 LANGUAGE plpgsql;
@@ -41,8 +53,8 @@ WITH NO DATA;
 
 
 -- Create indexes
-CREATE UNIQUE INDEX IF NOT EXISTS unique_idx_recommendable_offers_raw_mv_tmp_{{ ts_nodash  }} 
-ON public.recommendable_offers_raw_mv_tmp 
+CREATE UNIQUE INDEX IF NOT EXISTS unique_idx_recommendable_offers_raw_mv_tmp_{{ ts_nodash  }}
+ON public.recommendable_offers_raw_mv_tmp
 USING btree (item_id,offer_id,unique_id);
 
 CREATE INDEX IF NOT EXISTS offer_idx_offer_recommendable_raw_{{ ts_nodash  }}
@@ -52,7 +64,7 @@ CREATE INDEX IF NOT EXISTS item_idx_offer_recommendable_raw_{{ ts_nodash  }}
 ON public.recommendable_offers_raw_mv_tmp(item_id);
 
 CREATE INDEX IF NOT EXISTS venue_geo_idx_offer_recommendable_raw_{{ ts_nodash  }}
-ON public.recommendable_offers_raw_mv_tmp            
+ON public.recommendable_offers_raw_mv_tmp
 USING gist(venue_geo);
 
 

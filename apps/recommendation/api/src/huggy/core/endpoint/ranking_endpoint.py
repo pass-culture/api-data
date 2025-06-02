@@ -151,10 +151,12 @@ class ModelRankingEndpoint(RankingEndpoint):
                     "offer_semantic_emb_mean": to_float(row.semantic_emb_mean),
                     "offer_item_score": to_float(row.item_score),
                     "offer_item_rank": to_float(row.item_rank),
-                    "offer_is_geolocated": to_float(row.is_geolocated),
-                    "offer_stock_price": to_float(row.stock_price),
-                    "offer_creation_days": to_days(row.offer_creation_date),
-                    "offer_stock_beginning_days": to_days(row.stock_beginning_date),
+                    "offer_is_geolocated": to_float(row.new_offer_is_geolocated),
+                    "offer_stock_price": to_float(row.new_offer_stock_price),
+                    "offer_creation_days": to_days(row.new_offer_creation_days),
+                    "offer_stock_beginning_days": to_days(
+                        row.new_offer_stock_beginning_days
+                    ),
                     "day_of_the_week": to_int(datetime.today().weekday()),
                     "hour_of_the_day": to_int(datetime.now().hour),
                 }

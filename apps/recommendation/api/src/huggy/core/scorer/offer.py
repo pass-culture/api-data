@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 OFFER_DB_CACHE = Cache(
     Cache.MEMORY, ttl=3000, serializer=PickleSerializer(), namespace="offer_db_cache"
 )
+MAX_NEAREST_OFFERS = 500
 
 
 @dataclass
@@ -226,7 +227,7 @@ class OfferScorer:
         db: AsyncSession,
         user: u.UserContext,
         recommendable_items_ids: dict[str, i.RecommendableItem],
-        limit: int = 500,
+        limit: int = MAX_NEAREST_OFFERS,
         input_offers: t.Optional[list[o.Offer]] = None,
         query_order: QueryOrderChoices = QueryOrderChoices.ITEM_RANK,
     ) -> RecommendableOfferResult:

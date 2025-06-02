@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from apps.recommendation.api.src.huggy.utils.constants import DEFAULT_NUMERICAL
 from tests.db.schema.iris import (
     iris_marseille_cours_julien,
     iris_marseille_vieux_port,
@@ -47,6 +48,12 @@ class RecommendableOffersRawExample(BaseModel):
     item_cluster_id: str = Field(default_factory=lambda: str(uuid4()))
     unique_id: str = Field(default_factory=lambda: str(uuid4()))
     default_max_distance: float = 50_000  # 50 KM
+    new_offer_is_geolocated: bool = False
+    new_offer_creation_days: int = DEFAULT_NUMERICAL
+    new_offer_stock_price: float = DEFAULT_NUMERICAL
+    new_offer_stock_beginning_days: int = DEFAULT_NUMERICAL
+    new_offer_centroid_x: t.Optional[float] = DEFAULT_NUMERICAL
+    new_offer_centroid_y: t.Optional[float] = DEFAULT_NUMERICAL
 
 
 movie_offer_no_geolocated = RecommendableOffersRawExample(
