@@ -30,8 +30,6 @@ from huggy.utils.env_vars import (
     SIMILAR_OFFER_MODEL_CONTEXT,
     VERSION_B_RECO_MODEL_DESCRIPTION,
     VERSION_B_SIMILAR_OFFER_DESCRIPTION,
-    VERSION_C_RECO_MODEL_DESCRIPTION,
-    VERSION_C_SIMILAR_OFFER_DESCRIPTION,
 )
 from pydantic import ValidationError
 
@@ -66,13 +64,13 @@ RECOMMENDATION_ENDPOINTS = {
             diversication_type=DiversificationChoices.ON,
         ),
         warn_model_type=ModelTypeInput(
-            retrieval=RetrievalChoices.MIX_VERSION_B,
-            ranking=RankingChoices.MODEL,
+            retrieval=RetrievalChoices.MIX,
+            ranking=RankingChoices.VERSION_B,
             query_order=QueryOrderChoices.ITEM_RANK,
         ),
         cold_start_model_type=ModelTypeInput(
-            retrieval=RetrievalChoices.MIX_TOPS_VERSION_B,
-            ranking=RankingChoices.MODEL,
+            retrieval=RetrievalChoices.MIX_TOPS,
+            ranking=RankingChoices.VERSION_B,
             query_order=QueryOrderChoices.ITEM_RANK,
         ),
         fork_params=ForkParamsInput(
@@ -81,28 +79,28 @@ RECOMMENDATION_ENDPOINTS = {
             favorites_count=None,
         ),
     ),
-    "version_c": RecoModelConfigurationInput(
-        name="version_c",
-        description=VERSION_C_RECO_MODEL_DESCRIPTION,
-        diversification_params=DiversificationParamsInput(
-            diversication_type=DiversificationChoices.ON,
-        ),
-        warn_model_type=ModelTypeInput(
-            retrieval=RetrievalChoices.MIX_VERSION_C,
-            ranking=RankingChoices.MODEL,
-            query_order=QueryOrderChoices.ITEM_RANK,
-        ),
-        cold_start_model_type=ModelTypeInput(
-            retrieval=RetrievalChoices.MIX_TOPS_VERSION_C,
-            ranking=RankingChoices.MODEL,
-            query_order=QueryOrderChoices.ITEM_RANK,
-        ),
-        fork_params=ForkParamsInput(
-            bookings_count=2,
-            clicks_count=25,
-            favorites_count=None,
-        ),
-    ),
+    # "version_c": RecoModelConfigurationInput(
+    #     name="version_c",
+    #     description=VERSION_C_RECO_MODEL_DESCRIPTION,
+    #     diversification_params=DiversificationParamsInput(
+    #         diversication_type=DiversificationChoices.ON,
+    #     ),
+    #     warn_model_type=ModelTypeInput(
+    #         retrieval=RetrievalChoices.MIX_VERSION_C,
+    #         ranking=RankingChoices.MODEL,
+    #         query_order=QueryOrderChoices.ITEM_RANK,
+    #     ),
+    #     cold_start_model_type=ModelTypeInput(
+    #         retrieval=RetrievalChoices.MIX_TOPS_VERSION_C,
+    #         ranking=RankingChoices.MODEL,
+    #         query_order=QueryOrderChoices.ITEM_RANK,
+    #     ),
+    #     fork_params=ForkParamsInput(
+    #         bookings_count=2,
+    #         clicks_count=25,
+    #         favorites_count=None,
+    #     ),
+    # ),
     "user_distance": RecoModelConfigurationInput(
         name="user_distance",
         description="""Rank by offer distance.""",
@@ -244,39 +242,39 @@ SIMILAR_OFFER_ENDPOINTS = {
             diversication_type=DiversificationChoices.OFF,
         ),
         warn_model_type=ModelTypeInput(
-            retrieval=RetrievalChoices.MIX_VERSION_B,
-            ranking=RankingChoices.MODEL,
+            retrieval=RetrievalChoices.MIX,
+            ranking=RankingChoices.VERSION_B,
             query_order=QueryOrderChoices.ITEM_RANK,
         ),
         cold_start_model_type=ModelTypeInput(
-            retrieval=RetrievalChoices.MIX_VERSION_B,
-            ranking=RankingChoices.MODEL,
+            retrieval=RetrievalChoices.MIX,
+            ranking=RankingChoices.VERSION_B,
             query_order=QueryOrderChoices.ITEM_RANK,
         ),
         fork_params=ForkParamsInput(
             bookings_count=0,
         ),
     ),
-    "version_c": SimilarModelConfigurationInput(
-        name="version_c",
-        description=VERSION_C_SIMILAR_OFFER_DESCRIPTION,
-        diversification_params=DiversificationParamsInput(
-            diversication_type=DiversificationChoices.OFF,
-        ),
-        warn_model_type=ModelTypeInput(
-            retrieval=RetrievalChoices.MIX_VERSION_C,
-            ranking=RankingChoices.MODEL,
-            query_order=QueryOrderChoices.ITEM_RANK,
-        ),
-        cold_start_model_type=ModelTypeInput(
-            retrieval=RetrievalChoices.MIX_VERSION_C,
-            ranking=RankingChoices.MODEL,
-            query_order=QueryOrderChoices.ITEM_RANK,
-        ),
-        fork_params=ForkParamsInput(
-            bookings_count=0,
-        ),
-    ),
+    # "version_c": SimilarModelConfigurationInput(
+    #     name="version_c",
+    #     description=VERSION_C_SIMILAR_OFFER_DESCRIPTION,
+    #     diversification_params=DiversificationParamsInput(
+    #         diversication_type=DiversificationChoices.OFF,
+    #     ),
+    #     warn_model_type=ModelTypeInput(
+    #         retrieval=RetrievalChoices.MIX_VERSION_C,
+    #         ranking=RankingChoices.MODEL,
+    #         query_order=QueryOrderChoices.ITEM_RANK,
+    #     ),
+    #     cold_start_model_type=ModelTypeInput(
+    #         retrieval=RetrievalChoices.MIX_VERSION_C,
+    #         ranking=RankingChoices.MODEL,
+    #         query_order=QueryOrderChoices.ITEM_RANK,
+    #     ),
+    #     fork_params=ForkParamsInput(
+    #         bookings_count=0,
+    #     ),
+    # ),
     "user_distance": SimilarModelConfigurationInput(
         name="user_distance",
         description="""Similar offers based on distance ranking.""",
