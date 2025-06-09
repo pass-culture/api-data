@@ -7,8 +7,18 @@ on:
       - staging
       - production
     paths:
-      - 'apps/recommendation/api/src/**'
+      - "apps/recommendation/api/src/**"
   workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy to"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
 
 jobs:
   setup-job:
@@ -20,11 +30,13 @@ jobs:
       - name: "Set environment variable"
         id: "set-variable"
         run: |
-          if [ ${{ github.ref }} = 'refs/heads/main' ]; then
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "env_name=${{ github.event.inputs.environment }}" | tee -a $GITHUB_OUTPUT
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
             echo "env_name=dev" | tee -a $GITHUB_OUTPUT
-          elif [ ${{ github.ref }} = 'refs/heads/staging' ]; then
+          elif [ "${{ github.ref }}" = "refs/heads/staging" ]; then
             echo "env_name=staging" | tee -a $GITHUB_OUTPUT
-          elif [ ${{ github.ref }} = 'refs/heads/production' ]; then
+          elif [ "${{ github.ref }}" = "refs/heads/production" ]; then
             echo "env_name=production" | tee -a $GITHUB_OUTPUT
           else
             echo "env_name=dev" | tee -a $GITHUB_OUTPUT
@@ -51,7 +63,7 @@ jobs:
     uses: ./.github/workflows/reusable_api_reco_integration_tests.yml
     needs: [setup-job, deploy-api-reco]
     with:
-      TARGET_ENV:  ${{ needs.setup-job.outputs.env_name }}
+      TARGET_ENV: ${{ needs.setup-job.outputs.env_name }}
     secrets:
       GCP_EHP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
       GCP_EHP_SERVICE_ACCOUNT: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
@@ -69,13 +81,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: "Connect to Secret Manager"
-        uses: 'google-github-actions/auth@v2'
+        uses: "google-github-actions/auth@v2"
         with:
           workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
       - name: "Get secrets for Slack"
-        id: 'secrets'
-        uses: 'google-github-actions/get-secretmanager-secrets@v2'
+        id: "secrets"
+        uses: "google-github-actions/get-secretmanager-secrets@v2"
         with:
           secrets: |-
             SLACK_BOT_TOKEN:passculture-metier-ehp/passculture-ci-slack-bot-token
