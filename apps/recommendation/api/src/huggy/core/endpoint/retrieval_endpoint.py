@@ -210,11 +210,11 @@ class RetrievalEndpoint(AbstractEndpoint):
                 RecommendableItem(
                     item_id=r["item_id"],
                     item_rank=r["idx"],
-                    item_score=r.get("_distance", None),
+                    item_score=self.extract_score_from_result(r),
                     item_origin=self.MODEL_TYPE,
-                    item_cluster_id=r.get("cluster_id", None),
-                    item_topic_id=r.get("topic_id", None),
-                    semantic_emb_mean=r.get("semantic_emb_mean", None),
+                    item_cluster_id=r.get("cluster_id"),
+                    item_topic_id=r.get("topic_id"),
+                    semantic_emb_mean=r.get("semantic_emb_mean"),
                     is_geolocated=bool(r["is_geolocated"]),
                     booking_number=r["booking_number"],
                     booking_number_last_7_days=r["booking_number_last_7_days"],
@@ -237,6 +237,25 @@ class RetrievalEndpoint(AbstractEndpoint):
                 for r in prediction_result.predictions
             ],
         )
+
+    def extract_score_from_result(self, data: dict) -> float:
+        user_item_dot_similarity = data.get("_user_item_dot_similarity")
+
+        if user_item_dot_similarity is not None:
+            return user_item_dot_similarity
+        else:
+            item_item_dot_similarity = data.get(
+                "_item_item_dot_similarity", {}
+            ).values()
+            non_zero_item_item_dot_similarity = [
+                v for v in item_item_dot_similarity if v != 0.0
+            ]
+            return (
+                sum(non_zero_item_item_dot_similarity)
+                / len(non_zero_item_item_dot_similarity)
+                if non_zero_item_item_dot_similarity
+                else None
+            )
 
     async def model_score(self) -> list[RecommendableItem]:
         result: RetrievalPredictionResultItem = None
