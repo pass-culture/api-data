@@ -248,7 +248,7 @@ class RetrievalEndpoint(AbstractEndpoint):
                 "_item_item_dot_similarity", {}
             ).values()
             non_zero_item_item_dot_similarity = [
-                v for v in item_item_dot_similarity if v != 0.0
+                v for v in item_item_dot_similarity if (v is not None and v != 0.0)
             ]
             return (
                 sum(non_zero_item_item_dot_similarity)
