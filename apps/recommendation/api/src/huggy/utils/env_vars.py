@@ -1,13 +1,33 @@
 import contextvars
+import logging
 import os
 
 from huggy.utils.secrets import access_secret
+
+
+def get_bool_from_env(var_name, default=False):
+    """
+    Gets a boolean value from an environment variable.
+    Accepts 'true', '1', 't', 'y', 'yes', 'on' (case-insensitive) as True.
+    """
+    value = os.environ.get(var_name)
+
+    if value is None:
+        return default
+
+    return value.lower() in {"true", "1", "t", "y", "yes", "on"}
+
 
 # GLOBAL
 GCP_PROJECT = os.environ.get("GCP_PROJECT", "passculture-data-ehp")
 ENV_SHORT_NAME = os.environ.get("ENV_SHORT_NAME", "dev")
 CORS_ALLOWED_ORIGIN = os.environ.get("CORS_ALLOWED_ORIGIN", "*")
-API_LOCAL = bool(os.environ.get("API_LOCAL", 0)) is True
+API_LOCAL = get_bool_from_env("API_LOCAL", default=False)
+DEBUG_LEVEL = (
+    logging.DEBUG
+    if get_bool_from_env("DEBUG_LOGS", default=ENV_SHORT_NAME != "prod")
+    else logging.INFO
+)
 
 # SQL
 SQL_BASE_DATABASE = os.environ.get("SQL_BASE", "db")
