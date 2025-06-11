@@ -2,7 +2,7 @@ import logging
 
 from huggy.utils.cloud_logging.filter import GoogleCloudLogFilter
 from huggy.utils.cloud_logging.logger import CustomLogger
-from huggy.utils.env_vars import API_LOCAL
+from huggy.utils.env_vars import API_LOCAL, DEBUG_LEVEL
 
 
 def setup_logging():
@@ -16,10 +16,10 @@ def setup_logging():
 
         client = Client()
         handler = client.get_default_handler()
-        handler.setLevel(logging.DEBUG)
+        handler.setLevel(DEBUG_LEVEL)
         handler.filters = []
         handler.addFilter(GoogleCloudLogFilter(project=client.project))
         logger.handlers = []
         logger.addHandler(handler)
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(DEBUG_LEVEL)
         return CustomLogger()
