@@ -35,7 +35,6 @@ class ModelHandler:
         mlflow_model_name = self._get_mlflow_model_name(model_name=model_name)
 
         custom_logger.info(f"Loading model {mlflow_model_name}...")
-        mlflow.pyfunc.get_model_dependencies(f"models:/{mlflow_model_name}")
         loaded_model = mlflow.pyfunc.load_model(
             model_uri=f"models:/{mlflow_model_name}"
         )
