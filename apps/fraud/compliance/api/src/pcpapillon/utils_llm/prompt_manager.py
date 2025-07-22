@@ -3,9 +3,8 @@ Prompt creation and management utilities.
 """
 
 from langchain_core.prompts import ChatPromptTemplate, FewShotChatMessagePromptTemplate
-
-from utils.parser import parse_examples
-from utils.validators import get_txt_from_path
+from parser import parse_examples
+from validators import get_txt_from_path
 
 
 def create_few_shot_prompt(examples, regles, config, response_schemas):

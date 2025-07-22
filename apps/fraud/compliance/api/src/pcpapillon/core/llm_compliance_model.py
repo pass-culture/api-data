@@ -6,24 +6,22 @@ import vertexai
 import yaml
 from dotenv import load_dotenv
 from loguru import logger
-from utils_llm.data_model_llm import LLMComplianceInput, LLMComplianceOutput
-from utils_llm.run_llm_calls import run_validation_pipeline
+from pcpapillon.utils_llm.data_model_llm import LLMComplianceInput, LLMComplianceOutput
+from pcpapillon.utils_llm.run_llm_calls import run_validation_pipeline
 
-ConfigPath = "utils_llm/configs/global_llm_calls_config.yaml"
+ConfigPath = """../utils_llm/configs/global_llm_calls_config.yaml"""
+
 
 class LLMComplianceModel:
-
     def __init__(self):
         self.config = self._load_config()
-        self.env = self._setup_environment()
 
-    def _load_config() -> dict:
+    def _load_config(self) -> dict:
         """Load configuration from YAML file."""
-
         with open(ConfigPath) as f:
             return yaml.safe_load(f)
 
-    def _setup_environment():
+    def _setup_environment(self):
         """Setup API keys and environment variables."""
         load_dotenv()
 
@@ -37,17 +35,15 @@ class LLMComplianceModel:
             vertexai.init(project=project_id, location=location)
             logger.info("Vertex AI initialized")
 
-
-    def load_data(config: dict) -> pd.DataFrame:
+    def load_data(self, config: dict) -> pd.DataFrame:
         """Load and prepare data based on configuration."""
         data_format = config["input"].get("format", "parquet")
         data_path = config["input"]["data_path"]
 
         logger.info(f"Loading data from {data_path} in {data_format} format")
 
-
     def filter_offers_for_web_search(
-        offers: pd.DataFrame, llm_results: pd.DataFrame, config: dict
+        self, offers: pd.DataFrame, llm_results: pd.DataFrame, config: dict
     ) -> pd.DataFrame:
         """
         Filter offers that should undergo web search based on LLM results and config.
@@ -85,21 +81,22 @@ class LLMComplianceModel:
                 # Filter offers using these indices
                 filtered_offers = offers.loc[verification_needed_indices]
 
-                logger.info(f"Kept {
-                    len(filtered_offers)} offers that need verification")
+                logger.info(
+                    f"Kept {len(filtered_offers)} offers that need verification"
+                )
                 return filtered_offers
             else:
                 logger.warning(
                     "No valid condition or empty LLM results, keeping all offers"
                 )
 
-        logger.info(f"Filtered {len(offers)} offers to {
-            len(filtered_offers)} for web search")
+        logger.info(
+            f"Filtered {len(offers)} offers to {len(filtered_offers)} for web search"
+        )
         return filtered_offers
 
-
     def enrich_offers_with_llm_results(
-        offers: pd.DataFrame, llm_results: pd.DataFrame
+        self, offers: pd.DataFrame, llm_results: pd.DataFrame
     ) -> pd.DataFrame:
         """
         Enrich original offers with LLM validation results for the next validation step.
@@ -117,8 +114,11 @@ class LLMComplianceModel:
         )
 
         logger.info(f"Enriched {len(offers)} offers with LLM validation results")
-        logger.info(f"New columns added: {[
-            col for col in enriched_offers.columns if col.endswith('_llm_result')]}")
+        logger.info(
+            f"New columns added: {
+                [col for col in enriched_offers.columns if col.endswith('_llm_result')]
+            }"
+        )
 
         return enriched_offers
 
@@ -133,11 +133,10 @@ class LLMComplianceModel:
             ComplianceOutput: An object containing the predicted class labels
                 and the main contributions.
         """
-        config = self.load_config(ConfigPath)
         self._setup_environment()
-        data = pd.DataFrame.from_dict((data.dict()))  # noqa: UP034
+        data = pd.DataFrame.from_dict([data.model_dump()])
         # récupérer le fichier de règles selon la sous-catégorie
         # data[offer_subcategory_id]
-        results_df = run_validation_pipeline(config, data)
-        results_dict = results_df.to_dict(orient = "records")[0]
+        results_df = run_validation_pipeline(self.config, data)
+        results_dict = results_df.to_dict(orient="records")[0]
         return LLMComplianceOutput.model_validate(results_dict)

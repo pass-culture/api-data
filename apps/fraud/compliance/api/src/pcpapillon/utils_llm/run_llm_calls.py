@@ -9,12 +9,12 @@ import openai
 import pandas as pd
 import vertexai
 import yaml
-from dotenv import load_dotenv
-from loguru import logger
 
 # Import both validation modules
-from utils.core import get_llm_validation
-from utils.core_web_search import get_web_check
+from core import get_llm_validation
+from core_web_search import get_web_check
+from dotenv import load_dotenv
+from loguru import logger
 
 
 def load_config(config_path: str | None = None) -> dict:

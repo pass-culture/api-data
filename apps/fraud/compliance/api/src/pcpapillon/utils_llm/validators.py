@@ -11,7 +11,7 @@ from loguru import logger
 # Add the current directory to Python path to make package imports work
 sys.path.insert(0, str(Path(__file__).parent.absolute()))
 
-from utils.tools.text_preprocessing import preprocess_text
+from tools.text_preprocessing import preprocess_text
 
 
 def validate_file_exists(file_path: str, file_type: str) -> None:

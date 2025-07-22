@@ -9,8 +9,7 @@ from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_huggingface import HuggingFaceEndpoint
 from loguru import logger
-
-from utils.models import LLMConfig
+from models import LLMConfig
 
 
 def get_llm_chain(config: LLMConfig, langchain_prompt: ChatPromptTemplate) -> LLMChain:

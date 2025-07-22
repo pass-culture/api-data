@@ -2,11 +2,10 @@
 Configuration management module for LLM framework.
 """
 
+from configs.default_configs import DEFAULT_CONFIGS
 from loguru import logger
-
-from utils.configs.default_configs import DEFAULT_CONFIGS
-from utils.models import LLMConfig
-from utils.schemas.compliance_schemas import COMPLIANCE_SCHEMAS
+from models import LLMConfig
+from schemas.compliance_schemas import COMPLIANCE_SCHEMAS
 
 
 class ConfigurationManager:
