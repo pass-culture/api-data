@@ -1,0 +1,36 @@
+# Unified validation configuration
+# Supports both LLM validation and web search validation
+
+input:
+  data_path: "utils/data/session_test_0625/musique_support_physique/musique_support_physique_test_0625_revue_labels.parquet"
+  format: "parquet"  # or "csv"
+  n_samples: 65 # Optional: limit number of samples for testing
+
+columns:
+  drop: ["offer_validation", "offer_last_validation_type", "offer_subcategory_id", "offer_validation_revue"]
+  price_to_check: "last_stock_price"  # Column name for web search price comparison
+  # /!\ commencera par une MAJ si issu d'un premier appel LLM
+
+validation:
+  # Validation modes:
+  # - "llm_only": Only LLM validation
+  # - "web_search_only": Only web search validation
+  # - "both_separate": Run both independently and merge results
+  # - "conditional_web_search": LLM first, then web search based on conditions
+  # - "sequential_pipeline": LLM results feed into web search as context
+  mode: "llm_only"
+
+  # LLM validation configuration
+  llm_config: "session_test_Gemini2flash_compliance_validation_instruments"  # Reference to LLM config name
+
+  # Web search validation configuration
+  web_search_config: "config_web_search_check_prix"  # Reference to web search config name
+
+  # Conditions for conditional web search
+  web_search_conditions:
+    llm_result_condition: "needs_verification"
+    # Add other conditions as needed
+
+output:
+  results_path: "utils_llm/results/"
+  log_dir: "utils/logs"

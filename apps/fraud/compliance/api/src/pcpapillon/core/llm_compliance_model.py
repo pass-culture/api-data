@@ -1,27 +1,128 @@
-from main import custom_logger
-from pcpapillon.utils.data_model import ComplianceInput, ComplianceOutput
-from pcpapillon.utils.model_handler import ModelHandler, ModelWithMetadata
-from pcpapillon.utils_LLM.constants import ModelName
+import os
 
+import openai
+import pandas as pd
+import vertexai
+import yaml
+from dotenv import load_dotenv
+from loguru import logger
+from utils_llm.data_model_llm import LLMComplianceInput, LLMComplianceOutput
+from utils_llm.run_llm_calls import run_validation_pipeline
+
+ConfigPath = "utils_llm/configs/global_llm_calls_config.yaml"
 
 class LLMComplianceModel:
-    MODEL_NAME = ModelName.COMPLIANCE
 
     def __init__(self):
-        self.model_handler = ModelHandler()
-        model_data = self._load_models()
-        self.model = model_data.model
-        self.model_identifier = model_data.model_identifier
+        self.config = self._load_config()
+        self.env = self._setup_environment()
 
-    def _load_models(
-        self,
-    ) -> ModelWithMetadata:
-        custom_logger.info(f"load {self.MODEL_NAME} model..")
-        return self.model_handler.get_model_with_metadata_by_name(
-            model_name=self.MODEL_NAME.value
+    def _load_config() -> dict:
+        """Load configuration from YAML file."""
+
+        with open(ConfigPath) as f:
+            return yaml.safe_load(f)
+
+    def _setup_environment():
+        """Setup API keys and environment variables."""
+        load_dotenv()
+
+        # OpenAI setup
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+
+        # Vertex AI setup (if needed)
+        project_id = os.getenv("PROJECT_ID")
+        location = os.getenv("LOCATION")
+        if project_id and location:
+            vertexai.init(project=project_id, location=location)
+            logger.info("Vertex AI initialized")
+
+
+    def load_data(config: dict) -> pd.DataFrame:
+        """Load and prepare data based on configuration."""
+        data_format = config["input"].get("format", "parquet")
+        data_path = config["input"]["data_path"]
+
+        logger.info(f"Loading data from {data_path} in {data_format} format")
+
+
+    def filter_offers_for_web_search(
+        offers: pd.DataFrame, llm_results: pd.DataFrame, config: dict
+    ) -> pd.DataFrame:
+        """
+        Filter offers that should undergo web search based on LLM results and config.
+
+        Args:
+            offers: Original offers DataFrame
+            llm_results: Results from LLM validation
+            config: Configuration dictionary
+
+        Returns:
+            Filtered DataFrame of offers for web search
+        """
+        web_search_conditions = config["validation"].get("web_search_conditions", {})
+
+        if not web_search_conditions:
+            logger.info("No web search conditions specified, using all offers")
+            return offers
+
+        # Example filtering logic - customize based on your needs
+        filtered_offers = offers.copy()
+
+        # Filter based on LLM results if conditions are specified
+        if "llm_result_condition" in web_search_conditions:
+            condition = web_search_conditions["llm_result_condition"]
+            # Add your filtering logic here based on LLM results
+            logger.info(f"Applying LLM result condition: {condition}")
+
+            if not llm_results.empty and condition == "needs_verification":
+                # Assuming both DataFrames have the same index
+                # Get indices where llm_needs_verification is True
+                verification_needed_indices = filtered_offers[
+                    filtered_offers["llm_needs_verification"]
+                ].index
+
+                # Filter offers using these indices
+                filtered_offers = offers.loc[verification_needed_indices]
+
+                logger.info(f"Kept {
+                    len(filtered_offers)} offers that need verification")
+                return filtered_offers
+            else:
+                logger.warning(
+                    "No valid condition or empty LLM results, keeping all offers"
+                )
+
+        logger.info(f"Filtered {len(offers)} offers to {
+            len(filtered_offers)} for web search")
+        return filtered_offers
+
+
+    def enrich_offers_with_llm_results(
+        offers: pd.DataFrame, llm_results: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Enrich original offers with LLM validation results for the next validation step.
+
+        Args:
+            offers: Original offers DataFrame
+            llm_results: Results from first LLM validation
+
+        Returns:
+            Enriched offers DataFrame with LLM results as additional context
+        """
+        # Merge LLM results back into offers
+        enriched_offers = offers.merge(
+            llm_results, on="offer_id", how="left", suffixes=("", "_llm_result")
         )
 
-    def predict(self, data: ComplianceInput) -> ComplianceOutput:
+        logger.info(f"Enriched {len(offers)} offers with LLM validation results")
+        logger.info(f"New columns added: {[
+            col for col in enriched_offers.columns if col.endswith('_llm_result')]}")
+
+        return enriched_offers
+
+    def predict(self, data: LLMComplianceInput) -> LLMComplianceOutput:
         """
         Predicts the class labels for the given data using the trained classifier model.
 
@@ -32,31 +133,11 @@ class LLMComplianceModel:
             ComplianceOutput: An object containing the predicted class labels
                 and the main contributions.
         """
-        predictions = self.model.predict(data.dict())
-        return ComplianceOutput(
-            offer_id=data.offer_id,
-            probability_validated=predictions.probability_validated,
-            validation_main_features=predictions.validation_main_features,
-            probability_rejected=predictions.probability_rejected,
-            rejection_main_features=predictions.rejection_main_features,
-        )
-
-    def _is_newer_model_available(self) -> bool:
-        return self.model_identifier != self.model_handler.get_model_hash_from_mlflow(
-            self.MODEL_NAME.value
-        )
-
-    def reload_model_if_newer_is_available(self):
-        custom_logger.debug("Checking if newer model is available...")
-        if self._is_newer_model_available():
-            custom_logger.info("New model available: Loading it...")
-            new_model = self.model_handler.get_model_with_metadata_by_name(
-                model_name=self.MODEL_NAME.value
-            )
-            self.model, self.model_identifier = (
-                new_model.model,
-                new_model.model_identifier,
-            )
-            custom_logger.info(f"...New model loaded with hash {self.model_identifier}")
-        else:
-            custom_logger.debug("...No newer model available")
+        config = self.load_config(ConfigPath)
+        self._setup_environment()
+        data = pd.DataFrame.from_dict((data.dict()))  # noqa: UP034
+        # récupérer le fichier de règles selon la sous-catégorie
+        # data[offer_subcategory_id]
+        results_df = run_validation_pipeline(config, data)
+        results_dict = results_df.to_dict(orient = "records")[0]
+        return LLMComplianceOutput.model_validate(results_dict)
