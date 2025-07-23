@@ -6,6 +6,7 @@ import vertexai
 import yaml
 from dotenv import load_dotenv
 from loguru import logger
+
 from pcpapillon.utils_llm.data_model_llm import LLMComplianceInput, LLMComplianceOutput
 from pcpapillon.utils_llm.run_llm_calls import run_validation_pipeline
 
@@ -139,4 +140,10 @@ class LLMComplianceModel:
         # data[offer_subcategory_id]
         results_df = run_validation_pipeline(self.config, data)
         results_dict = results_df.to_dict(orient="records")[0]
-        return LLMComplianceOutput.model_validate(results_dict)
+        normalized_output = {
+            "offer_id": results_dict.get("offer_id"),
+            "réponse_LLM": results_dict.get("Réponse_llm"),
+            "explication_classification": results_dict.get("Explication_classification")
+            }
+
+        return LLMComplianceOutput.model_validate(normalized_output)
