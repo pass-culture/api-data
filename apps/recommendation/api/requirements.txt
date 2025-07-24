@@ -110,11 +110,11 @@ grpcio-status==1.48.2
     # via google-api-core
 gunicorn==23.0.0
     # via -r requirements.in
-h11==0.14.0
+h11==0.16.0
     # via
     #   httpcore
     #   uvicorn
-httpcore==1.0.5
+httpcore==1.0.9
     # via httpx
 httpx==0.27.0
     # via -r requirements.in
