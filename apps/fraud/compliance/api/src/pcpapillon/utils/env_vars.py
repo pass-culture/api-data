@@ -33,6 +33,7 @@ API_USER_SECRET_ID = os.environ.get("API_USER_SECRET_ID", "api-papillon-user-dev
 API_PWD_SECRET_ID = os.environ.get("API_PWD_SECRET_ID", "api-papillon-password-dev")
 API_USER = access_secret(GCP_PROJECT, API_USER_SECRET_ID)
 API_PWD = access_secret(GCP_PROJECT, API_PWD_SECRET_ID)
+OPENAI_API_KEY = access_secret(GCP_PROJECT, "openai_api_key")
 users_db = {
     API_USER: {
         "username": API_USER,
