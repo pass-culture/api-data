@@ -6,6 +6,7 @@ on:
       - main
       - staging
       - production
+      - BSR-test-remove-old-auth
     paths:
       - "apps/fraud/compliance/api/src/**"
   workflow_dispatch:
