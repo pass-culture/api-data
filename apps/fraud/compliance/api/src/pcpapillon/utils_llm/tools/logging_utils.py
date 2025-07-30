@@ -8,12 +8,11 @@ from typing import Any
 
 from loguru import logger
 
-
-# Helper function to safely add logger levels
-def add_logger_level(name: str, no: int, color: str) -> None:
-    with suppress(TypeError):
-        # Will silently skip if level already exists
-        logger.level(name, no=no, color=color)
+# # Helper function to safely add logger levels
+# def add_logger_level(name: str, no: int, color: str) -> None:
+#     with suppress(TypeError):
+#         # Will silently skip if level already exists
+#         logger.level(name, no=no, color=color)
 
 
 # Configure color logger for console output

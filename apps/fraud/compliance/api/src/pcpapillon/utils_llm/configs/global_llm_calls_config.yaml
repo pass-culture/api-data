@@ -1,13 +1,13 @@
 # Unified validation configuration
 # Supports both LLM validation and web search validation
 
-input:
-  data_path: "utils/data/session_test_0625/musique_support_physique/musique_support_physique_test_0625_revue_labels.parquet"
-  format: "parquet"  # or "csv"
-  n_samples: 65 # Optional: limit number of samples for testing
+# input:
+#   data_path: "utils/data/session_test_0625/musique_support_physique/musique_support_physique_test_0625_revue_labels.parquet"
+#   format: "parquet"  # or "csv"
+#   n_samples: 65 # Optional: limit number of samples for testing
 
 columns:
-  drop: ["offer_validation", "offer_last_validation_type", "offer_subcategory_id", "offer_validation_revue"]
+  drop: ["offer_validation", "offer_last_validation_type", "offer_subcategory_id"]
   price_to_check: "last_stock_price"  # Column name for web search price comparison
   # /!\ commencera par une MAJ si issu d'un premier appel LLM
 
@@ -21,7 +21,7 @@ validation:
   mode: "llm_only"
 
   # LLM validation configuration
-  llm_config: "session_test_Gemini2flash_compliance_validation_instruments"  # Reference to LLM config name
+  llm_config: "Gemini2flash_compliance_validation_instruments"  # Reference to LLM config name
 
   # Web search validation configuration
   web_search_config: "config_web_search_check_prix"  # Reference to web search config name

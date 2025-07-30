@@ -2,7 +2,9 @@
 Configuration management module for LLM framework.
 """
 
-from configs.default_configs import DEFAULT_CONFIGS
+# from configs.default_configs import DEFAULT_CONFIGS
+from configs.llm_configs import LLM_CONFIGS
+from configs.web_search_configs import WEB_SEARCH_CONFIGS
 from loguru import logger
 from models import LLMConfig
 from schemas.compliance_schemas import COMPLIANCE_SCHEMAS
@@ -19,8 +21,13 @@ class ConfigurationManager:
 
     def _register_default_configs(self):
         """Register default configurations from external file."""
-        self._configs.update(DEFAULT_CONFIGS)
-        logger.info(f"Registered {len(DEFAULT_CONFIGS)} default configurations")
+        # Register LLM configurations
+        self._configs.update(LLM_CONFIGS)
+        logger.info(f"Registered {len(LLM_CONFIGS)} LLM configurations")
+
+        # Register web search configurations
+        self._configs.update(WEB_SEARCH_CONFIGS)
+        logger.info(f"Registered {len(WEB_SEARCH_CONFIGS)} web search configurations")
 
     def _register_default_schemas(self):
         """Register default response schemas from external file."""

@@ -14,10 +14,10 @@ compliance_router = APIRouter(tags=["compliance"])
 
 
 # Init model and scheduler
-compliance_model = ComplianceModel()
-compliance_scheduler = init_scheduler(
-    compliance_model.reload_model_if_newer_is_available, time_interval=600
-)
+# compliance_model = ComplianceModel()
+# compliance_scheduler = init_scheduler(
+#     compliance_model.reload_model_if_newer_is_available, time_interval=600
+# )
 
 
 @compliance_router.post(

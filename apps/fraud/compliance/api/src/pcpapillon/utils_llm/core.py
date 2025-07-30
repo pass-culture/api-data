@@ -72,8 +72,8 @@ def run_global_validation(
                         if col.endswith("_llm_result") and pd.notna(offer[col])
                     }
                     logger.debug(
-                        f"LLM context for offer {offre_commerciale[
-                            'offer_id']}: {llm_context}"
+                        f"""LLM context for offer {offre_commerciale[
+                            'offer_id']}: {llm_context}"""
                     )
 
                 # Get the rendered prompt before making the call
@@ -129,8 +129,8 @@ def run_global_validation(
 
                 except Exception as parse_error:
                     logger.warning(
-                        f"Échec du parsing JSON pour l'offre {offre_commerciale.get(
-                            'offer_id', 'unknown')}: {parse_error}"
+                        f"""Échec du parsing JSON pour l'offre {offre_commerciale.get(
+                            'offer_id', 'unknown')}: {parse_error}"""
                     )
                     logger.info(f"Résultat brut sauvegardé: {result}")
 
@@ -149,14 +149,14 @@ def run_global_validation(
                     )
 
                     logger.info(
-                        f"Données sauvegardées avec fallback pour l'offre {
-                            offre_commerciale.get('offer_id', 'unknown')}"
+                        f"""Données sauvegardées avec fallback pour l'offre {
+                            offre_commerciale.get('offer_id', 'unknown')}"""
                     )
 
             except Exception as offer_error:
                 logger.error(
-                    f"Erreur lors du traitement de l'offre {offer.get(
-                        'offer_id', idx)}: {offer_error}"
+                    f"""Erreur lors du traitement de l'offre {offer.get(
+                        'offer_id', idx)}: {offer_error}"""
                 )
 
                 # Créer une entrée d'erreur pour cette offre
@@ -240,16 +240,62 @@ def get_llm_validation(offers: pd.DataFrame, config_name: str) -> pd.DataFrame:
         raise
     try:
         # Get rules and format instructions
-        if config.regles:
-            regles_conformite = get_txt_from_path("rules", config.regles)
+        # if config.regles:
+        #     regles_conformite = get_txt_from_path("rules", config.regles)
+        mapping_subcategory_regles = {
+            "ACHAT_INSTRUMENT" : "instruments",
+            "LOCATION_INSTRUMENT" : "instruments",
+            "PARTITION" : "instruments",
+            "LIVRE_PAPIER" : "livres",
+            "MATERIEL_ART_CREATIF" : "materiel_art_creatif",
+            "ABO_PRATIQUE_ART" : "pratiques_artistiques",
+            "ATELIER_PRATIQUE_ART" : "pratiques_artistiques",
+            "LIVESTREAM_PRATIQUE_ARTISTIQUE" : "pratiques_artistiques",
+            "SEANCE_ESSAI_PRATIQUE_ART" : "pratiques_artistiques",
+            "PRATIQUE_ART_VENTE_DISTANCE" : "pratiques_artistiques",
+            "CONCERT" : "spectacle_vivant",
+            "SPECTACLE_REPRESENTATION" : "spectacle_vivant",
+            "FESTIVAL_MUSIQUE" : "spectacle_vivant",
+            "EVENEMENT_MUSIQUE" : "spectacle_vivant",
+            "ABO_CONCERT" : "spectacle_vivant",
+            "FESTIVAL_SPECTACLE" : "spectacle_vivant",
+            "SPECTACLE_VENTE_DISTANCE" : "spectacle_vivant",
+            "SUPPORT_PHYSIQUE_MUSIQUE_VINYLE" : "musique",
+            "SUPPORT_PHYSIQUE_MUSIQUE_CD" : "musique",
+            "RENCONTRE" : "conferences_rencontres",
+            "CONFERENCE" : "conferences_rencontres",
+            "RENCONTRE_EN_LIGNE" : "conferences_rencontres",
+            "SALON" : "conferences_rencontres",
+            "FESTIVAL_LIVRE" : "conferences_rencontres",
+            "RENCONTRE_JEU" : "conferences_rencontres",
+            "PODCAST" : "conferences_rencontres",
+            "LIVESTREAM_EVENEMENT" : "conferences_rencontres",
+            "SEANCE_CINE" : "cinema",
+            "EVENEMENT_CINE" : "cinema",
+            "CARTE_CINE_MULTISEANCES" : "cinema",
+            "FESTIVAL_CINE" : "cinema",
+            "CARTE_CINE_ILLIMITE" : "cinema",
+            "CINE_VENTE_DISTANCE" : "cinema",
+            "ABO_PLATEFORME_VIDEO" : "audiovisuel",
+            "VOD" : "audiovisuel",
+            "SUPPORT_PHYSIQUE_FILM" : "audiovisuel",
+            "EVENEMENT_PATRIMOINE" : "musee",
+            "VISITE" : "musee",
+            "VISITE_GUIDEE" : "musee",
+            "FESTIVAL_ART_VISUEL" : "musee",
+            "VISITE_VIRTUELLE" : "musee",
+            "CARTE_MUSEE" : "musee",
+             "ABO_BIBLIOTHEQUE" : "presse",
+             "ABO_LIVRE_NUMERIQUE" : "presse",
+             "APP_CULTURELLE" : "presse"
+            }
+        subcat_id = offers.loc[0,"offer_subcategory_id"]
+        if subcat_id in mapping_subcategory_regles :
+            regles_conformite= get_txt_from_path("rules", mapping_subcategory_regles[subcat_id])
         else:
-            regles_conformite = (
-                ""  # Or handle it as needed, e.g., an empty string or specific default
-            )
-            logger.info(
-                """No rules file specified in configuration.
-                Proceeding without specific rules."""
-            )
+            regles_conformite = ("")
+            logger.info(f"""No rules file specified in configuration for subcategory: {
+                subcat_id}""")
         format_instructions = create_output_parser(
             config, schema
         ).get_format_instructions()

@@ -44,5 +44,26 @@ COMPLIANCE_SCHEMAS = {
             "type": "string",
         },
     ],
-    # ajouter verif prix
+    "verification_prix_participation": [
+        {
+            "name": "prix_moyen",
+            "description": """Calcule à partir de ces résultats le prix moyen et dis
+            moi s'il diverge, et si applicable de combien en %,
+            du prix proposé chez nous""",
+            "type": "string",
+        },
+        {
+            "name": "pourcentage_divergence_prix",
+            "description": """Indique le pourcentage de divergence du prix proposé sur
+            le pass Culture par rapport au prix moyen calculé. Indique simplement
+            le nombre.""",
+            "type": "float",
+        },
+        {
+            "name": "liens_source",
+            "description": """Pour chaque prix trouvé, donne moi le lien vers la
+            page du produit sur le site de référence""",
+            "type": "string",
+        },
+    ],
 }

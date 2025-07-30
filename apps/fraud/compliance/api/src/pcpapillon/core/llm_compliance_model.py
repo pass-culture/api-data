@@ -36,12 +36,12 @@ class LLMComplianceModel:
             vertexai.init(project=project_id, location=location)
             logger.info("Vertex AI initialized")
 
-    def load_data(self, config: dict) -> pd.DataFrame:
-        """Load and prepare data based on configuration."""
-        data_format = config["input"].get("format", "parquet")
-        data_path = config["input"]["data_path"]
+    # def load_data(self, config: dict) -> pd.DataFrame:
+    #     """Load and prepare data based on configuration."""
+    #     data_format = config["input"].get("format", "parquet")
+    #     data_path = config["input"]["data_path"]
 
-        logger.info(f"Loading data from {data_path} in {data_format} format")
+    #     logger.info(f"Loading data from {data_path} in {data_format} format")
 
     def filter_offers_for_web_search(
         self, offers: pd.DataFrame, llm_results: pd.DataFrame, config: dict
@@ -116,9 +116,9 @@ class LLMComplianceModel:
 
         logger.info(f"Enriched {len(offers)} offers with LLM validation results")
         logger.info(
-            f"New columns added: {
+            f"""New columns added: {
                 [col for col in enriched_offers.columns if col.endswith('_llm_result')]
-            }"
+            }"""
         )
 
         return enriched_offers
