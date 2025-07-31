@@ -87,14 +87,6 @@ def get_prompt_template(config, response_schemas):
                     ):
         prompt_template = ChatPromptTemplate.from_template(
             prompt
-            # + """
-            # Règles de conformité:
-            # {regles_conformite}
-            # Offre commerciale à analyser:
-            # {offre_commerciale}
-            # Analyse l'offre selon les règles et réponds au format suivant:
-            # {format_instructions}
-            # """
             + """
             <rules>
             {regles_conformite}
@@ -114,59 +106,11 @@ def get_prompt_template(config, response_schemas):
             </format>
             """
         )
-    # elif prompt_type == "few_shot":
-    #     examples_name = (
-    #         config["examples"] if isinstance(config, dict) else config.examples
-    #     )
-    #     regles_name = config["regles"] if isinstance(config, dict) else config.regles
 
-    #     examples = get_txt_from_path("exemples", examples_name)
-    #     regles = get_txt_from_path("rules", regles_name)
-    #     few_shot = create_few_shot_prompt(examples, regles, config, response_schemas)
-    #     prompt_template = ChatPromptTemplate.from_messages(
-    #         [
-    #             ("system", prompt),
-    #             few_shot,
-    #             (
-    #                 "human",
-    #                 # """
-    #                 # Règles de conformité:
-    #                 # {regles_conformite}
-    #                 # Offre commerciale à analyser:
-    #                 # {offre_commerciale}
-    #                 # Analyse l'offre selon les règles et réponds au format suivant:
-    #                 # {format_instructions}
-    #                 # """,
-    #                 """
-    #         <rules>
-    #         {regles_conformite}
-    #         </rules>
-
-    #         <offer>
-    #         {offre_commerciale}
-    #         </offer>
-
-    #         <instructions>
-    #         Analyse l'offre selon les règles et réponds au format suivant :
-    #         </instructions>
-
-    #         <format>
-    #         {format_instructions}
-    #         </format>
-    #         """,
-    #             ),
-    #         ]
-    #     )
     elif prompt_type == "web_search_prix":
         # reference_sites = get_txt_from_path("reference_sites", config.reference_sites)
         prompt_template = ChatPromptTemplate.from_template(
             prompt
-            # + """
-            # Produit à rechercher: {offer_name}
-            # Sites de références suivants : {reference_sites}
-            # Prix proposé avec lequel comparé chez nous : {comparison_price}
-            # Réponds au format suivant: {format_instructions}
-            # """
             + """
             <product>
             {offer_name}
@@ -189,22 +133,5 @@ def get_prompt_template(config, response_schemas):
             </format>
             """
         )
-    # elif prompt_type == "metadonnees_livres":
-    #     prompt_template = ChatPromptTemplate.from_template(
-    #         prompt
-    #         + """
-    #         <product>
-    #         {offer_name}
-    #         </product>
-
-    #         <instructions>
-    #         Réponds au format suivant :
-    #         </instructions>
-
-    #         <format>
-    #         {format_instructions}
-    #         </format>
-    #         """
-    #     )
 
     return prompt_template

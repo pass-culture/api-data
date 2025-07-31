@@ -188,21 +188,44 @@ def run_validation_pipeline(config: dict, offers: pd.DataFrame) -> pd.DataFrame:
         logger.info("Running sequential LLM → Web Search pipeline...")
 
         # Step 1: Run initial LLM validation
-        logger.info("Step 1: Initial LLM validation...")
+        logger.info("Step 1: LLM validation pour toutes les offres...")
         llm_results = get_llm_validation(offers, validation_config["llm_config"])
         logger.info(f"LLM validation completed: {len(llm_results)} results")
 
-        # Step 2: Enrich offers with LLM results
-        logger.info("Step 2: Enriching offers with LLM results...")
-        enriched_offers = enrich_offers_with_llm_results(offers, llm_results)
+        # Step 2: Filtre des offres pour n'amener en web search que celles approved par
+        # le premier appel au LLM
+        logger.info(f"Aperçu llm_results {llm_results}")
+        logger.info("Step 2: Filtering offers approved by the LLM for web search...")
 
-        # Step 3: Run web search with enriched context
-        logger.info("Step 3: Web search validation with LLM context...")
-        web_results = get_web_check(
-            enriched_offers,  # Pass enriched offers instead of original
-            validation_config["web_search_config"],
-            config["columns"]["price_to_check"],
+        approved_llm_results = llm_results[llm_results['Réponse_llm'] == 'ACCEPTED'] 
+
+        # Merge to get the original offers that were approved
+        offers_to_web_check = offers.merge(
+            approved_llm_results[['offer_id']],
+            on='offer_id',
+            how='inner'
         )
+
+        logger.info(f"{len(offers_to_web_check)} offers to be sent for web search.")
+
+        # Step 3: Run web search only for the filtered, enriched offers
+        web_results = pd.DataFrame()
+        if not offers_to_web_check.empty:
+            logger.info("Step 3: Running web search for approved offers...")
+
+            # Enrich the offers to be checked with the LLM results
+            logger.info("Step 2: Enriching offers with LLM results...")
+            enriched_offers = enrich_offers_with_llm_results(offers_to_web_check,
+                                                             approved_llm_results)
+
+            web_results = get_web_check(
+                enriched_offers,
+                validation_config["web_search_config"],
+                config["columns"]["price_to_check"],
+            )
+            logger.info("Web search completed.")
+        else:
+            logger.warning("No offers were approved by the LLM, skipping web search.")
 
         # Step 4: Combine all results
         if not web_results.empty:
@@ -211,68 +234,47 @@ def run_validation_pipeline(config: dict, offers: pd.DataFrame) -> pd.DataFrame:
                 web_results,
                 on="offer_id",
                 how="left",
-                suffixes=("_first_call", "_web_search"),
+                suffixes=("_first_llm_call", "_web_search"),
             )
             logger.info("Sequential pipeline results combined successfully")
+
+            # Fill NaN values for offers that didn't have a web search
+            results = results.fillna({'web_validation_status': 'not_checked'})
         else:
-            results = llm_results
+            # If no web search was performed, the LLM results are the final results
             logger.info("No web search results, using initial LLM results only")
+            results = llm_results
 
-    # elif validation_mode == "both_separate":
-    #     logger.info("Running both LLM and web search validations separately...")
+    # elif validation_mode == "conditional_web_search":
+    #     logger.info("Running LLM validation with conditional web search...")
 
-    #     # Run LLM validation
+    #     # First run LLM validation
     #     llm_results = get_llm_validation(offers, validation_config["llm_config"])
     #     logger.info(f"LLM validation completed: {len(llm_results)} results")
 
-    #     # Run web search validation
-    #     web_results = get_web_check(
-    #         offers,
-    #         validation_config["web_search_config"],
-    #         config["columns"]["price_to_check"],
-    #     )
-    #     logger.info(f"Web search validation completed: {len(web_results)} results")
+    #     # Filter offers for web search based on LLM results
+    #     filtered_offers = filter_offers_for_web_search(offers, llm_results, config)
 
-    #     # Merge results
-    #     if not web_results.empty:
-    #         results = llm_results.merge(
-    #             web_results, on="offer_id", how="left", suffixes=("_llm", "_web")
+    #     if not filtered_offers.empty:
+    #         # Enrich filtered offers with LLM results before web search
+    #         enriched_filtered = enrich_offers_with_llm_results(
+    #             filtered_offers, llm_results
     #         )
-    #         logger.info("Results merged successfully")
-    #     else:
-    #         results = llm_results
-    #         logger.info("No web search results to merge, using LLM results only")
 
-    elif validation_mode == "conditional_web_search":
-        logger.info("Running LLM validation with conditional web search...")
-
-        # First run LLM validation
-        llm_results = get_llm_validation(offers, validation_config["llm_config"])
-        logger.info(f"LLM validation completed: {len(llm_results)} results")
-
-        # Filter offers for web search based on LLM results
-        filtered_offers = filter_offers_for_web_search(offers, llm_results, config)
-
-        if not filtered_offers.empty:
-            # Enrich filtered offers with LLM results before web search
-            enriched_filtered = enrich_offers_with_llm_results(
-                filtered_offers, llm_results
-            )
-
-            web_results = get_web_check(
-                enriched_filtered,
-                validation_config["web_search_config"],
-                config["columns"]["price_to_check"],
-            )
-            logger.info(f"Web search validation completed: {len(web_results)} results")
+    #         web_results = get_web_check(
+    #             enriched_filtered,
+    #             validation_config["web_search_config"],
+    #             config["columns"]["price_to_check"],
+    #         )
+    #         logger.info(f"Web search validation completed: {len(web_results)} results")
 
             # Merge results
-            results = llm_results.merge(
-                web_results, on="offer_id", how="left", suffixes=("_llm", "_web")
-            )
-        else:
-            results = llm_results
-            logger.info("No offers met criteria for web search")
+        #     results = llm_results.merge(
+        #         web_results, on="offer_id", how="left", suffixes=("_llm", "_web")
+        #     )
+        # else:
+        #     results = llm_results
+        #     logger.info("No offers met criteria for web search")
 
     else:
         raise ValueError(f"Unknown validation mode: {validation_mode}")

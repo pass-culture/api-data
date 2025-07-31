@@ -178,19 +178,19 @@ def run_global_validation(
                 )
                 continue  # Continue avec la prochaine offre
 
-        # Merge with original compliance data if available
-        if "offer_validation" in offers.columns and "offer_id" in offers.columns:
-            df_final = validation_result_df.merge(
-                offers[["offer_validation", "offer_id"]],
-                how="left",
-                right_on="offer_id",
-                left_on="offer_id",
-            )
-            df_final.rename(
-                columns={"offer_validation": "Réponse_Conformité"}, inplace=True
-            )
-            logger.info("Successfully completed validation with compliance data")
-            return df_final
+        # # Merge with original compliance data if available
+        # if "offer_validation" in offers.columns and "offer_id" in offers.columns:
+        #     df_final = validation_result_df.merge(
+        #         offers[["offer_validation", "offer_id"]],
+        #         how="left",
+        #         right_on="offer_id",
+        #         left_on="offer_id",
+        #     )
+        #     df_final.rename(
+        #         columns={"offer_validation": "Réponse_Conformité"}, inplace=True
+        #     )
+        #     logger.info("Successfully completed validation with compliance data")
+        #     return df_final
 
         logger.info("Successfully completed validation")
         return validation_result_df
