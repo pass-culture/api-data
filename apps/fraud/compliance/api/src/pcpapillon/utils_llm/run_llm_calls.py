@@ -2,84 +2,12 @@
 Unified validation orchestrator supporting both LLM and web search validation.
 """
 
-import os
-from pathlib import Path
-
-import openai
 import pandas as pd
-import vertexai
-import yaml
 
 # Import both validation modules
 from core import get_llm_validation
 from core_web_search import get_web_check
-from dotenv import load_dotenv
 from loguru import logger
-
-
-# def load_config(config_path: str | None = None) -> dict:
-#     """Load configuration from YAML file."""
-#     default_config_path = (
-#         Path(__file__).parent / "utils" / "configs" / "global_llm_calls_config.yaml"
-#     )
-#     config_path = Path(config_path) if config_path else default_config_path
-
-#     if not config_path.exists():
-#         raise FileNotFoundError(f"Configuration file not found: {config_path}")
-
-#     with open(config_path) as f:
-#         return yaml.safe_load(f)
-
-
-# def setup_environment():
-#     """Setup API keys and environment variables."""
-#     load_dotenv()
-
-#     # OpenAI setup
-#     openai.api_key = os.getenv("OPENAI_API_KEY")
-
-#     # Vertex AI setup (if needed)
-#     project_id = os.getenv("PROJECT_ID")
-#     location = os.getenv("LOCATION")
-#     if project_id and location:
-#         vertexai.init(project=project_id, location=location)
-#         logger.info("Vertex AI initialized")
-
-
-# def load_data(config: dict) -> pd.DataFrame:
-#     """Load and prepare data based on configuration."""
-#     data_format = config["input"].get("format", "parquet")
-#     data_path = config["input"]["data_path"]
-
-#     logger.info(f"Loading data from {data_path} in {data_format} format")
-
-#     # Load data
-#     if data_format == "parquet":
-#         offers = pd.read_parquet(data_path, engine="pyarrow")
-#     elif data_format == "csv":
-#         offers = pd.read_csv(data_path)
-#     else:
-#         raise ValueError(f"Unsupported data format: {data_format}")
-
-#     # Apply column filtering
-#     if config["columns"].get("drop"):
-#         drop_columns = config["columns"]["drop"]
-#         if isinstance(drop_columns, str):
-#             # Handle string representation of list
-#             drop_columns = (
-#                 eval(drop_columns) if drop_columns.startswith("[") else [drop_columns]
-#             )
-#         offers = offers.drop(columns=drop_columns, errors="ignore")
-#         logger.info(f"Dropped columns: {drop_columns}")
-
-#     # Apply sample limit
-#     if config["input"].get("n_samples"):
-#         n_samples = config["input"]["n_samples"]
-#         offers = offers[:n_samples]
-#         logger.info(f"Limited to {n_samples} samples")
-
-#     logger.info(f"Loaded {len(offers)} offers with columns: {list(offers.columns)}")
-#     return offers
 
 
 def filter_offers_for_web_search(
@@ -157,6 +85,84 @@ def enrich_offers_with_llm_results(
 
     return enriched_offers
 
+def synthese_validation_finale(llm_results: pd.DataFrame, web_results: pd.DataFrame,
+                               config: dict) -> pd.DataFrame:
+    """
+    Synthesize final validation results combining LLM compliance and web search
+
+    Args:
+        llm_results: Results from LLM validation
+        web_results: Results from web search validation
+        config: Configuration dictionary containing price thresholds
+
+    Returns:
+        DataFrame with final synthesized validation results
+    """
+    logger.info("Step 4: Synthesizing final validation results...")
+
+    # Get price divergence threshold from config (default to 20% if not specified)
+    price_threshold = config["validation"].get("price_divergence_threshold", 10.0)
+
+    # Start with a copy of LLM results
+    final_results = llm_results.copy()
+
+    # Add columns for final synthesis
+    final_results['réponse_LLM_finale'] = final_results['Réponse_llm']
+    final_results['explication_finale'] = final_results['Explication_classification']
+    final_results['validation_source'] = 'llm_only'
+
+    if not web_results.empty:
+        # Merge web search results
+        final_results = final_results.merge(
+            web_results[['offer_id', 'pourcentage_divergence_prix',
+                         'prix_moyen', 'liens_source']],
+            on='offer_id',
+            how='left'
+        )
+
+        # Process each offer for final decision
+        for idx, row in final_results.iterrows():
+            llm_decision = row['Réponse_llm']
+
+            # If already rejected by LLM, keep the rejection
+            if llm_decision.lower() in ['rejected', 'rejete']:
+                final_results.at[idx, 'validation_source'] = 'llm_rejection'
+                continue
+
+            # If approved by LLM, check web search results
+            if not pd.isna(row.get('pourcentage_divergence_prix')):
+                price_divergence = row['pourcentage_divergence_prix']
+                prix_moyen = row.get('prix_moyen', 'N/A')
+
+                if price_divergence > price_threshold:
+                    # Reject due to overpricing
+                    final_results.at[idx, 'réponse_LLM_finale'] = 'rejected'
+                    final_results.at[idx, 'explication_finale'] = (
+                        f"""Offre conforme aux règles de conformité mais prix surévalué
+                        de {price_divergence:.1f}% par rapport au marché (seuil:
+                        {price_threshold}%). Prix moyen du marché: {prix_moyen}."""
+                    )
+                    final_results.at[idx, 'validation_source'] = 'surtarification_web'
+                else:
+                    # Approve with price validation
+                    final_results.at[idx, 'réponse_LLM_finale'] = 'approved'
+                    final_results.at[idx, 'explication_finale'] = (
+                        f"""{row['Explication_classification']}. Prix cohérent avec le
+                        marché (divergence: {price_divergence:.1f}%)."""
+                    )
+                    final_results.at[idx, 'validation_source'] = 'llm_and_web_approved'
+            else:
+                # No web search performed, keep LLM decision
+                final_results.at[idx, 'validation_source'] = 'llm_only'
+
+    # Log synthesis results
+    synthesis_stats = final_results['validation_source'].value_counts()
+    logger.info("Synthèse finale réalisée")
+    for source, count in synthesis_stats.items():
+        logger.info(f"  - {source}: {count} offers")
+
+    return final_results
+
 
 def run_validation_pipeline(config: dict, offers: pd.DataFrame) -> pd.DataFrame:
     """
@@ -176,14 +182,6 @@ def run_validation_pipeline(config: dict, offers: pd.DataFrame) -> pd.DataFrame:
         logger.info("Running LLM validation only...")
         results = get_llm_validation(offers, validation_config["llm_config"])
 
-    # elif validation_mode == "web_search_only":
-    #     logger.info("Running web search validation only...")
-    #     results = get_web_check(
-    #         offers,
-    #         validation_config["web_search_config"],
-    #         config["columns"]["price_to_check"],
-    #     )
-
     elif validation_mode == "sequential_pipeline":
         logger.info("Running sequential LLM → Web Search pipeline...")
 
@@ -193,11 +191,12 @@ def run_validation_pipeline(config: dict, offers: pd.DataFrame) -> pd.DataFrame:
         logger.info(f"LLM validation completed: {len(llm_results)} results")
 
         # Step 2: Filtre des offres pour n'amener en web search que celles approved par
-        # le premier appel au LLM
-        logger.info(f"Aperçu llm_results {llm_results}")
+        # le premier appel au LLM")
         logger.info("Step 2: Filtering offers approved by the LLM for web search...")
 
-        approved_llm_results = llm_results[llm_results['Réponse_llm'] == 'ACCEPTED'] 
+        approved_values = ['ACCEPTED', 'approved', 'APPROVED', 'accepted']
+        approved_llm_results = llm_results[llm_results['Réponse_llm'].isin(
+            approved_values)]
 
         # Merge to get the original offers that were approved
         offers_to_web_check = offers.merge(
@@ -227,146 +226,11 @@ def run_validation_pipeline(config: dict, offers: pd.DataFrame) -> pd.DataFrame:
         else:
             logger.warning("No offers were approved by the LLM, skipping web search.")
 
-        # Step 4: Combine all results
-        if not web_results.empty:
-            # Start with LLM results and merge web results
-            results = llm_results.merge(
-                web_results,
-                on="offer_id",
-                how="left",
-                suffixes=("_first_llm_call", "_web_search"),
-            )
-            logger.info("Sequential pipeline results combined successfully")
-
-            # Fill NaN values for offers that didn't have a web search
-            results = results.fillna({'web_validation_status': 'not_checked'})
-        else:
-            # If no web search was performed, the LLM results are the final results
-            logger.info("No web search results, using initial LLM results only")
-            results = llm_results
-
-    # elif validation_mode == "conditional_web_search":
-    #     logger.info("Running LLM validation with conditional web search...")
-
-    #     # First run LLM validation
-    #     llm_results = get_llm_validation(offers, validation_config["llm_config"])
-    #     logger.info(f"LLM validation completed: {len(llm_results)} results")
-
-    #     # Filter offers for web search based on LLM results
-    #     filtered_offers = filter_offers_for_web_search(offers, llm_results, config)
-
-    #     if not filtered_offers.empty:
-    #         # Enrich filtered offers with LLM results before web search
-    #         enriched_filtered = enrich_offers_with_llm_results(
-    #             filtered_offers, llm_results
-    #         )
-
-    #         web_results = get_web_check(
-    #             enriched_filtered,
-    #             validation_config["web_search_config"],
-    #             config["columns"]["price_to_check"],
-    #         )
-    #         logger.info(f"Web search validation completed: {len(web_results)} results")
-
-            # Merge results
-        #     results = llm_results.merge(
-        #         web_results, on="offer_id", how="left", suffixes=("_llm", "_web")
-        #     )
-        # else:
-        #     results = llm_results
-        #     logger.info("No offers met criteria for web search")
+        # Step 4: NEW - Synthesize final results
+        results = synthese_validation_finale(llm_results, web_results, config)
+        logger.info("Sequential pipeline with synthesis completed successfully")
 
     else:
         raise ValueError(f"Unknown validation mode: {validation_mode}")
 
     return results
-
-
-# def save_results_and_logs(results: pd.DataFrame, config: dict):
-#     """Save results and setup logging directories."""
-#     # Create output directories
-#     output_path = Path(config["output"].get("results_path", "validation_results.csv"))
-#     output_path.parent.mkdir(parents=True, exist_ok=True)
-
-#     log_dir = Path(config["output"].get("log_dir", "logs"))
-#     log_dir.mkdir(parents=True, exist_ok=True)
-
-#     # Save results
-#     results.to_csv(output_path, index=False)
-#     logger.info(f"Results saved to: {output_path}")
-
-#     return output_path, log_dir
-
-
-# def print_summary(
-#     offers: pd.DataFrame, results: pd.DataFrame, output_path: Path, log_dir: Path
-# ):
-#     """Print validation summary statistics."""
-#     print("\n" + "=" * 50)
-#     print("VALIDATION RESULTS SUMMARY")
-#     print("=" * 50)
-#     print(f"Total offers processed: {len(offers)}")
-#     print(f"Results generated: {len(results)}")
-#     print(f"Results saved to: {output_path}")
-#     print(f"Logs saved to: {log_dir}")
-
-#     # Show web search specific stats if available
-#     if "web_search_performed" in results.columns:
-#         web_searches_performed = results["web_search_performed"].sum()
-#         print("\nWeb Search Statistics:")
-#         print(f"Web searches performed: {web_searches_performed}")
-#         if web_searches_performed > 0:
-#             success_rate = (
-#                 results["web_search_error"].isna().sum() / web_searches_performed
-#             ) * 100
-#             print(f"Success rate: {success_rate:.1f}%")
-
-#     # Show sample results
-#     print("\nSample Results:")
-#     print(results.head().to_string())
-
-
-# def run_validation(config_path: str | None = None):
-#     """
-#     Main validation orchestrator function.
-
-#     Args:
-#         config_path: Optional path to config file. If not provided, uses default config.
-#     """
-#     try:
-#         # Load configuration
-#         config = load_config(config_path)
-#         logger.info(f"Configuration loaded from: {config_path or 'default config'}")
-
-#         # Setup environment
-#         setup_environment()
-
-#         # Load and prepare data
-#         offers = load_data(config)
-
-#         # Run validation pipeline
-#         results = run_validation_pipeline(config, offers)
-
-#         # Save results and setup logging
-#         output_path, log_dir = save_results_and_logs(results, config)
-
-#         # Print summary
-#         print_summary(offers, results, output_path, log_dir)
-
-#         logger.info("Validation pipeline completed successfully!")
-
-#     except Exception as e:
-#         logger.error(f"Validation pipeline failed: {e}")
-#         raise
-
-
-# if __name__ == "__main__":
-#     import argparse
-
-#     parser = argparse.ArgumentParser(
-#         description="Run unified LLM and web search validation pipeline"
-#     )
-#     parser.add_argument("--config", help="Path to YAML configuration file", type=str)
-#     args = parser.parse_args()
-
-#     run_validation(args.config)

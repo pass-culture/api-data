@@ -36,13 +36,6 @@ class LLMComplianceModel:
             vertexai.init(project=project_id, location=location)
             logger.info("Vertex AI initialized")
 
-    # def load_data(self, config: dict) -> pd.DataFrame:
-    #     """Load and prepare data based on configuration."""
-    #     data_format = config["input"].get("format", "parquet")
-    #     data_path = config["input"]["data_path"]
-
-    #     logger.info(f"Loading data from {data_path} in {data_format} format")
-
     def filter_offers_for_web_search(
         self, offers: pd.DataFrame, llm_results: pd.DataFrame, config: dict
     ) -> pd.DataFrame:
@@ -136,14 +129,12 @@ class LLMComplianceModel:
         """
         self._setup_environment()
         data = pd.DataFrame.from_dict([data.model_dump()])
-        # récupérer le fichier de règles selon la sous-catégorie
-        # data[offer_subcategory_id]
         results_df = run_validation_pipeline(self.config, data)
         results_dict = results_df.to_dict(orient="records")[0]
         normalized_output = {
             "offer_id": results_dict.get("offer_id"),
-            "réponse_LLM": results_dict.get("Réponse_llm"),
-            "explication_classification": results_dict.get("Explication_classification")
+            "réponse_LLM": results_dict.get("réponse_LLM_finale"),
+            "explication_classification": results_dict.get("explication_finale")
             }
 
         return LLMComplianceOutput.model_validate(normalized_output)

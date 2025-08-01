@@ -8,15 +8,7 @@ from typing import Any
 
 from loguru import logger
 
-# # Helper function to safely add logger levels
-# def add_logger_level(name: str, no: int, color: str) -> None:
-#     with suppress(TypeError):
-#         # Will silently skip if level already exists
-#         logger.level(name, no=no, color=color)
-
-
 # Configure color logger for console output
-# add_logger_level("PROMPT", no=15, color="<cyan>")
 def add_logger_level_if_not_exists(name, no, color):
     try:
         logger.level(name)
@@ -27,8 +19,6 @@ def add_logger_level_if_not_exists(name, no, color):
 add_logger_level_if_not_exists("PROMPT", no=15, color="<cyan>")
 add_logger_level_if_not_exists("CONFIG", no=15, color="<green>")
 add_logger_level_if_not_exists("METADATA", no=15, color="<yellow>")
-# add_logger_level("CONFIG", no=15, color="<green>")
-# add_logger_level("METADATA", no=15, color="<yellow>")
 
 # Configure loguru to write to a file with rotation
 log_path = Path("logs")
@@ -72,7 +62,7 @@ def clean_text(text: str) -> str:
             "Ã": "à",
             "Â°": "°",
             "â": "'",
-            "Ã´": "ô",  # noqa: RUF001 => à checker
+            "Ã´": "ô",  # noqa: RUF001
             "Ãª": "ê",
             "Ã¢": "â",
             "Ã§": "ç",

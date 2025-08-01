@@ -32,10 +32,7 @@ class LLMConfig(BaseModel):
         False,
         description="Whether to enable web search capabilities",
     )
-    # web_search_template: str | None = Field(
-    #     None,
-    #     description="Template for web search queries (if enabled)",
-    # )
+
     reference_sites: str | None = Field(
         None,
         description="List of reference sites for web search (if enabled)",
@@ -43,8 +40,8 @@ class LLMConfig(BaseModel):
 
     @validator("provider")
     def validate_provider(cls, v):
-        if v not in ["openai", "google", "anthropic", "mistralai", "huggingface"]:
-            raise ValueError("Provider must be one of: openai, google, huggingface")
+        if v not in ["openai", "google"]:
+            raise ValueError("Provider must be one of: openai, google")
         return v
 
     @validator("prompt_type")
@@ -58,13 +55,6 @@ class LLMConfig(BaseModel):
             "metadonnees_livres",
         ]:
             raise ValueError(
-                """Prompt type must be one of: base, few_shot, test_agent, rules,
-                web_search_prix, metadonnees_livres"""
+                """Prompt type must be one of: base, rules, web_search_prix"""
             )
-        return v
-
-    @validator("examples")
-    def validate_examples(cls, v, values):
-        if values.get("prompt_type") == "few_shot" and not v:
-            raise ValueError("Examples file name is required for few_shot prompt type")
         return v

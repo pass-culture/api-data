@@ -176,21 +176,7 @@ def run_global_validation(
                 logger.info(
                     f"Erreur enregistrée pour l'offre {offer.get('offer_id', idx)}"
                 )
-                continue  # Continue avec la prochaine offre
-
-        # # Merge with original compliance data if available
-        # if "offer_validation" in offers.columns and "offer_id" in offers.columns:
-        #     df_final = validation_result_df.merge(
-        #         offers[["offer_validation", "offer_id"]],
-        #         how="left",
-        #         right_on="offer_id",
-        #         left_on="offer_id",
-        #     )
-        #     df_final.rename(
-        #         columns={"offer_validation": "Réponse_Conformité"}, inplace=True
-        #     )
-        #     logger.info("Successfully completed validation with compliance data")
-        #     return df_final
+                continue
 
         logger.info("Successfully completed validation")
         return validation_result_df
@@ -240,8 +226,6 @@ def get_llm_validation(offers: pd.DataFrame, config_name: str) -> pd.DataFrame:
         raise
     try:
         # Get rules and format instructions
-        # if config.regles:
-        #     regles_conformite = get_txt_from_path("rules", config.regles)
         mapping_subcategory_regles = {
             "ACHAT_INSTRUMENT" : "instruments",
             "LOCATION_INSTRUMENT" : "instruments",
@@ -291,7 +275,8 @@ def get_llm_validation(offers: pd.DataFrame, config_name: str) -> pd.DataFrame:
             }
         subcat_id = offers.loc[0,"offer_subcategory_id"]
         if subcat_id in mapping_subcategory_regles :
-            regles_conformite= get_txt_from_path("rules", mapping_subcategory_regles[subcat_id])
+            regles_conformite= get_txt_from_path("rules", mapping_subcategory_regles[
+                subcat_id])
         else:
             regles_conformite = ("")
             logger.info(f"""No rules file specified in configuration for subcategory: {

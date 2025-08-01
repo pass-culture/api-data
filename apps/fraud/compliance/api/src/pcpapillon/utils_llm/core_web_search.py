@@ -32,7 +32,7 @@ def _process_web_search_result(
 
 def run_web_search_validation(
     offers: pd.DataFrame,
-    config,  #: LLMConfig,
+    config,
     web_search_chain,
     format_instructions: str,
     response_schemas: dict,

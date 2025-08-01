@@ -2,7 +2,6 @@
 Configuration management module for LLM framework.
 """
 
-# from configs.default_configs import DEFAULT_CONFIGS
 from configs.llm_configs import LLM_CONFIGS
 from configs.web_search_configs import WEB_SEARCH_CONFIGS
 from loguru import logger

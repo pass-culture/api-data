@@ -8,9 +8,7 @@ from models import LLMConfig
 
 
 def get_web_search_chain(config: LLMConfig, langchain_prompt: ChatPromptTemplate):
-    # -> LLMChain:
     # Get web search template and model from the configuration
-    # template = config.web_search_template
     model = config.model
     llm = init_chat_model(
         model=f"openai:{model}",
@@ -21,11 +19,10 @@ def get_web_search_chain(config: LLMConfig, langchain_prompt: ChatPromptTemplate
                     "country": "FR",
                     "city": "Paris",
                     "region": "Paris",
-                },  # éventuellement à adapter à la configuration
+                },
             }
         },
     )
-    # prompt = ChatPromptTemplate.from_template(template)
     prompt = langchain_prompt
     output_parser = StrOutputParser()
 
@@ -37,6 +34,3 @@ def get_web_search_chain(config: LLMConfig, langchain_prompt: ChatPromptTemplate
 def should_perform_web_search(config):
     return config.web_search
 
-
-# on peut ajouter des conditions supplémentaires pour activer la web search, notamment
-# selon l'output du premier LLM.

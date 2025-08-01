@@ -13,15 +13,13 @@ validation:
   mode: "sequential_pipeline"
 
   # LLM validation configuration
-  llm_config: "Gemini2flash_compliance_validation_instruments"  # Reference to LLM config name
+  llm_config: "Gemini2flash_compliance_validation_instruments"
 
   # Web search validation configuration
-  web_search_config: "config_web_search_check_prix"  # Reference to web search config name
+  web_search_config: "config_web_search_check_prix" 
 
-  # # Conditions for conditional web search
-  # web_search_conditions:
-  #   llm_result_condition: "needs_verification"
-  #   # Add other conditions as needed
+  # Seuil de tolérance pour la divergence de prix en % entre le prix pass et le prix moyen trouvé
+  price_divergence_threshold: 10.0  
 
 output:
   results_path: "utils_llm/results/"
