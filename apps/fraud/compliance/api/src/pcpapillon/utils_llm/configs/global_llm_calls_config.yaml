@@ -10,7 +10,7 @@ validation:
   # Validation modes:
   # - "llm_only": Only LLM validation
   # - "sequential_pipeline": LLM results feed into web search as context
-  mode: "sequential_pipeline"
+  mode: "llm_only"
 
   # LLM validation configuration
   llm_config: "Gemini2flash_compliance_validation_instruments"

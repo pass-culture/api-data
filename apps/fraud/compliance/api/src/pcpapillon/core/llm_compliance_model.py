@@ -131,10 +131,24 @@ class LLMComplianceModel:
         data = pd.DataFrame.from_dict([data.model_dump()])
         results_df = run_validation_pipeline(self.config, data)
         results_dict = results_df.to_dict(orient="records")[0]
+
+        # Gestion intelligente des deux modes de validation
+        validation_mode = self.config["validation"].get("mode", "llm_only")
+
+        if validation_mode == "llm_only":
+            # Mode LLM seul : utiliser les colonnes de base
+            response = results_dict.get("Réponse_llm")
+            explanation = results_dict.get("Explication_classification")
+        else:
+            # Mode sequential : utiliser les colonnes finales
+            response = results_dict.get("réponse_LLM_finale")
+            explanation = results_dict.get("explication_finale")
+
         normalized_output = {
             "offer_id": results_dict.get("offer_id"),
-            "réponse_LLM": results_dict.get("réponse_LLM_finale"),
-            "explication_classification": results_dict.get("explication_finale")
+            "réponse_LLM": response,
+            "explication_classification": explanation
             }
 
         return LLMComplianceOutput.model_validate(normalized_output)
+
