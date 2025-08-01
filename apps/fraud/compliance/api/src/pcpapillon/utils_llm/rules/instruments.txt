@@ -1,0 +1,30 @@
+**Règle n°1 : Éligibilité Générale des Instruments, Equipements et Accessoires**
+Les instruments de musique, neufs ou d'occasion, sont éligibles à l'achat ou la location. On entend par instrument de musique tous les objets conçus, façonnés et utilisés dans le seul but de produire de la musique ou un équipement clé pour la production musicale. Les instruments et équipements éligibles sont listés dans la règle n°3.
+Les microphones sont considérés comme des équipements clés pour la production musicale et sont, à ce titre, éligibles. Ils  figurent dans la liste des instruments et équipements éligibles de la Règle n°3.
+Certains accessoires nécessaires au fonctionnement d'un instrument sont également éligibles (cordes pour une guitare, baguettes pour une batterie, housse et étuis, amplificateurs). Les accessoires exclus sont listés dans la règle n°4.
+L’entretien et la réparation des instruments de musique, ainsi que les ateliers pour l’apprendre, ne sont pas éligibles.
+
+**Règle n°2 : Instruments d'Occasion.**  La location et la vente d'instruments de musique d'occasion sont éligibles. Dans ce cas, pour être validée, l'offre doit clairement indiquer dans sa description qu'il s'agit d'un instrument "d'occasion", de “location” ou de “vente”.
+
+**Règle n°3 : Liste des Instruments et Equipements Éligibles (Non exhaustive)**
+Une large gamme d'instruments acoustiques comme électroniques est éligible, dont : claviers, accordéons, instruments à vent (bois et cuivres), harmonicas, cordes pincées (guitares, basses, ukulélés, harpes), batteries et percussions, consoles et instruments de mixage utilisés pour la création sonore (tables, platines de mix, workstations, samplers), cordes frottées (violons, violoncelles), instruments électroniques (synthétiseurs, boîtes à rythmes).
+Une large gamme d'équipement de production musicale est éligible, dont : tous types de microphones, enceintes de studio ou de monitoring, amplificateurs directement liés à l'utilisation d'un instrument, partitions, accessoires essentiels au fonctionnement (cordes, baguettes, housse et étuis).
+
+**Règle n°4 : Accessoires et Matériel Exclus.**
+Certains accessoires et matériels sont explicitement exclus. Cette exclusion s'applique uniquement si l'offre porte *exclusivement* sur eux et qu'ils ne sont pas inclus dans un pack avec un instrument principal éligible.
+Si l'un de ces accessoires est inclus dans un pack avec un instrument éligible, le pack reste éligible car l'offre ne porte pas exclusivement sur l'accessoire.
+Accessoires et matériels concernés par cette exclusion (si vendus seuls) :
+- Accessoires de mixage non intrinsèquement liés au fonctionnement d'un seul instrument et non inclus dans un pack : câbles, routeurs, fader, mélangeur, carte graphique, carte son, platine vinyle de salon. Voir règle n°6, pour les platines de salon spécifiquement.
+- Matériel d'écoute : casques audio, écouteurs, enceintes portable Bluetooth. Exception : voir Règle n°7 pour les packs incluant un casque.
+- Accessoires pour instruments vendus individuellement : coussins & mentonnières, résines, colophane, sourdine, métronome et accordeur.
+
+**Règle n°5 : Participation à l'achat.** Les offres de participation à l'achat sont possibles, y compris si le prix total dépasse 300 €, à condition de :
+- Indiquer clairement la référence exacte du produit et sa marque dans le titre ou la description de l'offre.
+- Si le produit en question ne se distingue pas par une marque et un modèle - un instrument de luthier par exemple - il faudra le décrire précisément afin qu'il soit clairement identifiable. Il est notamment conseillé de préciser qu'il s'agit d'un instrument fabriqué manuellement et pour lequel il n'y a pas de marque déposée.
+- Préciser explicitement dans le titre ou la description de l'offre le montant de la participation du pass Culture et le montant restant à la charge du bénéficiaire le cas échéant.
+
+**Règle n°6 : Platines Vinyles Éligibles (Production Musicale)**. Les platines vinyles sont éligibles uniquement si elles sont conçues pour la production de musique (DJing, scratching, beatmatching). Les tourne-disques, dits ‘de salon’ destinés à l'écoute simple de vinyles sont exclus. Une description mentionnant l'usage DJ ou des fonctionnalités précises (moteur adapté au scratching), est un indice d’éligibilité.
+
+**Règle n°7 : Packs Spécifiques Incluant un Casque d'Écoute (Exception).** Un casque audio est éligible uniquement s’il est inclus dans un pack où il est un accessoire associé à l'utilisation de l'instrument principal du pack. Exemples : un pack comprenant une platine de mixage DJ et un casque DJ, ou un microphone et un casque pour l'enregistrement. Un simple ajout d'un casque à un instrument sans lien fonctionnel direct (ex: une guitare et un casque Hi-Fi) ne rend pas le casque éligible. Le descriptif de l'offre doit clairement indiquer la nature du pack.
+
+**Règle n°8 : Partitions et lots de partition**. Les partitions vendues à l’unité sont éligibles au pass Culture. Les lots de partitions ne dépassant pas 70 € sont éligibles.

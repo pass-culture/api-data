@@ -1,0 +1,26 @@
+# Unified validation configuration
+# Supports both LLM validation and web search validation
+
+columns:
+  drop: ["offer_validation", "offer_last_validation_type", "offer_subcategory_id"]
+  price_to_check: "last_stock_price"  # Column name for web search price comparison
+  # /!\ commencera par une MAJ si issu d'un premier appel LLM
+
+validation:
+  # Validation modes:
+  # - "llm_only": Only LLM validation
+  # - "sequential_pipeline": LLM results feed into web search as context
+  mode: "llm_only"
+
+  # LLM validation configuration
+  llm_config: "Gemini2flash_compliance_validation_instruments"
+
+  # Web search validation configuration
+  web_search_config: "config_web_search_check_prix" 
+
+  # Seuil de tolérance pour la divergence de prix en % entre le prix pass et le prix moyen trouvé
+  price_divergence_threshold: 10.0  
+
+output:
+  results_path: "utils_llm/results/"
+  log_dir: "utils/logs"
