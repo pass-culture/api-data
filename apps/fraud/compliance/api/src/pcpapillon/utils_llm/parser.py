@@ -5,6 +5,7 @@ Response parsing utilities for LLM outputs.
 import pandas as pd
 from langchain.output_parsers.structured import ResponseSchema, StructuredOutputParser
 from loguru import logger
+from rules.subcategory_rules_mapping import get_rules_file
 
 
 def create_output_parser(config, response_schemas):
@@ -29,6 +30,7 @@ def post_process_result(config, offre_commerciale, result, response_schemas):
     )
 
     offer_id = offre_commerciale.get("offer_id")
+    subcat_id = offre_commerciale.get("offer_subcategory_id")
     nom_produit = offre_commerciale.get("offer_name")
     description = offre_commerciale.get("offer_description")
     prix = offre_commerciale.get("last_stock_price")
@@ -36,7 +38,7 @@ def post_process_result(config, offre_commerciale, result, response_schemas):
     # Get provider and model from config
     provider = config.get("provider") if isinstance(config, dict) else config.provider
     model = config.get("model") if isinstance(config, dict) else config.model
-    regles = config.get("regles") if isinstance(config, dict) else config.regles
+    regles = get_rules_file(subcat_id)
     prompt_type = (
         config.get("prompt_type") if isinstance(config, dict) else config.prompt_type
     )

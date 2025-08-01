@@ -34,8 +34,6 @@ def get_llm_chain(config: LLMConfig, langchain_prompt: ChatPromptTemplate) -> LL
         "model": config.model,
         "prompt_type": config.prompt_type,
         "schema_type": config.schema_type,
-        "regles": config.regles,
-        "examples": config.examples,
         "temperature": config.temperature,
         "max_new_tokens": config.max_new_tokens,
     }

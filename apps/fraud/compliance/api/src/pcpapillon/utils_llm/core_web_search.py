@@ -17,7 +17,6 @@ def _process_web_search_result(
 ) -> dict[str, Any]:
     base_result = {
         "offer_id": offer_data.get("offer_id"),
-        # "offer_name": offer_data.get("offer_name"),
         "last_stock_price": offer_data.get("last_stock_price"),
     }
 
@@ -61,7 +60,8 @@ def run_web_search_validation(
         for _, offer in tqdm(
             offers.iterrows(), total=len(offers), desc="Web searching offers"
         ):
-            columns = ["offer_id", "offer_name", "offer_description"]
+            columns = ["offer_id", "offer_name", "offer_description",
+                       "offer_subcategory_id"]
             if comparison_price:
                 columns.append(comparison_price)
             offre_commerciale = offer[columns].to_dict()

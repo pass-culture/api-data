@@ -20,10 +20,6 @@ class LLMConfig(BaseModel):
         test_agent or few_shot)""",
     )
     schema_type: str = Field(..., description="Type of response schema to use")
-    regles: str | None = Field(None, description="Name of the rules file")
-    examples: str | None = Field(
-        None, description="Name of the examples file (required for few_shot)"
-    )
     temperature: float = Field(0.3, description="Model temperature")
     max_new_tokens: int = Field(
         500, description="Maximum number of new tokens to generate"

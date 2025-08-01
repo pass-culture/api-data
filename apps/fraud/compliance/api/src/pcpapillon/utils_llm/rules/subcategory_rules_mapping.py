@@ -1,0 +1,56 @@
+"""
+Mapping between offer subcategories and their corresponding rules files.
+"""
+
+SUBCATEGORY_RULES_MAPPING = {
+    "ACHAT_INSTRUMENT": "instruments",
+    "LOCATION_INSTRUMENT": "instruments",
+    "PARTITION": "instruments",
+    "LIVRE_PAPIER": "livres",
+    "MATERIEL_ART_CREATIF": "materiel_art_creatif",
+    "ABO_PRATIQUE_ART": "pratiques_artistiques",
+    "ATELIER_PRATIQUE_ART": "pratiques_artistiques",
+    "LIVESTREAM_PRATIQUE_ARTISTIQUE": "pratiques_artistiques",
+    "SEANCE_ESSAI_PRATIQUE_ART": "pratiques_artistiques",
+    "PRATIQUE_ART_VENTE_DISTANCE": "pratiques_artistiques",
+    "CONCERT": "spectacle_vivant",
+    "SPECTACLE_REPRESENTATION": "spectacle_vivant",
+    "FESTIVAL_MUSIQUE": "spectacle_vivant",
+    "EVENEMENT_MUSIQUE": "spectacle_vivant",
+    "ABO_CONCERT": "spectacle_vivant",
+    "FESTIVAL_SPECTACLE": "spectacle_vivant",
+    "SPECTACLE_VENTE_DISTANCE": "spectacle_vivant",
+    "SUPPORT_PHYSIQUE_MUSIQUE_VINYLE": "musique",
+    "SUPPORT_PHYSIQUE_MUSIQUE_CD": "musique",
+    "RENCONTRE": "conferences_rencontres",
+    "CONFERENCE": "conferences_rencontres",
+    "RENCONTRE_EN_LIGNE": "conferences_rencontres",
+    "SALON": "conferences_rencontres",
+    "FESTIVAL_LIVRE": "conferences_rencontres",
+    "RENCONTRE_JEU": "conferences_rencontres",
+    "PODCAST": "conferences_rencontres",
+    "LIVESTREAM_EVENEMENT": "conferences_rencontres",
+    "SEANCE_CINE": "cinema",
+    "EVENEMENT_CINE": "cinema",
+    "CARTE_CINE_MULTISEANCES": "cinema",
+    "FESTIVAL_CINE": "cinema",
+    "CARTE_CINE_ILLIMITE": "cinema",
+    "CINE_VENTE_DISTANCE": "cinema",
+    "ABO_PLATEFORME_VIDEO": "audiovisuel",
+    "VOD": "audiovisuel",
+    "SUPPORT_PHYSIQUE_FILM": "audiovisuel",
+    "EVENEMENT_PATRIMOINE": "musee",
+    "VISITE": "musee",
+    "VISITE_GUIDEE": "musee",
+    "FESTIVAL_ART_VISUEL": "musee",
+    "VISITE_VIRTUELLE": "musee",
+    "CARTE_MUSEE": "musee",
+    "ABO_BIBLIOTHEQUE": "presse",
+    "ABO_LIVRE_NUMERIQUE": "presse",
+    "APP_CULTURELLE": "presse"
+}
+
+
+def get_rules_file(subcategory_id: str) -> str | None:
+    return SUBCATEGORY_RULES_MAPPING.get(subcategory_id)
+

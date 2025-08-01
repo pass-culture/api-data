@@ -12,6 +12,7 @@ from prompt_manager import get_prompt_template
 from tools.logging_utils import log_llm_prompt
 from tqdm import tqdm
 from validators import get_txt_from_path
+from rules.subcategory_rules_mapping import get_rules_file
 
 
 def run_global_validation(
@@ -60,7 +61,8 @@ def run_global_validation(
             try:
                 # Extract offer details
                 offre_commerciale = offer[
-                    ["offer_id", "offer_name", "offer_description", "last_stock_price"]
+                    ["offer_id", "offer_name", "offer_description", "last_stock_price",
+                     "offer_subcategory_id"]
                 ].to_dict()
 
                 # Add LLM context if available
@@ -94,15 +96,14 @@ def run_global_validation(
 
                 rendered_prompt = chain.prompt.format(**prompt_args)
 
+                subcat_id = offers.loc[0, "offer_subcategory_id"]
                 # Log the prompt with metadata
                 log_llm_prompt(
                     prompt=rendered_prompt,
                     config=config.dict() if hasattr(config, "dict") else vars(config),
                     offer_id=offre_commerciale.get("offer_id"),
                     metadata={
-                        "rules_file": config.regles
-                        if hasattr(config, "regles")
-                        else (config.get("regles") if hasattr(config, "get") else None),
+                        "rules_file": get_rules_file(subcat_id),
                         "prompt_type": config.prompt_type
                         if hasattr(config, "prompt_type")
                         else config.get("prompt_type"),  # type: ignore
@@ -226,59 +227,13 @@ def get_llm_validation(offers: pd.DataFrame, config_name: str) -> pd.DataFrame:
         raise
     try:
         # Get rules and format instructions
-        mapping_subcategory_regles = {
-            "ACHAT_INSTRUMENT" : "instruments",
-            "LOCATION_INSTRUMENT" : "instruments",
-            "PARTITION" : "instruments",
-            "LIVRE_PAPIER" : "livres",
-            "MATERIEL_ART_CREATIF" : "materiel_art_creatif",
-            "ABO_PRATIQUE_ART" : "pratiques_artistiques",
-            "ATELIER_PRATIQUE_ART" : "pratiques_artistiques",
-            "LIVESTREAM_PRATIQUE_ARTISTIQUE" : "pratiques_artistiques",
-            "SEANCE_ESSAI_PRATIQUE_ART" : "pratiques_artistiques",
-            "PRATIQUE_ART_VENTE_DISTANCE" : "pratiques_artistiques",
-            "CONCERT" : "spectacle_vivant",
-            "SPECTACLE_REPRESENTATION" : "spectacle_vivant",
-            "FESTIVAL_MUSIQUE" : "spectacle_vivant",
-            "EVENEMENT_MUSIQUE" : "spectacle_vivant",
-            "ABO_CONCERT" : "spectacle_vivant",
-            "FESTIVAL_SPECTACLE" : "spectacle_vivant",
-            "SPECTACLE_VENTE_DISTANCE" : "spectacle_vivant",
-            "SUPPORT_PHYSIQUE_MUSIQUE_VINYLE" : "musique",
-            "SUPPORT_PHYSIQUE_MUSIQUE_CD" : "musique",
-            "RENCONTRE" : "conferences_rencontres",
-            "CONFERENCE" : "conferences_rencontres",
-            "RENCONTRE_EN_LIGNE" : "conferences_rencontres",
-            "SALON" : "conferences_rencontres",
-            "FESTIVAL_LIVRE" : "conferences_rencontres",
-            "RENCONTRE_JEU" : "conferences_rencontres",
-            "PODCAST" : "conferences_rencontres",
-            "LIVESTREAM_EVENEMENT" : "conferences_rencontres",
-            "SEANCE_CINE" : "cinema",
-            "EVENEMENT_CINE" : "cinema",
-            "CARTE_CINE_MULTISEANCES" : "cinema",
-            "FESTIVAL_CINE" : "cinema",
-            "CARTE_CINE_ILLIMITE" : "cinema",
-            "CINE_VENTE_DISTANCE" : "cinema",
-            "ABO_PLATEFORME_VIDEO" : "audiovisuel",
-            "VOD" : "audiovisuel",
-            "SUPPORT_PHYSIQUE_FILM" : "audiovisuel",
-            "EVENEMENT_PATRIMOINE" : "musee",
-            "VISITE" : "musee",
-            "VISITE_GUIDEE" : "musee",
-            "FESTIVAL_ART_VISUEL" : "musee",
-            "VISITE_VIRTUELLE" : "musee",
-            "CARTE_MUSEE" : "musee",
-             "ABO_BIBLIOTHEQUE" : "presse",
-             "ABO_LIVRE_NUMERIQUE" : "presse",
-             "APP_CULTURELLE" : "presse"
-            }
-        subcat_id = offers.loc[0,"offer_subcategory_id"]
-        if subcat_id in mapping_subcategory_regles :
-            regles_conformite= get_txt_from_path("rules", mapping_subcategory_regles[
-                subcat_id])
+        subcat_id = offers.loc[0, "offer_subcategory_id"]
+        rules_file = get_rules_file(subcat_id)
+
+        if rules_file:
+            regles_conformite = get_txt_from_path("rules", rules_file)
         else:
-            regles_conformite = ("")
+            regles_conformite = ""
             logger.info(f"""No rules file specified in configuration for subcategory: {
                 subcat_id}""")
         format_instructions = create_output_parser(
