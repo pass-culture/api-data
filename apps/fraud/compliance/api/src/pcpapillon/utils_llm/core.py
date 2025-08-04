@@ -3,16 +3,17 @@ Core functionality for the LLM framework.
 """
 
 import pandas as pd
-from config_manager import config_manager
-from llm_manager import get_llm_chain
 from loguru import logger
-from models import LLMConfig
-from parser import create_output_parser, post_process_result
-from prompt_manager import get_prompt_template
-from rules.subcategory_rules_mapping import get_rules_file
-from tools.logging_utils import log_llm_prompt
 from tqdm import tqdm
-from validators import get_txt_from_path
+
+from pcpapillon.utils_llm.config_manager import config_manager
+from pcpapillon.utils_llm.llm_manager import get_llm_chain
+from pcpapillon.utils_llm.models import LLMConfig
+from pcpapillon.utils_llm.parser import create_output_parser, post_process_result
+from pcpapillon.utils_llm.prompt_manager import get_prompt_template
+from pcpapillon.utils_llm.rules.subcategory_rules_mapping import get_rules_file
+from pcpapillon.utils_llm.tools.logging_utils import log_llm_prompt
+from pcpapillon.utils_llm.validators import get_txt_from_path
 
 
 def run_global_validation(

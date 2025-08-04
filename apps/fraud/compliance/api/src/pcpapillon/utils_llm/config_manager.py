@@ -2,11 +2,12 @@
 Configuration management module for LLM framework.
 """
 
-from configs.llm_configs import LLM_CONFIGS
-from configs.web_search_configs import WEB_SEARCH_CONFIGS
 from loguru import logger
-from models import LLMConfig
-from schemas.compliance_schemas import COMPLIANCE_SCHEMAS
+
+from pcpapillon.utils_llm.configs.llm_configs import LLM_CONFIGS
+from pcpapillon.utils_llm.configs.web_search_configs import WEB_SEARCH_CONFIGS
+from pcpapillon.utils_llm.models import LLMConfig
+from pcpapillon.utils_llm.schemas.compliance_schemas import COMPLIANCE_SCHEMAS
 
 
 class ConfigurationManager:

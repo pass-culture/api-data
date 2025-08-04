@@ -3,11 +3,11 @@ Unified validation orchestrator supporting both LLM and web search validation.
 """
 
 import pandas as pd
+from loguru import logger
 
 # Import both validation modules
-from core import get_llm_validation
-from core_web_search import get_web_check
-from loguru import logger
+from pcpapillon.utils_llm.core import get_llm_validation
+from pcpapillon.utils_llm.core_web_search import get_web_check
 
 
 def filter_offers_for_web_search(

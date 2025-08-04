@@ -10,7 +10,10 @@ from loguru import logger
 from pcpapillon.utils_llm.data_model_llm import LLMComplianceInput, LLMComplianceOutput
 from pcpapillon.utils_llm.run_llm_calls import run_validation_pipeline
 
-ConfigPath = """../utils_llm/configs/global_llm_calls_config.yaml"""
+script_dir = os.path.dirname(os.path.abspath(__file__))
+ConfigPath = os.path.join(script_dir, "..", "utils_llm", "configs",
+                          "global_llm_calls_config.yaml")
+
 
 
 class LLMComplianceModel:

@@ -7,10 +7,9 @@ import json
 from langchain import LLMChain
 from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
-
-# from langchain_huggingface import HuggingFaceEndpoint
 from loguru import logger
-from models import LLMConfig
+
+from pcpapillon.utils_llm.models import LLMConfig
 
 
 def get_llm_chain(config: LLMConfig, langchain_prompt: ChatPromptTemplate) -> LLMChain:

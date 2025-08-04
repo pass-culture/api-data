@@ -3,7 +3,8 @@ Prompt creation and management utilities.
 """
 
 from langchain_core.prompts import ChatPromptTemplate
-from validators import get_txt_from_path
+
+from pcpapillon.utils_llm.validators import get_txt_from_path
 
 
 def get_prompt_template(config, response_schemas):
