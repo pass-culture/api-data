@@ -129,10 +129,15 @@ class LLMComplianceModel:
         """
         self._setup_environment()
         data = pd.DataFrame.from_dict([data.model_dump()])
+
+        # Drop des colonnes inutiles
+        columns_to_drop = self.config["columns"].get("drop", [])
+        data = data.drop(columns=columns_to_drop, errors="ignore")
+
         results_df = run_validation_pipeline(self.config, data)
         results_dict = results_df.to_dict(orient="records")[0]
 
-        # Gestion intelligente des deux modes de validation
+        # Gestion des deux modes de validation
         validation_mode = self.config["validation"].get("mode", "llm_only")
 
         if validation_mode == "llm_only":

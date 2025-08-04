@@ -2,7 +2,7 @@
 # Supports both LLM validation and web search validation
 
 columns:
-  drop: ["offer_validation", "offer_last_validation_type", "offer_subcategory_id"]
+  drop: ["offer_validation", "offer_last_validation_type"]
   price_to_check: "last_stock_price"  # Column name for web search price comparison
   # /!\ commencera par une MAJ si issu d'un premier appel LLM
 
