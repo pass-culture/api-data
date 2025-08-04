@@ -9,10 +9,10 @@ from loguru import logger
 from models import LLMConfig
 from parser import create_output_parser, post_process_result
 from prompt_manager import get_prompt_template
+from rules.subcategory_rules_mapping import get_rules_file
 from tools.logging_utils import log_llm_prompt
 from tqdm import tqdm
 from validators import get_txt_from_path
-from rules.subcategory_rules_mapping import get_rules_file
 
 
 def run_global_validation(

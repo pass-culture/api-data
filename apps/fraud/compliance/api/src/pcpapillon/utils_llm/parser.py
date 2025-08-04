@@ -4,7 +4,6 @@ Response parsing utilities for LLM outputs.
 
 import pandas as pd
 from langchain.output_parsers.structured import ResponseSchema, StructuredOutputParser
-from loguru import logger
 from rules.subcategory_rules_mapping import get_rules_file
 
 
@@ -25,9 +24,6 @@ def create_output_parser(config, response_schemas):
 
 def post_process_result(config, offre_commerciale, result, response_schemas):
     """Process raw LLM result and format it as a DataFrame based on the schema used."""
-    schema_type = (
-        config.get("schema_type") if isinstance(config, dict) else config.schema_type
-    )
 
     offer_id = offre_commerciale.get("offer_id")
     subcat_id = offre_commerciale.get("offer_subcategory_id")

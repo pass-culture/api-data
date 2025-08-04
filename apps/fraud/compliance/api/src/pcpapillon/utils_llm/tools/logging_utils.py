@@ -8,6 +8,7 @@ from typing import Any
 
 from loguru import logger
 
+
 # Configure color logger for console output
 def add_logger_level_if_not_exists(name, no, color):
     try:
