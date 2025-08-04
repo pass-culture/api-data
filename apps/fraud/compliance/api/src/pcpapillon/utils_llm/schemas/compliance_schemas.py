@@ -43,8 +43,26 @@ COMPLIANCE_SCHEMAS = {
             offre conforme. 'Non applicable' si l'offre est conforme.""",
             "type": "string",
         },
+        {
+            "name": "prix_participation",
+            "description": """Recherche dans la description et le last_stock_price
+            le prix total du produit. Prends seulement en compte le prix du produit
+            global. Si l'offre concerne une participation à l'achat, le prix global
+            correspond à la somme du montant de la participation du pass Culture et
+            du reste à charge à payer. Additionne dans ce cas le last_stock_price et le
+            reste à payer pour obtenir le prix total du produit.""",
+            "type": "string",
+        }
     ],
     "verification_prix_participation": [
+        {
+            "name": "recapitulatif_prix_trouvés",
+            "description": """Recherche le prix à la vente du produit sur les sites
+            de références donnés, et si disponible, le site fabriquant.
+            Récapitule les prix trouvés pour chaque site, indique le prix et le
+            lien""",
+            "type": "string",
+        },
         {
             "name": "prix_moyen",
             "description": """Calcule à partir de ces résultats le prix moyen et dis
@@ -55,8 +73,10 @@ COMPLIANCE_SCHEMAS = {
         {
             "name": "pourcentage_divergence_prix",
             "description": """Indique le pourcentage de divergence du prix proposé sur
-            le pass Culture par rapport au prix moyen calculé. Indique simplement
-            le nombre.""",
+            le pass Culture (Prix_participation) par rapport au prix moyen calculé à
+            partir des résultats de recherche. La formule utilisée est :
+            (prix_proposé - prix_moyen) / prix_moyen * 100.
+            Indique simplement le résultat.""",
             "type": "float",
         },
         {

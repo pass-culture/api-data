@@ -127,7 +127,7 @@ def run_web_search_validation(
                 parsed_result = output_parser.parse(result)
                 logger.info(
                     f"""Web search result for
-                    {offre_commerciale.get('offer_id')}: {result[:100]}..."""
+                    {offre_commerciale.get('offer_id')}: {parsed_result}"""
                 )
 
                 # Traiter le résultat
