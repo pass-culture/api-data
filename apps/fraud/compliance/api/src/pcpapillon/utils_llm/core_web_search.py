@@ -2,8 +2,6 @@ from typing import Any
 
 import pandas as pd
 from loguru import logger
-from tqdm import tqdm
-
 from pcpapillon.utils_llm.config_manager import config_manager
 from pcpapillon.utils_llm.parser import create_output_parser
 from pcpapillon.utils_llm.prompt_manager import get_prompt_template
@@ -12,6 +10,7 @@ from pcpapillon.utils_llm.web_search_utils import (
     get_web_search_chain,
     should_perform_web_search,
 )
+from tqdm import tqdm
 
 
 def _process_web_search_result(

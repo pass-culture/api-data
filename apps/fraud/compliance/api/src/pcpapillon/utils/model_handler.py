@@ -1,7 +1,6 @@
 import hashlib
 import pickle
 from dataclasses import dataclass
-from typing import Union
 
 import mlflow
 import mlflow.pyfunc
@@ -16,7 +15,7 @@ from sentence_transformers import SentenceTransformer
 
 @dataclass
 class ModelWithMetadata:
-    model: Union[mlflow.pyfunc.PythonModel, SentenceTransformer]
+    model: mlflow.pyfunc.PythonModel | SentenceTransformer
     model_identifier: str
 
 

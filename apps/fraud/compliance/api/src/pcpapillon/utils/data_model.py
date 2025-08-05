@@ -1,12 +1,11 @@
 # from __future__ import annotations
-from typing import Union
 
 from pydantic import BaseModel
 
 
 class User(BaseModel):
     username: str
-    disabled: Union[bool, None] = None
+    disabled: bool | None = None
 
 
 class UserInDB(User):
@@ -19,22 +18,22 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    username: Union[str, None] = None
+    username: str | None = None
 
 
 class ComplianceInput(BaseModel):
-    offer_id: Union[str, None] = ""
-    offer_name: Union[str, None] = ""
-    offer_description: Union[str, None] = ""
-    offer_subcategory_id: Union[str, None] = ""
-    rayon: Union[str, None] = ""
-    macro_rayon: Union[str, None] = ""
-    stock_price: Union[float, None] = 0
-    image_url: Union[str, None] = ""
-    offer_type_label: Union[str, None] = ""
-    offer_sub_type_label: Union[str, None] = ""
-    author: Union[str, None] = ""
-    performer: Union[str, None] = ""
+    offer_id: str | None = ""
+    offer_name: str | None = ""
+    offer_description: str | None = ""
+    offer_subcategory_id: str | None = ""
+    rayon: str | None = ""
+    macro_rayon: str | None = ""
+    stock_price: float | None = 0
+    image_url: str | None = ""
+    offer_type_label: str | None = ""
+    offer_sub_type_label: str | None = ""
+    author: str | None = ""
+    performer: str | None = ""
 
 
 class ComplianceOutput(BaseModel):

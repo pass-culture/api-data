@@ -4,8 +4,6 @@ Core functionality for the LLM framework.
 
 import pandas as pd
 from loguru import logger
-from tqdm import tqdm
-
 from pcpapillon.utils_llm.config_manager import config_manager
 from pcpapillon.utils_llm.llm_manager import get_llm_chain
 from pcpapillon.utils_llm.models import LLMConfig
@@ -14,6 +12,7 @@ from pcpapillon.utils_llm.prompt_manager import get_prompt_template
 from pcpapillon.utils_llm.rules.subcategory_rules_mapping import get_rules_file
 from pcpapillon.utils_llm.tools.logging_utils import log_llm_prompt
 from pcpapillon.utils_llm.validators import get_txt_from_path
+from tqdm import tqdm
 
 
 def run_global_validation(

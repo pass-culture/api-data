@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
-
 from pcpapillon.core.llm_compliance_model import LLMComplianceModel
 
 # from pcpapillon.core.compliance_model import (
@@ -11,10 +10,11 @@ from pcpapillon.core.llm_compliance_model import LLMComplianceModel
 #     ComplianceOutput,
 # )
 from pcpapillon.utils.logging.trace import custom_logger, get_call_id, setup_trace
+
 # from pcpapillon.utils.scheduler import init_scheduler
 from pcpapillon.utils_llm.data_model_llm import (
-    LLMComplianceInput,
     ComplianceValidationStatusPredictionOutput,
+    LLMComplianceInput,
 )
 
 compliance_router = APIRouter(tags=["compliance"])
