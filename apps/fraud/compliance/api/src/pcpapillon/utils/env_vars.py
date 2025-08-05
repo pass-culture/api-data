@@ -55,3 +55,8 @@ MLFLOW_TRACKING_TOKEN = os.environ.get("MLFLOW_TRACKING_TOKEN", None)
 # Model metadata
 MODEL_DEFAULT = os.environ.get("MODEL_DEFAULT", "compliance_model_dev")
 MODEL_STAGE = os.environ.get("MODEL_STAGE", "Production")
+
+### LLM Keys
+OPENAI_API_KEY = os.environ.get(
+    "OPENAI_API_KEY", access_secret(GCP_PROJECT, "openai_api_key")
+)
