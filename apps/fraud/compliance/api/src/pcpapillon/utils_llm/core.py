@@ -61,8 +61,13 @@ def run_global_validation(
             try:
                 # Extract offer details
                 offre_commerciale = offer[
-                    ["offer_id", "offer_name", "offer_description", "last_stock_price",
-                     "offer_subcategory_id"]
+                    [
+                        "offer_id",
+                        "offer_name",
+                        "offer_description",
+                        "stock_price",
+                        "offer_subcategory_id",
+                    ]
                 ].to_dict()
 
                 # Add LLM context if available
@@ -74,8 +79,9 @@ def run_global_validation(
                         if col.endswith("_llm_result") and pd.notna(offer[col])
                     }
                     logger.debug(
-                        f"""LLM context for offer {offre_commerciale[
-                            'offer_id']}: {llm_context}"""
+                        f"""LLM context for offer {offre_commerciale["offer_id"]}: {
+                            llm_context
+                        }"""
                     )
 
                 # Get the rendered prompt before making the call
@@ -130,8 +136,9 @@ def run_global_validation(
 
                 except Exception as parse_error:
                     logger.warning(
-                        f"""Échec du parsing JSON pour l'offre {offre_commerciale.get(
-                            'offer_id', 'unknown')}: {parse_error}"""
+                        f"""Échec du parsing JSON pour l'offre {
+                            offre_commerciale.get("offer_id", "unknown")
+                        }: {parse_error}"""
                     )
                     logger.info(f"Résultat brut sauvegardé: {result}")
 
@@ -151,13 +158,15 @@ def run_global_validation(
 
                     logger.info(
                         f"""Données sauvegardées avec fallback pour l'offre {
-                            offre_commerciale.get('offer_id', 'unknown')}"""
+                            offre_commerciale.get("offer_id", "unknown")
+                        }"""
                     )
 
             except Exception as offer_error:
                 logger.error(
-                    f"""Erreur lors du traitement de l'offre {offer.get(
-                        'offer_id', idx)}: {offer_error}"""
+                    f"""Erreur lors du traitement de l'offre {
+                        offer.get("offer_id", idx)
+                    }: {offer_error}"""
                 )
 
                 # Créer une entrée d'erreur pour cette offre
@@ -234,8 +243,11 @@ def get_llm_validation(offers: pd.DataFrame, config_name: str) -> pd.DataFrame:
             regles_conformite = get_txt_from_path("rules", rules_file)
         else:
             regles_conformite = ""
-            logger.info(f"""No rules file specified in configuration for subcategory: {
-                subcat_id}""")
+            logger.info(
+                f"""No rules file specified in configuration for subcategory: {
+                    subcat_id
+                }"""
+            )
         format_instructions = create_output_parser(
             config, schema
         ).get_format_instructions()

@@ -45,14 +45,14 @@ COMPLIANCE_SCHEMAS = {
         },
         {
             "name": "prix_participation",
-            "description": """Recherche dans la description et le last_stock_price
+            "description": """Recherche dans la description et le stock_price
             le prix total du produit. Prends seulement en compte le prix du produit
             global. Si l'offre concerne une participation à l'achat, le prix global
             correspond à la somme du montant de la participation du pass Culture et
-            du reste à charge à payer. Additionne dans ce cas le last_stock_price et le
+            du reste à charge à payer. Additionne dans ce cas le stock_price et le
             reste à payer pour obtenir le prix total du produit.""",
             "type": "string",
-        }
+        },
     ],
     "verification_prix_participation": [
         {

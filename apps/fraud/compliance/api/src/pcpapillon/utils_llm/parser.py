@@ -22,6 +22,7 @@ def create_output_parser(config, response_schemas):
 
     return StructuredOutputParser.from_response_schemas(response_schemas_parsed)
 
+
 def post_process_result(config, offre_commerciale, result, response_schemas):
     """Process raw LLM result and format it as a DataFrame based on the schema used."""
 
@@ -29,7 +30,7 @@ def post_process_result(config, offre_commerciale, result, response_schemas):
     subcat_id = offre_commerciale.get("offer_subcategory_id")
     nom_produit = offre_commerciale.get("offer_name")
     description = offre_commerciale.get("offer_description")
-    prix = offre_commerciale.get("last_stock_price")
+    prix = offre_commerciale.get("stock_price")
 
     # Get provider and model from config
     provider = config.get("provider") if isinstance(config, dict) else config.provider

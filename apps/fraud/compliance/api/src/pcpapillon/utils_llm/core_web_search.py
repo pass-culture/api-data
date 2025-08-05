@@ -20,7 +20,7 @@ def _process_web_search_result(
 ) -> dict[str, Any]:
     base_result = {
         "offer_id": offer_data.get("offer_id"),
-        "last_stock_price": offer_data.get("last_stock_price"),
+        "stock_price": offer_data.get("stock_price"),
     }
 
     # Simply flatten the parsed result
@@ -63,8 +63,12 @@ def run_web_search_validation(
         for _, offer in tqdm(
             offers.iterrows(), total=len(offers), desc="Web searching offers"
         ):
-            columns = ["offer_id", "offer_name", "offer_description",
-                       "offer_subcategory_id"]
+            columns = [
+                "offer_id",
+                "offer_name",
+                "offer_description",
+                "offer_subcategory_id",
+            ]
             if comparison_price:
                 columns.append(comparison_price)
             offre_commerciale = offer[columns].to_dict()
@@ -130,7 +134,7 @@ def run_web_search_validation(
                 parsed_result = output_parser.parse(result)
                 logger.info(
                     f"""Web search result for
-                    {offre_commerciale.get('offer_id')}: {parsed_result}"""
+                    {offre_commerciale.get("offer_id")}: {parsed_result}"""
                 )
 
                 # Traiter le résultat
@@ -148,7 +152,7 @@ def run_web_search_validation(
             except Exception as e:
                 logger.error(
                     f"""Error in web search for offer
-                    {offre_commerciale.get('offer_id')}: {e}"""
+                    {offre_commerciale.get("offer_id")}: {e}"""
                 )
                 # Ajouter une ligne d'erreur
                 error_row = pd.DataFrame(

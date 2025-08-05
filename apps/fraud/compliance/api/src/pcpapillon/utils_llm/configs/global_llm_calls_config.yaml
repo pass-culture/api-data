@@ -1,8 +1,8 @@
 # Validation configuration - appels LLM et recherche web pour vérifier la conformité des offres
 
 columns:
-  drop: ["offer_validation", "offer_last_validation_type"] # pré-traitement 
-  price_to_check: "prix_participation"  # Column name for web search price comparison : "last_stock_price" ou "prix_participation" si le schéma choisi extrait le prix total de l'offre.
+  drop: ["offer_validation", "offer_last_validation_type"] # pré-traitement
+  price_to_check: "prix_participation"  # Column name for web search price comparison : "stock_price" ou "prix_participation" si le schéma choisi extrait le prix total de l'offre.
 
 validation:
   # Validation modes:
@@ -14,10 +14,10 @@ validation:
   llm_config: "Gemini2flash_compliance_validation_instruments"
 
   # Web search validation configuration
-  web_search_config: "config_web_search_check_prix" 
+  web_search_config: "config_web_search_check_prix"
 
   # Seuil de tolérance pour la divergence de prix en % entre le prix pass et le prix moyen trouvé
-  price_divergence_threshold: 10.0  
+  price_divergence_threshold: 10.0
 
 output:
   results_path: "utils_llm/results/"
