@@ -48,7 +48,7 @@ http_request_context = contextvars.ContextVar("http_request_context", default={}
 
 # MLFlow
 MLFLOW_SECRET_ID = os.environ.get("MLFLOW_SECRET_ID", "mlflow_client_id")
-# MLFLOW_CLIENT_ID = access_secret(GCP_PROJECT, MLFLOW_SECRET_ID)
+MLFLOW_CLIENT_ID = access_secret(GCP_PROJECT, MLFLOW_SECRET_ID)
 MLFLOW_URL = os.environ.get("MLFLOW_URL", "https://mlflow.staging.passculture.team/")
 MLFLOW_TRACKING_TOKEN = os.environ.get("MLFLOW_TRACKING_TOKEN", None)
 
