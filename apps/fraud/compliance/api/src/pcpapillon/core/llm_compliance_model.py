@@ -6,14 +6,17 @@ import vertexai
 import yaml
 from dotenv import load_dotenv
 from loguru import logger
-
-from pcpapillon.utils_llm.data_model_llm import LLMComplianceInput, ComplianceValidationStatusPredictionOutput
+from pcpapillon.utils.env_vars import OPENAI_API_KEY
+from pcpapillon.utils_llm.data_model_llm import (
+    ComplianceValidationStatusPredictionOutput,
+    LLMComplianceInput,
+)
 from pcpapillon.utils_llm.run_llm_calls import run_validation_pipeline
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-ConfigPath = os.path.join(script_dir, "..", "utils_llm", "configs",
-                          "global_llm_calls_config.yaml")
-
+ConfigPath = os.path.join(
+    script_dir, "..", "utils_llm", "configs", "global_llm_calls_config.yaml"
+)
 
 
 class LLMComplianceModel:
@@ -30,7 +33,7 @@ class LLMComplianceModel:
         load_dotenv()
 
         # OpenAI setup
-        openai.api_key = os.getenv("OPENAI_API_KEY")
+        openai.api_key = OPENAI_API_KEY
 
         # Vertex AI setup (if needed)
         project_id = os.getenv("PROJECT_ID")
@@ -113,13 +116,15 @@ class LLMComplianceModel:
         logger.info(f"Enriched {len(offers)} offers with LLM validation results")
         logger.info(
             f"""New columns added: {
-                [col for col in enriched_offers.columns if col.endswith('_llm_result')]
+                [col for col in enriched_offers.columns if col.endswith("_llm_result")]
             }"""
         )
 
         return enriched_offers
 
-    def predict(self, data: LLMComplianceInput) -> ComplianceValidationStatusPredictionOutput:
+    def predict(
+        self, data: LLMComplianceInput
+    ) -> ComplianceValidationStatusPredictionOutput:
         """
         Predicts the class labels for the given data using the trained classifier model.
 
@@ -155,8 +160,9 @@ class LLMComplianceModel:
         normalized_output = {
             # "offer_id": results_dict.get("offer_id"),
             "validation_status_prediction": response,
-            "validation_status_prediction_reason": explanation
-            }
+            "validation_status_prediction_reason": explanation,
+        }
 
-        return ComplianceValidationStatusPredictionOutput.model_validate(normalized_output)
-
+        return ComplianceValidationStatusPredictionOutput.model_validate(
+            normalized_output
+        )
