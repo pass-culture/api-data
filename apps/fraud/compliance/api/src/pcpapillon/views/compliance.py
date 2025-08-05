@@ -14,7 +14,7 @@ from pcpapillon.utils.logging.trace import custom_logger, get_call_id, setup_tra
 # from pcpapillon.utils.scheduler import init_scheduler
 from pcpapillon.utils_llm.data_model_llm import (
     LLMComplianceInput,
-    LLMComplianceOutput,
+    ComplianceValidationStatusPredictionOutput,
 )
 
 compliance_router = APIRouter(tags=["compliance"])
@@ -29,7 +29,7 @@ compliance_router = APIRouter(tags=["compliance"])
 
 @compliance_router.post(
     "/model/compliance/scoring",
-    response_model=LLMComplianceOutput,
+    response_model=ComplianceValidationStatusPredictionOutput,
     dependencies=[Depends(get_call_id), Depends(setup_trace)],
 )
 @version(1, 0)

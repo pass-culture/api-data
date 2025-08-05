@@ -7,7 +7,7 @@ import yaml
 from dotenv import load_dotenv
 from loguru import logger
 
-from pcpapillon.utils_llm.data_model_llm import LLMComplianceInput, LLMComplianceOutput
+from pcpapillon.utils_llm.data_model_llm import LLMComplianceInput, ComplianceValidationStatusPredictionOutput
 from pcpapillon.utils_llm.run_llm_calls import run_validation_pipeline
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -119,7 +119,7 @@ class LLMComplianceModel:
 
         return enriched_offers
 
-    def predict(self, data: LLMComplianceInput) -> LLMComplianceOutput:
+    def predict(self, data: LLMComplianceInput) -> ComplianceValidationStatusPredictionOutput:
         """
         Predicts the class labels for the given data using the trained classifier model.
 
@@ -153,10 +153,10 @@ class LLMComplianceModel:
             explanation = results_dict.get("explication_finale")
 
         normalized_output = {
-            "offer_id": results_dict.get("offer_id"),
-            "réponse_LLM": response,
-            "explication_classification": explanation
+            # "offer_id": results_dict.get("offer_id"),
+            "validation_status_prediction": response,
+            "validation_status_prediction_reason": explanation
             }
 
-        return LLMComplianceOutput.model_validate(normalized_output)
+        return ComplianceValidationStatusPredictionOutput.model_validate(normalized_output)
 

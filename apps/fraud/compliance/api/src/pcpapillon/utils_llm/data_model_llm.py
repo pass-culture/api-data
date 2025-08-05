@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from enum import Enum
 
 
 class User(BaseModel):
@@ -27,7 +28,15 @@ class LLMComplianceInput(BaseModel):
     last_stock_price: float | None = 0
 
 
-class LLMComplianceOutput(BaseModel):
-    offer_id: str
-    réponse_LLM: str
-    explication_classification: str
+# class LLMComplianceOutput(BaseModel):
+#     offer_id: str
+#     réponse_LLM: str
+#     explication_classification: str
+
+class ComplianceValidationStatusPrediction(Enum):
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+class ComplianceValidationStatusPredictionOutput(BaseModel):
+    validation_status_prediction: ComplianceValidationStatusPrediction | None
+    validation_status_prediction_reason: str | None
