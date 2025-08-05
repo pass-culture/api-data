@@ -2,7 +2,7 @@
 
 columns:
   drop: ["offer_validation", "offer_last_validation_type"] # pré-traitement 
-  price_to_check: "Prix_participation"  # Column name for web search price comparison : "last_stock_price" ou "Prix_participation" si le schéma choisi extrait le prix total de l'offre.
+  price_to_check: "prix_participation"  # Column name for web search price comparison : "last_stock_price" ou "prix_participation" si le schéma choisi extrait le prix total de l'offre.
 
 validation:
   # Validation modes:

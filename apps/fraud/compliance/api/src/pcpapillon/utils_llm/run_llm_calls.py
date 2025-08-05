@@ -10,57 +10,6 @@ from pcpapillon.utils_llm.core import get_llm_validation
 from pcpapillon.utils_llm.core_web_search import get_web_check
 
 
-def filter_offers_for_web_search(
-    offers: pd.DataFrame, llm_results: pd.DataFrame, config: dict
-) -> pd.DataFrame:
-    """
-    Filter offers that should undergo web search based on LLM results and config.
-
-    Args:
-        offers: Original offers DataFrame
-        llm_results: Results from LLM validation
-        config: Configuration dictionary
-
-    Returns:
-        Filtered DataFrame of offers for web search
-    """
-    web_search_conditions = config["validation"].get("web_search_conditions", {})
-
-    if not web_search_conditions:
-        logger.info("No web search conditions specified, using all offers")
-        return offers
-
-    # Example filtering logic - customize based on your needs
-    filtered_offers = offers.copy()
-
-    # Filter based on LLM results if conditions are specified
-    if "llm_result_condition" in web_search_conditions:
-        condition = web_search_conditions["llm_result_condition"]
-        # Add your filtering logic here based on LLM results
-        logger.info(f"Applying LLM result condition: {condition}")
-
-        if not llm_results.empty and condition == "needs_verification":
-            # Assuming both DataFrames have the same index
-            # Get indices where llm_needs_verification is True
-            verification_needed_indices = filtered_offers[
-                filtered_offers["llm_needs_verification"]
-            ].index
-
-            # Filter offers using these indices
-            filtered_offers = offers.loc[verification_needed_indices]
-
-            logger.info(f"Kept {len(filtered_offers)} offers that need verification")
-            return filtered_offers
-        else:
-            logger.warning(
-                "No valid condition or empty LLM results, keeping all offers"
-            )
-
-    logger.info(f"""Filtered {len(offers)} offers to {
-        len(filtered_offers)} for web search""")
-    return filtered_offers
-
-
 def enrich_offers_with_llm_results(
     offers: pd.DataFrame, llm_results: pd.DataFrame
 ) -> pd.DataFrame:
@@ -107,8 +56,8 @@ def synthese_validation_finale(llm_results: pd.DataFrame, web_results: pd.DataFr
     final_results = llm_results.copy()
 
     # Add columns for final synthesis
-    final_results['réponse_LLM_finale'] = final_results['Réponse_llm']
-    final_results['explication_finale'] = final_results['Explication_classification']
+    final_results['reponse_LLM_finale'] = final_results['reponse_LLM']
+    final_results['explication_finale'] = final_results['explication_classification']
     final_results['validation_source'] = 'llm_only'
 
     if not web_results.empty:
@@ -122,7 +71,7 @@ def synthese_validation_finale(llm_results: pd.DataFrame, web_results: pd.DataFr
 
         # Process each offer for final decision
         for idx, row in final_results.iterrows():
-            llm_decision = row['Réponse_llm']
+            llm_decision = row['reponse_LLM']
 
             # If already rejected by LLM, keep the rejection
             if llm_decision.lower() in ['rejected', 'rejete']:
@@ -136,7 +85,7 @@ def synthese_validation_finale(llm_results: pd.DataFrame, web_results: pd.DataFr
 
                 if price_divergence > price_threshold:
                     # Reject due to overpricing
-                    final_results.at[idx, 'réponse_LLM_finale'] = 'rejected'
+                    final_results.at[idx, 'reponse_LLM_finale'] = 'rejected'
                     final_results.at[idx, 'explication_finale'] = (
                         f"""Offre conforme aux règles de conformité mais prix surévalué
                         de {price_divergence:.1f}% par rapport au marché (seuil:
@@ -145,9 +94,9 @@ def synthese_validation_finale(llm_results: pd.DataFrame, web_results: pd.DataFr
                     final_results.at[idx, 'validation_source'] = 'surtarification_web'
                 else:
                     # Approve with price validation
-                    final_results.at[idx, 'réponse_LLM_finale'] = 'approved'
+                    final_results.at[idx, 'reponse_LLM_finale'] = 'approved'
                     final_results.at[idx, 'explication_finale'] = (
-                        f"""{row['Explication_classification']}. Prix cohérent avec le
+                        f"""{row['explication_classification']}. Prix cohérent avec le
                         marché (divergence: {price_divergence:.1f}%)."""
                     )
                     final_results.at[idx, 'validation_source'] = 'llm_and_web_approved'
@@ -178,24 +127,26 @@ def run_validation_pipeline(config: dict, offers: pd.DataFrame) -> pd.DataFrame:
     validation_mode = config["validation"].get("mode", "llm_only")
     validation_config = config["validation"]
 
+     # Step 1: Run initial LLM validation
+    logger.info("Step 1: LLM validation pour toutes les offres...")
+    llm_results = get_llm_validation(offers, validation_config["llm_config"])
+
     if validation_mode == "llm_only":
-        logger.info("Running LLM validation only...")
-        results = get_llm_validation(offers, validation_config["llm_config"])
+        # Step 2: Register results for llm_validation
+        results = llm_results
+        logger.info("LLM validation completed successfully")
 
     elif validation_mode == "sequential_pipeline":
-        logger.info("Running sequential LLM → Web Search pipeline...")
-
-        # Step 1: Run initial LLM validation
-        logger.info("Step 1: LLM validation pour toutes les offres...")
-        llm_results = get_llm_validation(offers, validation_config["llm_config"])
         logger.info(f"LLM validation completed: {len(llm_results)} results")
+        logger.info("Running Web Search pipeline...")
 
         # Step 2: Filtre des offres pour n'amener en web search que celles approved par
         # le premier appel au LLM")
         logger.info("Step 2: Filtering offers approved by the LLM for web search...")
 
-        approved_values = ['ACCEPTED', 'approved', 'APPROVED', 'accepted']
-        approved_llm_results = llm_results[llm_results['Réponse_llm'].isin(
+        approved_values = ['approved', 'accepted']
+
+        approved_llm_results = llm_results[llm_results['reponse_LLM'].str.lower().isin(
             approved_values)]
 
         # Merge to get the original offers that were approved

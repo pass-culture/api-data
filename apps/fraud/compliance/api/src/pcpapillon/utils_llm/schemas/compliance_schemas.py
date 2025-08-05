@@ -3,7 +3,7 @@
 COMPLIANCE_SCHEMAS = {
     "compliance_validation": [
         {
-            "name": "réponse_LLM",
+            "name": "reponse_LLM",
             "description": """Classification finale de l'offre commerciale
             selon les règles de conformité.
             Les valeurs possibles sont 'ACCEPTED', si l'offre répond à toutes les règles

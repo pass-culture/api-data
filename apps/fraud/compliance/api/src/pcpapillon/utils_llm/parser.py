@@ -57,7 +57,7 @@ def post_process_result(config, offre_commerciale, result, response_schemas):
     for schema in response_schemas:
         field_name = schema.get("name")
         value = result.get(field_name)
-        schema_columns[field_name.capitalize()] = [value]
+        schema_columns[field_name] = [value]
 
     # Fusionner les colonnes de base et spécifiques
     all_columns = {**base_columns, **schema_columns}
