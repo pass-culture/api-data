@@ -6,7 +6,7 @@ from google.auth.transport.requests import Request
 from google.oauth2 import service_account
 from pcpapillon.utils.env_vars import (
     GCP_PROJECT,
-    # MLFLOW_CLIENT_ID,
+    MLFLOW_CLIENT_ID,
     MLFLOW_URL,
     SA_ACCOUNT,
     access_secret,
