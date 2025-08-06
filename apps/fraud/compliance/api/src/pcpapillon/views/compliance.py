@@ -34,7 +34,7 @@ def model_compliance_scoring(scoring_input: LLMComplianceInput):
         "scoring_input": scoring_input.dict(),
     }
     predictions = compliance_model.predict(data=scoring_input)
-    if scoring_input.get("offer_subcategory_id") == "ACHAT_INSTRUMENT":
+    if scoring_input.dict()["offer_subcategory_id"] == "ACHAT_INSTRUMENT":
         llm_model = LLMComplianceModel()
         predictions_llm = llm_model.predict(data=scoring_input)
     else:
