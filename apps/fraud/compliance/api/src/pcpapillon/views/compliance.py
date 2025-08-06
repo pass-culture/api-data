@@ -1,3 +1,5 @@
+import traceback
+
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 from pcpapillon.core.compliance_model import (
@@ -36,8 +38,18 @@ def model_compliance_scoring(scoring_input: LLMComplianceInput):
     predictions = compliance_model.predict(data=scoring_input)
     predictions = predictions.dict()
     if scoring_input.dict()["offer_subcategory_id"] == "ACHAT_INSTRUMENT":
-        llm_model = LLMComplianceModel()
-        predictions_llm = llm_model.predict(data=scoring_input)
-        predictions.update(predictions_llm)
+        try:
+            llm_model = LLMComplianceModel()
+            predictions_llm = llm_model.predict(data=scoring_input)
+            predictions.update(predictions_llm)
+        except Exception as err:
+            custom_logger.error(
+                "Error during LLM compliance prediction",
+                extra={
+                    "error": str(err),
+                    "trace": traceback.format_exc(),
+                    **log_extra_data,
+                },
+            )
     custom_logger.info(predictions, extra=log_extra_data)
     return predictions
