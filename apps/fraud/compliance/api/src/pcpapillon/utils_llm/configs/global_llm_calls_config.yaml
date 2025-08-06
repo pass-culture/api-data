@@ -1,0 +1,24 @@
+# Validation configuration - appels LLM et recherche web pour vérifier la conformité des offres
+
+columns:
+  drop: ["offer_validation", "offer_last_validation_type"] # pré-traitement
+  price_to_check: "prix_participation"  # Column name for web search price comparison : "stock_price" ou "prix_participation" si le schéma choisi extrait le prix total de l'offre.
+
+validation:
+  # Validation modes:
+  # - "llm_only": Appel seul au LLM pour valider la conformité
+  # - "sequential_pipeline": Les résultats du LLM alimentent la recherche web en tant que contexte - utile pour vérifier la sur tarification
+  mode: "sequential_pipeline"
+
+  # LLM validation configuration
+  llm_config: "Gemini2flash_compliance_validation_instruments"
+
+  # Web search validation configuration
+  web_search_config: "config_web_search_check_prix"
+
+  # Seuil de tolérance pour la divergence de prix en % entre le prix pass et le prix moyen trouvé
+  price_divergence_threshold: 10.0
+
+output:
+  results_path: "utils_llm/results/"
+  log_dir: "utils/logs"

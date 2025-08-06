@@ -7,7 +7,8 @@ def init_scheduler(scheduled_job: callable, time_interval: int):
     scheduler = AsyncIOScheduler()
 
     custom_logger.info(
-        f"Starting schefuler for task {scheduled_job.__name__} with interval {time_interval} seconds."
+        f"Starting scheduler for task {scheduled_job.__name__}"
+        f" with interval {time_interval} seconds."
     )
     scheduler.start()
     custom_logger.debug("Scheduler started.")

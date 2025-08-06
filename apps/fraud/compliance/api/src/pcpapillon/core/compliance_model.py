@@ -35,9 +35,9 @@ class ComplianceModel:
         predictions = self.model.predict(data.dict())
         return ComplianceOutput(
             offer_id=data.offer_id,
-            probability_validated=predictions.probability_validated,
+            probability_validated=round(predictions.probability_validated),
             validation_main_features=predictions.validation_main_features,
-            probability_rejected=predictions.probability_rejected,
+            probability_rejected=round(predictions.probability_rejected),
             rejection_main_features=predictions.rejection_main_features,
         )
 
