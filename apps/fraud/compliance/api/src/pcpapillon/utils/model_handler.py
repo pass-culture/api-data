@@ -56,7 +56,8 @@ class ModelHandler:
         )
 
         custom_logger.info(
-            f"Retrieving model version for {mlflow_model_name} registered as {mlflow_model_name_stripped}..."
+            f"Retrieving model version for {mlflow_model_name}"
+            f" registered as {mlflow_model_name_stripped}..."
         )
         model_version = self.mlflow_client.get_latest_versions(
             mlflow_model_name_stripped

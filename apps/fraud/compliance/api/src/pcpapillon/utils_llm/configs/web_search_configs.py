@@ -7,6 +7,6 @@ WEB_SEARCH_CONFIGS = {
         "prompt_type": "web_search_prix",
         "web_search": True,
         "schema_type": "verification_prix_participation",
-        "reference_sites": "Woodbrass, Thomann, SonoVente, Star's Music"
-        },
+        "reference_sites": "Woodbrass, Thomann, SonoVente, Star's Music",
+    },
 }

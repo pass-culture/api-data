@@ -32,4 +32,3 @@ def get_web_search_chain(config: LLMConfig, langchain_prompt: ChatPromptTemplate
 
 def should_perform_web_search(config):
     return config.web_search
-

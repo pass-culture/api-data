@@ -47,10 +47,9 @@ SUBCATEGORY_RULES_MAPPING = {
     "CARTE_MUSEE": "musee",
     "ABO_BIBLIOTHEQUE": "presse",
     "ABO_LIVRE_NUMERIQUE": "presse",
-    "APP_CULTURELLE": "presse"
+    "APP_CULTURELLE": "presse",
 }
 
 
 def get_rules_file(subcategory_id: str) -> str | None:
     return SUBCATEGORY_RULES_MAPPING.get(subcategory_id)
-
