@@ -6,12 +6,12 @@ import vertexai
 import yaml
 from dotenv import load_dotenv
 from loguru import logger
+from pcpapillon.utils.env_vars import OPENAI_API_KEY
 from pcpapillon.utils_llm.data_model_llm import (
     ComplianceValidationStatusPredictionOutput,
     LLMComplianceInput,
 )
 from pcpapillon.utils_llm.run_llm_calls import run_validation_pipeline
-from pcpapillon.utis.env_vars import OPENAI_API_KEY
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 ConfigPath = os.path.join(
