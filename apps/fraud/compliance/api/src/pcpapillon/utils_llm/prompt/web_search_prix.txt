@@ -1,0 +1,4 @@
+Recherche le prix à la vente du produit donné ci-dessous sur les sites de références ci-dessous.
+Tu peux rechercher le modèle du produit directement sur le moteur de recherche si ces sites ne proposent pas le produit dans leur catalogue.
+Tu peux également rechercher le modèle sur le site du fabriquant si la marque est précisée dans la description de l'offre.
+Calcule à partir de ces résultats le prix moyen et dis moi s'il diverge du prix proposé, et si applicable de combien en %, du prix proposé chez nous ci-dessous.

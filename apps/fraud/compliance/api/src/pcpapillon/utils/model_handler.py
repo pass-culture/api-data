@@ -1,7 +1,6 @@
 import hashlib
 import pickle
 from dataclasses import dataclass
-from typing import Union
 
 import mlflow
 import mlflow.pyfunc
@@ -16,7 +15,7 @@ from sentence_transformers import SentenceTransformer
 
 @dataclass
 class ModelWithMetadata:
-    model: Union[mlflow.pyfunc.PythonModel, SentenceTransformer]
+    model: mlflow.pyfunc.PythonModel | SentenceTransformer
     model_identifier: str
 
 
@@ -57,7 +56,8 @@ class ModelHandler:
         )
 
         custom_logger.info(
-            f"Retrieving model version for {mlflow_model_name} registered as {mlflow_model_name_stripped}..."
+            f"Retrieving model version for {mlflow_model_name}"
+            f" registered as {mlflow_model_name_stripped}..."
         )
         model_version = self.mlflow_client.get_latest_versions(
             mlflow_model_name_stripped

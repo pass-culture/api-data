@@ -3,12 +3,13 @@ from fastapi_versioning import version
 from pcpapillon.core.compliance_model import (
     ComplianceModel,
 )
-from pcpapillon.utils.data_model import (
-    ComplianceInput,
-    ComplianceOutput,
-)
+from pcpapillon.core.llm_compliance_model import LLMComplianceModel
 from pcpapillon.utils.logging.trace import custom_logger, get_call_id, setup_trace
 from pcpapillon.utils.scheduler import init_scheduler
+from pcpapillon.utils_llm.data_model_llm import (
+    ComplianceOutput,
+    LLMComplianceInput,
+)
 
 compliance_router = APIRouter(tags=["compliance"])
 
@@ -26,14 +27,17 @@ compliance_scheduler = init_scheduler(
     dependencies=[Depends(get_call_id), Depends(setup_trace)],
 )
 @version(1, 0)
-def model_compliance_scoring(scoring_input: ComplianceInput):
+def model_compliance_scoring(scoring_input: LLMComplianceInput):
     log_extra_data = {
         "model_version": "default_model",
         "offer_id": scoring_input.dict()["offer_id"],
         "scoring_input": scoring_input.dict(),
     }
-
     predictions = compliance_model.predict(data=scoring_input)
-
-    custom_logger.info(predictions.dict(), extra=log_extra_data)
+    predictions = predictions.dict()
+    if scoring_input.dict()["offer_subcategory_id"] == "ACHAT_INSTRUMENT":
+        llm_model = LLMComplianceModel()
+        predictions_llm = llm_model.predict(data=scoring_input)
+        predictions.update(predictions_llm)
+    custom_logger.info(predictions, extra=log_extra_data)
     return predictions
