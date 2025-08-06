@@ -51,7 +51,7 @@ COMPLIANCE_SCHEMAS = {
             correspond à la somme du montant de la participation du pass Culture et
             du reste à charge à payer. Additionne dans ce cas le stock_price et le
             reste à payer pour obtenir le prix total du produit.""",
-            "type": "string",
+            "type": "float",
         },
     ],
     "verification_prix_participation": [
@@ -65,10 +65,8 @@ COMPLIANCE_SCHEMAS = {
         },
         {
             "name": "prix_moyen",
-            "description": """Calcule à partir de ces résultats le prix moyen et dis
-            moi s'il diverge, et si applicable de combien en %,
-            du prix proposé chez nous""",
-            "type": "string",
+            "description": """Calcule à partir de ces résultats le prix moyen""",
+            "type": "float",
         },
         {
             "name": "pourcentage_divergence_prix",
