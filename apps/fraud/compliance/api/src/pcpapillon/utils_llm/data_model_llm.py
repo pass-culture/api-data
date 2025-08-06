@@ -58,5 +58,5 @@ class ComplianceOutput(BaseModel):
     validation_main_features: list[str]
     probability_rejected: int
     rejection_main_features: list[str]
-    validation_status_prediction: ComplianceValidationStatusPrediction | None
-    validation_status_prediction_reason: str | None
+    validation_status_prediction: ComplianceValidationStatusPrediction | None = None
+    validation_status_prediction_reason: str | None = None
