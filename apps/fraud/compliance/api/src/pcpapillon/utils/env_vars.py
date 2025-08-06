@@ -25,21 +25,21 @@ IS_API_LOCAL = API_LOCAL == "True"
 API_SECRET_KET_SECRET_ID = os.environ.get(
     "API_SECRET_KET_SECRET_ID", "api-papillon-auth-secret-key-dev"
 )
-SECRET_KEY = access_secret(GCP_PROJECT, API_SECRET_KET_SECRET_ID)
+# SECRET_KEY = access_secret(GCP_PROJECT, API_SECRET_KET_SECRET_ID)
 HASH_ALGORITHM = os.environ.get("VALIDATION_LOGIN_KEY", "HS256")
 LOGIN_TOKEN_EXPIRATION = os.environ.get("LOGIN_TOKEN_EXPIRATION", 30)
 
 API_USER_SECRET_ID = os.environ.get("API_USER_SECRET_ID", "api-papillon-user-dev")
 API_PWD_SECRET_ID = os.environ.get("API_PWD_SECRET_ID", "api-papillon-password-dev")
-API_USER = access_secret(GCP_PROJECT, API_USER_SECRET_ID)
-API_PWD = access_secret(GCP_PROJECT, API_PWD_SECRET_ID)
-users_db = {
-    API_USER: {
-        "username": API_USER,
-        "password": API_PWD,
-        "disabled": False,
-    }
-}
+# API_USER = access_secret(GCP_PROJECT, API_USER_SECRET_ID)
+# API_PWD = access_secret(GCP_PROJECT, API_PWD_SECRET_ID)
+# users_db = {
+#     API_USER: {
+#         "username": API_USER,
+#         "password": API_PWD,
+#         "disabled": False,
+#     }
+# }
 
 # logger
 cloud_trace_context = contextvars.ContextVar("cloud_trace_context", default="")
@@ -55,3 +55,8 @@ MLFLOW_TRACKING_TOKEN = os.environ.get("MLFLOW_TRACKING_TOKEN", None)
 # Model metadata
 MODEL_DEFAULT = os.environ.get("MODEL_DEFAULT", "compliance_model_dev")
 MODEL_STAGE = os.environ.get("MODEL_STAGE", "Production")
+
+### LLM Keys
+OPENAI_API_KEY = os.environ.get(
+    "OPENAI_API_KEY", access_secret(GCP_PROJECT, "openai_api_key")
+)

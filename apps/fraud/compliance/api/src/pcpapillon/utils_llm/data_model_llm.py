@@ -1,4 +1,4 @@
-# from __future__ import annotations
+from enum import Enum
 
 from pydantic import BaseModel
 
@@ -21,7 +21,7 @@ class TokenData(BaseModel):
     username: str | None = None
 
 
-class ComplianceInput(BaseModel):
+class LLMComplianceInput(BaseModel):
     offer_id: str | None = ""
     offer_name: str | None = ""
     offer_description: str | None = ""
@@ -36,14 +36,27 @@ class ComplianceInput(BaseModel):
     performer: str | None = ""
 
 
+# class LLMComplianceOutput(BaseModel):
+#     offer_id: str
+#     réponse_LLM: str
+#     explication_classification: str
+
+
+class ComplianceValidationStatusPrediction(Enum):
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class ComplianceValidationStatusPredictionOutput(BaseModel):
+    validation_status_prediction: ComplianceValidationStatusPrediction | None
+    validation_status_prediction_reason: str | None
+
+
 class ComplianceOutput(BaseModel):
     offer_id: str
     probability_validated: int
     validation_main_features: list[str]
     probability_rejected: int
     rejection_main_features: list[str]
-
-
-class ModelParams(BaseModel):
-    name: str = "default"
-    type: str = "default"
+    validation_status_prediction: ComplianceValidationStatusPrediction | None
+    validation_status_prediction_reason: str | None
