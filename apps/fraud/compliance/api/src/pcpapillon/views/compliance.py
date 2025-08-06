@@ -40,7 +40,7 @@ def model_compliance_scoring(scoring_input: LLMComplianceInput):
         predictions_llm = llm_model.predict(data=scoring_input)
     else:
         predictions_llm = {
-            "validation_status_prediction": "not_applicable",
+            "validation_status_prediction": "rejected",
             "validation_status_prediction_reason": "Offer subcategory not applicable",
         }
     predictions.update(predictions_llm)
