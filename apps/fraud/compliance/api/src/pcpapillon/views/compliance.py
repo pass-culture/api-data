@@ -44,5 +44,5 @@ def model_compliance_scoring(scoring_input: LLMComplianceInput):
             "validation_status_prediction_reason": "Offer subcategory not applicable",
         }
     predictions.update(predictions_llm)
-    custom_logger.info(predictions.dict(), extra=log_extra_data)
+    custom_logger.info(predictions, extra=log_extra_data)
     return predictions
