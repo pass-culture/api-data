@@ -38,11 +38,6 @@ def model_compliance_scoring(scoring_input: LLMComplianceInput):
     if scoring_input.dict()["offer_subcategory_id"] == "ACHAT_INSTRUMENT":
         llm_model = LLMComplianceModel()
         predictions_llm = llm_model.predict(data=scoring_input)
-    else:
-        predictions_llm = {
-            "validation_status_prediction": "rejected",
-            "validation_status_prediction_reason": "Offer subcategory not applicable",
-        }
-    predictions.update(predictions_llm)
+        predictions.update(predictions_llm)
     custom_logger.info(predictions, extra=log_extra_data)
     return predictions
