@@ -11,6 +11,7 @@ from pcpapillon.utils_llm.data_model_llm import (
     LLMComplianceInput,
 )
 from pcpapillon.utils_llm.run_llm_calls import run_validation_pipeline
+from pcpapillon.utis.env_vars import OPENAI_API_KEY
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 ConfigPath = os.path.join(
@@ -32,7 +33,7 @@ class LLMComplianceModel:
         load_dotenv()
 
         # OpenAI setup
-        openai.api_key = os.getenv("OPENAI_API_KEY")
+        openai.api_key = OPENAI_API_KEY
 
         # Vertex AI setup (if needed)
         project_id = os.getenv("PROJECT_ID")
