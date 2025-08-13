@@ -29,8 +29,11 @@ def enrich_offers_with_llm_results(
     )
 
     logger.info(f"Enriched {len(offers)} offers with LLM validation results")
-    logger.info(f"""New columns added: {[
-        col for col in enriched_offers.columns if col.endswith('_llm_result')]}""")
+    logger.info(
+        f"""New columns added: {
+            [col for col in enriched_offers.columns if col.endswith("_llm_result")]
+        }"""
+    )
 
     return enriched_offers
 
@@ -96,16 +99,17 @@ def synthese_validation_finale(
                     final_results.at[idx, "reponse_LLM_finale"] = "rejected"
                     final_results.at[
                         idx, "explication_finale"
-                    ] = f"""Offre conforme aux règles de conformité mais prix surévalué
-                        de {price_divergence:.1f}% par rapport au marché (seuil:
-                        {price_threshold}%). Prix moyen du marché: {prix_moyen}."""
+                    ] = f"""Offre conforme aux règles de conformité mais prix incohérent
+                        de {price_divergence:.1f}% entre le prix marché
+                        et le prix proposé sur l'app (seuil:{price_threshold}%).
+                        Prix moyen du marché: {prix_moyen}."""
                     final_results.at[idx, "validation_source"] = "surtarification_web"
                 else:
                     # Approve with price validation
                     final_results.at[idx, "reponse_LLM_finale"] = "approved"
                     final_results.at[
                         idx, "explication_finale"
-                    ] = f"""{row['explication_classification']}. Prix cohérent avec le
+                    ] = f"""{row["explication_classification"]}. Prix cohérent avec le
                         marché (divergence: {price_divergence:.1f}%)."""
                     final_results.at[idx, "validation_source"] = "llm_and_web_approved"
             else:
