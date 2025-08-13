@@ -1,4 +1,7 @@
-Recherche le prix à la vente du produit donné ci-dessous sur les sites de références ci-dessous.
-Tu peux rechercher le modèle du produit directement sur le moteur de recherche si ces sites ne proposent pas le produit dans leur catalogue.
-Tu peux également rechercher le modèle sur le site du fabriquant si la marque est précisée dans la description de l'offre.
-Calcule à partir de ces résultats le prix moyen et dis moi s'il diverge du prix proposé, et si applicable de combien en %, du prix proposé chez nous ci-dessous.
+### Tâches à accomplir
+1.  Recherche le prix de vente du produit sur les sites de référence mentionnés. Si le produit n'est pas disponible, tu peux élargir la recherche à d'autres sites web pertinents en utilisant le modèle exact du produit.
+2.  Calcule le prix moyen du marché à partir de tous les résultats de ta recherche.
+3.  Compare le prix sur ma plateforme avec ce prix moyen du marché.
+4.  Indique si le prix sur ma plateforme est une **surévaluation** ou une **sous-évaluation** par rapport au prix moyen du marché. Utilise les termes exacts "surévaluation" et "sous-évaluation".
+5.  Si le prix sur ma plateforme est différent du prix moyen du marché, calcule la divergence en pourcentage.
+6.  Présente les résultats de manière claire, en commençant par le prix sur ma plateforme, le prix moyen du marché, puis la conclusion sur la surévaluation/sous-évaluation et le pourcentage de divergence.
