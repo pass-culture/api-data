@@ -1,6 +1,7 @@
 # Database Flow Diagram for `/playlist_recommendation/{user_id}` Route
 
 ## Overview
+
 This diagram explains all database interactions when calling the `/playlist_recommendation/{user_id}` route in the recommendation API.
 
 ```mermaid
@@ -62,6 +63,7 @@ graph TD
 ## Database Tables Accessed
 
 ### 1. **iris_france** table
+
 - **Purpose**: Convert geographic coordinates (latitude/longitude) to IRIS administrative codes
 - **Queries**:
   - For user location: `ST_Contains(shape, POINT(longitude, latitude))`
@@ -69,8 +71,10 @@ graph TD
 - **Used by**: `Iris.get_iris_from_coordinates()`
 
 ### 2. **enriched_user** table
+
 - **Purpose**: Get user profile information and behavior statistics
 - **Query**:
+
   ```sql
   SELECT user_id,
          date_part('year', age(user_birth_date)) as age,
@@ -80,20 +84,24 @@ graph TD
          coalesce(user_theoretical_remaining_credit, user_deposit_initial_amount) as user_deposit_remaining_credit
   WHERE user_id = ?
   ```
+
 - **Used by**: `UserContextDB.get_user_profile()`
 
 ### 3. **item_ids** table
+
 - **Purpose**: Get offer characteristics including venue coordinates
 - **Query**: `SELECT * WHERE offer_id = ?` (for each input offer)
 - **Returns**: item_id, venue_latitude, venue_longitude, booking_number, is_sensitive
 - **Used by**: `Offer.get_item()`
 
 ### 4. **non_recommendable_items** table
+
 - **Purpose**: Filter out items that shouldn't be recommended to the user
 - **Query**: `SELECT item_id WHERE user_id = ?`
 - **Used by**: `get_non_recommendable_items()`
 
 ### 5. **recommendable_offers_raw** table
+
 - **Purpose**: Find the nearest available offers for recommendation
 - **Query**: Complex geospatial query using:
   - `ST_Distance()` for distance calculation
@@ -129,6 +137,7 @@ graph TD
 ## Summary
 
 The route performs approximately **5-10 database queries** depending on the number of input offers:
+
 - **2 queries** for user context (location + profile)
 - **2×N queries** for input offer processing (N = number of input offers)
 - **1 query** for filtering non-recommendable items
