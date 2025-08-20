@@ -5,7 +5,6 @@ from typing import Optional
 import huggy.schemas.offer as o
 import pytz
 from fastapi.encoders import jsonable_encoder
-from huggy.utils.cloud_logging import logger
 from huggy.core.model_selection.model_configuration.configuration import (
     ForkOut,
 )
@@ -14,6 +13,7 @@ from huggy.models.past_recommended_offers import PastOfferContext
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.recommendable_offer import RankedOffer
 from huggy.schemas.user import UserContext
+from huggy.utils.cloud_logging import logger
 from huggy.utils.env_vars import NUMBER_OF_RECOMMENDATIONS
 from huggy.utils.mixing import order_offers_by_score_and_diversify_features
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -190,17 +190,19 @@ class ModelEngine(ABC):
                         "offer_semantic_emb_mean": o.semantic_emb_mean,
                     },
                 )
-                
+
                 logger.info(
                     "Past Offer Context",
-                    extra=jsonable_encoder({
-                        "labels": {
-                            "event_type": "recommendation",
-                        },
-                        **past_offer_context.__dict__
-                    })
+                    extra=jsonable_encoder(
+                        {
+                            "labels": {
+                                "event_type": "recommendation",
+                            },
+                            **past_offer_context.__dict__,
+                        }
+                    ),
                 )
-                
+
                 session.add(past_offer_context)
             await session.commit()
 
