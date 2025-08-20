@@ -5,6 +5,7 @@ from typing import Optional
 import huggy.schemas.offer as o
 import pytz
 from fastapi.encoders import jsonable_encoder
+from huggy.utils.cloud_logging import logger
 from huggy.core.model_selection.model_configuration.configuration import (
     ForkOut,
 )
@@ -151,46 +152,56 @@ class ModelEngine(ABC):
                 )
 
             for idx, o in enumerate(scored_offers):
-                session.add(
-                    PastOfferContext(
-                        call_id=self.call_id,
-                        context=f"{context}:{o.item_origin}",
-                        context_extra_data=context_extra_data,
-                        date=date,
-                        user_id=user.user_id,
-                        user_bookings_count=user.bookings_count,
-                        user_clicks_count=user.clicks_count,
-                        user_favorites_count=user.favorites_count,
-                        user_deposit_remaining_credit=user.user_deposit_remaining_credit,
-                        user_iris_id=user.iris_id,
-                        user_is_geolocated=user.is_geolocated,
-                        user_latitude=None,
-                        user_longitude=None,
-                        user_extra_data={},
-                        offer_user_distance=o.user_distance,
-                        offer_is_geolocated=o.is_geolocated,
-                        offer_id=o.offer_id,
-                        offer_item_id=o.item_id,
-                        offer_booking_number=o.booking_number,
-                        offer_stock_price=o.stock_price,
-                        offer_creation_date=o.offer_creation_date,
-                        offer_stock_beginning_date=o.stock_beginning_date,
-                        offer_category=o.category,
-                        offer_subcategory_id=o.subcategory_id,
-                        offer_item_rank=o.item_rank,
-                        offer_item_score=o.item_score,
-                        offer_order=idx,  # order in the final recommendation output list
-                        offer_venue_id=None,
-                        offer_extra_data={
-                            "offer_ranking_score": o.offer_score,
-                            "offer_ranking_origin": o.offer_origin,
-                            "offer_booking_number_last_7_days": o.booking_number_last_7_days,
-                            "offer_booking_number_last_14_days": o.booking_number_last_14_days,
-                            "offer_booking_number_last_28_days": o.booking_number_last_28_days,
-                            "offer_semantic_emb_mean": o.semantic_emb_mean,
-                        },
-                    )
+                past_offer_context = PastOfferContext(
+                    call_id=self.call_id,
+                    context=f"{context}:{o.item_origin}",
+                    context_extra_data=context_extra_data,
+                    date=date,
+                    user_id=user.user_id,
+                    user_bookings_count=user.bookings_count,
+                    user_clicks_count=user.clicks_count,
+                    user_favorites_count=user.favorites_count,
+                    user_deposit_remaining_credit=user.user_deposit_remaining_credit,
+                    user_iris_id=user.iris_id,
+                    user_is_geolocated=user.is_geolocated,
+                    user_latitude=None,
+                    user_longitude=None,
+                    user_extra_data={},
+                    offer_user_distance=o.user_distance,
+                    offer_is_geolocated=o.is_geolocated,
+                    offer_id=o.offer_id,
+                    offer_item_id=o.item_id,
+                    offer_booking_number=o.booking_number,
+                    offer_stock_price=o.stock_price,
+                    offer_creation_date=o.offer_creation_date,
+                    offer_stock_beginning_date=o.stock_beginning_date,
+                    offer_category=o.category,
+                    offer_subcategory_id=o.subcategory_id,
+                    offer_item_rank=o.item_rank,
+                    offer_item_score=o.item_score,
+                    offer_order=idx,  # order in the final recommendation output list
+                    offer_venue_id=None,
+                    offer_extra_data={
+                        "offer_ranking_score": o.offer_score,
+                        "offer_ranking_origin": o.offer_origin,
+                        "offer_booking_number_last_7_days": o.booking_number_last_7_days,
+                        "offer_booking_number_last_14_days": o.booking_number_last_14_days,
+                        "offer_booking_number_last_28_days": o.booking_number_last_28_days,
+                        "offer_semantic_emb_mean": o.semantic_emb_mean,
+                    },
                 )
+                
+                logger.info(
+                    "Past Offer Context",
+                    extra=jsonable_encoder({
+                        "labels": {
+                            "event_type": "recommendation",
+                        },
+                        **past_offer_context.__dict__
+                    })
+                )
+                
+                session.add(past_offer_context)
             await session.commit()
 
     async def log_extra_data(self):
