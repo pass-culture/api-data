@@ -199,6 +199,7 @@ class ModelEngine(ABC):
                                 "event_type": "recommendation",
                             },
                             **past_offer_context.__dict__,
+                            **{"dummy_column": "dummy_value"},
                         }
                     ),
                 )
