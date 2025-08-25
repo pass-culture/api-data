@@ -6,7 +6,6 @@ annotated-types==0.7.0
     # via pydantic
 anyio==3.7.1
     # via
-    #   fastapi
     #   httpx
     #   starlette
 asyncpg==0.28.0
@@ -28,7 +27,7 @@ exceptiongroup==1.2.2
     # via
     #   anyio
     #   pytest
-fastapi==0.104.0
+fastapi==0.115.5
     # via
     #   -r requirements.in
     #   fastapi-cloud-logging
@@ -93,8 +92,6 @@ googleapis-common-protos==1.63.2
     #   google-cloud-audit-log
     #   grpc-google-iam-v1
     #   grpcio-status
-greenlet==3.0.3
-    # via sqlalchemy
 grpc-google-iam-v1==0.12.7
     # via
     #   google-cloud-logging
@@ -228,6 +225,11 @@ sqlalchemy==2.0.22
     # via
     #   -r requirements.in
     #   geoalchemy2
+starlette==0.41.3
+    # via
+    #   -r requirements.in
+    #   fastapi
+    #   fastapi-versioning
 tomli==2.0.1
     # via pytest
 typing-extensions==4.12.2
