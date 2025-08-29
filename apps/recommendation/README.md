@@ -56,7 +56,7 @@ pip install "psycopg[binary,pool]"
 Set up a testdb :
 ```sh
 cd apps/recommendation/api/
-export DATA_GCP_TEST_POSTGRES_PORT=5432
+export SQL_PORT=5432
 export DB_NAME="db"
 docker-compose up -d testdb
 ```
