@@ -8,11 +8,9 @@ WORKDIR $APP_HOME
 
 # Install libraries
 COPY ./pyproject.toml ./
-ENV UV_PROJECT_ENVIRONMENT="/usr/local/"
-ENV PYTHON_VERSION=3.10
 ENV UV_INDEX_URL=https://download.pytorch.org/whl/cpu
 ENV UV_EXTRA_INDEX_URL=https://pypi.org/simple
-RUN uv sync --index-url $UV_INDEX_URL --extra-index-url $UV_EXTRA_INDEX_URL --python $PYTHON_VERSION
+RUN uv sync --no-dev --index-url $UV_INDEX_URL --extra-index-url $UV_EXTRA_INDEX_URL
 COPY ./src .
 
 # Conditionally copy the Google Cloud credentials file based on the argument
@@ -27,4 +25,4 @@ RUN if [ "$LOCAL" = "true" ]; then \
     fi
 
 # Run the container
-CMD exec gunicorn -k uvicorn.workers.UvicornWorker --bind :$PORT --workers 1 --threads 10 --preload --timeout 0 main:app
+CMD exec uv run gunicorn -k uvicorn.workers.UvicornWorker --bind :$PORT --workers 1 --threads 10 --preload --timeout 0 main:app
