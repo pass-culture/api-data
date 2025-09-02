@@ -1,7 +1,7 @@
 SHELL:=/bin/bash
 
 install:
-	UV_VENV_CLEAR=1 uv venv && uv sync
+	UV_VENV_CLEAR=1 uv venv && uv sync --locked
 
 start:
 	cd src && API_LOCAL=1 uv run uvicorn main:app --reload
