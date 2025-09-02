@@ -24,7 +24,7 @@ make install
 
 - If `make install` fails due to pre-commit not found, please run once more `make install`.
 
-### Requiered : Install ggshield on your local machine if you don't already have it
+### Required : Install ggshield on your local machine if you don't already have it
 Installation and usage of ggshield is documented in this [Notion page](https://www.notion.so/passcultureapp/Comment-utiliser-ggshield-254ad4e0ff98802a8d5cd6e737c60c4b?source=copy_link#142cb1c115cc4356bddc531d36d7448e)
 
 - Linux:
