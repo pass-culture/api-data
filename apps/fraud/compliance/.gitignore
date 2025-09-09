@@ -1,1 +1,3 @@
 api/src/pcpapillon/local_model
+application_default_credentials.json
+*.pem

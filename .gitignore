@@ -170,3 +170,6 @@ cython_debug/
 
 #Locust
 *locustfile.py
+
+# ggshield
+.cache_ggshield
