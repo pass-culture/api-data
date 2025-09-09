@@ -240,15 +240,15 @@
 					"query": [
 						{
 							"key": "categories",
-							"value": "LIVRES"
+							"value": "LIVRE"
 						},
 						{
 							"key": "categories",
-							"value": "FILMS_SERIES_CINEMA"
+							"value": "FILM"
 						},
 						{
 							"key": "categories",
-							"value": "SPECTACLES"
+							"value": "SPECTACLE"
 						}
 					]
 				}
