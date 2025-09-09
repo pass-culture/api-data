@@ -7,7 +7,7 @@ on:
       - staging
       - production
     paths:
-      - "apps/recommendation/api/src/**"
+      - "apps/recommendation/**"
   workflow_dispatch:
     inputs:
       environment:
