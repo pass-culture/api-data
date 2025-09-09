@@ -229,7 +229,7 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "{{api_url}}/similar_offers/{{offer_id}}?categories=LIVRES&categories=FILMS_SERIES_CINEMA&categories=SPECTACLES",
+					"raw": "{{api_url}}/similar_offers/{{offer_id}}?categories=LIVRE&categories=FILM&categories=SPECTACLE",
 					"host": [
 						"{{api_url}}"
 					],
@@ -248,6 +248,85 @@
 						},
 						{
 							"key": "categories",
+							"value": "SPECTACLES"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "/similar_offers/offer_id search_group_names",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"pm.test(\"Response time is less than 10s\", function () {\r",
+							"    pm.expect(pm.response.responseTime).to.be.below(10000);\r",
+							"});\r",
+							"pm.test(\"Response must be a JSON and have a body\", function () {\r",
+							"     pm.response.to.be.ok;\r",
+							"     pm.response.to.be.withBody;\r",
+							"     pm.response.to.be.json;\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Response must contain an array results\", function () {\r",
+							"  const jsonResponse = pm.response.json();\r",
+							"  pm.expect(jsonResponse).to.be.an(\"object\");\r",
+							"  pm.expect(jsonResponse).to.have.property('results')\r",
+							"  pm.expect(jsonResponse.results).to.be.an(\"array\");\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Response must at least 1 offer\", function () {\r",
+							"  const jsonResponse = pm.response.json();\r",
+							"  pm.expect(jsonResponse.results.length).to.be.above(0);\r",
+							"});\r",
+							"\r",
+							"function checkIfArrayIsUnique(array) {\r",
+							"  return array.length === new Set(array).size;\r",
+							"}\r",
+							"\r",
+							"pm.test('Check if Offer_ids are unique', () => {\r",
+							"    let ids = []\r",
+							"    _.each(pm.response.json().results, (item) => {\r",
+							"        ids.push(item)\r",
+							"    })\r",
+							"\r",
+							"    pm.expect(checkIfArrayIsUnique(ids), ids).to.be.true\r",
+							"})\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{api_url}}/similar_offers/{{offer_id}}?search_group_names=LIVRES&search_group_names=FILMS_SERIES_CINEMA&search_group_names=SPECTACLES",
+					"host": [
+						"{{api_url}}"
+					],
+					"path": [
+						"similar_offers",
+						"{{offer_id}}"
+					],
+					"query": [
+						{
+							"key": "search_group_names",
+							"value": "LIVRES"
+						},
+						{
+							"key": "search_group_names",
+							"value": "FILMS_SERIES_CINEMA"
+						},
+						{
+							"key": "search_group_names",
 							"value": "SPECTACLES"
 						}
 					]
