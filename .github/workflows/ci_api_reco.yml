@@ -49,7 +49,7 @@ jobs:
          python-version: "3.10"
       - uses: yezz123/setup-uv@v4
       - name : "Install requirements"
-        run: uv pip install --system -r requirements.txt
+        run: uv sync --locked
       - name : "Install psql client "
         run: sudo apt update && sudo apt install -y postgresql-client
       - name : "Run tests"
@@ -61,4 +61,4 @@ jobs:
          PYTHONPATH: $PYTHONPATH:~/data-gcp/apps/recommendation/api
         run: |
           export API_LOCAL=1
-          pytest --cov
+          uv run pytest --cov

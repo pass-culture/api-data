@@ -1,10 +1,7 @@
 SHELL:=/bin/bash
 
 install:
-	uv venv -p 3.9 && uv pip install -r requirements.txt
+	UV_VENV_CLEAR=1 uv venv && uv sync --locked
 
 start:
-	source .venv/bin/activate && cd src && API_LOCAL=1 uvicorn main:app --reload
-
-compile_requirements:
-	source .venv/bin/activate && uv pip compile requirements.in
+	cd src && API_LOCAL=1 uv run uvicorn main:app --reload
