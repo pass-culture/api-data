@@ -7,6 +7,7 @@ start:
 	cd src && API_LOCAL=1 uv run uvicorn main:app --reload
 
 test:
+	docker compose down -v
 	docker compose up -d
 	@wait_for_db_to_be_up() { \
 		while ! docker compose exec testdb pg_isready -U postgres; do \
