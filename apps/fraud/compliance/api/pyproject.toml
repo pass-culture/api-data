@@ -47,6 +47,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "ipdb>=0.13.13",
     "ruff==0.4.7",
     "pytest==8.2.2",
     "ipython==8.24.0",
