@@ -65,3 +65,10 @@ environments = [
     "sys_platform == 'linux'",
 ]
 index-strategy = "unsafe-best-match"
+
+[[tool.uv.index]]
+url = "https://pypi.org/simple"
+
+[[tool.uv.index]]
+url = "https://download.pytorch.org/whl/cpu"
+default = true
