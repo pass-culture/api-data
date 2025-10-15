@@ -9,7 +9,7 @@ from huggy.utils.env_vars import (
 
 class GoogleCloudLogFilter(CloudLoggingFilter):
     def filter(self, record: logging.LogRecord) -> bool:
-        record.http_request = http_request_context.get()
+        record.http_request = http_request_context.get() or {}
 
         trace = cloud_trace_context.get()
         split_header = trace.split("/", 1)
