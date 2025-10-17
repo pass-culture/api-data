@@ -33,12 +33,12 @@ Recommendation API with FastAPI + Psql + VertexAI endpoints
 Install pyenv and install `python 3.9``
 
 ```sh
-pyenv install 3.9
+pyenv install 3.12
 ```
 
 Create a virtual env
 ```sh
-pyenv virtualenv 3.9 reco_fastapi
+pyenv virtualenv 3.12 reco_fastapi
 pyenv shell reco_fastapi
 ```
 
