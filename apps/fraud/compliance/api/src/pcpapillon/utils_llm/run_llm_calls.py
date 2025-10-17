@@ -55,8 +55,11 @@ def synthese_validation_finale(
     logger.info("Step 4: Synthesizing final validation results...")
 
     # Get price divergence threshold from config (default to 20% if not specified)
-    price_threshold = config["validation"].get("price_divergence_threshold", 10.0)
+    price_threshold = config["validation"].get("price_divergence_threshold", 20.0)
+    
+    # import pdb;pdb.set_trace()
 
+    
     # Start with a copy of LLM results
     final_results = llm_results.copy()
 
@@ -79,7 +82,6 @@ def synthese_validation_finale(
             on="offer_id",
             how="left",
         )
-
         # Process each offer for final decision
         for idx, row in final_results.iterrows():
             llm_decision = row["reponse_LLM"]
@@ -91,25 +93,40 @@ def synthese_validation_finale(
 
             # If approved by LLM, check web search results
             if not pd.isna(row.get("pourcentage_divergence_prix")):
-                price_divergence = row["pourcentage_divergence_prix"]
-                prix_moyen = row.get("prix_moyen", "N/A")
-
-                if price_divergence > price_threshold:
+                if float(web_results["prix_moyen"])==0:
                     # Reject due to overpricing
                     final_results.at[idx, "reponse_LLM_finale"] = "rejected"
                     final_results.at[
                         idx, "explication_finale"
-                    ] = f"""Offre conforme aux règles de conformité mais prix incohérent
-                        de {price_divergence:.1f}% entre le prix marché
-                        et le prix proposé sur l'app (seuil:{price_threshold}%).
-                        Prix moyen du marché: {prix_moyen}."""
-                    final_results.at[idx, "validation_source"] = "surtarification_web"
+                    ] = f"""Offre conforme aux règles de conformité mais le prix n'a pas pu être trouvé sur internet ou le modèle n'existe pas"""
+                    final_results.at[idx, "validation_source"] = "introuvable_sur_le_web"
                 else:
-                    # Approve with price validation
-                    final_results.at[idx, "reponse_LLM_finale"] = "approved"
+                    price_to_check=float(llm_results["prix_participation"])
+                    prix_moyen=float(web_results["prix_moyen"])
+                    price_divergence = abs((price_to_check-prix_moyen))/prix_moyen *100
+                    if (price_divergence > price_threshold) and (price_to_check>prix_moyen):
+                        # Reject due to overpricing
+                        final_results.at[idx, "reponse_LLM_finale"] = "rejected"
+                        final_results.at[
+                            idx, "explication_finale"
+                        ] = f"""Offre conforme aux règles de conformité mais prix surévalué de {price_divergence:.1f}% par rapport au marché (seuil:{price_threshold}%). Prix moyen du marché: {prix_moyen}."""
+                        final_results.at[idx, "validation_source"] = "surtarification_web"
+                    else:
+                        final_results.at[idx, "reponse_LLM_finale"] = "approved"
+                        if prix_moyen>price_to_check:
+                            explanation= f"""{row['explication_classification']}. Le prix proposé est inférieur au prix du marché"""
+                        else:
+                            explanation= f"""{row['explication_classification']}. Prix cohérent avec le marché (divergence: {price_divergence:.1f}%)."""
+                        final_results.at[
+                            idx, "explication_finale"
+                        ] =explanation
+                            # Approve with price validation
+                        final_results.at[idx, "validation_source"] = "llm_and_web_approved"
+            else:
+                if float(web_results["prix_moyen"])==0:
                     final_results.at[
                         idx, "explication_finale"
-                    ] = f"""{row["explication_classification"]}. Prix cohérent avec le
+                    ] = f"""{row['explication_classification']}. Prix cohérent avec le
                         marché (divergence: {price_divergence:.1f}%)."""
                     final_results.at[idx, "validation_source"] = "llm_and_web_approved"
             else:
