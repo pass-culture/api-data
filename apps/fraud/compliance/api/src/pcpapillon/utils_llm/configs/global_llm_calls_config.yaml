@@ -17,7 +17,7 @@ validation:
   web_search_config: "config_web_search_check_prix"
 
   # Seuil de tolérance pour la divergence de prix en % entre le prix pass et le prix moyen trouvé
-  price_divergence_threshold: 10.0
+  price_divergence_threshold: 20.0
 
 output:
   results_path: "utils_llm/results/"

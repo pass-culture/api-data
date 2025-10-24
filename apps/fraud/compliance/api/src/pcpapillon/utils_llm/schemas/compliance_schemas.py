@@ -45,13 +45,16 @@ COMPLIANCE_SCHEMAS = {
         },
         {
             "name": "prix_participation",
-            "description": """Recherche dans la description et le stock_price
+            "description": """Recherche dans le nom, la description et le stock_price
             le prix total du produit. Prends seulement en compte le prix du produit
-            global. Si l'offre concerne une participation à l'achat, le prix global
+            global. Si l'offre concerne une participation à l'achat, cela est souvent
+            indiqué dans le nom et la description de l'offre ,
+            par exemple après 'participation à hauteur de'
+            ou 'Participation à l'achat' alors le prix global
             correspond à la somme du montant de la participation du pass Culture et
             du reste à charge à payer. Additionne dans ce cas le stock_price et le
             reste à payer pour obtenir le prix total du produit.""",
-            "type": "string",
+            "type": "float",
         },
     ],
     "verification_prix_participation": [
@@ -65,10 +68,8 @@ COMPLIANCE_SCHEMAS = {
         },
         {
             "name": "prix_moyen",
-            "description": """Calcule à partir de ces résultats le prix moyen et dis
-            moi s'il diverge, et si applicable de combien en %,
-            du prix proposé chez nous""",
-            "type": "string",
+            "description": """Calcule à partir de ces résultats le prix moyen, donne moi uniquement le montant arrondis pas de centimes""",
+            "type": "float",
         },
         {
             "name": "pourcentage_divergence_prix",
