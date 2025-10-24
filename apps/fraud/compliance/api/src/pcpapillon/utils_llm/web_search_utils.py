@@ -10,7 +10,7 @@ def get_web_search_chain(config: LLMConfig, langchain_prompt: ChatPromptTemplate
     # Get web search template and model from the configuration
     model = config.model
     llm = init_chat_model(
-        model=f"openai:{model}",
+        model=f"google:{model}",
         web_search_options={
             "user_location": {
                 "type": "approximate",
