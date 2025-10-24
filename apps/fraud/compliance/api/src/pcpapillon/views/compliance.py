@@ -41,7 +41,7 @@ def model_compliance_scoring(scoring_input: LLMComplianceInput):
         try:
             llm_model = LLMComplianceModel()
             predictions_llm = llm_model.predict(data=scoring_input)
-            predictions.update(predictions_llm.dict())
+            predictions.update(predictions_llm.model_dump(mode="json"))
         except Exception as err:
             custom_logger.error(
                 "Error during LLM compliance prediction",

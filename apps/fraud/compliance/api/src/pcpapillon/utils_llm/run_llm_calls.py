@@ -10,6 +10,115 @@ from pcpapillon.utils_llm.core import get_llm_validation
 from pcpapillon.utils_llm.core_web_search import get_web_check
 
 
+def _calculate_price_divergence(price_to_check: float, market_price: float) -> float:
+    """
+    Calculate the percentage divergence between offer price and market price.
+
+    Args:
+        price_to_check: The offer price to validate
+        market_price: The average market price found via web search
+
+    Returns:
+        Percentage divergence (0-100)
+    """
+    if market_price == 0:
+        return float("inf")  # Indicates price not found
+    return abs((price_to_check - market_price) / market_price) * 100
+
+
+def _get_price_validation_result(
+    price_to_check: float,
+    market_price: float,
+    price_threshold: float,
+    llm_explanation: str,
+) -> tuple[str, str, str]:
+    """
+    Determine the validation result based on price comparison with market data.
+
+    Args:
+        price_to_check: The offer price to validate
+        market_price: The average market price from web search
+        price_threshold: Maximum allowed price divergence percentage
+        llm_explanation: Original LLM explanation for the offer
+
+    Returns:
+        Tuple of (final_decision, explanation, validation_source)
+    """
+    if market_price == 0:
+        return (
+            "rejected",
+            "Offre conforme aux règles de conformité mais le prix n'a pas pu être trouvé sur internet ou le modèle n'existe pas",
+            "introuvable_sur_le_web",
+        )
+
+    price_divergence = _calculate_price_divergence(price_to_check, market_price)
+
+    # Check if price is overpriced beyond threshold
+    if price_divergence > price_threshold and price_to_check > market_price:
+        return (
+            "rejected",
+            f"Offre conforme aux règles de conformité mais prix surévalué de {price_divergence:.1f}% par rapport au marché (seuil:{price_threshold}%). Prix moyen du marché: {market_price}.",
+            "surtarification_web",
+        )
+
+    # Price is acceptable
+    if market_price > price_to_check:
+        explanation = (
+            f"{llm_explanation}. Le prix proposé est inférieur au prix du marché"
+        )
+    else:
+        explanation = f"{llm_explanation}. Prix cohérent avec le marché (divergence: {price_divergence:.1f}%)."
+
+    return ("approved", explanation, "llm_and_web_approved")
+
+
+def _process_single_offer_validation(
+    final_results: pd.DataFrame, idx: int, row: pd.Series, price_threshold: float
+) -> pd.DataFrame:
+    """
+    Process validation for a single offer, combining LLM and web search results.
+
+    Args:
+        final_results: DataFrame containing all validation results
+        idx: Index of the current row being processed
+        row: Series containing the current offer data
+        price_threshold: Maximum allowed price divergence percentage
+
+    Returns:
+        Updated DataFrame with validation results
+    """
+    llm_decision = row["reponse_LLM"]
+
+    # If already rejected by LLM, keep the rejection
+    if llm_decision.lower() in ["rejected", "rejete"]:
+        final_results.at[idx, "validation_source"] = "llm_rejection"
+        return final_results
+
+    # Check if web search was performed (indicated by non-null price divergence)
+    has_web_data = not pd.isna(row.get("pourcentage_divergence_prix"))
+
+    if has_web_data:
+        # Web search was performed, validate price
+        price_to_check = float(row["prix_participation"])
+        market_price = float(row["prix_moyen"])
+
+        final_decision, explanation, validation_source = _get_price_validation_result(
+            price_to_check,
+            market_price,
+            price_threshold,
+            row["explication_classification"],
+        )
+
+        final_results.at[idx, "reponse_LLM_finale"] = final_decision
+        final_results.at[idx, "explication_finale"] = explanation
+        final_results.at[idx, "validation_source"] = validation_source
+    else:
+        # No web search performed, keep LLM decision
+        final_results.at[idx, "validation_source"] = "llm_only"
+
+    return final_results
+
+
 def enrich_offers_with_llm_results(
     offers: pd.DataFrame, llm_results: pd.DataFrame
 ) -> pd.DataFrame:
@@ -55,7 +164,7 @@ def synthese_validation_finale(
     logger.info("Step 4: Synthesizing final validation results...")
 
     # Get price divergence threshold from config (default to 20% if not specified)
-    price_threshold = config["validation"].get("price_divergence_threshold", 10.0)
+    price_threshold = config["validation"].get("price_divergence_threshold", 20.0)
 
     # Start with a copy of LLM results
     final_results = llm_results.copy()
@@ -79,42 +188,11 @@ def synthese_validation_finale(
             on="offer_id",
             how="left",
         )
-
         # Process each offer for final decision
         for idx, row in final_results.iterrows():
-            llm_decision = row["reponse_LLM"]
-
-            # If already rejected by LLM, keep the rejection
-            if llm_decision.lower() in ["rejected", "rejete"]:
-                final_results.at[idx, "validation_source"] = "llm_rejection"
-                continue
-
-            # If approved by LLM, check web search results
-            if not pd.isna(row.get("pourcentage_divergence_prix")):
-                price_divergence = row["pourcentage_divergence_prix"]
-                prix_moyen = row.get("prix_moyen", "N/A")
-
-                if price_divergence > price_threshold:
-                    # Reject due to overpricing
-                    final_results.at[idx, "reponse_LLM_finale"] = "rejected"
-                    final_results.at[
-                        idx, "explication_finale"
-                    ] = f"""Offre conforme aux règles de conformité mais prix incohérent
-                        de {price_divergence:.1f}% entre le prix marché
-                        et le prix proposé sur l'app (seuil:{price_threshold}%).
-                        Prix moyen du marché: {prix_moyen}."""
-                    final_results.at[idx, "validation_source"] = "surtarification_web"
-                else:
-                    # Approve with price validation
-                    final_results.at[idx, "reponse_LLM_finale"] = "approved"
-                    final_results.at[
-                        idx, "explication_finale"
-                    ] = f"""{row["explication_classification"]}. Prix cohérent avec le
-                        marché (divergence: {price_divergence:.1f}%)."""
-                    final_results.at[idx, "validation_source"] = "llm_and_web_approved"
-            else:
-                # No web search performed, keep LLM decision
-                final_results.at[idx, "validation_source"] = "llm_only"
+            final_results = _process_single_offer_validation(
+                final_results, idx, row, price_threshold
+            )
 
     # Log synthesis results
     synthesis_stats = final_results["validation_source"].value_counts()

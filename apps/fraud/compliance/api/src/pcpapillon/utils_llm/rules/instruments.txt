@@ -28,3 +28,7 @@ Accessoires et matériels concernés par cette exclusion (si vendus seuls) :
 **Règle n°7 : Packs Spécifiques Incluant un Casque d'Écoute (Exception).** Un casque audio est éligible uniquement s’il est inclus dans un pack où il est un accessoire associé à l'utilisation de l'instrument principal du pack. Exemples : un pack comprenant une platine de mixage DJ et un casque DJ, ou un microphone et un casque pour l'enregistrement. Un simple ajout d'un casque à un instrument sans lien fonctionnel direct (ex: une guitare et un casque Hi-Fi) ne rend pas le casque éligible. Le descriptif de l'offre doit clairement indiquer la nature du pack.
 
 **Règle n°8 : Partitions et lots de partition**. Les partitions vendues à l’unité sont éligibles au pass Culture. Les lots de partitions ne dépassant pas 70 € sont éligibles.
+
+**Règle n°9 : Les bons d'achat ne sont pas élégible 
+
+**Règle n°10 :Les offres dont le nom ou la description ne comportent ni la référence, ni le nom du produit, ni la marque ne sont pas éligible

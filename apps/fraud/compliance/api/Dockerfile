@@ -9,9 +9,7 @@ WORKDIR $APP_HOME
 # Install libraries
 COPY ./pyproject.toml ./
 COPY ./uv.lock ./
-ENV UV_INDEX_URL=https://download.pytorch.org/whl/cpu
-ENV UV_EXTRA_INDEX_URL=https://pypi.org/simple
-RUN uv sync --locked --no-dev --index-url $UV_INDEX_URL --extra-index-url $UV_EXTRA_INDEX_URL
+RUN uv sync --locked --no-dev
 COPY ./src .
 
 # Conditionally copy the Google Cloud credentials file based on the argument

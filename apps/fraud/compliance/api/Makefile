@@ -1,10 +1,7 @@
 SHELL := /bin/bash
 
-EXTRA_INDEX := https://pypi.org/simple
-INDEX_URL := https://download.pytorch.org/whl/cpu
-
 install:
-	UV_VENV_CLEAR=1 uv venv && uv sync --locked --index-url $(INDEX_URL) --extra-index-url $(EXTRA_INDEX)
+	UV_VENV_CLEAR=1 uv venv && uv sync --locked
 
 start:
 	cd src && API_LOCAL=True uv run uvicorn main:app --reload

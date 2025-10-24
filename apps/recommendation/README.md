@@ -50,24 +50,10 @@ make install
 ### Run tests
 
 ```sh
-pip install "psycopg[binary,pool]"
+cd apps/recommendation/api && make test
 ```
 
-Set up a testdb :
-```sh
-cd apps/recommendation/api/
-export DATA_GCP_TEST_POSTGRES_PORT=5432
-export DB_NAME="db"
-docker-compose up -d testdb
-```
-```sh
-cd apps/recommendation/api
-pyenv shell reco_fastapi
-export API_LOCAL=1
-pytest
-```
-
-In case you have some troubles to run tests
+#### Troubleshooting If you have issues with the psycopg2 installation
 
 Connect to db, create db database, add postgis extension
 ```sh
