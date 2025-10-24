@@ -16,11 +16,11 @@ from pcpapillon.utils_llm.data_model_llm import (
 compliance_router = APIRouter(tags=["compliance"])
 
 
-# # Init model and scheduler
-# compliance_model = ComplianceModel()
-# compliance_scheduler = init_scheduler(
-#     compliance_model.reload_model_if_newer_is_available, time_interval=600
-# )
+# Init model and scheduler
+compliance_model = ComplianceModel()
+compliance_scheduler = init_scheduler(
+    compliance_model.reload_model_if_newer_is_available, time_interval=600
+)
 
 
 @compliance_router.post(
@@ -35,14 +35,8 @@ def model_compliance_scoring(scoring_input: LLMComplianceInput):
         "offer_id": scoring_input.dict()["offer_id"],
         "scoring_input": scoring_input.dict(),
     }
-    # predictions = compliance_model.predict(data=scoring_input)
-    predictions={"offer_id": "offer-XX",
-    "probability_validated": 50,
-    "validation_main_features":['NA'],
-    "probability_rejected": 50,
-    "rejection_main_features":['NA'],
-    }
-    # predictions = predictions.dict()
+    predictions = compliance_model.predict(data=scoring_input)
+    predictions = predictions.dict()
     if scoring_input.dict()["offer_subcategory_id"] == "ACHAT_INSTRUMENT":
         try:
             llm_model = LLMComplianceModel()
