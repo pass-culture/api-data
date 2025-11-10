@@ -32,5 +32,5 @@ dependencies = [
 dev = [
     "pytest-asyncio==0.23.7",
     "pytest-cov==2.10.1",
-    "pytest-postgresql==6.0.0",
+    "pytest-postgresql==6.1.1",
 ]
