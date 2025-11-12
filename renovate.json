@@ -1,12 +1,30 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "extends": [
-        "config:recommended"
+        "config:best-practices"
     ],
     "enabledManagers": [
         "pep621"
     ],
     "lockFileMaintenance": {
         "enabled": true
-    }
+    },
+    "separateMajorMinor": "true",
+    "packageRules": [
+            {
+            "matchDepTypes": ["devDependencies"],
+            "matchUpdateTypes": ["minor", "patch", "pin", "digest", "lockFileMaintenance", "rollback", "bump"],
+            "groupName": "devDependencies",
+            "semanticCommitType": "dev-dependencies"
+            },
+            {
+            "matchDepTypes": ["dependencies"],
+            "matchUpdateTypes": ["minor", "patch", "pin", "digest", "lockFileMaintenance", "rollback", "bump"],
+            "groupName": "dependencies"
+            },
+            {
+                "matchFileNames": ["apps/fraud/compliance/**"],
+                "groupName": "compliance-deps"
+            }
+  ]
 }
