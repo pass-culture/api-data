@@ -11,20 +11,23 @@
     },
     "separateMajorMinor": "true",
     "packageRules": [
-            {
+        {
+            "description": "rule to update dev dependencies together",
             "matchDepTypes": ["devDependencies"],
             "matchUpdateTypes": ["minor", "patch", "pin", "digest", "lockFileMaintenance", "rollback", "bump"],
             "groupName": "devDependencies",
             "semanticCommitType": "dev-dependencies"
-            },
-            {
+        },
+        {
+            "description": "rule to update dev dependencies together",
             "matchDepTypes": ["dependencies"],
             "matchUpdateTypes": ["minor", "patch", "pin", "digest", "lockFileMaintenance", "rollback", "bump"],
             "groupName": "dependencies"
-            },
-            {
-                "matchFileNames": ["apps/fraud/compliance/**"],
-                "groupName": "compliance-deps"
-            }
+        },
+        {
+            "description": "rule to update all compliance dependencies together",
+            "matchFileNames": ["apps/fraud/compliance/**"],
+            "groupName": "compliance-deps"
+        }
   ]
 }
