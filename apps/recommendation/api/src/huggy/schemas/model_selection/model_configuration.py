@@ -6,17 +6,11 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class RetrievalChoices(Enum):
     MIX = "mix"
-    TOPS = "tops"
     MIX_TOPS = "m&t"
-    RECOMMENDATION = "reco"
-    MIX_RECOMMENDATION = "mix_reco"
-    RAW_RETRIEVAL = "raw_retrieval"
-    RECOMMENDATION_VERSION_B = "reco_b"
     MIX_VERSION_B = "mix_b"
     MIX_VERSION_C = "mix_c"
     MIX_TOPS_VERSION_B = "m&t_b"
     MIX_TOPS_VERSION_C = "m&t_c"
-    SEMANTIC = "sm"
 
 
 class RankingChoices(Enum):
