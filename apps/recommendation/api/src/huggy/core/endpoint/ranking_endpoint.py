@@ -1,9 +1,9 @@
 import asyncio
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from datetime import datetime
 
 from fastapi.encoders import jsonable_encoder
-from huggy.core.endpoint import AbstractEndpoint
+from huggy.core.endpoint.base_endpoint import BaseEndpoint
 from huggy.core.endpoint.utils import to_days, to_float, to_int
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.recommendable_offer import RankedOffer, RecommendableOffer
@@ -12,7 +12,7 @@ from huggy.utils.cloud_logging import logger
 from huggy.utils.vertex_ai import endpoint_score
 
 
-class RankingEndpoint(AbstractEndpoint):
+class RankingEndpoint(BaseEndpoint, ABC):
     """
     Represents an endpoint for ranking offers based on user preferences.
 
@@ -42,36 +42,6 @@ class RankingEndpoint(AbstractEndpoint):
         self, recommendable_offers: list[RecommendableOffer]
     ) -> list[RankedOffer]:
         pass
-
-
-class ItemRankRankingEndpoint(RankingEndpoint):
-    """
-    Returns the list sorted by item_rank ascending.
-
-    """
-
-    MODEL_ORIGIN = "item_rank"
-
-    async def model_score(
-        self, recommendable_offers: list[RecommendableOffer]
-    ) -> list[RankedOffer]:
-        ranked_offers = []
-        recommendable_offers = sorted(
-            recommendable_offers, key=lambda x: x.item_rank, reverse=False
-        )
-        for idx, row in enumerate(recommendable_offers):
-            ranked_offers.append(
-                RankedOffer(
-                    offer_rank=float(idx),
-                    offer_score=None,
-                    offer_origin=self.MODEL_ORIGIN,
-                    **row.model_dump(),
-                )
-            )
-        logger.debug(
-            f"ranking_endpoint {self.user.user_id!s} out : {len(ranked_offers)}"
-        )
-        return ranked_offers
 
 
 class ModelRankingEndpoint(RankingEndpoint):
