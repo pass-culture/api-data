@@ -194,30 +194,6 @@ class ModelConfigurationInput(BaseModel):
                 submixing_feature_dict=None,
             ),
             DiversificationChoices.ON: diversification_on,
-            DiversificationChoices.GTL_ID: DiversificationParams(
-                is_active=True,
-                is_reco_shuffled=True,
-                mixing_features="search_group_name",
-                order_column="offer_rank",
-                order_ascending=True,
-                submixing_feature_dict={"LIVRES": "gtl_id"},
-            ),
-            DiversificationChoices.GTL_LVL3: DiversificationParams(
-                is_active=True,
-                is_reco_shuffled=True,
-                mixing_features="search_group_name",
-                order_column="offer_rank",
-                order_ascending=True,
-                submixing_feature_dict={"LIVRES": "gtl_l3"},
-            ),
-            DiversificationChoices.GTL_LVL4: DiversificationParams(
-                is_active=True,
-                is_reco_shuffled=True,
-                mixing_features="search_group_name",
-                order_column="offer_rank",
-                order_ascending=True,
-                submixing_feature_dict={"LIVRES": "gtl_l4"},
-            ),
         }.get(diversification_params.diversication_type, diversification_on)
 
     def get_ranking(self, model_type) -> RankingEndpoint:

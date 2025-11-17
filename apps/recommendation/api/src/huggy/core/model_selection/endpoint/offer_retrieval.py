@@ -1,5 +1,4 @@
 from huggy.core.endpoint.retrieval_endpoint import (
-    OfferBookingNumberRetrievalEndpoint,
     OfferRetrievalEndpoint,
     OfferSemanticRetrievalEndpoint,
 )
@@ -25,13 +24,6 @@ offer_retrieval_endpoint_version_c = OfferRetrievalEndpoint(
 
 semantic_offer_retrieval_endpoint = OfferSemanticRetrievalEndpoint(
     endpoint_name=RetrievalEndpointName.recommendation_semantic_retrieval,
-    size=50,
-    use_cache=True,
-)
-
-
-offer_filter_retrieval_endpoint = OfferBookingNumberRetrievalEndpoint(
-    endpoint_name=RetrievalEndpointName.recommendation_user_retrieval,
     size=50,
     use_cache=True,
 )
