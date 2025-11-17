@@ -94,7 +94,6 @@ class ModelFork:
     def get_user_status(self, user: UserContext, model_origin: str) -> ForkOut:
         """
         Get model status based on UserContext interactions
-
         """
 
         if not user.found:
@@ -138,7 +137,6 @@ class ModelFork:
     ) -> ForkOut:
         """
         Get model status based on Offer interactions
-
         """
         # No cold start logic for similar offer.
         # TODO: remove cold_start logic for recommendation
