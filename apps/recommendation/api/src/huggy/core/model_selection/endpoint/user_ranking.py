@@ -1,16 +1,10 @@
 from huggy.core.endpoint.ranking_endpoint import (
     ModelRankingEndpoint,
 )
-from huggy.core.model_selection.endpoint import RankingEndpointName
+from huggy.utils.env_vars import RECO_RANKING_ENDPOINT_NAME
 
 user_ranking_endpoint = ModelRankingEndpoint(
-    endpoint_name=RankingEndpointName.recommendation_user_ranking,
-    size=50,
-    use_cache=False,
-)
-
-user_ranking_endpoint_version_b = ModelRankingEndpoint(
-    endpoint_name=RankingEndpointName.recommendation_user_ranking_version_b,
+    endpoint_name=RECO_RANKING_ENDPOINT_NAME,
     size=50,
     use_cache=False,
 )

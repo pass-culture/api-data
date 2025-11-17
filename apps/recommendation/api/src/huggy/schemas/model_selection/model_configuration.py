@@ -12,7 +12,6 @@ class RetrievalChoices(Enum):
 
 class RankingChoices(Enum):
     MODEL = "model"
-    VERSION_B = "version_b"
 
 
 class DiversificationChoices(Enum):

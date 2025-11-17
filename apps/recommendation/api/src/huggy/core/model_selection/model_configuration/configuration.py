@@ -3,7 +3,6 @@ import typing as t
 from dataclasses import dataclass
 from typing import Optional
 
-import huggy.core.model_selection.endpoint.user_ranking as user_ranking
 import huggy.core.scorer.offer as offer_scorer
 from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
 from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
@@ -14,7 +13,6 @@ from huggy.schemas.model_selection.model_configuration import (
     ForkParamsInput,
     ModelTypeInput,
     QueryOrderChoices,
-    RankingChoices,
     WarnModelTypeDefaultInput,
 )
 from huggy.schemas.offer import Offer
@@ -195,11 +193,7 @@ class ModelConfigurationInput(BaseModel):
         }.get(diversification_params.diversication_type, diversification_on)
 
     def get_ranking(self, model_type) -> RankingEndpoint:
-        model = user_ranking.user_ranking_endpoint
-        return {
-            RankingChoices.MODEL: model,
-            RankingChoices.VERSION_B: user_ranking.user_ranking_endpoint_version_b,
-        }.get(model_type, model)
+        pass
 
     def get_retrieval(self, model_type) -> list[RetrievalEndpoint]:
         pass

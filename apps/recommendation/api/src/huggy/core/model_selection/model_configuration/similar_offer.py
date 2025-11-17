@@ -1,5 +1,7 @@
 import huggy.core.model_selection.endpoint.offer_retrieval as offer_retrieval
+from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
 from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
+from huggy.core.model_selection.endpoint import offer_ranking
 from huggy.core.model_selection.model_configuration.configuration import (
     ModelConfigurationInput,
 )
@@ -17,3 +19,6 @@ class SimilarModelConfigurationInput(ModelConfigurationInput):
                 offer_retrieval.semantic_offer_retrieval_endpoint,
             ],
         }.get(model_type, default)
+
+    def get_ranking(self, model_type) -> RankingEndpoint:
+        return offer_ranking.offer_ranking_endpoint
