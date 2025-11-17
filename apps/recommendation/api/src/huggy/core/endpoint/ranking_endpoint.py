@@ -74,36 +74,6 @@ class ItemRankRankingEndpoint(RankingEndpoint):
         return ranked_offers
 
 
-class DistanceRankingEndpoint(RankingEndpoint):
-    """
-    Returns the list sorted by distance ascending.
-
-    """
-
-    MODEL_ORIGIN = "distance"
-
-    async def model_score(
-        self, recommendable_offers: list[RecommendableOffer]
-    ) -> list[RankedOffer]:
-        ranked_offers = []
-        recommendable_offers = sorted(
-            recommendable_offers, key=lambda x: x.user_distance or 0, reverse=False
-        )
-        for idx, row in enumerate(recommendable_offers):
-            ranked_offers.append(
-                RankedOffer(
-                    offer_rank=float(idx),
-                    offer_score=None,
-                    offer_origin=self.MODEL_ORIGIN,
-                    **row.model_dump(),
-                )
-            )
-        logger.debug(
-            f"ranking_endpoint {self.user.user_id!s} out : {len(ranked_offers)}"
-        )
-        return ranked_offers
-
-
 class ModelRankingEndpoint(RankingEndpoint):
     """
     Calls LGBM model to sort offers.
