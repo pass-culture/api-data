@@ -22,9 +22,6 @@ class RetrievalChoices(Enum):
 class RankingChoices(Enum):
     MODEL = "model"
     VERSION_B = "version_b"
-    DISTANCE = "dist"
-    NO_POPULARITY = "no_pop"
-    OFF = "off"
 
 
 class DiversificationChoices(Enum):

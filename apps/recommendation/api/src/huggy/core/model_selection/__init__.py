@@ -103,28 +103,6 @@ RECOMMENDATION_ENDPOINTS = {
             favorites_count=None,
         ),
     ),
-    "user_distance": RecoModelConfigurationInput(
-        name="user_distance",
-        description="""Rank by offer distance.""",
-        diversification_params=DiversificationParamsInput(
-            diversication_type=DiversificationChoices.ON,
-        ),
-        warn_model_type=ModelTypeInput(
-            retrieval=RetrievalChoices.MIX,
-            ranking=RankingChoices.DISTANCE,
-            query_order=QueryOrderChoices.ITEM_RANK,
-        ),
-        cold_start_model_type=ModelTypeInput(
-            retrieval=RetrievalChoices.TOPS,
-            ranking=RankingChoices.DISTANCE,
-            query_order=QueryOrderChoices.ITEM_RANK,
-        ),
-        fork_params=ForkParamsInput(
-            bookings_count=1,
-            clicks_count=25,
-            favorites_count=None,
-        ),
-    ),
     "top_offers": RecoModelConfigurationInput(
         name="top_offers",
         description="""Force top offers configuration.""",
@@ -271,26 +249,6 @@ SIMILAR_OFFER_ENDPOINTS = {
         cold_start_model_type=ModelTypeInput(
             retrieval=RetrievalChoices.MIX_VERSION_C,
             ranking=RankingChoices.MODEL,
-            query_order=QueryOrderChoices.ITEM_RANK,
-        ),
-        fork_params=ForkParamsInput(
-            bookings_count=0,
-        ),
-    ),
-    "user_distance": SimilarModelConfigurationInput(
-        name="user_distance",
-        description="""Similar offers based on distance ranking.""",
-        diversification_params=DiversificationParamsInput(
-            diversication_type=DiversificationChoices.OFF,
-        ),
-        warn_model_type=ModelTypeInput(
-            retrieval=RetrievalChoices.MIX,
-            ranking=RankingChoices.DISTANCE,
-            query_order=QueryOrderChoices.ITEM_RANK,
-        ),
-        cold_start_model_type=ModelTypeInput(
-            retrieval=RetrievalChoices.MIX,
-            ranking=RankingChoices.DISTANCE,
             query_order=QueryOrderChoices.ITEM_RANK,
         ),
         fork_params=ForkParamsInput(
