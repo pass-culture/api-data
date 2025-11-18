@@ -1,16 +1,22 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
+from aiocache import Cache
+from aiocache.serializers import PickleSerializer
 from fastapi.encoders import jsonable_encoder
-from huggy.core.endpoint import VERTEX_CACHE, AbstractEndpoint
+from huggy.core.endpoint.base_endpoint import BaseEndpoint
 from huggy.schemas.item import RecommendableItem
 from huggy.schemas.offer import Offer
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
 from huggy.utils.cloud_logging import logger
 from huggy.utils.vertex_ai import endpoint_score
+
+VERTEX_CACHE = Cache(
+    Cache.MEMORY, ttl=3000, serializer=PickleSerializer(), namespace="vertex_cache"
+)
 
 
 @dataclass
@@ -84,7 +90,7 @@ class EqParams:
         return {}
 
 
-class RetrievalEndpoint(AbstractEndpoint):
+class RetrievalEndpoint(BaseEndpoint, ABC):
     """
     Represents an endpoint to retrieve offers.
 
