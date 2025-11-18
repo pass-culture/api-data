@@ -18,9 +18,9 @@ class BaseEndpoint:
         """
         if fallback_endpoints is None:
             fallback_endpoints = []
-        self.endpoint_name = str(endpoint_name.value)
+        self.endpoint_name = str(endpoint_name)
         self.size = size
-        self.fallback_endpoints = [str(x.value) for x in fallback_endpoints]
+        self.fallback_endpoints = [str(x) for x in fallback_endpoints]
         self.use_cache = use_cache
         # Theses variables will be set by the model.
         self.model_version = None

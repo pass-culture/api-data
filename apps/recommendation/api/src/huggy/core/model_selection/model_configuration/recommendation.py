@@ -23,6 +23,9 @@ class RecoModelConfigurationInput(ModelConfigurationInput):
                 user_retrieval.trend_release_date_retrieval_endpoint,
                 user_retrieval.trend_creation_date_retrieval_endpoint,
             ],
+            RetrievalChoices.TOPS: [
+                user_retrieval.filter_retrieval_endpoint,
+            ],
         }.get(model_type, default)
 
     def get_ranking(self, model_type) -> RankingEndpoint:
