@@ -29,13 +29,19 @@ class SimilarOffer(ModelEngine):
 
     def get_scorer(self):
         # init input
+        selected_retrieval_endpoints = []
+
         for endpoint in self.model_params.retrieval_endpoints:
-            endpoint.init_input(
-                user=self.user,
-                input_offers=self.input_offers,
-                params_in=self.params_in,
-                call_id=self.call_id,
-            )
+            if self.params_in.search_group_names == "LIVRES":
+                # if endpoint.endpoint_name
+                # similar_offer_enpoints =
+                # endpoint.init_input(
+                #     user=self.user,
+                #     input_offers=self.input_offers,
+                #     params_in=self.params_in,
+                #     call_id=self.call_id,
+                # )
+                pass
         self.model_params.ranking_endpoint.init_input(
             user=self.user,
             params_in=self.params_in,
