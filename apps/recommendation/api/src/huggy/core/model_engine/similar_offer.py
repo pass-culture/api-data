@@ -1,3 +1,7 @@
+from huggy.core.endpoint.retrieval_endpoint import (
+    OfferGraphRetrievalEndpoint,
+    OfferRetrievalEndpoint,
+)
 from huggy.core.model_engine import ModelEngine
 from huggy.core.model_selection import select_sim_model_params
 from huggy.core.model_selection.model_configuration.configuration import ForkOut
@@ -33,26 +37,30 @@ class SimilarOffer(ModelEngine):
 
         for endpoint in self.model_params.retrieval_endpoints:
             if self.params_in.search_group_names == "LIVRES":
-                # if endpoint.endpoint_name
-                # similar_offer_enpoints =
-                # endpoint.init_input(
-                #     user=self.user,
-                #     input_offers=self.input_offers,
-                #     params_in=self.params_in,
-                #     call_id=self.call_id,
-                # )
-                pass
-        self.model_params.ranking_endpoint.init_input(
-            user=self.user,
-            params_in=self.params_in,
-            call_id=self.call_id,
-            context=self.context,
-        )
+                if isinstance(
+                    endpoint, OfferGraphRetrievalEndpoint
+                ):  # Contains the graph retrieval for LIVRES
+                    endpoint.init_input(
+                        user=self.user,
+                        input_offers=self.input_offers,
+                        params_in=self.params_in,
+                        call_id=self.call_id,
+                    )
+                    selected_retrieval_endpoints.append(endpoint)
+            else:  # Standard retrieval for other categories
+                if isinstance(endpoint, OfferRetrievalEndpoint):
+                    endpoint.init_input(
+                        user=self.user,
+                        input_offers=self.input_offers,
+                        params_in=self.params_in,
+                        call_id=self.call_id,
+                    )
+                    selected_retrieval_endpoints.append(endpoint)
         return self.model_params.scorer(
             user=self.user,
             params_in=self.params_in,
             model_params=self.model_params,
-            retrieval_endpoints=self.model_params.retrieval_endpoints,
+            retrieval_endpoints=selected_retrieval_endpoints,
             ranking_endpoint=self.model_params.ranking_endpoint,
             input_offers=self.input_offers,
         )

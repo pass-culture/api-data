@@ -17,6 +17,7 @@ class RetrievalChoices(Enum):
     MIX_TOPS_VERSION_B = "m&t_b"
     MIX_TOPS_VERSION_C = "m&t_c"
     SEMANTIC = "sm"
+    GRAPH = "graph"
 
 
 class RankingChoices(Enum):
