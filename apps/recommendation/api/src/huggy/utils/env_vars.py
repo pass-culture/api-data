@@ -94,3 +94,7 @@ NUMBER_OF_RECOMMENDATIONS = int(
         60,
     )
 )
+RANKING_VERSION_B_ENDPOINT_NAME = os.environ.get(
+    "RANKING_VERSION_B_ENDPOINT_NAME",
+    f"recommendation_user_ranking_version_b_{ENV_SHORT_NAME}",
+)
