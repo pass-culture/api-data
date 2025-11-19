@@ -36,17 +36,18 @@ class SimilarOffer(ModelEngine):
         selected_retrieval_endpoints = []
 
         for endpoint in self.model_params.retrieval_endpoints:
-            if self.params_in.search_group_names == "LIVRES":
-                if isinstance(
-                    endpoint, OfferGraphRetrievalEndpoint
-                ):  # Contains the graph retrieval for LIVRES
-                    endpoint.init_input(
-                        user=self.user,
-                        input_offers=self.input_offers,
-                        params_in=self.params_in,
-                        call_id=self.call_id,
-                    )
-                    selected_retrieval_endpoints.append(endpoint)
+            if self.params_in.search_group_names is not None:
+                if "LIVRES" in self.params_in.search_group_names:
+                    if isinstance(
+                        endpoint, OfferGraphRetrievalEndpoint
+                    ):  # Contains the graph retrieval for LIVRES
+                        endpoint.init_input(
+                            user=self.user,
+                            input_offers=self.input_offers,
+                            params_in=self.params_in,
+                            call_id=self.call_id,
+                        )
+                        selected_retrieval_endpoints.append(endpoint)
             else:  # Standard retrieval for other categories
                 if isinstance(endpoint, OfferRetrievalEndpoint):
                     endpoint.init_input(
@@ -56,6 +57,14 @@ class SimilarOffer(ModelEngine):
                         call_id=self.call_id,
                     )
                     selected_retrieval_endpoints.append(endpoint)
+
+        self.model_params.ranking_endpoint.init_input(
+            user=self.user,
+            params_in=self.params_in,
+            call_id=self.call_id,
+            context=self.context,
+        )
+
         return self.model_params.scorer(
             user=self.user,
             params_in=self.params_in,
