@@ -20,5 +20,5 @@ test:
 		docker compose exec testdb psql -U postgres -d db -c "CREATE EXTENSION postgis;"; \
 	}; \
 	wait_for_db_to_be_up && create_db_db
-	API_LOCAL=1 pytest
+	API_LOCAL=1 uv run pytest
 	docker compose down -v

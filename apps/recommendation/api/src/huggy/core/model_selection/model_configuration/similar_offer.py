@@ -14,12 +14,17 @@ class SimilarModelConfigurationInput(ModelConfigurationInput):
         return {
             RetrievalChoices.MIX: default,
             RetrievalChoices.MIX_VERSION_B: [
-                offer_retrieval.offer_retrieval_endpoint_version_b
+                *default,
+                offer_retrieval.offer_retrieval_endpoint_version_b,
             ],
             RetrievalChoices.MIX_VERSION_C: [
                 offer_retrieval.offer_retrieval_endpoint_version_c
             ],
             RetrievalChoices.SEMANTIC: [
                 offer_retrieval.semantic_offer_retrieval_endpoint,
+            ],
+            RetrievalChoices.GRAPH: [
+                offer_retrieval.offer_retrieval_endpoint,
+                offer_retrieval.graph_offer_retrieval_endpoint,
             ],
         }.get(model_type, default)

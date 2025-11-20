@@ -400,6 +400,22 @@ class OfferSemanticRetrievalEndpoint(OfferRetrievalEndpoint):
         }
 
 
+class OfferGraphRetrievalEndpoint(OfferRetrievalEndpoint):
+    MODEL_TYPE = "graph_based"
+
+    def get_instance(self, size: int):
+        return {
+            "model_type": "similar_offer",
+            "items": self.items,
+            "size": size,
+            "params": self.get_params(),
+            "call_id": self.call_id,
+            "debug": 1,
+            "similarity_metric": "cosine",
+            "prefilter": 1,
+        }
+
+
 class OfferBookingNumberRetrievalEndpoint(OfferRetrievalEndpoint):
     MODEL_TYPE = "tops"
 
