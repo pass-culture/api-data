@@ -37,6 +37,7 @@ class SimilarOffer(ModelEngine):
         logger.debug(
             f"Available retrieval endpoints: {self.model_params.retrieval_endpoints}"
         )
+        logger.debug(f"ranking endpoint: {self.model_params.ranking_endpoint}")
         logger.debug(f"Params search group names: {self.params_in.search_group_names}")
 
         for endpoint in self.model_params.retrieval_endpoints:
