@@ -107,83 +107,90 @@ class RetrievalEndpoint(BaseEndpoint, ABC):
 
     """
 
-    def init_input(self, user: UserContext, params_in: PlaylistParams, call_id: str):
-        self.user = user
-        self.call_id = call_id
-        self.params_in = params_in
-        self.user_input = str(self.user.user_id)
-        self.is_geolocated = self.user.is_geolocated
+    # def init_input(self, user: UserContext, params_in: PlaylistParams, call_id: str):
+    # self.user = user
+    # self.call_id = call_id
+    # self.params_in = params_in
+    # self.user_input = str(self.user.user_id)
+    # self.is_geolocated = self.user.is_geolocated
 
     @abstractmethod
-    def get_instance(self, size):
+    def get_instance(
+        self,
+        user: UserContext,
+        params_in: PlaylistParams,
+        size: int,
+        call_id: str,
+        *is_geolocated: bool,
+    ):
         pass
 
-    def get_params(self):
+    def get_params(
+        self,
+        user: UserContext = None,
+        params_in: PlaylistParams = None,
+        *,
+        is_geolocated: bool = False,
+    ):
         logger.debug(
             f"retrieval_endpoint : params_in {self.endpoint_name}",
             extra=jsonable_encoder(self.params_in),
         )
         params = []
 
-        if not self.is_geolocated:
+        if not is_geolocated:
             params.append(EqParams(label="is_geolocated", value=0.0))
 
-        if self.user.age and self.user.age < 18:
+        if user.age and user.age < 18:
             params.append(EqParams(label="is_underage_recommendable", value=float(1)))
 
-        if self.params_in.is_restrained is not None:
+        if params_in.is_restrained is not None:
             params.append(EqParams(label="is_restrained", value=float(0)))
 
         # dates filter
-        if self.params_in.start_date is not None or self.params_in.end_date is not None:
+        if params_in.start_date is not None or params_in.end_date is not None:
             label = (
-                "stock_beginning_date"
-                if self.params_in.is_event
-                else "offer_creation_date"
+                "stock_beginning_date" if params_in.is_event else "offer_creation_date"
             )
             params.append(
                 DateParams(
                     label=label,
-                    min_val=self.params_in.start_date,
-                    max_val=self.params_in.end_date,
+                    min_val=params_in.start_date,
+                    max_val=params_in.end_date,
                 )
             )
 
         # stock_price
-        if self.params_in.price_max is not None:
-            price_max = min(
-                self.user.user_deposit_remaining_credit, self.params_in.price_max
-            )
+        if params_in.price_max is not None:
+            price_max = min(user.user_deposit_remaining_credit, params_in.price_max)
         else:
-            price_max = round(self.user.user_deposit_remaining_credit)
+            price_max = round(user.user_deposit_remaining_credit)
 
         params.append(
             RangeParams(
                 label="stock_price",
-                min_val=self.params_in.price_min,
+                min_val=params_in.price_min,
                 max_val=price_max,
             )
         )
-        params.append(ListParams(label="category", values=self.params_in.categories))
+        params.append(ListParams(label="category", values=params_in.categories))
         params.append(
-            ListParams(
-                label="search_group_name", values=self.params_in.search_group_names
-            )
+            ListParams(label="search_group_name", values=params_in.search_group_names)
         )
         params.append(
-            ListParams(label="subcategory_id", values=self.params_in.subcategories)
+            ListParams(label="subcategory_id", values=params_in.subcategories)
         )
-        params.append(ListParams(label="gtl_id", values=self.params_in.gtl_ids))
-        params.append(ListParams(label="gtl_l1", values=self.params_in.gtl_l1))
-        params.append(ListParams(label="gtl_l2", values=self.params_in.gtl_l2))
-        params.append(ListParams(label="gtl_l3", values=self.params_in.gtl_l3))
-        params.append(ListParams(label="gtl_l4", values=self.params_in.gtl_l4))
+        params.append(ListParams(label="gtl_id", values=params_in.gtl_ids))
+        params.append(ListParams(label="gtl_l1", values=params_in.gtl_l1))
+        params.append(ListParams(label="gtl_l2", values=params_in.gtl_l2))
+        params.append(ListParams(label="gtl_l3", values=params_in.gtl_l3))
+        params.append(ListParams(label="gtl_l4", values=params_in.gtl_l4))
 
-        params.append(EqParams(label="offer_is_duo", value=self.params_in.is_duo))
+        params.append(EqParams(label="offer_is_duo", value=params_in.is_duo))
 
-        if self.params_in.offer_type_list is not None:
+        if params_in.offer_type_list is not None:
             label, domain = [], []
-            for kv in self.params_in.offer_type_list:
+            for kv in params_in.offer_type_list:
                 key = kv.get("key", None)
                 val = kv.get("value", None)
                 if key is not None and val is not None:
@@ -246,7 +253,9 @@ class RetrievalEndpoint(BaseEndpoint, ABC):
 
     async def model_score(self) -> list[RecommendableItem]:
         result: RetrievalPredictionResultItem = None
-        instance = self.get_instance(self.size)
+        instance = self.get_instance(
+            self.size,
+        )
 
         # Retrieve cache if exists
         if self.use_cache:
@@ -294,12 +303,22 @@ class RetrievalEndpoint(BaseEndpoint, ABC):
 class BookingNumberRetrievalEndpoint(RetrievalEndpoint):
     MODEL_TYPE = "tops"
 
-    def get_instance(self, size: int):
+    def get_instance(
+        self,
+        user: UserContext,
+        params_in: PlaylistParams,
+        size: int,
+        *is_geolocated: bool,
+    ):
         return {
             "model_type": "tops",
-            "user_id": str(self.user.user_id),
+            "user_id": str(user.user_id),
             "size": size,
-            "params": self.get_params(),
+            "params": self.get_params(
+                params_in=params_in,
+                user=user,
+                is_geolocated=is_geolocated,
+            ),
             "call_id": self.call_id,
             "debug": 1,
             "vector_column_name": "booking_number_desc",
@@ -311,13 +330,24 @@ class BookingNumberRetrievalEndpoint(RetrievalEndpoint):
 class CreationTrendRetrievalEndpoint(RetrievalEndpoint):
     MODEL_TYPE = "tops"
 
-    def get_instance(self, size: int):
+    def get_instance(
+        self,
+        user: UserContext,
+        params_in: PlaylistParams,
+        size: int,
+        call_id: str,
+        *is_geolocated: bool,
+    ):
         return {
             "model_type": "tops",
-            "user_id": str(self.user.user_id),
+            "user_id": str(user.user_id),
             "size": size,
-            "params": self.get_params(),
-            "call_id": self.call_id,
+            "params": self.get_params(
+                params_in=params_in,
+                user=user,
+                is_geolocated=is_geolocated,
+            ),
+            "call_id": call_id,
             "debug": 1,
             "vector_column_name": "booking_creation_trend_desc",
             "similarity_metric": "dot",
@@ -328,16 +358,26 @@ class CreationTrendRetrievalEndpoint(RetrievalEndpoint):
 class ReleaseTrendRetrievalEndpoint(RetrievalEndpoint):
     MODEL_TYPE = "tops"
 
-    def get_instance(self, size: int):
+    def get_instance(
+        self,
+        user: UserContext,
+        params_in: PlaylistParams,
+        size: int,
+        call_id: str,
+        *is_geolocated: bool,
+    ):
         return {
             "model_type": "tops",
-            "user_id": str(self.user.user_id),
+            "user_id": str(user.user_id),
             "size": size,
-            "params": self.get_params(),
-            "call_id": self.call_id,
+            "params": self.get_params(
+                params_in=params_in,
+                user=user,
+                is_geolocated=is_geolocated,
+            ),
+            "call_id": call_id,
             "debug": 1,
             "vector_column_name": "booking_release_trend_desc",
-            "similarity_metric": "dot",
             "re_rank": 0,
         }
 
@@ -345,16 +385,26 @@ class ReleaseTrendRetrievalEndpoint(RetrievalEndpoint):
 class RecommendationRetrievalEndpoint(RetrievalEndpoint):
     MODEL_TYPE = "user_based"
 
-    def get_instance(self, size: int):
+    def get_instance(
+        self,
+        user: UserContext,
+        params_in: PlaylistParams,
+        size: int,
+        call_id: str,
+        *is_geolocated: bool,
+    ):
         return {
             "model_type": "recommendation",
-            "user_id": str(self.user.user_id),
+            "user_id": str(user.user_id),
             "size": size,
-            "params": self.get_params(),
-            "call_id": self.call_id,
+            "params": self.get_params(
+                params_in=params_in,
+                user=user,
+                is_geolocated=is_geolocated,
+            ),
+            "call_id": call_id,
             "debug": 1,
-            "prefilter": 1,
-            "similarity_metric": "dot",
+            "re_rank": 0,
         }
 
 
@@ -374,6 +424,29 @@ class OfferRetrievalEndpoint(RetrievalEndpoint):
         self.params_in = params_in
         self.items = [offer.item_id for offer in self.input_offers]
         self.is_geolocated = any(offer.is_geolocated for offer in self.input_offers)
+
+    def get_instance(
+        self,
+        user: UserContext,
+        params_in: PlaylistParams,
+        size: int,
+        call_id: str,
+        *is_geolocated: bool,
+    ):
+        return {
+            "model_type": "similar_offer",
+            "user_id": str(user.user_id),
+            "size": size,
+            "params": self.get_params(
+                params_in=params_in,
+                user=user,
+                is_geolocated=is_geolocated,
+            ),
+            "call_id": call_id,
+            "debug": 1,
+            "vector_column_name": "booking_release_trend_desc",
+            "re_rank": 0,
+        }
 
     def get_instance(self, size: int):
         return {
