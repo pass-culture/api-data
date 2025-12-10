@@ -23,7 +23,7 @@ dependencies = [
     "pydantic==2.5.2",
     "python-dateutil==2.9.0.post0",
     "pytz==2023.3",
-    "sqlalchemy==2.0.22",
+    "sqlalchemy==2.0.45",
     "starlette==0.41.3",
     "uvicorn==0.22.0",
 ]
