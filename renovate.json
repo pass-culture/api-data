@@ -9,7 +9,7 @@
       "description": "Group all dependency updates for the reco API",
       "matchFileNames": ["apps/recommendation/api/pyproject.toml"],
       "groupName": "reco-api-deps",
-      "commitMessagePrefix": "BSR fix(recommendation): ",
+      "commitMessagePrefix": "(BSR) fix(recommendation): ",
       "commitMessageAction": "Update",
       "commitMessageTopic": "recommendation dependencies"
     },
@@ -17,7 +17,7 @@
       "description": "Group all dependency updates for the compliance API",
       "matchFileNames": ["apps/fraud/compliance/api/pyproject.toml"],
       "groupName": "compliance-api-deps",
-      "commitMessagePrefix": "BSR fix(compliance): ",
+      "commitMessagePrefix": "(BSR) fix(compliance): ",
       "commitMessageAction": "Update",
       "commitMessageTopic": "compliance dependencies"}
   ]
