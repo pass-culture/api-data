@@ -1,33 +1,19 @@
 {
-    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "extends": [
-        "config:best-practices"
-    ],
-    "enabledManagers": [
-        "pep621"
-    ],
-    "lockFileMaintenance": {
-        "enabled": true
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:best-practices"],
+  "enabledManagers": ["pep621"],
+  "lockFileMaintenance": { "enabled": true },
+  "separateMajorMinor": true,
+  "packageRules": [
+    {
+      "description": "Group all dependency updates for the reco API",
+      "matchFileNames": ["apps/recommendation/api/pyproject.toml"],
+      "groupName": "reco-api-pyproject-deps"
     },
-    "separateMajorMinor": "true",
-    "packageRules": [
-        {
-            "description": "rule to update dev dependencies together",
-            "matchDepTypes": ["devDependencies"],
-            "matchUpdateTypes": ["minor", "patch", "pin", "digest", "lockFileMaintenance", "rollback", "bump"],
-            "groupName": "devDependencies",
-            "semanticCommitType": "dev-dependencies"
-        },
-        {
-            "description": "rule to update dev dependencies together",
-            "matchDepTypes": ["dependencies"],
-            "matchUpdateTypes": ["minor", "patch", "pin", "digest", "lockFileMaintenance", "rollback", "bump"],
-            "groupName": "dependencies"
-        },
-        {
-            "description": "rule to update all compliance dependencies together",
-            "matchFileNames": ["apps/fraud/compliance/**"],
-            "groupName": "compliance-deps"
-        }
+    {
+      "description": "Group all dependency updates for the compliance API",
+      "matchFileNames": ["apps/fraud/compliance/api/pyproject.toml"],
+      "groupName": "compliance-api-pyproject-deps"
+    }
   ]
 }
