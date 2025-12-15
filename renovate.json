@@ -11,7 +11,7 @@
       "branchTopic": "lock-file-maintenance",
       "commitMessagePrefix": "(BSR) feat(lockfiles): ",
       "commitMessageAction": "Lock file maintenance",
-      "schedule": ["every 3 months"],
+      "schedule": ["every 1 months"],
       "groupName": "lock file maintenance"
     },
   "packageRules": [
