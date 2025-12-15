@@ -3,6 +3,17 @@
   "extends": ["config:best-practices"],
   "enabledManagers": ["pep621"],
   "separateMajorMinor": true,
+  "lockFileMaintenance":
+    {
+      "enabled": true,
+      "recreateWhen": "always",
+      "rebaseStalePrs": true,
+      "branchTopic": "lock-file-maintenance",
+      "commitMessagePrefix": "(BSR) feat(lockfiles): ",
+      "commitMessageAction": "Lock file maintenance",
+      "schedule": ["every 3 months"],
+      "groupName": "lock file maintenance"
+    },
   "packageRules": [
     {
       "description": "Group all dependency updates for the reco API",
