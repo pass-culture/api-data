@@ -2,8 +2,18 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:best-practices"],
   "enabledManagers": ["pep621"],
-  "lockFileMaintenance": { "enabled": true },
   "separateMajorMinor": true,
+  "lockFileMaintenance":
+    {
+      "enabled": true,
+      "recreateWhen": "always",
+      "rebaseStalePrs": true,
+      "branchTopic": "lock-file-maintenance",
+      "commitMessagePrefix": "(BSR) feat(lockfiles): ",
+      "commitMessageAction": "Lock file maintenance",
+      "schedule": ["every 1 months"],
+      "groupName": "lock file maintenance"
+    },
   "packageRules": [
     {
       "description": "Group all dependency updates for the reco API",
