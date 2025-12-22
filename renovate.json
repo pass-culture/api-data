@@ -7,6 +7,10 @@
     "pep621"
   ],
   "separateMajorMinor": true,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"]
+  },
   "lockFileMaintenance": {
     "enabled": true,
     "recreateWhen": "always",
