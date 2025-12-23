@@ -47,3 +47,12 @@ class ComplianceOutput(BaseModel):
 class ModelParams(BaseModel):
     name: str = "default"
     type: str = "default"
+
+
+class SearchEditoInput(BaseModel):
+    query: str | None = ""
+    filters: list[dict] | None = None
+
+
+class SearchEditoOutput(BaseModel):
+    offers: list[dict] | None = None
