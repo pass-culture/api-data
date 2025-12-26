@@ -19,7 +19,7 @@ jobs:
       - name : "Install Ruff Linter "
         run: uv sync
       - name: "Run Ruff"
-        run: make ruff-check
+        run: make ruff_check
   api-reco-coverage-test:
     name: "API Reco Coverage test"
     needs: linter

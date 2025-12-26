@@ -18,4 +18,4 @@ jobs:
       - name : "Install Ruff Linter "
         run: uv sync
       - name: "Run Ruff"
-        run: make ruff-check
+        run: make ruff_check
