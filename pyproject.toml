@@ -1,3 +1,11 @@
+[project]
+name = "api-data"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
 ## ruff
 # Recommended ruff config for now, to be updated as we go along.
 [tool.ruff]
