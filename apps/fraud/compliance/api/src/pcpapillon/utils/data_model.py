@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, List
+from typing import Any, List, Literal
 
 from pydantic import BaseModel, Field
 
@@ -43,8 +43,9 @@ class SearchEditoColumn(str, Enum):
 
 class SearchEditoFilter(BaseModel):
     column: SearchEditoColumn = Field(..., description="Column to filter on")
-    operator: str = Field(
-        ..., description="Operator for the filter (e.g., '=', '>', '<', 'in')"
+    operator: Literal["=", ">", "<", "in", "=<", ">="] = Field(
+        ...,
+        description="Operator for the filter (e.g., '=', '>', '<', 'in', '=<', '>=')",
     )
     value: Any = Field(..., description="Value to compare the column against")
 
