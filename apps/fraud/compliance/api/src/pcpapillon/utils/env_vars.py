@@ -31,16 +31,6 @@ LOGIN_TOKEN_EXPIRATION = os.environ.get("LOGIN_TOKEN_EXPIRATION", 30)
 
 API_USER_SECRET_ID = os.environ.get("API_USER_SECRET_ID", "api-papillon-user-dev")
 API_PWD_SECRET_ID = os.environ.get("API_PWD_SECRET_ID", "api-papillon-password-dev")
-# API_USER = access_secret(GCP_PROJECT, API_USER_SECRET_ID)
-# API_PWD = access_secret(GCP_PROJECT, API_PWD_SECRET_ID)
-# users_db = {
-#     API_USER: {
-#         "username": API_USER,
-#         "password": API_PWD,
-#         "disabled": False,
-#     }
-# }
-
 # logger
 cloud_trace_context = contextvars.ContextVar("cloud_trace_context", default="")
 call_id_trace_context = contextvars.ContextVar("call_id_context", default="")
@@ -63,5 +53,6 @@ OPENAI_API_KEY = os.environ.get(
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 ### Search edito
 SEARCH_EDITO_MODEL_ENDPOINT_NAME = os.environ.get(
-    "SEARCH_EDITO_MODEL_ENDPOINT_NAME", "search_edito_dev"
+    "SEARCH_EDITO_MODEL_ENDPOINT_NAME",
+    f"semantic_search_edito_endpoint_{ENV_SHORT_NAME}",
 )
