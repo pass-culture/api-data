@@ -14,6 +14,7 @@ def access_secret(project_id, secret_id):
 # Project vars
 GCS_BUCKET = os.environ.get("GCS_BUCKET", "data-bucket-dev")
 GCP_PROJECT = os.environ.get("GCP_PROJECT", "passculture-data-ehp")
+GCP_LOCATION = os.environ.get("GCP_LOCATION", "europe-west1")
 ENV_SHORT_NAME = os.environ.get("ENV_SHORT_NAME", "dev")
 SA_ACCOUNT = f"algo-training-{ENV_SHORT_NAME}"
 

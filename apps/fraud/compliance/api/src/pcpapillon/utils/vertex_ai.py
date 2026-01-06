@@ -1,10 +1,10 @@
 from google.cloud import aiplatform
-from utils.env_vars import GCP_PROJECT
+from utils.env_vars import GCP_LOCATION, GCP_PROJECT
 
 
 def retrieve_vertex_ai_endpoint(
     project: str, location: str, endpoint_resource_name: str
-):
+) -> aiplatform.Endpoint:
     """
     Retrieves a Vertex AI endpoint using its full resource name.
     """
@@ -30,17 +30,19 @@ def retrieve_vertex_ai_endpoint(
     return target_endpoint
 
 
-def run_vertex_ai_endpoint_prediction(endpoint_resource_name: str, instances: list):
+def run_vertex_ai_endpoint_prediction(
+    endpoint_resource_name: str, instances: list
+) -> list:
     """
     Calls a Vertex AI endpoint using its full resource name.
     """
 
-    # 2. Retrieve the endpoint
+    # 1. Retrieve the endpoint
     target_endpoint = retrieve_vertex_ai_endpoint(
-        GCP_PROJECT, "europe-west1", endpoint_resource_name
+        GCP_PROJECT, GCP_LOCATION, endpoint_resource_name
     )
 
-    # 3. Make the prediction
+    # 2. Make the prediction
     try:
         response = target_endpoint.predict(instances=instances)
         print(f"Prediction results: {response.predictions}")
