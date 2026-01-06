@@ -1,5 +1,5 @@
 from google.cloud import aiplatform
-from utils.env_vars import GCP_LOCATION, GCP_PROJECT
+from pcpapillon.utils.env_vars import GCP_LOCATION, GCP_PROJECT
 
 
 def retrieve_vertex_ai_endpoint(
