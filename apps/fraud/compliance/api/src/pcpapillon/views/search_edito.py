@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Body, Depends
 from fastapi_versioning import version
-from pcpapillon.utils.logging.trace import custom_logger, get_call_id, setup_trace
+
 from pcpapillon.utils.data_model import SearchEditoInput, SearchEditoOutput
-from pcpapillon.utils.vertex_ai import predict_using_endpoint_name
 from pcpapillon.utils.env_vars import (
     GCP_PROJECT,
     SEARCH_EDITO_MODEL_ENDPOINT_NAME,
 )
+from pcpapillon.utils.logging.trace import custom_logger, get_call_id, setup_trace
+from pcpapillon.utils.vertex_ai import predict_using_endpoint_name
 
 search_edito_router = APIRouter(tags=["search_edito"])
 
