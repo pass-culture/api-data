@@ -35,3 +35,12 @@ test:
 	@$(MAKE) prepare_db
 	API_LOCAL=1 pytest
 	docker compose down -v
+
+
+ruff_fix:
+	uv run ruff check --fix
+	uv run ruff format
+
+ruff_check:
+	uv run ruff check
+	uv run ruff format --check
