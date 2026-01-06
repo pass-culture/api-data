@@ -45,7 +45,7 @@ class ModelEngine(ABC):
             Generates and returns a list of offer IDs, scored and ranked, to be presented to the user.
 
         save_context():
-            Saves the current recommendation context, including the offers and user session data, to the database for tracking and auditing.
+            Logs the recommendation context (offers and session data) to be captured by the API recommendation sink.
 
         log_extra_data():
             Logs any additional data related to the model's execution, such as performance metrics or anomalies, for monitoring and debugging.
@@ -127,7 +127,6 @@ class ModelEngine(ABC):
 
         scoring_size = min(len(scored_offers), NUMBER_OF_RECOMMENDATIONS)
         await self.save_context(
-            session=db,
             scored_offers=scored_offers[:scoring_size],
             context=self.context,
             user=self.user,
@@ -137,7 +136,6 @@ class ModelEngine(ABC):
 
     async def save_context(
         self,
-        session: AsyncSession,
         scored_offers: list[RankedOffer],
         context: str,
         user: UserContext,
@@ -202,9 +200,6 @@ class ModelEngine(ABC):
                         }
                     ),
                 )
-
-                session.add(past_offer_context)
-            await session.commit()
 
     async def log_extra_data(self):
         return jsonable_encoder(

@@ -1,12 +1,48 @@
 {
-    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "extends": [
-        "config:recommended"
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:best-practices"
+  ],
+  "enabledManagers": [
+    "pep621"
+  ],
+  "separateMajorMinor": true,
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"]
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "recreateWhen": "always",
+    "rebaseWhen": "behind-base-branch",
+    "branchTopic": "lock-file-maintenance",
+    "commitMessagePrefix": "(BSR) feat(lockfiles): ",
+    "commitMessageAction": "Lock file maintenance",
+    "schedule": [
+      "every 1 months"
     ],
-    "enabledManagers": [
-        "pep621"
-    ],
-    "lockFileMaintenance": {
-        "enabled": true
+    "groupName": "lock file maintenance"
+  },
+  "packageRules": [
+    {
+      "description": "Group all dependency updates for the reco API",
+      "matchFileNames": [
+        "apps/recommendation/api/pyproject.toml"
+      ],
+      "groupName": "reco-api-deps",
+      "commitMessagePrefix": "(BSR) fix(recommendation): ",
+      "commitMessageAction": "Update",
+      "commitMessageTopic": "recommendation dependencies"
+    },
+    {
+      "description": "Group all dependency updates for the compliance API",
+      "matchFileNames": [
+        "apps/fraud/compliance/api/pyproject.toml"
+      ],
+      "groupName": "compliance-api-deps",
+      "commitMessagePrefix": "(BSR) fix(compliance): ",
+      "commitMessageAction": "Update",
+      "commitMessageTopic": "compliance dependencies"
     }
+  ]
 }
