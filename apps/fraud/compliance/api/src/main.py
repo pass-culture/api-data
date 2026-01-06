@@ -1,15 +1,14 @@
 from fastapi import FastAPI
 from fastapi_versioning import VersionedFastAPI
-
 from pcpapillon.utils.logging.setup import setup_logging
 
 custom_logger = setup_logging()
 
 
 def init_app():
-    from pcpapillon.views.search_edito import search_edito_router
     from pcpapillon.views.compliance import compliance_router
     from pcpapillon.views.home import main_router
+    from pcpapillon.views.search_edito import search_edito_router
 
     app = FastAPI(title="Passculture offer validation API")
 

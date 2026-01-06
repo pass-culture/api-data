@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Body, Depends
 from fastapi_versioning import version
-
 from pcpapillon.utils.data_model import SearchEditoInput, SearchEditoOutput
 from pcpapillon.utils.env_vars import (
     GCP_PROJECT,
