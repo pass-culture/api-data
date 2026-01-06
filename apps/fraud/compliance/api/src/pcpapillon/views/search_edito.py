@@ -2,11 +2,10 @@ from fastapi import APIRouter, Body, Depends
 from fastapi_versioning import version
 from pcpapillon.utils.data_model import SearchEditoInput, SearchEditoOutput
 from pcpapillon.utils.env_vars import (
-    GCP_PROJECT,
     SEARCH_EDITO_MODEL_ENDPOINT_NAME,
 )
 from pcpapillon.utils.logging.trace import custom_logger, get_call_id, setup_trace
-from pcpapillon.utils.vertex_ai import predict_using_endpoint_name
+from pcpapillon.utils.vertex_ai import run_vertex_ai_endpoint_prediction
 
 search_edito_router = APIRouter(tags=["search_edito"])
 
@@ -50,9 +49,7 @@ def search_edito(
             for f in search_input.filters
         ]
     custom_logger.info(f"parsed payload:{payload}", extra=log_extra_data)
-    predictions = predict_using_endpoint_name(
-        project=GCP_PROJECT,
-        location="europe-west1",
+    predictions = run_vertex_ai_endpoint_prediction(
         endpoint_resource_name=SEARCH_EDITO_MODEL_ENDPOINT_NAME,
         instances=[payload],
     )

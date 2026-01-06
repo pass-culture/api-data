@@ -1,17 +1,15 @@
 from google.cloud import aiplatform
+from utils.env_vars import GCP_PROJECT
 
 
-def predict_using_endpoint_name(
-    project: str, location: str, endpoint_resource_name: str, instances: list
+def retrieve_vertex_ai_endpoint(
+    project: str, location: str, endpoint_resource_name: str
 ):
     """
-    Calls a Vertex AI endpoint using its full resource name.
+    Retrieves a Vertex AI endpoint using its full resource name.
     """
     # Initialize the SDK
     aiplatform.init(project=project, location=location)
-
-    # 2. Search for the endpoint using a filter
-    # We use the filter string to query exactly for the display name
     endpoints = aiplatform.Endpoint.list(
         filter=f'display_name="{endpoint_resource_name}"'
     )
@@ -29,6 +27,18 @@ def predict_using_endpoint_name(
     target_endpoint = endpoints[0]
 
     print(f"Found Endpoint ID: {target_endpoint.name}")
+    return target_endpoint
+
+
+def run_vertex_ai_endpoint_prediction(endpoint_resource_name: str, instances: list):
+    """
+    Calls a Vertex AI endpoint using its full resource name.
+    """
+
+    # 2. Retrieve the endpoint
+    target_endpoint = retrieve_vertex_ai_endpoint(
+        GCP_PROJECT, "europe-west1", endpoint_resource_name
+    )
 
     # 3. Make the prediction
     try:
