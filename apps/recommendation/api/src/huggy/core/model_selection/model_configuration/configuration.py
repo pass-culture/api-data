@@ -3,7 +3,6 @@ import typing as t
 from dataclasses import dataclass
 from typing import Optional
 
-import huggy.core.model_selection.endpoint.user_ranking as user_ranking
 import huggy.core.scorer.offer as offer_scorer
 from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
 from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
@@ -14,7 +13,6 @@ from huggy.schemas.model_selection.model_configuration import (
     ForkParamsInput,
     ModelTypeInput,
     QueryOrderChoices,
-    RankingChoices,
     WarnModelTypeDefaultInput,
 )
 from huggy.schemas.offer import Offer
@@ -94,7 +92,6 @@ class ModelFork:
     def get_user_status(self, user: UserContext, model_origin: str) -> ForkOut:
         """
         Get model status based on UserContext interactions
-
         """
 
         if not user.found:
@@ -138,7 +135,6 @@ class ModelFork:
     ) -> ForkOut:
         """
         Get model status based on Offer interactions
-
         """
         # No cold start logic for similar offer.
         # TODO: remove cold_start logic for recommendation
@@ -194,41 +190,10 @@ class ModelConfigurationInput(BaseModel):
                 submixing_feature_dict=None,
             ),
             DiversificationChoices.ON: diversification_on,
-            DiversificationChoices.GTL_ID: DiversificationParams(
-                is_active=True,
-                is_reco_shuffled=True,
-                mixing_features="search_group_name",
-                order_column="offer_rank",
-                order_ascending=True,
-                submixing_feature_dict={"LIVRES": "gtl_id"},
-            ),
-            DiversificationChoices.GTL_LVL3: DiversificationParams(
-                is_active=True,
-                is_reco_shuffled=True,
-                mixing_features="search_group_name",
-                order_column="offer_rank",
-                order_ascending=True,
-                submixing_feature_dict={"LIVRES": "gtl_l3"},
-            ),
-            DiversificationChoices.GTL_LVL4: DiversificationParams(
-                is_active=True,
-                is_reco_shuffled=True,
-                mixing_features="search_group_name",
-                order_column="offer_rank",
-                order_ascending=True,
-                submixing_feature_dict={"LIVRES": "gtl_l4"},
-            ),
         }.get(diversification_params.diversication_type, diversification_on)
 
     def get_ranking(self, model_type) -> RankingEndpoint:
-        model = user_ranking.user_ranking_endpoint
-        return {
-            RankingChoices.MODEL: model,
-            RankingChoices.VERSION_B: user_ranking.user_ranking_endpoint_version_b,
-            RankingChoices.DISTANCE: user_ranking.user_distance_ranking_endpoint,
-            RankingChoices.NO_POPULARITY: user_ranking.no_popular_ranking_endpoint,
-            RankingChoices.OFF: user_ranking.off_ranking_endpoint,
-        }.get(model_type, model)
+        pass
 
     def get_retrieval(self, model_type) -> list[RetrievalEndpoint]:
         pass
