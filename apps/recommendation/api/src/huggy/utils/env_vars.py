@@ -60,38 +60,37 @@ cloud_trace_context = contextvars.ContextVar("cloud_trace_context", default="")
 call_id_trace_context = contextvars.ContextVar("call_id_context", default="")
 http_request_context = contextvars.ContextVar("http_request_context", default=None)
 
-# config
-SIMILAR_OFFER_MODEL_CONTEXT = os.environ.get("SIMILAR_OFFER_MODEL_CONTEXT", "default")
-RECO_MODEL_CONTEXT = os.environ.get("RECO_MODEL_CONTEXT", "default")
-
-DEFAULT_SIMILAR_OFFER_DESCRIPTION = os.environ.get(
-    "DEFAULT_SIMILAR_OFFER_DESCRIPTION", "Similar Offer Configuration (default)"
+# Home Recommendation Config
+RECO_MODEL_CONTEXT = os.environ.get("RECO_MODEL_CONTEXT", "default home recommendation")
+RECO_RETRIEVAL_ENDPOINT_NAME = os.environ.get(
+    "RECO_RETRIEVAL_ENDPOINT_NAME", f"recommendation_user_retrieval_{ENV_SHORT_NAME}"
+)
+RECO_RANKING_ENDPOINT_NAME = os.environ.get(
+    "RECO_RANKING_ENDPOINT_NAME", f"recommendation_user_ranking_{ENV_SHORT_NAME}"
+)
+RECO_MODEL_DESCRIPTION = os.environ.get(
+    "RECO_MODEL_DESCRIPTION",
+    f"Recommendation Configuration (retrieval: {RECO_RETRIEVAL_ENDPOINT_NAME}, ranking: {RECO_RANKING_ENDPOINT_NAME})",
 )
 
-DEFAULT_RECO_MODEL_DESCRIPTION = os.environ.get(
-    "DEFAULT_RECO_MODEL_DESCRIPTION", "Recommendation Configuration (default)"
+# Similar Offers Config
+SIMILAR_OFFER_MODEL_CONTEXT = os.environ.get(
+    "SIMILAR_OFFER_MODEL_CONTEXT", "default similar offers"
+)
+SIMILAR_OFFER_RETRIEVAL_ENDPOINT_NAME = os.environ.get(
+    "SIMILAR_OFFER_RETRIEVAL_ENDPOINT_NAME",
+    f"recommendation_user_retrieval_{ENV_SHORT_NAME}",
+)
+SIMILAR_OFFER_RANKING_ENDPOINT_NAME = os.environ.get(
+    "SIMILAR_OFFER_RANKING_ENDPOINT_NAME",
+    f"recommendation_user_ranking_{ENV_SHORT_NAME}",
+)
+SIMILAR_OFFER_DESCRIPTION = os.environ.get(
+    "SIMILAR_OFFER_DESCRIPTION",
+    f"Similar Offer Configuration (retrieval: {SIMILAR_OFFER_RETRIEVAL_ENDPOINT_NAME}, ranking: {SIMILAR_OFFER_RANKING_ENDPOINT_NAME})",
 )
 
-VERSION_B_RECO_MODEL_DESCRIPTION = os.environ.get(
-    "VERSION_B_RECO_MODEL_DESCRIPTION", "Recommendation Configuration (version B)"
-)
-VERSION_B_SIMILAR_OFFER_DESCRIPTION = os.environ.get(
-    "VERSION_B_SIMILAR_OFFER_DESCRIPTION", "Similar Offer Configuration (version B)"
-)
-
-VERSION_C_RECO_MODEL_DESCRIPTION = os.environ.get(
-    "VERSION_C_RECO_MODEL_DESCRIPTION", "Recommendation Configuration (version C)"
-)
-VERSION_C_SIMILAR_OFFER_DESCRIPTION = os.environ.get(
-    "VERSION_C_SIMILAR_OFFER_DESCRIPTION", "Similar Offer Configuration (version C)"
-)
-
-
-# endpoints
-RANKING_VERSION_B_ENDPOINT_NAME = os.environ.get(
-    "RANKING_VERSION_B_ENDPOINT_NAME",
-    f"recommendation_user_ranking_version_b_{ENV_SHORT_NAME}",
-)
+# Params
 NUMBER_OF_RECOMMENDATIONS = int(
     os.environ.get(
         "NUMBER_OF_RECOMMENDATIONS",
