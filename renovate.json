@@ -19,7 +19,7 @@
     "commitMessagePrefix": "(BSR) feat(lockfiles): ",
     "commitMessageAction": "Lock file maintenance",
     "schedule": [
-      "every 1 months"
+      "every 3 months"
     ],
     "groupName": "lock file maintenance"
   },
