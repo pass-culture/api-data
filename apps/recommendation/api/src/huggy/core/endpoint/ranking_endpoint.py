@@ -1,9 +1,9 @@
 import asyncio
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from datetime import datetime
 
 from fastapi.encoders import jsonable_encoder
-from huggy.core.endpoint import AbstractEndpoint
+from huggy.core.endpoint.base_endpoint import BaseEndpoint
 from huggy.core.endpoint.utils import to_days, to_float, to_int
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.recommendable_offer import RankedOffer, RecommendableOffer
@@ -12,7 +12,7 @@ from huggy.utils.cloud_logging import logger
 from huggy.utils.vertex_ai import endpoint_score
 
 
-class RankingEndpoint(AbstractEndpoint):
+class RankingEndpoint(BaseEndpoint, ABC):
     """
     Represents an endpoint for ranking offers based on user preferences.
 
@@ -42,66 +42,6 @@ class RankingEndpoint(AbstractEndpoint):
         self, recommendable_offers: list[RecommendableOffer]
     ) -> list[RankedOffer]:
         pass
-
-
-class ItemRankRankingEndpoint(RankingEndpoint):
-    """
-    Returns the list sorted by item_rank ascending.
-
-    """
-
-    MODEL_ORIGIN = "item_rank"
-
-    async def model_score(
-        self, recommendable_offers: list[RecommendableOffer]
-    ) -> list[RankedOffer]:
-        ranked_offers = []
-        recommendable_offers = sorted(
-            recommendable_offers, key=lambda x: x.item_rank, reverse=False
-        )
-        for idx, row in enumerate(recommendable_offers):
-            ranked_offers.append(
-                RankedOffer(
-                    offer_rank=float(idx),
-                    offer_score=None,
-                    offer_origin=self.MODEL_ORIGIN,
-                    **row.model_dump(),
-                )
-            )
-        logger.debug(
-            f"ranking_endpoint {self.user.user_id!s} out : {len(ranked_offers)}"
-        )
-        return ranked_offers
-
-
-class DistanceRankingEndpoint(RankingEndpoint):
-    """
-    Returns the list sorted by distance ascending.
-
-    """
-
-    MODEL_ORIGIN = "distance"
-
-    async def model_score(
-        self, recommendable_offers: list[RecommendableOffer]
-    ) -> list[RankedOffer]:
-        ranked_offers = []
-        recommendable_offers = sorted(
-            recommendable_offers, key=lambda x: x.user_distance or 0, reverse=False
-        )
-        for idx, row in enumerate(recommendable_offers):
-            ranked_offers.append(
-                RankedOffer(
-                    offer_rank=float(idx),
-                    offer_score=None,
-                    offer_origin=self.MODEL_ORIGIN,
-                    **row.model_dump(),
-                )
-            )
-        logger.debug(
-            f"ranking_endpoint {self.user.user_id!s} out : {len(ranked_offers)}"
-        )
-        return ranked_offers
 
 
 class ModelRankingEndpoint(RankingEndpoint):
@@ -262,49 +202,3 @@ class ModelRankingEndpoint(RankingEndpoint):
             )
             for idx, row in enumerate(recommendable_offers)
         ]
-
-
-class NoPopularModelRankingEndpoint(ModelRankingEndpoint):
-    """
-    Calls LGBM model to sort offers without booking_number variable.
-
-    """
-
-    MODEL_ORIGIN = "no_popular_model"
-
-    def get_instance(
-        self, recommendable_offers: list[RecommendableOffer]
-    ) -> list[dict]:
-        offers_list = []
-        for row in recommendable_offers:
-            offers_list.append(
-                {
-                    "offer_id": row.offer_id,
-                    "context": f"{self.context}:{row.item_origin}",
-                    "offer_subcategory_id": row.subcategory_id,
-                    "user_bookings_count": to_float(self.user.bookings_count),
-                    "user_clicks_count": to_float(self.user.clicks_count),
-                    "user_favorites_count": to_float(self.user.favorites_count),
-                    "user_deposit_remaining_credit": to_float(
-                        self.user.user_deposit_remaining_credit
-                    ),
-                    "user_is_geolocated": to_float(self.user.is_geolocated),
-                    "user_iris_x": to_float(self.user.longitude),
-                    "user_iris_y": to_float(self.user.latitude),
-                    "offer_user_distance": to_float(row.user_distance),
-                    "offer_booking_number": 0,  # force theses metrics at 0.
-                    "offer_booking_number_last_7_days": 0,
-                    "offer_booking_number_last_14_days": 0,
-                    "offer_booking_number_last_28_days": 0,
-                    "offer_semantic_emb_mean": to_float(row.semantic_emb_mean),
-                    "offer_item_score": to_float(row.item_score),
-                    "offer_item_rank": to_float(row.item_rank),
-                    "offer_is_geolocated": to_float(row.is_geolocated),
-                    "offer_stock_price": to_float(row.stock_price),
-                    "offer_creation_days": to_days(row.offer_creation_date),
-                    "offer_stock_beginning_days": to_days(row.stock_beginning_date),
-                    "day_of_the_week": to_int(datetime.today().weekday()),
-                    "hour_of_the_day": to_int(datetime.now().hour),
-                }
-            )
-        return offers_list
