@@ -1,5 +1,5 @@
 import pytest
-from huggy.core.model_selection import RECOMMENDATION_ENDPOINTS
+from huggy.core.model_selection import RECOMMENDATION_CONFIG
 from huggy.schemas.user import UserContext
 
 
@@ -57,6 +57,6 @@ def test_get_cold_start_status(
     user: UserContext,
     expected_status: bool,  # noqa: FBT001
 ):
-    model_fork = RECOMMENDATION_ENDPOINTS["default"].generate()
+    model_fork = RECOMMENDATION_CONFIG.generate()
     model_status = model_fork.get_user_status(user, "test")
     assert model_status.reco_origin == expected_status

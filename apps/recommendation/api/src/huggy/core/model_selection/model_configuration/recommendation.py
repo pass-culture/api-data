@@ -1,5 +1,7 @@
 import huggy.core.model_selection.endpoint.user_retrieval as user_retrieval
+from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
 from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
+from huggy.core.model_selection.endpoint import user_ranking
 from huggy.core.model_selection.model_configuration.configuration import (
     ModelConfigurationInput,
 )
@@ -16,41 +18,15 @@ class RecoModelConfigurationInput(ModelConfigurationInput):
         ]
         return {
             RetrievalChoices.MIX: default,
-            RetrievalChoices.MIX_VERSION_B: [
-                user_retrieval.filter_retrieval_endpoint_version_b,
-                user_retrieval.recommendation_retrieval_endpoint_version_b,
-                user_retrieval.trend_release_date_retrieval_endpoint_version_b,
-                user_retrieval.trend_creation_date_retrieval_endpoint_version_b,
-            ],
-            RetrievalChoices.MIX_VERSION_C: [
-                user_retrieval.filter_retrieval_endpoint_version_c,
-                user_retrieval.recommendation_retrieval_endpoint_version_c,
-                user_retrieval.trend_release_date_retrieval_endpoint_version_c,
-                user_retrieval.trend_creation_date_retrieval_endpoint_version_c,
-            ],
             RetrievalChoices.MIX_TOPS: [
                 user_retrieval.filter_retrieval_endpoint,
                 user_retrieval.trend_release_date_retrieval_endpoint,
                 user_retrieval.trend_creation_date_retrieval_endpoint,
             ],
-            RetrievalChoices.MIX_TOPS_VERSION_B: [
-                user_retrieval.filter_retrieval_endpoint_version_b,
-                user_retrieval.trend_release_date_retrieval_endpoint_version_b,
-                user_retrieval.trend_creation_date_retrieval_endpoint_version_b,
-            ],
-            RetrievalChoices.MIX_TOPS_VERSION_C: [
-                user_retrieval.filter_retrieval_endpoint_version_c,
-                user_retrieval.trend_release_date_retrieval_endpoint_version_c,
-                user_retrieval.trend_creation_date_retrieval_endpoint_version_c,
-            ],
-            RetrievalChoices.MIX_RECOMMENDATION: [
-                user_retrieval.recommendation_retrieval_endpoint,
-                user_retrieval.filter_retrieval_endpoint,
-            ],
-            RetrievalChoices.RAW_RETRIEVAL: [
-                user_retrieval.recommendation_retrieval_endpoint_raw,
-            ],
             RetrievalChoices.TOPS: [
                 user_retrieval.filter_retrieval_endpoint,
             ],
         }.get(model_type, default)
+
+    def get_ranking(self, model_type) -> RankingEndpoint:
+        return user_ranking.user_ranking_endpoint
