@@ -43,9 +43,9 @@ class SearchEditoColumn(str, Enum):
 
 class SearchEditoFilter(BaseModel):
     column: SearchEditoColumn = Field(..., description="Column to filter on")
-    operator: Literal["=", ">", "<", "in", "=<", ">="] = Field(
+    operator: Literal["=", ">", "<", "in", "not in", "=<", ">="] = Field(
         ...,
-        description="Operator for the filter (e.g., '=', '>', '<', 'in', '=<', '>=')",
+        description="Operator for the filter (e.g., '=', '>', '<', 'in', 'not in', '=<', '>=')",
     )
     value: Any = Field(..., description="Value to compare the column against")
 
