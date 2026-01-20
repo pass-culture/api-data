@@ -58,7 +58,7 @@ if not API_LOCAL:
 # logger
 cloud_trace_context = contextvars.ContextVar("cloud_trace_context", default="")
 call_id_trace_context = contextvars.ContextVar("call_id_context", default="")
-http_request_context = contextvars.ContextVar("http_request_context", default={})
+http_request_context = contextvars.ContextVar("http_request_context", default=None)
 
 # config
 SIMILAR_OFFER_MODEL_CONTEXT = os.environ.get("SIMILAR_OFFER_MODEL_CONTEXT", "default")

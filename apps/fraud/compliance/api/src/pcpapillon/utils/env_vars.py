@@ -14,6 +14,7 @@ def access_secret(project_id, secret_id):
 # Project vars
 GCS_BUCKET = os.environ.get("GCS_BUCKET", "data-bucket-dev")
 GCP_PROJECT = os.environ.get("GCP_PROJECT", "passculture-data-ehp")
+GCP_LOCATION = os.environ.get("GCP_LOCATION", "europe-west1")
 ENV_SHORT_NAME = os.environ.get("ENV_SHORT_NAME", "dev")
 SA_ACCOUNT = f"algo-training-{ENV_SHORT_NAME}"
 
@@ -31,16 +32,6 @@ LOGIN_TOKEN_EXPIRATION = os.environ.get("LOGIN_TOKEN_EXPIRATION", 30)
 
 API_USER_SECRET_ID = os.environ.get("API_USER_SECRET_ID", "api-papillon-user-dev")
 API_PWD_SECRET_ID = os.environ.get("API_PWD_SECRET_ID", "api-papillon-password-dev")
-# API_USER = access_secret(GCP_PROJECT, API_USER_SECRET_ID)
-# API_PWD = access_secret(GCP_PROJECT, API_PWD_SECRET_ID)
-# users_db = {
-#     API_USER: {
-#         "username": API_USER,
-#         "password": API_PWD,
-#         "disabled": False,
-#     }
-# }
-
 # logger
 cloud_trace_context = contextvars.ContextVar("cloud_trace_context", default="")
 call_id_trace_context = contextvars.ContextVar("call_id_context", default="")
@@ -61,3 +52,8 @@ OPENAI_API_KEY = os.environ.get(
     "OPENAI_API_KEY", access_secret(GCP_PROJECT, "openai_api_key")
 )
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+### Search edito
+SEARCH_EDITO_MODEL_ENDPOINT_NAME = os.environ.get(
+    "SEARCH_EDITO_MODEL_ENDPOINT_NAME",
+    f"semantic_search_edito_endpoint_{ENV_SHORT_NAME}",
+)

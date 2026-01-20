@@ -17,9 +17,9 @@ jobs:
           python-version: 3.9
       - uses: yezz123/setup-uv@v4
       - name : "Install Ruff Linter "
-        run: uv pip install --system -r linter-requirements.txt
+        run: uv sync
       - name: "Run Ruff"
-        run: make ruff-check
+        run: make ruff_check
   api-reco-coverage-test:
     name: "API Reco Coverage test"
     needs: linter
