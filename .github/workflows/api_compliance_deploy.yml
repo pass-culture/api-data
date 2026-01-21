@@ -24,8 +24,6 @@ jobs:
             echo "env_name=staging" >> $GITHUB_OUTPUT
           elif [ ${{ github.ref }} = 'refs/heads/production' ]; then
             echo "env_name=production" >> $GITHUB_OUTPUT
-          elif [ ${{ github.ref }} = 'refs/heads/bsr-search-edito-update-filters' ]; then
-            echo "env_name=production" >> $GITHUB_OUTPUT
           else
             echo "env_name=dev" >> $GITHUB_OUTPUT
           fi
