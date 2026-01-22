@@ -21,9 +21,7 @@ def search_edito(
         ...,
         example={
             "query": "nature et bien être",
-            "filters": [
-                {"column": "last_stock_price", "operator": "in", "value": [10, 50]}
-            ],
+            "filters": [{"column": "last_stock_price", "operator": ">", "value": 10}],
         },
         description="Input parameters for the edito search",
     ),
