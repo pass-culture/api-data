@@ -1,12 +1,8 @@
 import os
 
-import openai
 import pandas as pd
-import vertexai
 import yaml
 from dotenv import load_dotenv
-from loguru import logger
-from pcpapillon.utils.env_vars import OPENAI_API_KEY
 from pcpapillon.utils_llm.data_model_llm import (
     ComplianceValidationStatusPredictionOutput,
     LLMComplianceInput,
@@ -14,7 +10,7 @@ from pcpapillon.utils_llm.data_model_llm import (
 from pcpapillon.utils_llm.run_llm_calls import run_validation_pipeline
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-ConfigPath = os.path.join(
+config_path = os.path.join(
     script_dir, "..", "utils_llm", "configs", "global_llm_calls_config.yaml"
 )
 
@@ -25,22 +21,22 @@ class LLMComplianceModel:
 
     def _load_config(self) -> dict:
         """Load configuration from YAML file."""
-        with open(ConfigPath) as f:
+        with open(config_path) as f:
             return yaml.safe_load(f)
 
     def _setup_environment(self):
         """Setup API keys and environment variables."""
         load_dotenv()
 
-        # OpenAI setup
-        openai.api_key = OPENAI_API_KEY
+        # # OpenAI setup
+        # openai.api_key = OPENAI_API_KEY
 
-        # Vertex AI setup (if needed)
-        project_id = os.getenv("PROJECT_ID")
-        location = os.getenv("LOCATION")
-        if project_id and location:
-            vertexai.init(project=project_id, location=location)
-            logger.info("Vertex AI initialized")
+        # # Vertex AI setup (if needed)
+        # project_id = os.getenv("PROJECT_ID")
+        # location = os.getenv("LOCATION")
+        # if project_id and location:
+        #     vertexai.init(project=project_id, location=location)
+        #     logger.info("Vertex AI initialized")
 
     def predict(
         self, data: LLMComplianceInput

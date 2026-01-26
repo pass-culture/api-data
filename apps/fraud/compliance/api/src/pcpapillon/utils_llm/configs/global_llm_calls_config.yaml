@@ -8,7 +8,7 @@ validation:
   # Validation modes:
   # - "llm_only": Appel seul au LLM pour valider la conformité
   # - "sequential_pipeline": Les résultats du LLM alimentent la recherche web en tant que contexte - utile pour vérifier la sur tarification
-  mode: "sequential_pipeline"
+  mode: "llm_only"
 
   # LLM validation configuration
   llm_config: "Gemini2flash_compliance_validation_instruments"

@@ -1,7 +1,10 @@
 import contextvars
 import os
 
+from dotenv import load_dotenv
 from google.cloud import secretmanager
+
+load_dotenv()
 
 
 def access_secret(project_id, secret_id):
@@ -37,9 +40,10 @@ cloud_trace_context = contextvars.ContextVar("cloud_trace_context", default="")
 call_id_trace_context = contextvars.ContextVar("call_id_context", default="")
 http_request_context = contextvars.ContextVar("http_request_context", default={})
 
-# MLFlow
+# # MLFlow
 MLFLOW_SECRET_ID = os.environ.get("MLFLOW_SECRET_ID", "mlflow_client_id")
-MLFLOW_CLIENT_ID = access_secret(GCP_PROJECT, MLFLOW_SECRET_ID)
+MLFLOW_CLIENT_ID = os.environ.get("mlflow_client_id")
+# access_secret(GCP_PROJECT, MLFLOW_SECRET_ID)
 MLFLOW_URL = os.environ.get("MLFLOW_URL", "https://mlflow.staging.passculture.team/")
 MLFLOW_TRACKING_TOKEN = os.environ.get("MLFLOW_TRACKING_TOKEN", None)
 
@@ -48,12 +52,31 @@ MODEL_DEFAULT = os.environ.get("MODEL_DEFAULT", "compliance_model_dev")
 MODEL_STAGE = os.environ.get("MODEL_STAGE", "Production")
 
 ### LLM Keys
-OPENAI_API_KEY = os.environ.get(
-    "OPENAI_API_KEY", access_secret(GCP_PROJECT, "openai_api_key")
-)
-os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+# OPENAI_API_KEY = os.environ.get(
+#     "OPENAI_API_KEY", access_secret(GCP_PROJECT, "openai_api_key")
+# )
+# os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 ### Search edito
 SEARCH_EDITO_MODEL_ENDPOINT_NAME = os.environ.get(
     "SEARCH_EDITO_MODEL_ENDPOINT_NAME",
     f"semantic_search_edito_endpoint_{ENV_SHORT_NAME}",
 )
+
+LLM_ALLOWED_SUBCATEGORY_WITH_MAPPING = {
+    "ACHAT_INSTRUMENT": "instruments",
+    "LOCATION_INSTRUMENT": "instruments",
+    "PARTITION": "instruments",
+    "ABO_PRATIQUE_ART": "pratiques_artistiques",
+    "ATELIER_PRATIQUE_ART": "pratiques_artistiques",
+    "LIVESTREAM_PRATIQUE_ARTISTIQUE": "pratiques_artistiques",
+    "SEANCE_ESSAI_PRATIQUE_ART": "pratiques_artistiques",
+    "PRATIQUE_ART_VENTE_DISTANCE": "pratiques_artistiques",
+    "CONCERT": "spectacle_vivant",
+    "SPECTACLE_REPRESENTATION": "spectacle_vivant",
+    "FESTIVAL_MUSIQUE": "spectacle_vivant",
+    "EVENEMENT_MUSIQUE": "spectacle_vivant",
+    "ABO_CONCERT": "spectacle_vivant",
+    "FESTIVAL_SPECTACLE": "spectacle_vivant",
+    "SPECTACLE_VENTE_DISTANCE": "spectacle_vivant",
+}
+PRICE_CHECK_CATEGORIES = ["instruments"]
