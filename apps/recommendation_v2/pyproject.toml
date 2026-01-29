@@ -1,0 +1,71 @@
+[project]
+name = "recommandation-api-v2"
+version = "0.1.0"
+readme = "README.md"
+description = "The new recommendation API of the pass Culture"
+requires-python = ">=3.13,<4.0"
+
+dependencies = [
+    "fastapi==0.128.0",
+    "uvicorn==0.40.0",
+]
+
+[dependency-groups]
+dev = [
+    "commitizen==4.12.1",
+    "ipdb==0.13.13",
+    "pgcli==4.4.0",
+    "pre-commit==4.5.1",
+    "pytest==9.0.2",
+    "ruff==0.14.14",
+    "ty==0.0.14",
+    "httpx>=0.28.1",
+]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # Pyflakes
+    "B",    # flake8-bugbear
+    "I",    # isort
+    "UP",   # pyupgrade (modern Python syntax)
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+    "TCH",  # flake8-type-checking
+    "TID",  # flake8-tidy-imports
+    "PT",   # flake8-pytest-style
+    "RUF",  # Ruff-specific rules
+    "FBT",  # flake8-boolean-trap
+    "PL",   # Pylint (includes PLC, PLE, PLR, PLW)
+    "DTZ",  # flake8-datetimez (for your DTZ003 rule)
+]
+
+[tool.ruff.lint.isort]
+case-sensitive = true
+force-single-line = true
+lines-after-imports = 2
+section-order = [
+  "future",
+  "standard-library",
+  "third-party",
+  "first-party",
+  "tests",
+  "local-folder",
+]
+
+[tool.ruff.lint.isort.sections]
+tests = ["tests"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+norecursedirs = [".git", "venv", ".pytest_cache"]
+python_files = ["*test.py", "test*.py"]
+python_classes = ["*Test"]
+python_functions = ["test_*", "when_*", "expect_*", "should_*"]
+verbosity_assertions = 2
