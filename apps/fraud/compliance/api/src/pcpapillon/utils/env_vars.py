@@ -43,7 +43,7 @@ cloud_trace_context = contextvars.ContextVar("cloud_trace_context", default="")
 call_id_trace_context = contextvars.ContextVar("call_id_context", default="")
 http_request_context = contextvars.ContextVar("http_request_context", default={})
 
-# # MLFlow
+# MLFlow
 MLFLOW_SECRET_ID = os.environ.get("MLFLOW_SECRET_ID", "mlflow_client_id")
 MLFLOW_CLIENT_ID = access_secret(GCP_PROJECT, MLFLOW_SECRET_ID)
 MLFLOW_URL = os.environ.get("MLFLOW_URL", "https://mlflow.staging.passculture.team/")
@@ -53,7 +53,7 @@ MLFLOW_TRACKING_TOKEN = os.environ.get("MLFLOW_TRACKING_TOKEN", None)
 MODEL_DEFAULT = os.environ.get("MODEL_DEFAULT", "compliance_model_dev")
 MODEL_STAGE = os.environ.get("MODEL_STAGE", "Production")
 
-### Search edito
+# Search edito
 SEARCH_EDITO_MODEL_ENDPOINT_NAME = os.environ.get(
     "SEARCH_EDITO_MODEL_ENDPOINT_NAME",
     f"semantic_search_edito_endpoint_{ENV_SHORT_NAME}",
