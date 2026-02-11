@@ -28,16 +28,6 @@ class LLMComplianceModel:
         """Setup API keys and environment variables."""
         load_dotenv()
 
-        # # OpenAI setup
-        # openai.api_key = OPENAI_API_KEY
-
-        # # Vertex AI setup (if needed)
-        # project_id = os.getenv("PROJECT_ID")
-        # location = os.getenv("LOCATION")
-        # if project_id and location:
-        #     vertexai.init(project=project_id, location=location)
-        #     logger.info("Vertex AI initialized")
-
     def predict(
         self, data: LLMComplianceInput
     ) -> ComplianceValidationStatusPredictionOutput:
