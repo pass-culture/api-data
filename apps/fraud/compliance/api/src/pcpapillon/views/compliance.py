@@ -2,9 +2,13 @@ import traceback
 
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
+from pcpapillon.core.compliance_model import (
+    ComplianceModel,
+)
 from pcpapillon.core.llm_compliance_model import LLMComplianceModel
 from pcpapillon.utils.env_vars import LLM_ALLOWED_SUBCATEGORY_WITH_MAPPING
 from pcpapillon.utils.logging.trace import custom_logger, get_call_id, setup_trace
+from pcpapillon.utils.scheduler import init_scheduler
 from pcpapillon.utils_llm.data_model_llm import (
     ComplianceOutput,
     LLMComplianceInput,
@@ -13,11 +17,11 @@ from pcpapillon.utils_llm.data_model_llm import (
 compliance_router = APIRouter(tags=["compliance"])
 
 
-# # Init model and scheduler
-# compliance_model = ComplianceModel()
-# compliance_scheduler = init_scheduler(
-#     compliance_model.reload_model_if_newer_is_available, time_interval=600
-# )
+# Init model and scheduler
+compliance_model = ComplianceModel()
+compliance_scheduler = init_scheduler(
+    compliance_model.reload_model_if_newer_is_available, time_interval=600
+)
 
 
 @compliance_router.post(
@@ -33,15 +37,8 @@ def model_compliance_scoring(scoring_input: LLMComplianceInput):
         "scoring_input": scoring_input.dict(),
     }
     input_data = scoring_input.dict()
-    # predictions = compliance_model.predict(data=scoring_input)
-    # predictions = predictions.dict()
-    predictions = {
-        "offer_id": scoring_input.dict()["offer_id"],
-        "probability_validated": 0.0,
-        "validation_main_features": [],
-        "probability_rejected": 0.0,
-        "rejection_main_features": [],
-    }
+    predictions = compliance_model.predict(data=scoring_input)
+    predictions = predictions.dict()
     if (
         input_data["offer_subcategory_id"]
         in LLM_ALLOWED_SUBCATEGORY_WITH_MAPPING.keys()
@@ -51,8 +48,9 @@ def model_compliance_scoring(scoring_input: LLMComplianceInput):
             rule_apply = LLM_ALLOWED_SUBCATEGORY_WITH_MAPPING.get(
                 input_data["offer_subcategory_id"]
             )
+            # Here only instruments need a price check
             if rule_apply == "instruments":
-                llm_model.config["validation"] = "sequential_pipeline"
+                llm_model.config["validation"]["mode"] = "sequential_pipeline"
             predictions_llm = llm_model.predict(data=scoring_input)
             predictions.update(predictions_llm.model_dump(mode="json"))
         except Exception as err:
