@@ -2,7 +2,6 @@ import os
 
 import pandas as pd
 import yaml
-from dotenv import load_dotenv
 from pcpapillon.utils_llm.data_model_llm import (
     ComplianceValidationStatusPredictionOutput,
     LLMComplianceInput,
@@ -24,10 +23,6 @@ class LLMComplianceModel:
         with open(config_path) as f:
             return yaml.safe_load(f)
 
-    def _setup_environment(self):
-        """Setup API keys and environment variables."""
-        load_dotenv()
-
     def predict(
         self, data: LLMComplianceInput
     ) -> ComplianceValidationStatusPredictionOutput:
@@ -41,7 +36,6 @@ class LLMComplianceModel:
             ComplianceOutput: An object containing the predicted class labels
                 and the main contributions.
         """
-        self._setup_environment()
         data = pd.DataFrame.from_dict([data.model_dump()])
 
         # Drop des colonnes inutiles
@@ -64,7 +58,6 @@ class LLMComplianceModel:
             explanation = results_dict.get("explication_finale")
 
         normalized_output = {
-            # "offer_id": results_dict.get("offer_id"),
             "validation_status_prediction": response,
             "validation_status_prediction_reason": explanation,
         }

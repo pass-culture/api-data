@@ -22,7 +22,6 @@ compliance_model = ComplianceModel()
 compliance_scheduler = init_scheduler(
     compliance_model.reload_model_if_newer_is_available, time_interval=600
 )
-llm_model = LLMComplianceModel()
 
 
 @compliance_router.post(
@@ -40,6 +39,8 @@ def model_compliance_scoring(scoring_input: LLMComplianceInput):
     input_data = scoring_input.dict()
     predictions = compliance_model.predict(data=scoring_input)
     predictions = predictions.dict()
+
+    llm_model = LLMComplianceModel()
     if (
         input_data["offer_subcategory_id"]
         in LLM_ALLOWED_SUBCATEGORY_WITH_MAPPING.keys()
