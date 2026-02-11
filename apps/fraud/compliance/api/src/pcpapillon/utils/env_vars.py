@@ -47,13 +47,27 @@ MLFLOW_TRACKING_TOKEN = os.environ.get("MLFLOW_TRACKING_TOKEN", None)
 MODEL_DEFAULT = os.environ.get("MODEL_DEFAULT", "compliance_model_dev")
 MODEL_STAGE = os.environ.get("MODEL_STAGE", "Production")
 
-### LLM Keys
-OPENAI_API_KEY = os.environ.get(
-    "OPENAI_API_KEY", access_secret(GCP_PROJECT, "openai_api_key")
-)
-os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
-### Search edito
+# Search edito
 SEARCH_EDITO_MODEL_ENDPOINT_NAME = os.environ.get(
     "SEARCH_EDITO_MODEL_ENDPOINT_NAME",
     f"semantic_search_edito_endpoint_{ENV_SHORT_NAME}",
 )
+
+LLM_ALLOWED_SUBCATEGORY_WITH_MAPPING = {
+    "ACHAT_INSTRUMENT": "instruments",
+    "LOCATION_INSTRUMENT": "instruments",
+    "PARTITION": "instruments",
+    "ABO_PRATIQUE_ART": "pratiques_artistiques",
+    "ATELIER_PRATIQUE_ART": "pratiques_artistiques",
+    "LIVESTREAM_PRATIQUE_ARTISTIQUE": "pratiques_artistiques",
+    "SEANCE_ESSAI_PRATIQUE_ART": "pratiques_artistiques",
+    "PRATIQUE_ART_VENTE_DISTANCE": "pratiques_artistiques",
+    "CONCERT": "spectacle_vivant",
+    "SPECTACLE_REPRESENTATION": "spectacle_vivant",
+    "FESTIVAL_MUSIQUE": "spectacle_vivant",
+    "EVENEMENT_MUSIQUE": "spectacle_vivant",
+    "ABO_CONCERT": "spectacle_vivant",
+    "FESTIVAL_SPECTACLE": "spectacle_vivant",
+    "SPECTACLE_VENTE_DISTANCE": "spectacle_vivant",
+}
+PRICE_CHECK_CATEGORIES = ["instruments"]
