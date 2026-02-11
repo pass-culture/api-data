@@ -4,7 +4,10 @@ import os
 from dotenv import load_dotenv
 from google.cloud import secretmanager
 
-load_dotenv()
+# Only load .env files automatically in dev environments to avoid
+# overriding real environment variables in production.
+if os.environ.get("ENV_SHORT_NAME", "dev") == "dev":
+    load_dotenv()
 
 
 def access_secret(project_id, secret_id):
