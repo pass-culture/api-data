@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import HTTPException, Request
+
 from huggy.utils.env_vars import (
     API_LOCAL,
     API_TOKEN,

@@ -1,4 +1,3 @@
-from typing import List
 
 from pydantic import BaseModel
 
@@ -10,5 +9,5 @@ class RecommendationMetadata(BaseModel):
 
 
 class RecommendationResponse(BaseModel):
-    playlist_recommended_offers: List[str]
+    playlist_recommended_offers: list[str]
     params: RecommendationMetadata

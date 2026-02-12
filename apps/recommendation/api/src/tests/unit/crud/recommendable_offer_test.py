@@ -1,13 +1,14 @@
 import logging
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from huggy.crud.recommendable_offer import RecommendableOffer as RecommendableOfferDB
 from huggy.schemas.item import RecommendableItem
 from huggy.schemas.offer import OfferDistance
 from huggy.schemas.recommendable_offer import RecommendableOffer
 from huggy.schemas.user import UserContext
 from huggy.utils.distance import haversine_distance
-from sqlalchemy.ext.asyncio import AsyncSession
 from tests.db.schema.iris import (
     iris_marseille_cours_julien,
     iris_marseille_vieux_port,

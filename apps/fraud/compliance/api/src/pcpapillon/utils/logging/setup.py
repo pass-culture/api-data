@@ -2,6 +2,7 @@ import logging
 
 import google.cloud.logging
 from fastapi.logger import logger as fastapi_logger
+
 from pcpapillon.utils.env_vars import IS_API_LOCAL
 from pcpapillon.utils.logging.custom_logger import CustomLogger
 from pcpapillon.utils.logging.google_cloud_log_filter import GoogleCloudLogFilter

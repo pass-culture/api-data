@@ -1,7 +1,6 @@
 from huggy.schemas.item import RecommendableItem
 from huggy.schemas.offer import OfferDistance
 from huggy.utils.distance import haversine_distance
-
 from tests.db.schema.iris import (
     IrisTestExample,
     iris_marseille_cours_julien,

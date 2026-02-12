@@ -1,6 +1,7 @@
 import json
 
 import pytest
+
 from huggy.core.model_selection.model_configuration import parse_model_enpoint
 from huggy.schemas.playlist_params import PlaylistParams
 

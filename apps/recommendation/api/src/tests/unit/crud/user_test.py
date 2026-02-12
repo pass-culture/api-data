@@ -1,9 +1,10 @@
 import logging
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from huggy.crud.user import UserContextDB
 from huggy.schemas.user import UserProfileDB
-from sqlalchemy.ext.asyncio import AsyncSession
 from tests.db.schema.iris import IrisTestExample, iris_nok, iris_paris_chatelet
 from tests.db.schema.user import (
     user_profile_111,

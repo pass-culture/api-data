@@ -6,6 +6,8 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from huggy import init_app
 from huggy.database.config import config
 from huggy.database.database import sessionmanager
@@ -27,8 +29,6 @@ from huggy.models.recommendable_offers_raw import (
     RecommendableOffersRawMvOld,
     RecommendableOffersRawMvTmp,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from tests.db import (
     create_enriched_user_mv,
     create_enriched_user_mv_old,
