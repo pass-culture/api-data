@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi.encoders import jsonable_encoder
+
 from huggy.core.endpoint import VERTEX_CACHE, AbstractEndpoint
 from huggy.schemas.item import RecommendableItem
 from huggy.schemas.offer import Offer

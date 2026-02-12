@@ -1,6 +1,7 @@
 import uuid
 
 import pytest
+
 from huggy.utils.hash import hash_from_keys
 
 SIMILAR_OFFER_INSTANCE = {

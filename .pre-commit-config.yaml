@@ -21,14 +21,24 @@ repos:
     language: python
     types: [python]
     stages: [pre-commit]
-    additional_dependencies: [ruff==0.4.8]
+    additional_dependencies: [ruff==0.14.14]
+
   - id: lint-check
     name: Linting (ruff)
     entry: ruff check --fix
     language: python
     types: [python]
     stages: [pre-commit]
-    additional_dependencies: [ruff==0.4.8]
+    additional_dependencies: [ruff==0.14.14]
+
+  - id: ty-reco-v2
+    name: ty (recommendation_v2)
+    entry: env PYTHONPATH=apps/recommendation_v2/src uv run --project apps/recommendation_v2 ty check apps/recommendation_v2/src
+    language: system
+    pass_filenames: false
+    types: [python]
+    files: ^apps/recommendation_v2/src/
+    stages: [pre-commit]
 
 - repo: https://github.com/gitguardian/ggshield
   rev: v1.42.0

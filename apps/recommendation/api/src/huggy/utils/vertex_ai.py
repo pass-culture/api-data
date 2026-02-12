@@ -9,6 +9,7 @@ from google.api_core.exceptions import DeadlineExceeded
 from google.cloud import aiplatform
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value
+
 from huggy.utils.cloud_logging import logger
 from huggy.utils.env_vars import GCP_PROJECT
 

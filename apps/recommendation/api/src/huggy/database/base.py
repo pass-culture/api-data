@@ -1,8 +1,9 @@
 from abc import abstractmethod
 
-from huggy.database.utils import check_table_exists
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import declarative_base
+
+from huggy.database.utils import check_table_exists
 
 Base = declarative_base()
 

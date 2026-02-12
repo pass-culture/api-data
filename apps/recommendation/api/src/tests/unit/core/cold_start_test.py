@@ -1,4 +1,5 @@
 import pytest
+
 from huggy.core.model_selection import RECOMMENDATION_ENDPOINTS
 from huggy.schemas.user import UserContext
 

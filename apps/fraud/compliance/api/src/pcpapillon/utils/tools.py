@@ -4,13 +4,14 @@ import os
 import mlflow
 from google.auth.transport.requests import Request
 from google.oauth2 import service_account
-from pcpapillon.utils.env_vars import (
+
+from pcpapillon.utils.constants import (
     GCP_PROJECT,
     MLFLOW_CLIENT_ID,
     MLFLOW_URL,
     SA_ACCOUNT,
-    access_secret,
 )
+from pcpapillon.utils.secrets import access_secret
 
 
 def connect_remote_mlflow():

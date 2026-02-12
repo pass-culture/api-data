@@ -1,6 +1,7 @@
 from geoalchemy2 import Geometry
-from huggy.database.base import Base, MaterializedBase
 from sqlalchemy import Column, Integer, String
+
+from huggy.database.base import Base, MaterializedBase
 
 
 class IrisFrance(MaterializedBase):

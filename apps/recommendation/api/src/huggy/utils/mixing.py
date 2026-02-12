@@ -2,6 +2,7 @@ import collections
 import random
 
 import numpy as np
+
 from huggy.schemas.recommendable_offer import RankedOffer
 from huggy.utils.env_vars import NUMBER_OF_RECOMMENDATIONS
 

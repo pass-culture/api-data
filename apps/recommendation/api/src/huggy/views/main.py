@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+
 from huggy.utils.cloud_logging import logger
 from huggy.views.common import setup_trace
 

@@ -4,6 +4,7 @@ Response parsing utilities for LLM outputs.
 
 import pandas as pd
 from langchain.output_parsers.structured import ResponseSchema, StructuredOutputParser
+
 from pcpapillon.utils_llm.rules.subcategory_rules_mapping import get_rules_file
 
 

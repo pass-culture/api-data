@@ -1,13 +1,14 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 import huggy.schemas.offer as o
 from huggy.core.model_engine import ModelEngine
 from huggy.core.model_engine.recommendation import Recommendation
 from huggy.core.model_engine.similar_offer import SimilarOffer
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass
