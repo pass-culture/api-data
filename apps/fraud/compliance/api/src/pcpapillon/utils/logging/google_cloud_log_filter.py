@@ -2,7 +2,7 @@ import logging
 
 from google.cloud.logging_v2.handlers import CloudLoggingFilter
 
-from pcpapillon.utils.env_vars import (
+from pcpapillon.utils.constants import (
     cloud_trace_context,
     http_request_context,
 )

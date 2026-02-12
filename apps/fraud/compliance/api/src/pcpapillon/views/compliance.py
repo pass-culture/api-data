@@ -7,7 +7,7 @@ from pcpapillon.core.compliance_model import (
     ComplianceModel,
 )
 from pcpapillon.core.llm_compliance_model import LLMComplianceModel
-from pcpapillon.utils.env_vars import (
+from pcpapillon.utils.constants import (
     LLM_ALLOWED_SUBCATEGORY_WITH_MAPPING,
     PRICE_CHECK_CATEGORIES,
 )
