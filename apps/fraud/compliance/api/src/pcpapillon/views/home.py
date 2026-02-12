@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+
 from main import custom_logger
 from pcpapillon.utils.logging.trace import get_call_id, setup_trace
 

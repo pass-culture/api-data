@@ -3,6 +3,8 @@ import typing as t
 from dataclasses import dataclass
 from typing import Optional
 
+from pydantic import BaseModel, ConfigDict, Field
+
 import huggy.core.model_selection.endpoint.user_ranking as user_ranking
 import huggy.core.scorer.offer as offer_scorer
 from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
@@ -20,7 +22,6 @@ from huggy.schemas.model_selection.model_configuration import (
 from huggy.schemas.offer import Offer
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
-from pydantic import BaseModel, ConfigDict, Field
 
 
 class DiversificationParams(BaseModel):

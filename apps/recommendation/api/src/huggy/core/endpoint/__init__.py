@@ -3,6 +3,7 @@ from typing import Optional
 
 from aiocache import Cache
 from aiocache.serializers import PickleSerializer
+
 from huggy.utils.hash import hash_from_keys
 
 VERTEX_CACHE = Cache(

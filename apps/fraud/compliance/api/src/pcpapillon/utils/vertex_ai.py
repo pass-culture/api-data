@@ -1,4 +1,5 @@
 from google.cloud import aiplatform
+
 from pcpapillon.utils.env_vars import GCP_LOCATION, GCP_PROJECT
 
 

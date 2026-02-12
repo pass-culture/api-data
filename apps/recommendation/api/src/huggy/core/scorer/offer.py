@@ -2,13 +2,16 @@ import asyncio
 import typing as t
 from dataclasses import dataclass
 
+from aiocache import Cache
+from aiocache.serializers import PickleSerializer
+from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 import huggy.schemas.item as i
 import huggy.schemas.offer as o
 import huggy.schemas.playlist_params as pp
 import huggy.schemas.recommendable_offer as r_o
 import huggy.schemas.user as u
-from aiocache import Cache
-from aiocache.serializers import PickleSerializer
 from huggy.core.endpoint.ranking_endpoint import RankingEndpoint
 from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
 from huggy.crud.non_recommendable_offer import get_non_recommendable_items
@@ -18,8 +21,6 @@ from huggy.utils.cloud_logging import logger
 from huggy.utils.distance import haversine_distance
 from huggy.utils.exception import log_error
 from huggy.utils.hash import hash_from_keys
-from sqlalchemy.exc import ProgrammingError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 OFFER_DB_CACHE = Cache(
     Cache.MEMORY, ttl=3000, serializer=PickleSerializer(), namespace="offer_db_cache"

@@ -1,5 +1,6 @@
-from huggy.database.database import sessionmanager
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from huggy.database.database import sessionmanager
 
 
 async def get_db() -> AsyncSession:
