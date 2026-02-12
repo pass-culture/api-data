@@ -1,7 +1,9 @@
 import contextvars
 from enum import Enum
 
-from pcpapillon.utils.env_vars import ENV_SHORT_NAME
+from loguru import logger as local_logger
+
+from pcpapillon.utils.env_vars import ENV_SHORT_NAME, GCP_LOCATION
 from pcpapillon.utils.secrets import access_secret
 
 
@@ -25,7 +27,9 @@ GCP_PROJECT = (
     "passculture-data-prod" if ENV_SHORT_NAME == "prod" else "passculture-data-ehp"
 )
 SA_ACCOUNT = f"algo-training-{ENV_SHORT_NAME}"
-
+local_logger.info(
+    f"ENV_SHORT_NAME: {ENV_SHORT_NAME}, SA_ACCOUNT: {SA_ACCOUNT}, GCP_PROJECT: {GCP_PROJECT}, GCP_LOCATION: {GCP_LOCATION}"
+)
 
 # MLFlow
 MLFLOW_CLIENT_ID = access_secret(GCP_PROJECT, "mlflow_client_id")
