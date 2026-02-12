@@ -196,9 +196,9 @@ class RecommendableOfferTest:
         )
 
         # Assert that the list sizes match
-        assert len(result_offers) == len(
-            expected_offers
-        ), "Lists should have the same size."
+        assert len(result_offers) == len(expected_offers), (
+            "Lists should have the same size."
+        )
 
         # Compare each result and expected offer
         for result, expected in zip(result_offers, expected_offers):
@@ -206,6 +206,6 @@ class RecommendableOfferTest:
             assert result.offer_id == expected.offer_id, "Offer IDs should match."
 
             # Assert that the distances are approximately equal in kilometers
-            assert (
-                abs(result.user_distance - expected.user_distance) // 1000 == 0
-            ), "Distances should be the same in kilometers."
+            assert abs(result.user_distance - expected.user_distance) // 1000 == 0, (
+                "Distances should be the same in kilometers."
+            )
