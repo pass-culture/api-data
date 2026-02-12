@@ -2,10 +2,15 @@ import traceback
 
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
+
 from pcpapillon.core.compliance_model import (
     ComplianceModel,
 )
 from pcpapillon.core.llm_compliance_model import LLMComplianceModel
+from pcpapillon.utils.env_vars import (
+    LLM_ALLOWED_SUBCATEGORY_WITH_MAPPING,
+    PRICE_CHECK_CATEGORIES,
+)
 from pcpapillon.utils.logging.trace import custom_logger, get_call_id, setup_trace
 from pcpapillon.utils.scheduler import init_scheduler
 from pcpapillon.utils_llm.data_model_llm import (
@@ -35,11 +40,21 @@ def model_compliance_scoring(scoring_input: LLMComplianceInput):
         "offer_id": scoring_input.dict()["offer_id"],
         "scoring_input": scoring_input.dict(),
     }
+    input_data = scoring_input.dict()
     predictions = compliance_model.predict(data=scoring_input)
     predictions = predictions.dict()
-    if scoring_input.dict()["offer_subcategory_id"] == "ACHAT_INSTRUMENT":
+    if (
+        input_data["offer_subcategory_id"]
+        in LLM_ALLOWED_SUBCATEGORY_WITH_MAPPING.keys()
+    ):
         try:
             llm_model = LLMComplianceModel()
+            rule_apply = LLM_ALLOWED_SUBCATEGORY_WITH_MAPPING.get(
+                input_data["offer_subcategory_id"]
+            )
+            # Here only instruments need a price check
+            if rule_apply in PRICE_CHECK_CATEGORIES:
+                llm_model.config["validation"]["mode"] = "sequential_pipeline"
             predictions_llm = llm_model.predict(data=scoring_input)
             predictions.update(predictions_llm.model_dump(mode="json"))
         except Exception as err:
