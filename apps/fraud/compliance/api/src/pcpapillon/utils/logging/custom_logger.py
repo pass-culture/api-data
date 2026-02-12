@@ -1,4 +1,4 @@
-from pcpapillon.utils.env_vars import call_id_trace_context
+from pcpapillon.utils.constants import call_id_trace_context
 
 
 class CustomLogger:

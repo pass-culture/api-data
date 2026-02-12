@@ -3,7 +3,7 @@ import uuid
 from fastapi import Request
 
 from main import custom_logger
-from pcpapillon.utils.env_vars import call_id_trace_context, cloud_trace_context
+from pcpapillon.utils.constants import call_id_trace_context, cloud_trace_context
 
 
 async def setup_trace(request: Request):
