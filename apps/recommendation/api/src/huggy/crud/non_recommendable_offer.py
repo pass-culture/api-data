@@ -1,9 +1,10 @@
-from huggy.models.non_recommendable_items import NonRecommendableItems
-from huggy.schemas.user import UserContext
-from huggy.utils.exception import log_error
 from sqlalchemy import select
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from huggy.models.non_recommendable_items import NonRecommendableItems
+from huggy.schemas.user import UserContext
+from huggy.utils.exception import log_error
 
 
 async def get_non_recommendable_items(db: AsyncSession, user: UserContext) -> list[str]:

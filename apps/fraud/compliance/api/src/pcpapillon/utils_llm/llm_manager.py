@@ -8,6 +8,7 @@ from langchain import LLMChain
 from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from loguru import logger
+
 from pcpapillon.utils_llm.models import LLMConfig
 
 
@@ -44,22 +45,7 @@ def get_llm_chain(config: LLMConfig, langchain_prompt: ChatPromptTemplate) -> LL
     logger.debug(f"Using prompt template of type: {config.prompt_type}")
 
     try:
-        if config.provider == "openai":
-            model_string = f"openai:{config.model}"
-            if config.model == "o4-mini-2025-04-16":
-                llm = init_chat_model(model_string)
-                logger.info(
-                    f"Initialized OpenAI model: {config.model} "
-                    f"with temperature {config.temperature}"
-                )
-            else:
-                llm = init_chat_model(model_string, temperature=config.temperature)
-                logger.info(
-                    f"Initialized OpenAI model: {config.model} "
-                    f"with temperature {config.temperature}"
-                )
-
-        elif config.provider == "google":
+        if config.provider == "google":
             model_string = f"google_vertexai:{config.model}"
             llm = init_chat_model(model_string, temperature=config.temperature)
             logger.info(

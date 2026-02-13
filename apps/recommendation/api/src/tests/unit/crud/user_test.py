@@ -1,9 +1,10 @@
 import logging
 
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from huggy.crud.user import UserContextDB
 from huggy.schemas.user import UserProfileDB
-from sqlalchemy.ext.asyncio import AsyncSession
 from tests.db.schema.iris import IrisTestExample, iris_nok, iris_paris_chatelet
 from tests.db.schema.user import (
     user_profile_111,
@@ -49,15 +50,15 @@ class UserTest:
                 result_user.user_deposit_remaining_credit
                 == user.user_deposit_remaining_credit
             ), "user_deposit_remaining_credit is right"
-            assert (
-                result_user.clicks_count == user.clicks_count
-            ), "clicks_count is right"
-            assert (
-                result_user.bookings_count == user.bookings_count
-            ), "bookings_count is right"
-            assert (
-                result_user.favorites_count == user.favorites_count
-            ), "favorites_count is right"
+            assert result_user.clicks_count == user.clicks_count, (
+                "clicks_count is right"
+            )
+            assert result_user.bookings_count == user.bookings_count, (
+                "bookings_count is right"
+            )
+            assert result_user.favorites_count == user.favorites_count, (
+                "favorites_count is right"
+            )
 
     @pytest.mark.parametrize(
         ("user", "iris", "found"),
@@ -88,12 +89,12 @@ class UserTest:
             == user.user_deposit_remaining_credit
         ), "user_deposit_remaining_credit is right"
         assert result_user.clicks_count == user.clicks_count, "clicks_count is right"
-        assert (
-            result_user.bookings_count == user.bookings_count
-        ), "bookings_count is right"
-        assert (
-            result_user.favorites_count == user.favorites_count
-        ), "favorites_count is right"
+        assert result_user.bookings_count == user.bookings_count, (
+            "bookings_count is right"
+        )
+        assert result_user.favorites_count == user.favorites_count, (
+            "favorites_count is right"
+        )
         assert result_user.user_id == user.user_id, "user_id is right"
         assert result_user.longitude == iris.longitude, "longitude is right"
         assert result_user.latitude == iris.latitude, "latitude is right"

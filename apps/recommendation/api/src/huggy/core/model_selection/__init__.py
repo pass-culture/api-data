@@ -1,6 +1,8 @@
 from typing import Optional
 
 from fastapi.exceptions import HTTPException
+from pydantic import ValidationError
+
 from huggy.core.model_selection.model_configuration.configuration import (
     ForkOut,
     ModelEnpointInput,
@@ -33,7 +35,6 @@ from huggy.utils.env_vars import (
     VERSION_C_RECO_MODEL_DESCRIPTION,
     VERSION_C_SIMILAR_OFFER_DESCRIPTION,
 )
-from pydantic import ValidationError
 
 RECOMMENDATION_ENDPOINTS = {
     # Default endpoint

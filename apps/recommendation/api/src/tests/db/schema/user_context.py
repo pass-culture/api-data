@@ -1,5 +1,4 @@
 from huggy.schemas.user import UserContext
-
 from tests.db.schema.iris import (
     iris_marseille_cours_julien,
     iris_marseille_vieux_port,

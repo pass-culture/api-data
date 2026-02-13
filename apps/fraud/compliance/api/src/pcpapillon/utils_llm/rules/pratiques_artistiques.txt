@@ -1,0 +1,37 @@
+**Règle n°1 : Éligibilité générale des pratiques artistiques**
+
+On entend par pratique artistique un abonnement ou séance pour des cours et ateliers de pratique artistique et culturelle. La pratique artistique doit prendre appui sur un art (danse, théâtre, arts plastiques, écriture…) ou sur un métier d'art (broderie, calligraphie, *etc.*) et faire appel à la créativité individuelle ou collective.
+
+L'offre proposée doit avoir une dimension culturelle ou artistique. Un atelier portant sur la Culture Scientifique Technique et Industrielle (CSTI) est éligible.
+
+**Règle n°2 : Description précise de la pratique artistique.**
+
+Les offres de la catégorie "pratique artistique" doivent comporter des éléments de prix, de durée, de type de public, de fréquence et mentionner le type précis de pratique artistique. Plus de souplesse sur cette règle est possible si l'acteur proposant l'offre est un Conservatoire, et qu'il cible un bénéficiaire précis (stock = 1).
+
+**Règle n°3 : Liste des pratiques artistiques non éligibles.**
+
+- Seules les danses inscrites à la Fédération Française de Danse sont éligibles.  La capoeira, la danse du dragon, effeuillage sont inéligibles.
+- Les pratiques artistiques animées via une plateforme en ligne sont inéligibles.
+- La location de studio photo/d’enregistrement/salle de répétition n’est éligible que si elle est gratuite et proposée par un établissement public.
+- Les offres de pratiques des jeux vidéo, sauf si elles sont gratuites et organisée par une médiathèque ou une bibliothèque, sont inéligibles.
+- Les offres d’ateliers ou concours de jeux de société sont inéligibles, même si gratuites.
+- Les escape games ne sont pas éligibles.
+- Les offres de bien-être - type yoga, sophrologie, méditation, art-thérapie - sont inéligibles.
+- Les offres d’atelier de cuisine ou de dégustation ne sont pas éligibles.
+- Un acteur culturel ne peut pas proposer de cours se déroulant chez lui.
+
+**Règle n°4 : Caractère non nominatif**
+
+Même si l'offre n'a été créée que pour un bénéficiaire (stock = 1), elle ne peut pas être nominative, pour des raisons de RGPD. Une offre nommant le bénéficiaire ou le professeur n'est pas éligible.
+
+**Règle n°5 : Inéligibilité des formations à visée professionnelle.**
+
+Une offre de formation (en particulier diplômante) n’est pas éligible. L’objet du pass Culture n’est pas la formation de professionnelle. L'objectif principal de la "pratique artistique" sur le pass Culture est l'initiation, la découverte, l'expression personnelle et l'engagement culturel, plutôt que l'acquisition de compétences professionnelles certifiées. La durée, l'intensité et l'objectif pédagogique (loisirs vs. professionnalisation) sont des indicateurs clés.
+
+**Règle n°6 : Participation à l’achat.**
+
+Si le prix de l'inscription à la pratique artistique dépasse le plafond des 300€ de crédit alloué aux jeunes, il est possible de proposer une participation du montant sur le pass Culture, mais toujours pour une pratique spécifique et identifiée. Le montant de la participation du pass Culture et le montant restant à la charge du bénéficiaire le cas échéant doivent être précisés dans la description de l’offre.
+
+**Règle n°7 : Exclusion des offres proposant des boissons ou de la nourriture**
+
+Les offres incluant des boissons ou de la nourriture, même si elles sont offertes, sont inéligibles. La consommation d’alcool ne doit pas être l’objet de l’offre sur le pass Culture.

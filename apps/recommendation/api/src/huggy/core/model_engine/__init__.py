@@ -2,9 +2,11 @@ import datetime
 from abc import ABC, abstractmethod
 from typing import Optional
 
-import huggy.schemas.offer as o
 import pytz
 from fastapi.encoders import jsonable_encoder
+from sqlalchemy.ext.asyncio import AsyncSession
+
+import huggy.schemas.offer as o
 from huggy.core.model_selection.model_configuration.configuration import (
     ForkOut,
 )
@@ -16,7 +18,6 @@ from huggy.schemas.user import UserContext
 from huggy.utils.cloud_logging import logger
 from huggy.utils.env_vars import NUMBER_OF_RECOMMENDATIONS
 from huggy.utils.mixing import order_offers_by_score_and_diversify_features
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ModelEngine(ABC):

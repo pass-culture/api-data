@@ -4,13 +4,14 @@ from dataclasses import dataclass
 
 import mlflow
 import mlflow.pyfunc
-from main import custom_logger
 from mlflow import MlflowClient
+from sentence_transformers import SentenceTransformer
+
+from main import custom_logger
 from pcpapillon.utils.env_vars import (
     ENV_SHORT_NAME,
 )
 from pcpapillon.utils.tools import connect_remote_mlflow
-from sentence_transformers import SentenceTransformer
 
 
 @dataclass
