@@ -63,7 +63,7 @@ jobs:
           TARGET_ENV: ${{ inputs.TARGET_ENV }}
         run: |
           newman run api_integration_tests_backend.postman_collection.json \
-            --environment "$TARGET_ENV_backend.postman_environment.json"
+            --environment "${TARGET_ENV}_backend.postman_environment.json"
       - name: "Post to a Slack channel"
         if: failure()
         uses: slackapi/slack-github-action@v1.23.0
