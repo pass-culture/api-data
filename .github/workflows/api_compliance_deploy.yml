@@ -21,11 +21,11 @@ jobs:
         id: "set-variable"
         run: |
           if [ ${{ github.ref }} = 'refs/heads/staging' ]; then
-            echo "env_name=staging" >> $GITHUB_OUTPUT
+            echo "env_name=staging" >> "$GITHUB_OUTPUT"
           elif [ ${{ github.ref }} = 'refs/heads/production' ]; then
-            echo "env_name=production" >> $GITHUB_OUTPUT
+            echo "env_name=production" >> "$GITHUB_OUTPUT"
           else
-            echo "env_name=dev" >> $GITHUB_OUTPUT
+            echo "env_name=dev" >> "$GITHUB_OUTPUT"
           fi
   deploy-api-compliance:
     needs: setup-job
@@ -75,13 +75,13 @@ jobs:
               "attachments": [
                 {
                   "mrkdwn_in": ["text"],
-                  "color": "${{ fromJSON('["#36a64f", "#A30002"]')[ env.WORKFLOW_CONCLUSION == 'failure'] }}",
+                  "color": "${{ fromJSON('["#36a64f", "#A30002"]')[(env.WORKFLOW_CONCLUSION == 'failure') && 1 || 0] }}",
                   "author_name": "${{github.actor}}",
                   "author_link": "https://github.com/${{github.actor}}",
                   "author_icon": "https://github.com/${{github.actor}}.png",
                   "title": "API Compliance Deployment",
                   "title_link": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}",
-                  "text": "Le déploiement de `l'API Compliance sur ${{ needs.setup-job.outputs.env_name }}` est ${{ fromJSON('["réussi", "échoué"]')[env.WORKFLOW_CONCLUSION == 'failure'] }} ${{ fromJSON('[":muscle:", ":boom:"]')[env.WORKFLOW_CONCLUSION == 'failure'] }}"
+                  "text": "Le déploiement de `l'API Compliance sur ${{ needs.setup-job.outputs.env_name }}` est ${{ fromJSON('["réussi", "échoué"]')[(env.WORKFLOW_CONCLUSION == 'failure') && 1 || 0] }} ${{ fromJSON('[":muscle:", ":boom:"]')[(env.WORKFLOW_CONCLUSION == 'failure') && 1 || 0] }}"
                 }
               ],
               "unfurl_links": false,
