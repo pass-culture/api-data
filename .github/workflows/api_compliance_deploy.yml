@@ -15,14 +15,16 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       env_name: ${{ steps.set-variable.outputs.env_name }}
+    env:
+      REF: ${{ github.ref }}
     steps:
       - uses: actions/checkout@v4
       - name: "Set environment variable"
         id: "set-variable"
         run: |
-          if [ ${{ github.ref }} = 'refs/heads/staging' ]; then
+          if [ "$REF" = 'refs/heads/staging' ]; then
             echo "env_name=staging" >> "$GITHUB_OUTPUT"
-          elif [ ${{ github.ref }} = 'refs/heads/production' ]; then
+          elif [ "$REF" = 'refs/heads/production' ]; then
             echo "env_name=production" >> "$GITHUB_OUTPUT"
           else
             echo "env_name=dev" >> "$GITHUB_OUTPUT"
