@@ -1,7 +1,7 @@
 import random
 from collections import defaultdict
 
-from models.offer import RecommendableOffers
+from schemas.enriched_offer import EnrichedRecommendableOffer
 
 
 PRIMARY_MIXING_FEATURE = "search_group_name"
@@ -11,18 +11,18 @@ DEFAULT_SUB_MIXING_CONFIG = {
 
 
 def _group_offers_by_attribute(
-    offers: list[RecommendableOffers], attribute_name: str
-) -> dict[str, list[RecommendableOffers]]:
+    offers: list[EnrichedRecommendableOffer], attribute_name: str
+) -> dict[str, list[EnrichedRecommendableOffer]]:
     """
     Groups a flat list of offers into a dictionary based on a specific attribute.
 
     Args:
-        offers (list[RecommendableOffers]): The list of offers to group.
+        offers (list[EnrichedRecommendableOffer]): The list of offers to group.
         attribute_name (str): The name of the attribute to use as the grouping key
                               (e.g., 'search_group_name' or 'gtl_id').
 
     Returns:
-        dict[str, list[RecommendableOffers]]: A dictionary where keys are the attribute values
+        dict[str, list[EnrichedRecommendableOffer]]: A dictionary where keys are the attribute values
                                               and values are lists of matching offers.
                                               Defaults to the key 'OTHER' if the attribute is missing.
     """
@@ -37,8 +37,8 @@ def _group_offers_by_attribute(
 
 
 def _interleave_offer_groups_round_robin(
-    offer_groups: dict[str, list[RecommendableOffers]],
-) -> list[RecommendableOffers]:
+    offer_groups: dict[str, list[EnrichedRecommendableOffer]],
+) -> list[EnrichedRecommendableOffer]:
     """
     Merges multiple grouped lists of offers using a Round-Robin algorithm.
 
@@ -54,10 +54,10 @@ def _interleave_offer_groups_round_robin(
         Output sequence: A1 -> B1 -> C1 -> A2 -> B2 -> A3
 
     Args:
-        offer_groups (dict[str, list[RecommendableOffers]]): The grouped offers to interleave.
+        offer_groups (dict[str, list[EnrichedRecommendableOffer]]): The grouped offers to interleave.
 
     Returns:
-        list[RecommendableOffers]: A single, flat, diversified list of offers.
+        list[EnrichedRecommendableOffer]: A single, flat, diversified list of offers.
     """
     interleaved_result = []
 
@@ -87,11 +87,11 @@ def _interleave_offer_groups_round_robin(
 
 
 def apply_offer_diversification(
-    offers: list[RecommendableOffers],
+    offers: list[EnrichedRecommendableOffer],
     sub_mixing_configuration: dict[str, str] | None = None,
     *,
     should_shuffle_initial_list: bool = False,
-) -> list[RecommendableOffers]:
+) -> list[EnrichedRecommendableOffer]:
     """
     Applies business rules to ensure the final recommendation playlist is diverse.
 
@@ -100,14 +100,14 @@ def apply_offer_diversification(
     sub-mixing for specific categories (e.g., mixing Manga with Sci-Fi within Books).
 
     Args:
-        offers (list[RecommendableOffers]): The ranked list of offers.
+        offers (list[EnrichedRecommendableOffer]): The ranked list of offers.
         sub_mixing_configuration (dict[str, str] | None): Mapping of category to its sub-feature.
                                                           Defaults to DEFAULT_SUB_MIXING_CONFIG.
         should_shuffle_initial_list (bool): If True, randomly shuffles offers before grouping.
                                             Defaults to False.
 
     Returns:
-        list[RecommendableOffers]: The diversified playlist ready to be truncated and returned.
+        list[EnrichedRecommendableOffer]: The diversified playlist ready to be truncated and returned.
     """
     if not offers:
         return []

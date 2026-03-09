@@ -4,7 +4,7 @@ from typing import Any
 
 from config import settings
 from core.user_context import UserContext
-from models.offer import RecommendableOffers
+from schemas.enriched_offer import EnrichedRecommendableOffer
 from services.vertex import RankingPrediction
 from services.vertex import VertexService
 
@@ -33,7 +33,7 @@ def calculate_days_since(target_date: datetime | None) -> float | None:
 
 
 def _build_vertex_ranking_features(
-    offer: RecommendableOffers,
+    offer: EnrichedRecommendableOffer,
     user_context: UserContext,
     context_name: str = "recommendation",
 ) -> dict[str, Any]:
@@ -44,7 +44,7 @@ def _build_vertex_ranking_features(
     by the ML ranking endpoint (ISO V1 format).
 
     Args:
-        offer (RecommendableOffers): The resolved offer to be scored.
+        offer (EnrichedRecommendableOffer): The resolved offer to be scored.
         user_context (UserContext): The user's profile and behavioral data.
         context_name (str): The origin context of the recommendation.
 
@@ -76,7 +76,7 @@ def _build_vertex_ranking_features(
         "offer_subcategory_id": offer.subcategory_id,
         "offer_stock_price": float(offer.stock_price or 0.0),
         "offer_semantic_emb_mean": float(offer.semantic_emb_mean or 0.0),
-        "offer_is_geolocated": float(offer.is_geolocated),
+        "offer_is_geolocated": 1.0 if offer.is_geolocated else 0.0,
         # --- Offer Temporal Features ---
         "offer_creation_days": calculate_days_since(offer.offer_creation_date),
         "offer_stock_beginning_days": calculate_days_since(offer.stock_beginning_date),
@@ -94,8 +94,8 @@ def _build_vertex_ranking_features(
 
 
 async def rank_and_sort_offers_with_vertex(
-    offers: list[RecommendableOffers], user_context: UserContext
-) -> list[RecommendableOffers]:
+    offers: list[EnrichedRecommendableOffer], user_context: UserContext
+) -> list[EnrichedRecommendableOffer]:
     """
     Scores a list of candidate offers using the Vertex AI Ranking model and sorts them.
 
@@ -103,11 +103,11 @@ async def rank_and_sort_offers_with_vertex(
     sorting based on the baseline 'item_rank' provided during the retrieval phase.
 
     Args:
-        offers (list[RecommendableOffers]): The filtered list of offers to be ranked.
+        offers (list[EnrichedRecommendableOffer]): The filtered list of offers to be ranked.
         user_context (UserContext): The current user's profile and state.
 
     Returns:
-        list[RecommendableOffers]: The same offers, mutually sorted by their predicted ranking score (descending).
+        list[EnrichedRecommendableOffer]: The same offers, mutually sorted by their predicted ranking score (descending)
     """
     if not offers:
         return []

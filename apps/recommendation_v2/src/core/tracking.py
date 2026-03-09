@@ -2,14 +2,14 @@ from datetime import UTC
 from datetime import datetime
 
 from core.user_context import UserContext
-from models.offer import RecommendableOffers
+from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
 from services.logger import logger
 
 
 def log_past_offer_context_to_sink(
     user_context: UserContext,
-    final_playlist: list[RecommendableOffers],
+    final_playlist: list[EnrichedRecommendableOffer],
     params: PlaylistRequestParams,
     call_id: str,
     reco_origin: str,

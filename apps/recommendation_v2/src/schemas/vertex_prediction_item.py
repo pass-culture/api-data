@@ -50,6 +50,6 @@ class RecommendableItem(BaseModel):
     # Used to bypass the database for digital or single-venue items (optimizing RAM/CPU)
     is_geolocated: bool | None
     total_offers: int
-    example_offer_id: str | None
+    example_offer_id: str
     example_venue_latitude: float | None
     example_venue_longitude: float | None

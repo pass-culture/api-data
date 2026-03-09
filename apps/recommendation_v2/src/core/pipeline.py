@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.diversification import apply_offer_diversification
 from core.geo import get_iris_id_from_coordinates
 from core.ranking import rank_and_sort_offers_with_vertex
+from core.retrieval import FINAL_DIVERSIFIED_PLAYLIST_MAXIMUM_SIZE
 from core.retrieval import fetch_candidate_items_from_vertex
 from core.retrieval import resolve_and_filter_closest_venues
 from core.tracking import log_past_offer_context_to_sink
@@ -76,8 +77,8 @@ async def generate_playlist_recommendations(
     # Shuffle and interleave categories to ensure a diverse final playlist
     diversified_offers = apply_offer_diversification(ranked_offers, should_shuffle_initial_list=False)
 
-    # Cap the final playlist to a strict maximum of 60 items
-    final_playlist = diversified_offers[:60]
+    # Cap the final playlist to a strict maximum
+    final_playlist = diversified_offers[:FINAL_DIVERSIFIED_PLAYLIST_MAXIMUM_SIZE]
 
     # --- 6. Logging & Formatting Phase ---
     recommendation_origin = "cold_start" if user_context.is_cold_start else "algo"
