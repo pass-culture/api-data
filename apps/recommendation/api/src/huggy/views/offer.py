@@ -5,9 +5,6 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import huggy.schemas.playlist_params as p
-from huggy.core.model_engine.factory import ModelEngineFactory, ModelEngineOut
-from huggy.crud.offer import Offer
-from huggy.crud.user import UserContextDB
 from huggy.database.session import get_db
 from huggy.views.common import check_token, get_call_id, setup_trace
 
@@ -22,30 +19,12 @@ async def __similar_offers(
     longitude: t.Optional[float],
     call_id: str,
 ):
-    # legacy: include main offer_id in the list of offers
-    playlist_params.add_offer(offer_id)
-
-    user = await UserContextDB().get_user_context(
-        db, playlist_params.user_id, latitude, longitude
-    )
-    input_offers = await Offer().parse_offer_list(db, playlist_params.input_offers)
-
-    model_engine_out: ModelEngineOut = await ModelEngineFactory.handle_prediction(
-        db,
-        user=user,
-        params_in=playlist_params,
-        call_id=call_id,
-        context="similar_offer",
-        input_offers=input_offers,
-        use_fallback=True,
-    )
-
     return jsonable_encoder(
         {
-            "results": model_engine_out.results,
+            "results": [],
             "params": {
-                "reco_origin": model_engine_out.model.reco_origin,
-                "model_origin": model_engine_out.model.model_origin,
+                "reco_origin": None,
+                "model_origin": None,
                 "call_id": call_id,
             },
         }
