@@ -17,6 +17,9 @@ from services.vertex import VertexService
 
 
 DEFAULT_MAX_DISTANCE_IN_METERS = 100_000
+EARTH_RADIUS_METERS = 6371000
+FINAL_DIVERSIFIED_PLAYLIST_MAXIMUM_SIZE = 60
+VERTEX_API_CANDIDATE_ITEMS_FETCH_SIZE_LIMIT = 150
 
 
 def _build_vertex_search_filters(user_context: UserContext, params: PlaylistRequestParams) -> dict[str, Any]:
@@ -120,10 +123,11 @@ async def fetch_candidate_items_from_vertex(
         "call_id": call_id,
         "user_id": user_context.user_id,
         "params": search_filters,
+        # TODO: Remove this field or rename it in the Vertex API.
+        #  It is currently required, but having a hardcoded "debug" flag in production is confusing.
         "debug": 1,
         "prefilter": 1,
-        "similarity_metric": "dot",
-        "size": 150,
+        "size": VERTEX_API_CANDIDATE_ITEMS_FETCH_SIZE_LIMIT,
     }
 
     # Route to the appropriate model logic based on user maturity
@@ -160,8 +164,6 @@ def calculate_haversine_distance_in_meters(
     if user_lat is None or user_lon is None or offer_lat is None or offer_lon is None:
         return None
 
-    earth_radius_meters = 6371000
-
     user_lat_rad = math.radians(user_lat)
     offer_lat_rad = math.radians(offer_lat)
 
@@ -173,7 +175,7 @@ def calculate_haversine_distance_in_meters(
         + math.cos(user_lat_rad) * math.cos(offer_lat_rad) * math.sin(delta_lon_rad / 2) ** 2
     )
 
-    distance = 2 * earth_radius_meters * math.atan2(math.sqrt(haversine_a), math.sqrt(1 - haversine_a))
+    distance = 2 * EARTH_RADIUS_METERS * math.atan2(math.sqrt(haversine_a), math.sqrt(1 - haversine_a))
 
     return distance
 

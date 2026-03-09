@@ -127,19 +127,10 @@ async def rank_and_sort_offers_with_vertex(
 
     # --- 3. Map Scores & Sort ---
     prediction_score_map: dict[str, float] = {prediction.offer_id: prediction.score for prediction in predictions}
-    offers_with_scores = []
 
     for offer in offers:
-        # Default to 0.0 if for some reason an offer wasn't scored by Vertex
-        offer_score = prediction_score_map.get(str(offer.offer_id), 0.0)
+        # Attach the dynamic score to the offer object for downstream logging (default to 0.0)
+        offer.ranking_score = prediction_score_map.get(str(offer.offer_id), 0.0)
 
-        # Attach the dynamic score to the offer object for downstream logging
-        offer.ranking_score = offer_score
-        offers_with_scores.append((offer, offer_score))
-
-    # Sort descending based on the predicted score (highest score first)
-    offers_with_scores.sort(key=lambda item: item[1], reverse=True)
-
-    # Extract and return the sorted offer objects
-    ranked_offers = [item[0] for item in offers_with_scores]
-    return ranked_offers
+    # Sort descending based on the predicted score attached to the object (highest score first)
+    return sorted(offers, key=lambda offer: offer.ranking_score, reverse=True)

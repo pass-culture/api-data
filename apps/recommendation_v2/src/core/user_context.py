@@ -10,6 +10,8 @@ THRESHOLD_BOOKINGS = 2
 THRESHOLD_CLICKS = 25
 THRESHOLD_FAVORITES = 2
 
+DEFAULT_FALLBACK_USER_AGE = 18
+
 
 def calculate_user_age_from_birthdate(birth_date: datetime | None) -> int:
     """
@@ -22,7 +24,7 @@ def calculate_user_age_from_birthdate(birth_date: datetime | None) -> int:
         int: The computed age in years, or 18 by default.
     """
     if not birth_date:
-        return 18
+        return DEFAULT_FALLBACK_USER_AGE
 
     try:
         today = datetime.now(UTC).date()
@@ -36,7 +38,7 @@ def calculate_user_age_from_birthdate(birth_date: datetime | None) -> int:
         return age
 
     except Exception:
-        return 18
+        return DEFAULT_FALLBACK_USER_AGE
 
 
 @dataclass
@@ -53,7 +55,7 @@ class UserContext:
     is_authenticated: bool = False
 
     # --- Ranking & ML Features ---
-    age: int = 18
+    age: int = DEFAULT_FALLBACK_USER_AGE
     bookings_count: int = 0
     clicks_count: int = 0  # Mapped from 'consult_offer'
     favorites_count: int = 0  # Mapped from 'has_added_offer_to_favorites'
