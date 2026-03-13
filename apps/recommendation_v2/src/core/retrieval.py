@@ -181,7 +181,43 @@ def calculate_haversine_distance_in_meters(
     return distance
 
 
-async def resolve_and_filter_closest_venues(
+async def filter_out_already_booked_items(
+    db: AsyncSession, candidate_items: list[RecommendableItem], user_id: str
+) -> list[RecommendableItem]:
+    """
+    Removes items from the candidate list that the user has already booked or consumed.
+
+    This function cross-references the proposed ML items with the 'NonRecommendableItems'
+    table (which stores items the user has already interacted with, like past bookings).
+    It guarantees that the user only sees fresh, unbooked recommendations.
+
+    Args:
+        db (AsyncSession): The asynchronous database session.
+        candidate_items (list[RecommendableItem]): The raw candidate items proposed by Vertex AI.
+        user_id (str): The unique identifier of the current user.
+
+    Returns:
+        list[RecommendableItem]: A filtered list of items containing only new, unseen recommendations.
+
+    Example:
+        Candidate items: [Item A, Item B, Item C]
+        User previously booked: [Item B]
+        Returns: [Item A, Item C]
+    """
+    if not candidate_items:
+        return []
+
+    already_booked_items_query = select(NonRecommendableItems.item_id).where(NonRecommendableItems.user_id == user_id)
+
+    query_result = await db.execute(already_booked_items_query)
+    already_booked_item_ids = set(query_result.scalars().all())
+
+    unseen_candidate_items = [item for item in candidate_items if item.item_id not in already_booked_item_ids]
+
+    return unseen_candidate_items
+
+
+async def resolve_closest_venues_from_items(
     db: AsyncSession, candidate_items: list[RecommendableItem], user_context: UserContext
 ) -> list[EnrichedRecommendableOffer]:
     """
@@ -192,11 +228,10 @@ async def resolve_and_filter_closest_venues(
     loading thousands of duplicate physical offers into RAM.
 
     Processing Flow:
-    1. Blacklist Filtering: Removes items the user has already seen or booked.
-    2. Routing: Segregates items into a Fast-Track bucket (digital/single venue) and a SQL bucket (multi-venue).
-    3. Spatial Resolution: Uses PostGIS ROW_NUMBER() over ST_Distance
+    1. Routing: Segregates items into a Fast-Track bucket (digital/single venue) and a SQL bucket (multi-venue).
+    2. Spatial Resolution: Uses PostGIS ROW_NUMBER() over ST_Distance
         to find the single closest venue for each multi-venue item.
-    4. Merge: Combines both buckets into EnrichedRecommendableOffer objects and sorts by distance.
+    3. Merge: Combines both buckets into EnrichedRecommendableOffer objects and sorts by distance.
 
     Args:
         db (AsyncSession): The async database session.
@@ -210,21 +245,12 @@ async def resolve_and_filter_closest_venues(
     if not candidate_items:
         return []
 
-    # --- 1. BLACKLIST FILTERING ---
-    blacklisted_items_query = select(NonRecommendableItems.item_id).where(
-        NonRecommendableItems.user_id == user_context.user_id
-    )
-    blacklist_result = await db.execute(blacklisted_items_query)
-    blacklisted_ids = set(blacklist_result.scalars().all())
-
-    valid_candidates = [item for item in candidate_items if item.item_id not in blacklisted_ids]
-
-    # --- 2. FAST-TRACK & DB ROUTING ---
+    # --- 1. FAST-TRACK & DB ROUTING ---
     fast_track_enriched_offers: list[EnrichedRecommendableOffer] = []
     multi_venue_item_ids: list[str] = []
     item_lookup_map: dict[str, RecommendableItem] = {}
 
-    for item in valid_candidates:
+    for item in candidate_items:
         # Route A: Fast-Track (Digital or single-venue physical)
         if not item.is_geolocated or item.total_offers == 1:
             # Reject physical offers if user has no GPS context
@@ -274,7 +300,7 @@ async def resolve_and_filter_closest_venues(
             multi_venue_item_ids.append(item.item_id)
             item_lookup_map[item.item_id] = item
 
-    # --- 3. DATABASE SPATIAL RESOLUTION ---
+    # --- 2. DATABASE SPATIAL RESOLUTION ---
     database_resolved_enriched_offers: list[EnrichedRecommendableOffer] = []
 
     if multi_venue_item_ids:
@@ -338,7 +364,7 @@ async def resolve_and_filter_closest_venues(
             )
             database_resolved_enriched_offers.append(enriched_offer)
 
-    # --- 4. MERGE & SORT ---
+    # --- 3. MERGE & SORT ---
     final_resolved_offers = fast_track_enriched_offers + database_resolved_enriched_offers
 
     final_resolved_offers.sort(

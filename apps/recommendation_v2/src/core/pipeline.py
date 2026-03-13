@@ -7,7 +7,8 @@ from core.geo import get_iris_id_from_coordinates
 from core.ranking import rank_and_sort_offers_with_vertex
 from core.retrieval import FINAL_DIVERSIFIED_PLAYLIST_MAXIMUM_SIZE
 from core.retrieval import fetch_candidate_items_from_vertex
-from core.retrieval import resolve_and_filter_closest_venues
+from core.retrieval import filter_out_already_booked_items
+from core.retrieval import resolve_closest_venues_from_items
 from core.tracking import log_past_offer_context_to_sink
 from core.user_context import UserContext
 from models.user import EnrichedUser
@@ -64,10 +65,14 @@ async def generate_playlist_recommendations(
     # Fetch a broad array of raw item candidates from the ML model
     raw_candidates = await fetch_candidate_items_from_vertex(user_context, params, call_id)
 
-    # --- 3. Resolution & Filtering Phase ---
+    # --- 3. Filtering Phase & Resolution ---
+    unbooked_candidate_items = await filter_out_already_booked_items(
+        db=db, candidate_items=raw_candidates.predictions, user_id=user_context.user_id
+    )
+
     # Convert abstract items into actionable offers, keeping only the closest venues for physical items
-    resolved_offers = await resolve_and_filter_closest_venues(
-        db=db, candidate_items=raw_candidates.predictions, user_context=user_context
+    resolved_offers = await resolve_closest_venues_from_items(
+        db=db, candidate_items=unbooked_candidate_items, user_context=user_context
     )
 
     # --- 4. Ranking Phase ---
