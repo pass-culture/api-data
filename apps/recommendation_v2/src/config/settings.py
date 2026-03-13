@@ -33,6 +33,8 @@ if ENV not in ("local", "testing", "staging", "production"):
 
 FASTAPI_SERVER_PORT: int = int(os.environ.get("FASTAPI_SERVER_PORT", "8000"))
 
+RECOMMENDATION_API_VERSION = 2
+
 
 # --- 3. Logging Configuration ---
 # Reduce log noise in production by defaulting to INFO level
@@ -75,3 +77,6 @@ VERTEX_RANKING_ENDPOINT_NAME: str = os.environ.get("VERTEX_RANKING_ENDPOINT_NAME
 
 # --- 6. Swagger UI for API Testing ---
 SWAGGER_UI_EXAMPLE_USER_ID: str = os.environ.get("SWAGGER_UI_EXAMPLE_USER_ID", "")
+
+# --- 7. Tracking Configuration ---
+ENABLE_TRACKING_LOGS: bool = bool(int(os.environ.get("ENABLE_TRACKING_LOGS", "1")))

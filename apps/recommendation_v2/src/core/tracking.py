@@ -1,6 +1,7 @@
 from datetime import UTC
 from datetime import datetime
 
+from config import settings
 from core.user_context import UserContext
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
@@ -61,7 +62,7 @@ def log_past_offer_context_to_sink(
         log_payload = {
             # --- GCP Sink Routing Label ---
             "labels": {
-                "event_type": "NEW_recommendation_past_offer_context_sink",
+                "event_type": "recommendation_past_offer_context_sink",
             },
             # --- Execution Metadata ---
             "call_id": call_id,
@@ -105,7 +106,13 @@ def log_past_offer_context_to_sink(
                 "offer_booking_number_last_28_days": offer.booking_number_last_28_days,
                 "offer_semantic_emb_mean": offer.semantic_emb_mean,
             },
+            "recommendation_api_version": settings.RECOMMENDATION_API_VERSION,
         }
 
+        # 2. Local Development Noise Control:
+        # In local environments, we can disable tracking via a feature flag to prevent flooding the console.
+        if settings.IS_LOCAL and not settings.ENABLE_TRACKING_LOGS:
+            return
+
         # Send to stdout for the GCP Logging Agent to capture
-        logger.info("Past Offer Context", extra_data=log_payload)
+        logger.info("Past Offer Context", extra=log_payload)

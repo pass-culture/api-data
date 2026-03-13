@@ -32,11 +32,11 @@ class StructuredLogger:
     def __init__(self, base_logger: logging.Logger):
         self._logger = base_logger
 
-    def _format_log(self, message: str, extra_data: dict | None) -> Any:
+    def _format_log(self, message: str, extra: dict | None) -> Any:
         """
         Formats the final log payload before passing it to the underlying handler.
         """
-        payload = {"message": message, "extra": extra_data, "call_id": call_id_context.get()}
+        payload = {"message": message, "extra": extra, "call_id": call_id_context.get()}
 
         # Pretty print for local debugging if configured
         if settings.IS_LOCAL and settings.LOGS_PRETTY_PRINT:
@@ -45,17 +45,17 @@ class StructuredLogger:
         # In production (GCP), returning a dict allows the Google handler to structure it natively
         return payload
 
-    def info(self, message: Any, extra_data: dict | None = None) -> None:
-        self._logger.info(self._format_log(str(message), extra_data))
+    def info(self, message: Any, extra: dict | None = None) -> None:
+        self._logger.info(self._format_log(str(message), extra))
 
-    def warning(self, message: Any, extra_data: dict | None = None) -> None:
-        self._logger.warning(self._format_log(str(message), extra_data))
+    def warning(self, message: Any, extra: dict | None = None) -> None:
+        self._logger.warning(self._format_log(str(message), extra))
 
-    def error(self, message: Any, extra_data: dict | None = None) -> None:
-        self._logger.error(self._format_log(str(message), extra_data))
+    def error(self, message: Any, extra: dict | None = None) -> None:
+        self._logger.error(self._format_log(str(message), extra))
 
-    def debug(self, message: Any, extra_data: dict | None = None) -> None:
-        self._logger.debug(self._format_log(str(message), extra_data))
+    def debug(self, message: Any, extra: dict | None = None) -> None:
+        self._logger.debug(self._format_log(str(message), extra))
 
 
 class GoogleCloudLogFilter(CloudLoggingFilter):

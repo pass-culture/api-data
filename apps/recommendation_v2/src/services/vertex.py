@@ -117,7 +117,7 @@ class VertexService:
         except gcp_exceptions.ServiceUnavailable as gcp_error:
             error_msg = str(gcp_error)
             if "Reauthentication is needed" in error_msg or "gcloud auth" in error_msg:
-                logger.error(f"Vertex Auth Error for {self.endpoint_name}", extra_data={"error": error_msg})
+                logger.error(f"Vertex Auth Error for {self.endpoint_name}", extra={"error": error_msg})
                 raise HTTPException(
                     status_code=401,
                     detail={
@@ -189,7 +189,7 @@ class VertexService:
         except Exception as error:
             logger.error(
                 f"Vertex Retrieval Prediction failed for {self.endpoint_name}",
-                extra_data={"error": str(error), "traceback": traceback.format_exc()},
+                extra={"error": str(error), "traceback": traceback.format_exc()},
             )
             # Fail gracefully by returning an empty list rather than crashing the API
             return VertexPredictionResult(status="error", model_display_name=self.endpoint_name, predictions=[])
@@ -223,7 +223,7 @@ class VertexService:
                 except (KeyError, ValueError) as format_error:
                     logger.warning(
                         f"Invalid ranking prediction format received: {raw_prediction}",
-                        extra_data={"error": str(format_error)},
+                        extra={"error": str(format_error)},
                     )
                     continue
 
@@ -235,7 +235,7 @@ class VertexService:
         except Exception as error:
             logger.error(
                 f"Vertex Ranking Prediction failed for {self.endpoint_name}",
-                extra_data={"error": str(error), "traceback": traceback.format_exc()},
+                extra={"error": str(error), "traceback": traceback.format_exc()},
             )
             # Fail gracefully, the caller will fallback to standard ranking
             return []

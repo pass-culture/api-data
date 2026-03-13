@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
     swagger_url = f"http://127.0.0.1:{settings.FASTAPI_SERVER_PORT}/docs"
     logger.info(
         "🚀 Recommendation API started successfully!",
-        extra_data={"swagger_url": swagger_url, "environment": settings.ENV, "version": app.version},
+        extra={"swagger_url": swagger_url, "environment": settings.ENV, "version": app.version},
     )
     yield
 

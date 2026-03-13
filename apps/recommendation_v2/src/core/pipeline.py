@@ -14,6 +14,7 @@ from models.user import EnrichedUser
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.playlist_recommendation import RecommendationResponse
+from services.logger import logger
 
 
 async def generate_playlist_recommendations(
@@ -83,14 +84,22 @@ async def generate_playlist_recommendations(
     # --- 6. Logging & Formatting Phase ---
     recommendation_origin = "cold_start" if user_context.is_cold_start else "algo"
 
-    log_past_offer_context_to_sink(
-        user_context=user_context,
-        final_playlist=final_playlist,
-        params=params,
-        call_id=call_id,
-        reco_origin=recommendation_origin,
-        context_name="recommendation",
-    )
+    if user_context.is_authenticated:
+        log_past_offer_context_to_sink(
+            user_context=user_context,
+            final_playlist=final_playlist,
+            params=params,
+            call_id=call_id,
+            reco_origin=recommendation_origin,
+            context_name="recommendation",
+        )
+    else:
+        # If the user does not exist in our database (is_authenticated=False), we skip tracking to avoid polluting
+        # the dataset with guest/unknown users who cannot produce engagement signals (clicks/bookings).
+        logger.debug(
+            "Skipping tracking: User is not authenticated (guest/unknown user).",
+            extra={"user_id": user_id, "call_id": call_id},
+        )
 
     return RecommendationResponse(
         playlist_recommended_offers=[offer.offer_id for offer in final_playlist],
