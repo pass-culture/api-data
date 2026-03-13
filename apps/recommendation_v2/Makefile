@@ -9,7 +9,7 @@ prepare_db:
 	@echo "Database is ready and populated!"
 
 start:
-	cd src && uv run uvicorn main:app --reload --port 8801
+	uv run src/main.py
 
 test:
 	pytest ./tests

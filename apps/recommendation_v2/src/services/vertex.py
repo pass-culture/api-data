@@ -3,6 +3,8 @@ from typing import Any
 
 from aiocache import Cache
 from aiocache import cached
+from fastapi import HTTPException
+from google.api_core import exceptions as gcp_exceptions
 from google.api_core.client_options import ClientOptions
 from google.cloud import aiplatform_v1
 from google.protobuf import json_format
@@ -102,14 +104,28 @@ class VertexService:
         Returns:
             Any: The raw Protobuf response wrapper from the Vertex AI Prediction API.
         """
-        client = await self._get_cached_prediction_client()
-        endpoint_resource_path = await self._resolve_endpoint_resource_path(self.endpoint_name)
+        try:
+            client = await self._get_cached_prediction_client()
+            endpoint_resource_path = await self._resolve_endpoint_resource_path(self.endpoint_name)
 
-        # Convert standard Python dictionaries into Protobuf 'Value' objects required by gRPC
-        protobuf_instances = [json_format.ParseDict(payload, Value()) for payload in feature_payloads]
+            # Convert standard Python dictionaries into Protobuf 'Value' objects required by gRPC
+            protobuf_instances = [json_format.ParseDict(payload, Value()) for payload in feature_payloads]
 
-        # 2.0 seconds timeout is strict to prevent the API from hanging during traffic spikes
-        return await client.predict(endpoint=endpoint_resource_path, instances=protobuf_instances, timeout=2.0)
+            # 2.0 seconds timeout is strict to prevent the API from hanging during traffic spikes
+            return await client.predict(endpoint=endpoint_resource_path, instances=protobuf_instances, timeout=2.0)
+
+        except gcp_exceptions.ServiceUnavailable as gcp_error:
+            error_msg = str(gcp_error)
+            if "Reauthentication is needed" in error_msg or "gcloud auth" in error_msg:
+                logger.error(f"Vertex Auth Error for {self.endpoint_name}", extra_data={"error": error_msg})
+                raise HTTPException(
+                    status_code=401,
+                    detail={
+                        "message": "Google Cloud authentication error. Your local token has expired.",
+                        "action_required": "Open your terminal and run: gcloud auth application-default login",
+                    },
+                ) from gcp_error
+            raise gcp_error
 
     async def fetch_retrieval_predictions(self, feature_payloads: list[dict]) -> VertexPredictionResult:
         """
@@ -167,6 +183,9 @@ class VertexService:
                 predictions=parsed_predictions,
             )
 
+        except HTTPException:
+            raise
+
         except Exception as error:
             logger.error(
                 f"Vertex Retrieval Prediction failed for {self.endpoint_name}",
@@ -209,6 +228,9 @@ class VertexService:
                     continue
 
             return parsed_results
+
+        except HTTPException:
+            raise
 
         except Exception as error:
             logger.error(

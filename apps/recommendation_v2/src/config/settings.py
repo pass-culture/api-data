@@ -15,8 +15,8 @@ from dotenv import load_dotenv
 
 # --- 1. Environment Loading ---
 # Resolve the path to the .env file located at the root of the src directory
-environment_file_path = Path("../.env")
-load_dotenv(dotenv_path=environment_file_path)
+environment_file_path = Path(".env")
+load_dotenv(dotenv_path=environment_file_path, override=True)
 
 
 # --- 2. Application Environment ---
@@ -30,6 +30,8 @@ IS_PROD: bool = ENV == "production"
 # Fail-fast mechanism: prevent the app from starting if the environment is unrecognized
 if ENV not in ("local", "testing", "staging", "production"):
     raise RuntimeError(f"Unknown environment detected: {ENV}")
+
+FASTAPI_SERVER_PORT: int = int(os.environ.get("FASTAPI_SERVER_PORT", "8000"))
 
 
 # --- 3. Logging Configuration ---
@@ -70,3 +72,6 @@ VERTEX_RETRIEVAL_ENDPOINT_NAME: str = os.environ.get(
 )
 
 VERTEX_RANKING_ENDPOINT_NAME: str = os.environ.get("VERTEX_RANKING_ENDPOINT_NAME", "recommendation_user_ranking_stg")
+
+# --- 6. Swagger UI for API Testing ---
+SWAGGER_UI_EXAMPLE_USER_ID: str = os.environ.get("SWAGGER_UI_EXAMPLE_USER_ID", "")
