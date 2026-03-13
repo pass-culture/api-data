@@ -6,7 +6,18 @@ description = "The new recommendation API of the pass Culture"
 requires-python = ">=3.13,<4.0"
 
 dependencies = [
+    "aiocache==0.12.3",
+    "asyncpg>=0.31.0",
+    "dotenv==0.9.9",
+    "factory-boy>=3.3.3",
     "fastapi==0.128.0",
+    "geoalchemy2>=0.18.1",
+    "google-cloud-aiplatform==1.135.0",
+    "google-cloud-logging==3.13.0",
+    "greenlet>=3.3.1",
+    "h3>=4.4.2",
+    "sqlalchemy==2.0.46",
+    "types-protobuf>=6.32.1.20251210",
     "uvicorn==0.40.0",
 ]
 
@@ -19,12 +30,17 @@ dev = [
     "pytest==9.0.2",
     "ruff==0.14.14",
     "ty==0.0.14",
-    "httpx>=0.28.1",
+    "httpx==0.28.1",
+    "watchfiles==1.1.1",
+
 ]
 
 [tool.ruff]
 target-version = "py313"
 line-length = 120
+
+[tool.ruff.lint.pylint]
+max-args = 6
 
 [tool.ruff.lint]
 select = [
