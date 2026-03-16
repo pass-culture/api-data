@@ -68,6 +68,7 @@ Here is the step-by-step lifecycle of a single request:
 src/
 ├── api/              # FastAPI Routes (HTTP Controllers)
 ├── config/           # Centralized configuration & Environment variables
+├── connectors/       # Adapters bridging core logic and external services (e.g., VertexAPI)
 ├── core/             # Core recommendation engine logic
 │   ├── pipeline.py         # 1. Main orchestrator tying all steps together
 │   ├── context.py          # 2. User state management & ML feature engineering
@@ -109,21 +110,22 @@ gcloud auth application-default login
 ```
 *💡 Note: To ensure your local behavior is ISO with production during development, prioritize using the **PROD Vertex AI models** in your `.env` file.*
 
-### 4. Database Connection (Staging)
-To develop locally, we connect to the Staging database using an SSH tunnel.
-👉 **[Read the Notion guide on how to set up the SSH tunnel here](https://www.notion.so/passcultureapp/Communiquer-avec-la-base-de-donn-es-de-l-API-Recommendation-Staging-via-sa-machine-locale-2fead4e0ff98808989e9d02d45394904?source=copy_link)**
-
-### 5. Install Dependencies
+### 4. Install Dependencies
 ```bash
 make install
 ```
 
-### 6. Run the API
-```bash
-make start
-```
+### 5. Run the API (with Staging Database)
+To develop locally, we connect to the Staging database using an automated SSH tunnel. The following command securely opens the tunnel in the background, starts the API, and gracefully closes the tunnel when you exit:
 
-### 7. Run Tests
+```bash
+make start-with-remote-db
+```
+*Troubleshooting: If the SSH tunnel fails to establish via the command above, check your .env variables or 👉 **[Read the Notion guide on how to set up the SSH tunnel manually](https://www.notion.so/passcultureapp/Communiquer-avec-la-base-de-donn-es-de-l-API-Recommendation-Staging-via-sa-machine-locale-2fead4e0ff98808989e9d02d45394904?source=copy_link)**.*
+
+(Note: If you are running a fully local database instance, you can bypass the tunnel and simply run make start).
+
+### 6. Run Tests
 ```bash
 make test
 ```
