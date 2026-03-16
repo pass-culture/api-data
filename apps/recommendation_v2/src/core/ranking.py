@@ -1,12 +1,15 @@
 from datetime import UTC
 from datetime import datetime
+from typing import TYPE_CHECKING
 from typing import Any
 
-from config import settings
+from connectors import ranking_api_client
 from core.user_context import UserContext
 from schemas.enriched_offer import EnrichedRecommendableOffer
-from services.vertex import RankingPrediction
-from services.vertex import VertexService
+
+
+if TYPE_CHECKING:
+    from connectors.vertex_api import RankingPrediction
 
 
 def calculate_days_since(target_date: datetime | None) -> float | None:
@@ -113,10 +116,9 @@ async def rank_and_sort_offers_with_vertex(
         return []
 
     # --- 1. Prepare Features & Call Model ---
-    vertex_service = VertexService(endpoint_name=settings.VERTEX_RANKING_ENDPOINT_NAME)
     ranking_instances = [_build_vertex_ranking_features(offer, user_context) for offer in offers]
 
-    predictions: list[RankingPrediction] = await vertex_service.fetch_ranking_predictions(
+    predictions: list[RankingPrediction] = await ranking_api_client.fetch_ranking_predictions(
         feature_payloads=ranking_instances
     )
 

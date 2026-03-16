@@ -1,4 +1,3 @@
-import traceback
 from typing import Any
 
 from aiocache import Cache
@@ -9,36 +8,17 @@ from google.api_core.client_options import ClientOptions
 from google.cloud import aiplatform_v1
 from google.protobuf import json_format
 from google.protobuf.struct_pb2 import Value
-from pydantic import BaseModel
 
 from config import settings
-from schemas.vertex_prediction_item import RecommendableItem
 from services.logger import logger
-
-
-class VertexPredictionResult(BaseModel):
-    """Encapsulates the raw response from the Retrieval Vertex Model."""
-
-    status: str
-    predictions: list[RecommendableItem] = []
-    model_version: str = "unknown"
-    model_display_name: str = "unknown"
-
-
-class RankingPrediction(BaseModel):
-    """Encapsulates a single scored offer returned by the Ranking Vertex Model."""
-
-    offer_id: str
-    score: float
 
 
 class VertexService:
     """
-    Service responsible for communicating with Google Cloud Vertex AI endpoints.
+    Infrastructure service responsible for communicating with Google Cloud Vertex AI endpoints.
 
-    It relies on async gRPC clients (aiplatform_v1) for high-performance network
-    calls. Client instances are cached in memory to avoid the heavy overhead of
-    re-establishing TLS handshakes and gRPC channels on every single API request.
+    This service handles strictly the network layer: TLS handshakes, gRPC channel
+    caching, Protobuf instantiation, and GCP authentication errors.
     """
 
     def __init__(self, endpoint_name: str, location: str = "europe-west1"):
@@ -94,9 +74,9 @@ class VertexService:
             logger.error(f"Failed to resolve endpoint {display_name}: {error!s}")
             raise error
 
-    async def _execute_grpc_prediction(self, feature_payloads: list[dict]) -> Any:
+    async def execute_grpc_prediction(self, feature_payloads: list[dict]) -> Any:
         """
-        Internal method: Transforms native Python dicts to Protobuf and executes the gRPC call.
+        Transforms native Python dicts to Protobuf and executes the gRPC call.
 
         Args:
             feature_payloads (list[dict]): The flat dictionary instances to predict on.
@@ -126,116 +106,3 @@ class VertexService:
                     },
                 ) from gcp_error
             raise gcp_error
-
-    async def fetch_retrieval_predictions(self, feature_payloads: list[dict]) -> VertexPredictionResult:
-        """
-        Calls the Retrieval model to get a massive list of candidate items.
-
-        This endpoint returns a rich dictionary for each predicted item, which is
-        parsed into strictly typed Pydantic models (RecommendableItem) for downstream safety.
-
-        Args:
-            feature_payloads (list[dict]): The search context and user constraints.
-
-        Returns:
-            VertexPredictionResult: The standardized wrapper containing the list of items.
-        """
-        try:
-            # --- 1. Execute Network Call ---
-            response = await self._execute_grpc_prediction(feature_payloads)
-
-            # --- 2. Parse Protobuf Response ---
-            parsed_predictions = []
-            for raw_prediction in response.predictions:
-                parsed_predictions.append(
-                    RecommendableItem(
-                        item_id=raw_prediction["item_id"],
-                        item_rank=raw_prediction["idx"],
-                        item_score=raw_prediction.get("_distance", None),
-                        item_origin="user_based",
-                        item_cluster_id=raw_prediction.get("cluster_id", None),
-                        item_topic_id=raw_prediction.get("topic_id", None),
-                        semantic_emb_mean=raw_prediction.get("semantic_emb_mean", None),
-                        is_geolocated=bool(raw_prediction["is_geolocated"]),
-                        booking_number=raw_prediction["booking_number"],
-                        booking_number_last_7_days=raw_prediction["booking_number_last_7_days"],
-                        booking_number_last_14_days=raw_prediction["booking_number_last_14_days"],
-                        booking_number_last_28_days=raw_prediction["booking_number_last_28_days"],
-                        stock_price=raw_prediction["stock_price"],
-                        category=raw_prediction["category"],
-                        subcategory_id=raw_prediction["subcategory_id"],
-                        search_group_name=raw_prediction["search_group_name"],
-                        offer_creation_date=raw_prediction["offer_creation_date"],
-                        stock_beginning_date=raw_prediction["stock_beginning_date"],
-                        gtl_id=raw_prediction["gtl_id"],
-                        gtl_l3=raw_prediction["gtl_l3"],
-                        gtl_l4=raw_prediction["gtl_l4"],
-                        total_offers=raw_prediction["total_offers"],
-                        example_offer_id=raw_prediction.get("example_offer_id", None),
-                        example_venue_latitude=raw_prediction.get("example_venue_latitude", None),
-                        example_venue_longitude=raw_prediction.get("example_venue_longitude", None),
-                    )
-                )
-
-            return VertexPredictionResult(
-                status="success",
-                model_version=response.deployed_model_id,
-                predictions=parsed_predictions,
-            )
-
-        except HTTPException:
-            raise
-
-        except Exception as error:
-            logger.error(
-                f"Vertex Retrieval Prediction failed for {self.endpoint_name}",
-                extra={"error": str(error), "traceback": traceback.format_exc()},
-            )
-            # Fail gracefully by returning an empty list rather than crashing the API
-            return VertexPredictionResult(status="error", model_display_name=self.endpoint_name, predictions=[])
-
-    async def fetch_ranking_predictions(self, feature_payloads: list[dict]) -> list[RankingPrediction]:
-        """
-        Calls the Ranking model to score a specific list of resolved offers.
-
-        Unlike Retrieval, this endpoint expects a list of specific offer contexts
-        and returns a float score for each.
-
-        Args:
-            feature_payloads (list[dict]): The enriched features for the user and each offer.
-
-        Returns:
-            list[RankingPrediction]: The validated offer IDs mapped to their ML score.
-        """
-        try:
-            # --- 1. Execute Network Call ---
-            response = await self._execute_grpc_prediction(feature_payloads)
-
-            # --- 2. Parse & Validate Response ---
-            parsed_results = []
-            for raw_prediction in response.predictions:
-                try:
-                    ranked_item = RankingPrediction(
-                        offer_id=str(raw_prediction["offer_id"]), score=float(raw_prediction["score"])
-                    )
-                    parsed_results.append(ranked_item)
-
-                except (KeyError, ValueError) as format_error:
-                    logger.warning(
-                        f"Invalid ranking prediction format received: {raw_prediction}",
-                        extra={"error": str(format_error)},
-                    )
-                    continue
-
-            return parsed_results
-
-        except HTTPException:
-            raise
-
-        except Exception as error:
-            logger.error(
-                f"Vertex Ranking Prediction failed for {self.endpoint_name}",
-                extra={"error": str(error), "traceback": traceback.format_exc()},
-            )
-            # Fail gracefully, the caller will fallback to standard ranking
-            return []

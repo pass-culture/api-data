@@ -6,15 +6,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from config import settings
+from connectors import retrieval_api_client
+from connectors.vertex_api import VertexPredictionResult
 from core.user_context import UserContext
 from models.items import NonRecommendableItems
 from models.offer import RecommendableOffers
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.vertex_prediction_item import RecommendableItem
-from services.vertex import VertexPredictionResult
-from services.vertex import VertexService
 
 
 DEFAULT_MAX_DISTANCE_IN_METERS = 100_000
@@ -116,7 +115,6 @@ async def fetch_candidate_items_from_vertex(
     Returns:
         VertexPredictionResult: A structured payload containing the raw predicted items.
     """
-    vertex_service = VertexService(endpoint_name=settings.VERTEX_RETRIEVAL_ENDPOINT_NAME)
     search_filters = _build_vertex_search_filters(user_context, params)
 
     # Base payload structure for the Vertex AI endpoint
@@ -142,7 +140,7 @@ async def fetch_candidate_items_from_vertex(
     else:
         prediction_instance["model_type"] = "recommendation"
 
-    prediction_result = await vertex_service.fetch_retrieval_predictions(feature_payloads=[prediction_instance])
+    prediction_result = await retrieval_api_client.fetch_retrieval_predictions(feature_payloads=[prediction_instance])
 
     return prediction_result
 
