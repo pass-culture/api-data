@@ -17,6 +17,11 @@ from tests.db.recommendable_offers_raw import (
     create_recommendable_offers_raw_mv_old,
     create_recommendable_offers_raw_mv_tmp,
 )
+from tests.db.similar_artist import (
+    create_similar_artist_mv,
+    create_similar_artist_mv_old,
+    create_similar_artist_mv_tmp,
+)
 
 __all__ = [
     "create_enriched_user_mv",
@@ -31,4 +36,7 @@ __all__ = [
     "create_recommendable_offers_raw_mv",
     "create_recommendable_offers_raw_mv_old",
     "create_recommendable_offers_raw_mv_tmp",
+    "create_similar_artist_mv",
+    "create_similar_artist_mv_old",
+    "create_similar_artist_mv_tmp",
 ]

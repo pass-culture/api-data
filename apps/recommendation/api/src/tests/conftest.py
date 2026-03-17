@@ -29,6 +29,11 @@ from huggy.models.recommendable_offers_raw import (
     RecommendableOffersRawMvOld,
     RecommendableOffersRawMvTmp,
 )
+from huggy.models.similar_artist import (
+    SimilarArtistMv,
+    SimilarArtistMvOld,
+    SimilarArtistMvTmp,
+)
 from tests.db import (
     create_enriched_user_mv,
     create_enriched_user_mv_old,
@@ -42,6 +47,11 @@ from tests.db import (
     create_recommendable_offers_raw_mv,
     create_recommendable_offers_raw_mv_old,
     create_recommendable_offers_raw_mv_tmp,
+)
+from tests.db.similar_artist import (
+    create_similar_artist_mv,
+    create_similar_artist_mv_old,
+    create_similar_artist_mv_tmp,
 )
 from tests.db.utils import clean_db
 
@@ -60,6 +70,9 @@ MODELS = [
     IrisFranceMv,
     IrisFranceMvOld,
     IrisFranceMvTmp,
+    SimilarArtistMv,
+    SimilarArtistMvOld,
+    SimilarArtistMvTmp,
 ]
 
 
@@ -111,6 +124,9 @@ async def setup_default_database(_connection_test):
         await create_iris_france_mv_tmp(session)
         await create_iris_france_mv_old(session)
         await create_item_ids_mv(session)
+        await create_similar_artist_mv(session)
+        await create_similar_artist_mv_tmp(session)
+        await create_similar_artist_mv_old(session)
 
         yield session
 

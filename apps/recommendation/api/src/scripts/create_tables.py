@@ -26,6 +26,11 @@ from huggy.models.recommendable_offers_raw import (
     RecommendableOffersRawMvOld,
     RecommendableOffersRawMvTmp,
 )
+from huggy.models.similar_artist import (
+    SimilarArtistMv,
+    SimilarArtistMvOld,
+    SimilarArtistMvTmp,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -47,6 +52,9 @@ MODELS_TO_CREATE = [
     RecommendableOffersRawMv,
     RecommendableOffersRawMvOld,
     RecommendableOffersRawMvTmp,
+    SimilarArtistMv,
+    SimilarArtistMvTmp,
+    SimilarArtistMvOld,
 ]
 
 
