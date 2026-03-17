@@ -25,6 +25,11 @@ class Artist:
                 .scalars()
                 .first()
             )
+
+            # Escape if the artist_id is not in the database
+            if not similar_artist_result:
+                return []
+
             return (
                 json.loads(similar_artist_result.similar_artists_json_string)
                 if similar_artist_result
