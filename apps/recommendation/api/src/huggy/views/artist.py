@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from huggy.crud.artist import Artist
 from huggy.database.session import get_db
 from huggy.views.common import check_token, get_call_id, setup_trace
 
@@ -15,7 +16,9 @@ async def __similar_artists(
     artist_id: str,
     call_id: str,
 ):
-    similar_artists = await Artist.get_similar_artist(db=db, artist_id=artist_id)
+    similar_artists = await Artist.get_similar_artists_from_db(
+        db=db, artist_id=artist_id
+    )
 
     return jsonable_encoder(
         {
