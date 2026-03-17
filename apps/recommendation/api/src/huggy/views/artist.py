@@ -32,7 +32,7 @@ async def __similar_artists(
     "/similar_artists/{artist_id}",
     dependencies=[Depends(setup_trace), Depends(check_token)],
 )
-async def get_similar_artists(
+async def similar_artists(
     artist_id: str,
     token: t.Optional[str] = None,
     db: AsyncSession = Depends(get_db),
