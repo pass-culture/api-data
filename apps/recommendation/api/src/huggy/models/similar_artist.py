@@ -16,6 +16,7 @@ class SimilarArtist(MaterializedBase):
             SimilarArtistMvOld,
             SimilarArtistMvTmp,
         ]
+
     artist_id = Column(String, primary_key=True)
     similar_artists_json_string = Column(String)
 
