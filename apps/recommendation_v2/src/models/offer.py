@@ -24,5 +24,6 @@ class RecommendableOffers(Base):
     offer_id: sa_orm.Mapped[str] = sa_orm.mapped_column(String(256))
     stock_beginning_date: sa_orm.Mapped[datetime | None] = sa_orm.mapped_column(DateTime)
     venue_geo = Column(Geography(geometry_type="POINT", srid=4326))
+    venue_id: sa_orm.Mapped[int] = sa_orm.mapped_column(Integer)
     venue_latitude: sa_orm.Mapped[float] = sa_orm.mapped_column(Float)
     venue_longitude: sa_orm.Mapped[float] = sa_orm.mapped_column(Float)
