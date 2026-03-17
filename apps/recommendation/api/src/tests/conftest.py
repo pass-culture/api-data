@@ -4,8 +4,10 @@ from collections.abc import AsyncGenerator
 from contextlib import ExitStack
 from typing import Any
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
+from httpx import ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from huggy import init_app
@@ -85,6 +87,15 @@ def app():
 @pytest.fixture()
 def client(app):
     with TestClient(app) as c:
+        yield c
+
+
+@pytest.fixture()
+async def async_client(app):
+    async with httpx.AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as c:
         yield c
 
 
