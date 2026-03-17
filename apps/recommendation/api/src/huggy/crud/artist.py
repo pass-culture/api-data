@@ -8,23 +8,20 @@ from huggy.utils.exception import log_error
 
 
 class Artist:
+    @staticmethod
     async def get_similar_artists_from_db(
-        self,
         db: AsyncSession,
         artist_id: str,
     ) -> list[str]:
         try:
             similar_artist_table = await SimilarArtist().get_available_table(db)
-
             similar_artist_result = (
                 await db.execute(
                     similar_artist_table.__table__.select().where(
                         similar_artist_table.artist_id == artist_id
                     )
                 )
-                .scalars()
-                .first()
-            )
+            ).fetchone()
 
             # Escape if the artist_id is not in the database
             if not similar_artist_result:
