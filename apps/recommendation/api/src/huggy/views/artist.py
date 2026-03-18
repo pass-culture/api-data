@@ -8,10 +8,10 @@ from huggy.database.session import get_db
 from huggy.schemas.artist import SimilarArtistsResponse
 from huggy.views.common import check_token, get_call_id, setup_trace
 
-artist_router = r = APIRouter(tags=["artists"])
+artist_router = APIRouter(tags=["artists"])
 
 
-@r.get(
+@artist_router.get(
     "/similar_artists/{artist_id}",
     dependencies=[Depends(setup_trace), Depends(check_token)],
     response_model=SimilarArtistsResponse,

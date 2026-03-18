@@ -1,5 +1,6 @@
 import json
 
+from sqlalchemy import select
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,20 +13,11 @@ async def get_similar_artists_from_db(
     artist_id: str,
 ) -> list[dict]:
     try:
-        similar_artist_table = await SimilarArtist().get_available_table(db)
-        similar_artist_result = (
-            await db.execute(
-                similar_artist_table.__table__.select().where(
-                    similar_artist_table.artist_id == artist_id
-                )
-            )
-        ).fetchone()
+        model = await SimilarArtist().get_available_table(db)
+        query = select(model.similar_artists_json).where(model.artist_id == artist_id)
+        similar_artists = await db.scalar(query)
 
-        # Escape if the artist_id is not in the database
-        if not similar_artist_result:
-            return []
-
-        return similar_artist_result.similar_artists_json
+        return similar_artists or []
 
     except ProgrammingError as exc:
         log_error(exc, message="Exception error on get_similar_artists_from_db")
