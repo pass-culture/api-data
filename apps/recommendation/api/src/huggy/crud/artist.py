@@ -25,7 +25,7 @@ async def get_similar_artists_from_db(
         if not similar_artist_result:
             return []
 
-        return json.loads(similar_artist_result.similar_artists_json_string)
+        return similar_artist_result.similar_artists_json
 
     except ProgrammingError as exc:
         log_error(exc, message="Exception error on get_similar_artists_from_db")

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String
+from sqlalchemy import JSON, Column, String
 
 from huggy.database.base import Base, MaterializedBase
 
@@ -18,7 +18,7 @@ class SimilarArtist(MaterializedBase):
         ]
 
     artist_id = Column(String, primary_key=True)
-    similar_artists_json_string = Column(String)
+    similar_artists_json = Column(JSON, nullable=False)
 
 
 class SimilarArtistMv(SimilarArtist, Base):
