@@ -6,9 +6,6 @@ install:
 create_tables:
 	PYTHONPATH=src API_LOCAL=1 python src/scripts/create_tables.py
 
-seed_db:
-	PYTHONPATH=src API_LOCAL=1 python src/scripts/seed_db.py
-
 prepare_db:
 	docker compose down -v
 	docker compose up -d testdb
@@ -18,17 +15,11 @@ prepare_db:
 			sleep 1; \
 		done; \
 	}; \
-	create_db_db() { \
-		echo "Dropping and creating database db..."; \
-		docker compose exec testdb psql -U postgres -c "DROP DATABASE IF EXISTS db;"; \
-		docker compose exec testdb psql -U postgres -c "CREATE DATABASE db;"; \
-		docker compose exec testdb psql -U postgres -d db -c "CREATE EXTENSION IF NOT EXISTS postgis;"; \
-	}; \
-	wait_for_db_to_be_up && create_db_db
+	wait_for_db_to_be_up
 	@echo "Database is up, waiting 2 seconds for stabilization..."
 	@sleep 2
 
-start: prepare_db create_tables seed_db
+start: prepare_db create_tables
 	cd src && API_LOCAL=1 uv run uvicorn main:app --reload
 
 test:
