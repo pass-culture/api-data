@@ -75,6 +75,8 @@ VERTEX_RETRIEVAL_ENDPOINT_NAME: str = os.environ.get(
 
 VERTEX_RANKING_ENDPOINT_NAME: str = os.environ.get("VERTEX_RANKING_ENDPOINT_NAME", "recommendation_user_ranking_stg")
 
+VERTEX_PREDICTION_TIMEOUT: float = float(os.environ.get("VERTEX_PREDICTION_TIMEOUT", "10.0" if IS_LOCAL else "2.0"))
+
 # --- 6. Swagger UI for API Testing ---
 SWAGGER_UI_EXAMPLE_USER_ID: str = os.environ.get("SWAGGER_UI_EXAMPLE_USER_ID", "")
 

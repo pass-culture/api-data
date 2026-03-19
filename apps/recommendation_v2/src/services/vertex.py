@@ -91,8 +91,11 @@ class VertexService:
             # Convert standard Python dictionaries into Protobuf 'Value' objects required by gRPC
             protobuf_instances = [json_format.ParseDict(payload, Value()) for payload in feature_payloads]
 
-            # 2.0 seconds timeout is strict to prevent the API from hanging during traffic spikes
-            return await client.predict(endpoint=endpoint_resource_path, instances=protobuf_instances, timeout=2.0)
+            return await client.predict(
+                endpoint=endpoint_resource_path,
+                instances=protobuf_instances,
+                timeout=settings.VERTEX_PREDICTION_TIMEOUT,
+            )
 
         except gcp_exceptions.ServiceUnavailable as gcp_error:
             error_msg = str(gcp_error)
