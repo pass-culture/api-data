@@ -4,8 +4,10 @@ from collections.abc import AsyncGenerator
 from contextlib import ExitStack
 from typing import Any
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
+from httpx import ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from huggy import init_app
@@ -29,6 +31,11 @@ from huggy.models.recommendable_offers_raw import (
     RecommendableOffersRawMvOld,
     RecommendableOffersRawMvTmp,
 )
+from huggy.models.similar_artist import (
+    SimilarArtistMv,
+    SimilarArtistMvOld,
+    SimilarArtistMvTmp,
+)
 from tests.db import (
     create_enriched_user_mv,
     create_enriched_user_mv_old,
@@ -42,6 +49,11 @@ from tests.db import (
     create_recommendable_offers_raw_mv,
     create_recommendable_offers_raw_mv_old,
     create_recommendable_offers_raw_mv_tmp,
+)
+from tests.db.similar_artist import (
+    create_similar_artist_mv,
+    create_similar_artist_mv_old,
+    create_similar_artist_mv_tmp,
 )
 from tests.db.utils import clean_db
 
@@ -60,6 +72,9 @@ MODELS = [
     IrisFranceMv,
     IrisFranceMvOld,
     IrisFranceMvTmp,
+    SimilarArtistMv,
+    SimilarArtistMvOld,
+    SimilarArtistMvTmp,
 ]
 
 
@@ -72,6 +87,15 @@ def app():
 @pytest.fixture()
 def client(app):
     with TestClient(app) as c:
+        yield c
+
+
+@pytest.fixture()
+async def async_client(app):
+    async with httpx.AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as c:
         yield c
 
 
@@ -111,6 +135,9 @@ async def setup_default_database(_connection_test):
         await create_iris_france_mv_tmp(session)
         await create_iris_france_mv_old(session)
         await create_item_ids_mv(session)
+        await create_similar_artist_mv(session)
+        await create_similar_artist_mv_tmp(session)
+        await create_similar_artist_mv_old(session)
 
         yield session
 

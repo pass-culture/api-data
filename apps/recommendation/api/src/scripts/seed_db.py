@@ -17,6 +17,9 @@ from tests.db import (
     create_recommendable_offers_raw_mv,
     create_recommendable_offers_raw_mv_old,
     create_recommendable_offers_raw_mv_tmp,
+    create_similar_artist_mv,
+    create_similar_artist_mv_old,
+    create_similar_artist_mv_tmp,
 )
 from tests.db.utils import clean_db
 
@@ -44,6 +47,9 @@ async def main():
         await create_iris_france_mv_tmp(session)
         await create_iris_france_mv_old(session)
         await create_item_ids_mv(session)
+        await create_similar_artist_mv(session)
+        await create_similar_artist_mv_tmp(session)
+        await create_similar_artist_mv_old(session)
         logger.info("All tables were created and seeded successfully.")
 
     await sessionmanager.close()

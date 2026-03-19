@@ -3,7 +3,7 @@ name = "recommandation-api"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.9,<3.12"
 dependencies = [
     "aiocache==0.12.2",
     "asyncpg==0.28.0",
