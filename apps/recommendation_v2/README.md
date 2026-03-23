@@ -30,33 +30,37 @@ ty check src
 
 ## 🏗️ How it Works: The Recommendation Pipeline
 
-The V2 API operates as a recommendation funnel. It takes millions of potential cultural offers and progressively filters, resolves, scores, and mixes them to return a tailored playlist of up to 60 personalized items.
-
-
+The V2 API operates as a recommendation funnel. It takes millions of potential cultural offers and progressively filters, resolves, scores, and mixes them to return a tailored playlist of up to 20 personalized items.
 
 Here is the step-by-step lifecycle of a single request:
 
 ### 1. 👤 Contextualization (`core/context.py`, `core/geo.py`)
+
 * **The Goal:** Build a snapshot of the user's state at request time.
 * **Process:** Retrieves the user's interaction history (bookings, clicks) and uses PostGIS spatial intersection to find their geographical zone (French 'IRIS'). This stage critically determines if the user is in a "Cold Start" state.
 
 ### 2. 🔍 Candidate Retrieval (`core/retrieval.py` -> Vertex AI)
+
 * **The Goal:** Cast a wide net to fetch up to 150 relevant candidate items.
 * **Process:** Incoming HTTP parameters (price limits, dates, categories) are translated into vector-search constraints. The primary Vertex AI model is then called to fetch raw items based on the user's profile and these filters.
 
 ### 3. 📍 Spatial Resolution (`core/retrieval.py` -> PostgreSQL/PostGIS)
+
 * **The Goal:** Convert abstract ML items (e.g., "The Matrix Movie") into concrete, real-world offers (e.g., "Screening at 8 PM, 2km away").
 * **Process:** Digital items are resolved directly in code. Physical items are routed to a PostGIS database query that uses window functions (`ST_Distance`) to retain only the single closest venue for each item.
 
 ### 4. 🥇 ML Ranking (`core/ranking.py` -> Vertex AI)
+
 * **The Goal:** Score and re-order the resolved physical and digital offers.
 * **Process:** A secondary Vertex AI Ranking model evaluates a dense feature vector (time of day, exact distance, remaining user credit, etc.) to predict the highest probability of engagement and sorts the playlist accordingly.
 
 ### 5. 🔀 Diversification (`core/diversification.py`)
+
 * **The Goal:** Prevent "category fatigue" by ensuring a healthy mix of cultural domains (e.g., mixing manga, cinema, and museum tickets).
 * **Process:** Offers are grouped by category. A prioritized Round-Robin interleaving algorithm shuffles these domains while respecting the initial ML ranking scores.
 
 ### 6. 📈 Telemetry & Feedback Loop (`core/tracking.py` -> GCP Sink)
+
 * **The Goal:** Record the exact context of the recommendation for future model training.
 * **Process:** The final playlist and user context are logged as a structured JSON payload. A GCP Sink intercepts this specific log and streams it into BigQuery, serving as the Ground Truth for the Data Science team.
 
@@ -91,41 +95,53 @@ tests/
 ## 🛠️ How to DEV (Local Environment)
 
 ### 1. Prerequisites
+
 We use `uv`, an ultra-fast tool for managing Python versions and virtual environments:
+
 ```bash
 curl -LsSf [https://astral.sh/uv/install.sh](https://astral.sh/uv/install.sh) | sh
 ```
 
 ### 2. Environment Setup
+
 Configuration is managed via environment variables. Start by duplicating the template to create your local environment file:
+
 ```bash
 cp .env.template .env
 ```
+
 *Fill in the missing values in your `.env` file according to the instructions below.*
 
 ### 3. Google Cloud Authentication
+
 To make local calls to the Vertex AI recommendation endpoints, you must authenticate your local machine with Google Cloud:
+
 ```bash
 gcloud auth application-default login
 ```
+
 *💡 Note: To ensure your local behavior is ISO with production during development, prioritize using the **PROD Vertex AI models** in your `.env` file.*
 
 ### 4. Install Dependencies
+
 ```bash
 make install
 ```
 
 ### 5. Run the API (with Staging Database)
+
 To develop locally, we connect to the Staging database using an automated SSH tunnel. The following command securely opens the tunnel in the background, starts the API, and gracefully closes the tunnel when you exit:
 
 ```bash
 make start-with-remote-db
 ```
+
 *Troubleshooting: If the SSH tunnel fails to establish via the command above, check your .env variables or 👉 **[Read the Notion guide on how to set up the SSH tunnel manually](https://www.notion.so/passcultureapp/Communiquer-avec-la-base-de-donn-es-de-l-API-Recommendation-Staging-via-sa-machine-locale-2fead4e0ff98808989e9d02d45394904?source=copy_link)**.*
 
 (Note: If you are running a fully local database instance, you can bypass the tunnel and simply run make start).
 
 ### 6. Run Tests
+
 ```bash
 make test
 ```
