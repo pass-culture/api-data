@@ -1,3 +1,4 @@
+import math
 from typing import TYPE_CHECKING
 
 import h3
@@ -18,7 +19,7 @@ from models.venue import Venue
 
 
 VENUE_H3_INDEX_RESOLUTION = 5
-H3_CELL_SEARCH_RADIUS_IN_RINGS_FOR_APPROX_50KM = 4
+H3_SEARCH_RADIUS_IN_KM = 50.0
 
 
 async def get_iris_id_from_coordinates(db: AsyncSession, latitude: float | None, longitude: float | None) -> str | None:
@@ -128,8 +129,12 @@ async def find_closest_offers_with_h3_index(db: AsyncSession, item_ids: list[str
     # Identify the H3 cell containing the user
     user_h3_cell = h3.latlng_to_cell(user_lat, user_lng, VENUE_H3_INDEX_RESOLUTION)
 
+    # Estimate the number of H3 rings needed to cover the search radius (50km)
+    edge_length = h3.average_hexagon_edge_length(VENUE_H3_INDEX_RESOLUTION, unit="km")
+    k_rings = math.ceil(H3_SEARCH_RADIUS_IN_KM / (edge_length * 1.732)) + 1
+
     # Get all cells within 'rings_count' distance (filled disk)
-    candidate_h3_cells = h3.grid_disk(user_h3_cell, k=H3_CELL_SEARCH_RADIUS_IN_RINGS_FOR_APPROX_50KM)
+    candidate_h3_cells = h3.grid_disk(user_h3_cell, k=k_rings)
 
     # Build SQL components
     distance_expr = build_haversine_distance_expression(user_lat, user_lng, Venue).label("calc_distance")
