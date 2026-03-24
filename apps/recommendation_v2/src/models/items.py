@@ -1,5 +1,7 @@
 import sqlalchemy.orm as sa_orm
-from sqlalchemy import String, Float, Boolean
+from sqlalchemy import Boolean
+from sqlalchemy import Float
+from sqlalchemy import String
 
 from models.base import Base
 

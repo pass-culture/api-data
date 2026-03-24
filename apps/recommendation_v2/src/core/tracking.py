@@ -5,13 +5,14 @@ from config import settings
 from core.user_context import UserContext
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
+from schemas.similar_offer import SimilarOfferRequestParams
 from services.logger import logger
 
 
 def log_past_offer_context_to_sink(
     user_context: UserContext,
     final_playlist: list[EnrichedRecommendableOffer],
-    params: PlaylistRequestParams,
+    params: PlaylistRequestParams | SimilarOfferRequestParams,
     call_id: str,
     reco_origin: str,
     context_name: str,

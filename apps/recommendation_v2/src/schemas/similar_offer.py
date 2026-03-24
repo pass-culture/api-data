@@ -1,9 +1,12 @@
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
+from pydantic import ConfigDict
 from pydantic.alias_generators import to_camel
 
-from schemas.playlist_recommendation import CategoryEnum, SubcategoryEnum, SearchGroupNameEnum
+from schemas.playlist_recommendation import CategoryEnum
+from schemas.playlist_recommendation import SearchGroupNameEnum
+from schemas.playlist_recommendation import SubcategoryEnum
 
 
 class SimilarOfferRequestParams(BaseModel):

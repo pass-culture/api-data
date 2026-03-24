@@ -11,8 +11,8 @@ from core.user_context import UserContext
 from models.items import NonRecommendableItems
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
-from schemas.vertex_prediction_item import RecommendableItem
 from schemas.similar_offer import SimilarOfferRequestParams
+from schemas.vertex_prediction_item import RecommendableItem
 
 
 DEFAULT_MAX_DISTANCE_IN_METERS = 100_000

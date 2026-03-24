@@ -1,12 +1,19 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Path, Query
+from fastapi import APIRouter
+from fastapi import Depends
+from fastapi import Path
+from fastapi import Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.similar_offer import generate_similar_offers
-from schemas.playlist_recommendation import CategoryEnum, SubcategoryEnum, SearchGroupNameEnum
-from schemas.similar_offer import SimilarOfferRequestParams, SimilarOfferResponse
+from schemas.playlist_recommendation import CategoryEnum
+from schemas.playlist_recommendation import SearchGroupNameEnum
+from schemas.playlist_recommendation import SubcategoryEnum
+from schemas.similar_offer import SimilarOfferRequestParams
+from schemas.similar_offer import SimilarOfferResponse
 from services.db import get_database_session
+
 
 router = APIRouter()
 
@@ -16,7 +23,7 @@ router = APIRouter()
     response_model=SimilarOfferResponse,
     summary="Get offers similar to a specific offer",
 )
-async def get_similar_offers(
+async def get_similar_offers(  # noqa: PLR0913
     offer_id: Annotated[str, Path(description="The unique identifier of the reference offer.")],
     db: Annotated[AsyncSession, Depends(get_database_session)],
     user_id: Annotated[str | None, Query(description="The user's ID, if authenticated.")] = None,
@@ -24,7 +31,9 @@ async def get_similar_offers(
     longitude: Annotated[float | None, Query(description="The user's GPS longitude.")] = None,
     categories: Annotated[list[CategoryEnum] | None, Query(description="Filter by categories.")] = None,
     subcategories: Annotated[list[SubcategoryEnum] | None, Query(description="Filter by subcategories.")] = None,
-    search_group_names: Annotated[list[SearchGroupNameEnum] | None, Query(description="Filter by search groups.")] = None,
+    search_group_names: Annotated[
+        list[SearchGroupNameEnum] | None, Query(description="Filter by search groups.")
+    ] = None,
 ) -> SimilarOfferResponse:
     """
     Retrieves a list of offers that are semantically similar to the provided `offer_id`.
@@ -49,7 +58,7 @@ async def get_similar_offers(
     Returns:
         SimilarOfferResponse: A list of similar offer IDs and metadata.
     """
-    
+
     # Construct business parameters object from query parameters
     params = SimilarOfferRequestParams(
         categories=categories,
@@ -65,4 +74,3 @@ async def get_similar_offers(
         longitude=longitude,
         params=params
     )
-

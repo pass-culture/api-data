@@ -77,7 +77,7 @@ async def generate_playlist_recommendations(
 
     # --- 4. Ranking Phase ---
     # Re-order the filtered offers using a dedicated scoring model
-    ranked_offers = await rank_and_sort_offers_with_vertex(resolved_offers, user_context)
+    ranked_offers = await rank_and_sort_offers_with_vertex(resolved_offers, user_context, context_name="recommendation")
 
     # --- 5. Diversification & Truncation Phase ---
     # Shuffle and interleave categories to ensure a diverse final playlist
