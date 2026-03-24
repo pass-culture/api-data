@@ -27,4 +27,3 @@ class SimilarOfferResponse(BaseModel):
     """
     results: list[str]
     params: dict[str, Any]
-

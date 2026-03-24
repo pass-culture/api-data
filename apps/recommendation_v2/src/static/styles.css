@@ -1,0 +1,18 @@
+/* Agrandir la hauteur des listes déroulantes à sélection multiple */
+.swagger-ui select[multiple] {
+    height: 400px !important;
+    padding: 10px;
+    background-color: #f8f8f8;
+    font-size: 16px !important;
+}
+
+/* Optionnel : Élargir un peu la colonne des descriptions/inputs */
+.swagger-ui .parameters-col_description select {
+    max-width: 100%;
+    width: 300px;
+}
+
+/* Cacher la liste des valeurs énumérées "Available values : ..." */
+.swagger-ui .parameter__enum {
+    display: none !important;
+}

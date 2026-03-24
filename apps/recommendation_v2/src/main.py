@@ -5,6 +5,9 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 from api.health_check import router as health_check_router
 from api.playlist_recommendation import router as playlist_router
@@ -39,7 +42,25 @@ app = FastAPI(
     description="API de recommandation basée sur Vertex AI et FastAPI",
     version=get_version(),
     lifespan=lifespan,
+    docs_url=None,
 )
+
+static_path = Path(__file__).parent / "static"
+app.mount("/static", StaticFiles(directory=static_path), name="static")
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html():
+    swagger_ui = get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=app.title + " - Swagger UI",
+        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+    )
+    body = swagger_ui.body.decode("utf-8")
+    # Inject custom CSS after the default CSS
+    body = body.replace("</head>", '<link type="text/css" rel="stylesheet" href="/static/styles.css"></head>')
+    return HTMLResponse(content=body)
+
 
 app.include_router(playlist_router, tags=["Recommendations"])
 app.include_router(similar_offer_router, tags=["Recommendations"])
