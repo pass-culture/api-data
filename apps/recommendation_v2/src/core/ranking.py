@@ -97,7 +97,7 @@ def _build_vertex_ranking_features(
 
 
 async def rank_and_sort_offers_with_vertex(
-    offers: list[EnrichedRecommendableOffer], user_context: UserContext
+    offers: list[EnrichedRecommendableOffer], user_context: UserContext, context_name: str
 ) -> list[EnrichedRecommendableOffer]:
     """
     Scores a list of candidate offers using the Vertex AI Ranking model and sorts them.
@@ -108,6 +108,7 @@ async def rank_and_sort_offers_with_vertex(
     Args:
         offers (list[EnrichedRecommendableOffer]): The filtered list of offers to be ranked.
         user_context (UserContext): The current user's profile and state.
+        context_name (str): The origin context of the recommendation.
 
     Returns:
         list[EnrichedRecommendableOffer]: The same offers, mutually sorted by their predicted ranking score (descending)
@@ -116,7 +117,9 @@ async def rank_and_sort_offers_with_vertex(
         return []
 
     # --- 1. Prepare Features & Call Model ---
-    ranking_instances = [_build_vertex_ranking_features(offer, user_context) for offer in offers]
+    ranking_instances = [
+        _build_vertex_ranking_features(offer, user_context, context_name) for offer in offers
+    ]
 
     predictions: list[RankingPrediction] = await ranking_api_client.fetch_ranking_predictions(
         feature_payloads=ranking_instances

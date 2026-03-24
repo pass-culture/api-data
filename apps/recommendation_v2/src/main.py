@@ -8,6 +8,7 @@ from fastapi import FastAPI
 
 from api.health_check import router as health_check_router
 from api.playlist_recommendation import router as playlist_router
+from api.similar_offer import router as similar_offer_router
 from config import settings
 from services.logger import logger
 
@@ -41,6 +42,7 @@ app = FastAPI(
 )
 
 app.include_router(playlist_router, tags=["Recommendations"])
+app.include_router(similar_offer_router, tags=["Recommendations"])
 app.include_router(health_check_router, tags=["Health"])
 
 if __name__ == "__main__":

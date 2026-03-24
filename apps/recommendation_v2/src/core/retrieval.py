@@ -12,6 +12,7 @@ from models.items import NonRecommendableItems
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.vertex_prediction_item import RecommendableItem
+from schemas.similar_offer import SimilarOfferRequestParams
 
 
 DEFAULT_MAX_DISTANCE_IN_METERS = 100_000
@@ -137,6 +138,65 @@ async def fetch_candidate_items_from_vertex(
         prediction_instance["re_rank"] = 0
     else:
         prediction_instance["model_type"] = "recommendation"
+
+    prediction_result = await retrieval_api_client.fetch_retrieval_predictions(feature_payloads=[prediction_instance])
+
+    return prediction_result
+
+
+async def fetch_similar_items_from_vertex(
+    user_context: UserContext,
+    params: SimilarOfferRequestParams,
+    item_id: str,
+    call_id: str,
+) -> VertexPredictionResult:
+    """
+    Calls the Vertex AI matching engine to retrieve similar items based on an input item.
+
+    Args:
+        user_context (UserContext): The enriched user profile (used for user_id in logging/tracking).
+        params (SimilarOfferRequestParams): Filtering constraints for the similarity search.
+        item_id (str): The ID of the reference item for similarity.
+        call_id (str): A unique execution trace ID.
+
+    Returns:
+        VertexPredictionResult: A structured payload containing the similar items.
+    """
+    # Build filters manually for similar offers (subset of playlist filters)
+    filters = {}
+    and_conditions = []
+
+    list_mappings = {
+        "categories": "category",
+        "subcategories": "subcategory_id",
+        "search_group_names": "search_group_name",
+    }
+
+    for param_field, vertex_field in list_mappings.items():
+        values = getattr(params, param_field)
+        if values:
+            and_conditions.append({vertex_field: {"$in": values}})
+
+    if and_conditions:
+        for condition in and_conditions:
+            filters.update(condition)
+
+    search_filters = {"$and": filters} if filters else {}
+
+    # Payload structure for Similar Offer
+    prediction_instance = {
+        "call_id": call_id,
+        "user_id": user_context.user_id,
+        "params": search_filters,
+        "items": [item_id],
+        "model_type": "similar_offer",
+        "debug": 1,
+        "prefilter": 1,
+        # Default similarity metric for similar offers in v1 was 'l2'
+        "similarity_metric": "l2",
+        "size": VERTEX_API_CANDIDATE_ITEMS_FETCH_SIZE_LIMIT,
+        "re_rank": 0
+    }
 
     prediction_result = await retrieval_api_client.fetch_retrieval_predictions(feature_payloads=[prediction_instance])
 
