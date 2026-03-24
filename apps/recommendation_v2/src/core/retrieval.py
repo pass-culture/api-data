@@ -1,16 +1,14 @@
 import math
 from typing import Any
 
-from sqlalchemy import func
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased
 
 from connectors import retrieval_api_client
 from connectors.vertex_api import VertexPredictionResult
+from core.geo import find_closest_offers_with_h3_index
 from core.user_context import UserContext
 from models.items import NonRecommendableItems
-from models.offer import RecommendableOffers
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.vertex_prediction_item import RecommendableItem
@@ -19,7 +17,7 @@ from schemas.vertex_prediction_item import RecommendableItem
 DEFAULT_MAX_DISTANCE_IN_METERS = 100_000
 EARTH_RADIUS_METERS = 6371000
 FINAL_DIVERSIFIED_PLAYLIST_MAXIMUM_SIZE = 60
-VERTEX_API_CANDIDATE_ITEMS_FETCH_SIZE_LIMIT = 150
+VERTEX_API_CANDIDATE_ITEMS_FETCH_SIZE_LIMIT = 600
 
 
 def _build_vertex_search_filters(user_context: UserContext, params: PlaylistRequestParams) -> dict[str, Any]:
@@ -302,38 +300,10 @@ async def resolve_closest_venues_from_items(
     database_resolved_enriched_offers: list[EnrichedRecommendableOffer] = []
 
     if multi_venue_item_ids:
-        # Define the user's geographical point for PostGIS calculations
-        user_geography_point = func.ST_GeographyFromText(f"POINT({user_context.longitude} {user_context.latitude})")
-        distance_expression = func.ST_Distance(user_geography_point, RecommendableOffers.venue_geo)
-
-        # Window function: partition by item_id and rank offers by ascending distance
-        distance_rank = (
-            func.row_number()
-            .over(partition_by=RecommendableOffers.item_id, order_by=distance_expression.asc())
-            .label("distance_rank")
-        )
-
-        calc_distance = distance_expression.label("calc_distance")
-
-        # Subquery fetching all venues for the targeted physical items
-        venues_subquery = (
-            select(RecommendableOffers, calc_distance, distance_rank)
-            .where(RecommendableOffers.item_id.in_(multi_venue_item_ids))
-            .subquery()
-        )
-
-        aliased_offer = aliased(RecommendableOffers, venues_subquery)
-        max_allowed_distance = func.coalesce(aliased_offer.default_max_distance, DEFAULT_MAX_DISTANCE_IN_METERS)
-
-        # Fetch only the closest venue (distance_rank == 1) within the allowed radius
-        closest_venues_query = select(aliased_offer, venues_subquery.c.calc_distance).where(
-            (venues_subquery.c.distance_rank == 1) & (venues_subquery.c.calc_distance <= max_allowed_distance)
-        )
-
-        db_result = await db.execute(closest_venues_query)
+        db_rows = await find_closest_offers_with_h3_index(db, multi_venue_item_ids, user_context)
 
         # Map SQL results back to Vertex ML data
-        for db_offer, distance in db_result.all():
+        for db_offer, distance in db_rows:
             item_data = item_lookup_map.get(db_offer.item_id)
             if not item_data:
                 continue

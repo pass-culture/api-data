@@ -1,3 +1,4 @@
+import logging
 import tomllib
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -43,4 +44,11 @@ app.include_router(playlist_router, tags=["Recommendations"])
 app.include_router(health_check_router, tags=["Health"])
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=settings.FASTAPI_SERVER_PORT, reload=True, reload_includes=[".env"])
+    uvicorn.run(
+        "main:app",
+        host="127.0.0.1",
+        port=settings.FASTAPI_SERVER_PORT,
+        reload=True,
+        reload_includes=[".env"],
+        log_level=logging.getLevelName(settings.DEBUG_LEVEL).lower(),
+    )

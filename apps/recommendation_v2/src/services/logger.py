@@ -85,37 +85,54 @@ class GoogleCloudLogFilter(CloudLoggingFilter):
 
 def initialize_application_logger() -> StructuredLogger:
     """
-    Configures and initializes the root logger based on the environment.
+    Configures and initializes the application logger based on the running environment.
 
-    - Local Environment: Uses Uvicorn's standard stdout handler.
-    - Cloud Environment: Sets up Google Cloud Logging with trace injection.
+    This function distinguishes between two operational modes:
+    1. Local Development:
+       - Attaches to the 'uvicorn.error' logger to align with the server's logging system.
+       - Outputs logs to standard output (stdout) through Uvicorn's existing handlers.
+       - Applies the configured debug level to ensure visibility of application logs.
+
+    2. Cloud Environment (GCP):
+       - Integrates with Google Cloud Logging.
+       - Injects trace IDs for distributed tracing across microservices.
+       - Uses the root logger to capture all application logs.
 
     Returns:
-        StructuredLogger: The configured application logger.
+        StructuredLogger: An instance of the custom logger wrapper ready for use.
     """
     if settings.IS_LOCAL:
-        base_logger = logging.getLogger("uvicorn")
-        base_logger.setLevel(settings.DEBUG_LEVEL)
+        logger_name = "uvicorn.error"
+        local_logger = logging.getLogger(logger_name)
 
-        # Avoid duplicating handlers if the logger is re-initialized
-        if not base_logger.handlers:
+        # Set the logging level based on configuration (DEBUG, INFO, etc.)
+        local_logger.setLevel(settings.DEBUG_LEVEL)
+
+        # Ensure we have at least one handler to see output in the console
+        if not local_logger.handlers:
             console_handler = logging.StreamHandler(sys.stdout)
-            base_logger.addHandler(console_handler)
+            local_logger.addHandler(console_handler)
 
-        return StructuredLogger(base_logger)
+        return StructuredLogger(local_logger)
 
     else:
-        # GCP Cloud Run / Kubernetes environment setup
-        gcp_client = google_logging.Client()
-        gcp_handler = gcp_client.get_default_handler()
-        gcp_handler.setLevel(settings.DEBUG_LEVEL)
+        # Initialize Google Cloud Logging client
+        gcp_logging_client = google_logging.Client()
 
-        # Attach our custom trace filter
-        gcp_handler.addFilter(GoogleCloudLogFilter(project=gcp_client.project))
+        # Retrieve the default handler which automatically formats logs for GCP
+        gcp_log_handler = gcp_logging_client.get_default_handler()
+        gcp_log_handler.setLevel(settings.DEBUG_LEVEL)
 
+        # Attach the custom filter to inject trace context (Trace ID, Span ID)
+        trace_context_filter = GoogleCloudLogFilter(project=gcp_logging_client.project)
+        gcp_log_handler.addFilter(trace_context_filter)
+
+        # Configure the root logger to capture all logs in the container environment
         root_logger = logging.getLogger()
         root_logger.setLevel(settings.DEBUG_LEVEL)
-        root_logger.handlers = [gcp_handler]
+
+        # Replace existing handlers to ensure only the GCP handler is used
+        root_logger.handlers = [gcp_log_handler]
 
         return StructuredLogger(root_logger)
 
