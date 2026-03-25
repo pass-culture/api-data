@@ -21,6 +21,7 @@ from huggy.schemas.model_selection.model_configuration import (
     QueryOrderChoices,
     RankingChoices,
     RetrievalChoices,
+    RetrievalModelChoices,
 )
 from huggy.schemas.offer import Offer
 from huggy.schemas.user import UserContext
@@ -298,6 +299,26 @@ SIMILAR_OFFER_ENDPOINTS = {
             bookings_count=0,
         ),
     ),
+    "graph": SimilarModelConfigurationInput(
+        name="graph",
+        description="""Similar offers based on graph retrieval.""",
+        diversification_params=DiversificationParamsInput(
+            diversication_type=DiversificationChoices.OFF,
+        ),
+        warn_model_type=ModelTypeInput(
+            retrieval=RetrievalChoices.GRAPH,
+            ranking=RankingChoices.MODEL,
+            query_order=QueryOrderChoices.ITEM_RANK,
+        ),
+        cold_start_model_type=ModelTypeInput(
+            retrieval=RetrievalChoices.GRAPH,
+            ranking=RankingChoices.MODEL,
+            query_order=QueryOrderChoices.ITEM_RANK,
+        ),
+        fork_params=ForkParamsInput(
+            bookings_count=0,
+        ),
+    ),
 }
 
 
@@ -319,13 +340,22 @@ def select_reco_model_params(model_endpoint: str, user: UserContext) -> ForkOut:
 
 
 def select_sim_model_params(
-    model_endpoint: str, input_offers: Optional[list[Offer]]
+    model_endpoint: str,
+    input_offers: Optional[list[Offer]],
+    retrieval_model: Optional[
+        RetrievalModelChoices
+    ] = RetrievalModelChoices.CORESERVATION,
 ) -> ForkOut:
     """
     Choose the model to apply for Similar Offers based on offer interaction.
 
     """
-
+    if retrieval_model == RetrievalModelChoices.GRAPH:
+        return (
+            SIMILAR_OFFER_ENDPOINTS["graph"]
+            .generate()
+            .get_offer_status(input_offers=input_offers, model_origin="graph")
+        )
     model_endpoint = parse_model_enpoint(model_endpoint, model_type="similar_offer")
     model_name = model_endpoint.model_name
     if model_endpoint.custom_configuration is not None:

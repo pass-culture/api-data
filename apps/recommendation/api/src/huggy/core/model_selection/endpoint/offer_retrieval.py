@@ -35,3 +35,9 @@ offer_filter_retrieval_endpoint = OfferBookingNumberRetrievalEndpoint(
     size=50,
     use_cache=True,
 )
+
+graph_offer_retrieval_endpoint = OfferRetrievalEndpoint(
+    endpoint_name=RetrievalEndpointName.recommendation_graph_retrieval,
+    size=100,
+    use_cache=True,
+)
