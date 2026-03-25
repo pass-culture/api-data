@@ -9,6 +9,7 @@ from huggy.core.model_engine.factory import ModelEngineFactory, ModelEngineOut
 from huggy.crud.offer import Offer
 from huggy.crud.user import UserContextDB
 from huggy.database.session import get_db
+from huggy.schemas.model_selection.model_configuration import RetrievalModelChoices
 from huggy.views.common import check_token, get_call_id, setup_trace
 
 offer_router = r = APIRouter(tags=["offer"])
@@ -27,6 +28,9 @@ async def get_similar_offers(
     categories: t.Optional[list[str]] = Query(None),
     subcategories: t.Optional[list[str]] = Query(None),
     search_group_names: t.Optional[list[str]] = Query(None),
+    retrieval_model: t.Optional[
+        RetrievalModelChoices
+    ] = RetrievalModelChoices.CORESERVATION,
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):
@@ -36,6 +40,7 @@ async def get_similar_offers(
         subcategories=subcategories,
         search_group_names=search_group_names,
         input_offers=[offer_id],
+        retrieval_model=retrieval_model,
     )
     user = await UserContextDB().get_user_context(
         db, playlist_params.user_id, latitude, longitude

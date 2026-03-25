@@ -1,7 +1,12 @@
 import typing as t
-from enum import Enum
+from enum import Enum, StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class RetrievalModelChoices(StrEnum):
+    GRAPH = "graph"
+    CORESERVATION = "coreservation"
 
 
 class RetrievalChoices(Enum):
