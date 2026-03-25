@@ -47,6 +47,9 @@ async def get_similar_offers(
     )
     input_offers = await Offer().parse_offer_list(db, playlist_params.input_offers)
 
+    use_fallback = (
+        retrieval_model == RetrievalModelChoices.CORESERVATION
+    )  # Dirt but we will move this to api v2
     model_engine_out: ModelEngineOut = await ModelEngineFactory.handle_prediction(
         db,
         user=user,
@@ -54,7 +57,7 @@ async def get_similar_offers(
         call_id=call_id,
         context="similar_offer",
         input_offers=input_offers,
-        use_fallback=True,
+        use_fallback=use_fallback,
     )
 
     return jsonable_encoder(
