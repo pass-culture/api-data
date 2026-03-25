@@ -54,10 +54,10 @@ jobs:
             ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER:passculture-metier-ehp/infra-prod-gcp-workload-identity-provider
       - name: "Output variables"
         id: "vars"
-        run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" | tee -a $GITHUB_OUTPUT
+        run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" | tee -a "$GITHUB_OUTPUT"
       - name: "Get short SHA"
         id: "sha"
-        run: echo "short_sha=${GITHUB_SHA}" >> $GITHUB_OUTPUT
+        run: echo "short_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
       - name: "Set up Docker Buildx"
         uses: docker/setup-buildx-action@v2.2.1
         with:
@@ -107,10 +107,10 @@ jobs:
           ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER:passculture-metier-ehp/infra-prod-gcp-workload-identity-provider
     - name: "Output variables"
       id: "vars"
-      run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" | tee -a $GITHUB_OUTPUT
+      run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" | tee -a "$GITHUB_OUTPUT"
     - name: "Get short SHA"
       id: "sha"
-      run: echo "short_sha=${GITHUB_SHA}" | tee -a $GITHUB_OUTPUT
+      run: echo "short_sha=${GITHUB_SHA}" | tee -a "$GITHUB_OUTPUT"
     - uses: 'google-github-actions/auth@v2'
       with:
         workload_identity_provider: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER }}

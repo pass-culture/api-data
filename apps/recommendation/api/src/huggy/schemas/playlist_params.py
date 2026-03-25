@@ -7,6 +7,8 @@ from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from pydantic.alias_generators import to_camel
 from pydantic_core.core_schema import ValidationInfo
 
+from huggy.schemas.model_selection.model_configuration import RetrievalModelChoices
+
 under_pat = re.compile(r"_([a-z])")
 
 
@@ -50,6 +52,7 @@ class PlaylistParams(BaseModel):
     gtl_l3: Optional[list[str]] = None
     gtl_l4: Optional[list[str]] = None
     submixing_feature_dict: Optional[dict] = None
+    retrieval_model: Optional[RetrievalModelChoices] = None
 
     @field_validator("start_date", "end_date", mode="before")
     def parse_datetime(cls, value, info: ValidationInfo) -> datetime:

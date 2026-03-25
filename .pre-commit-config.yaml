@@ -33,7 +33,7 @@ repos:
 
   - id: ty-reco-v2
     name: ty (recommendation_v2)
-    entry: env PYTHONPATH=apps/recommendation_v2/src uv run --project apps/recommendation_v2 ty check apps/recommendation_v2/src
+    entry: bash -c 'cd apps/recommendation_v2 && PYTHONPATH=src uv run ty check src'
     language: system
     pass_filenames: false
     types: [python]

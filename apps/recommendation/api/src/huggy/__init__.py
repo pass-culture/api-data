@@ -47,11 +47,13 @@ def include_middleware(server):
 
 
 def include_routers(server):
+    from huggy.views.artist import artist_router
     from huggy.views.home import home_router
     from huggy.views.main import main_router
     from huggy.views.offer import offer_router
 
     server.include_router(offer_router, tags=["offer"])
     server.include_router(home_router, tags=["home"])
+    server.include_router(artist_router, tags=["artists"])
     server.include_router(main_router, tags=["main"])
     return server
