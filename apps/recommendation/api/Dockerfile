@@ -1,6 +1,6 @@
-FROM python:3.10-slim
+FROM python:3.11-slim
 
-COPY --from=ghcr.io/astral-sh/uv:0.8.13 /uv /bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.10.9 /uv /bin/uv
 
 ENV PYTHONUNBUFFERED True
 ENV APP_HOME /app
