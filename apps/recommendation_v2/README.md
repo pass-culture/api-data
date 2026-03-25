@@ -129,3 +129,89 @@ make start-with-remote-db
 ```bash
 make test
 ```
+
+## 🔌 Accessing Staging Environment (Swagger & Tokens)
+
+To debug or inspect the legacy V1 API in the staging environment (which is protected inside a VPC), we provide dedicated Makefile commands to automate the secure tunnel connection.
+
+### 1. Access V1 Swagger UI
+This command opens a SOCKS proxy tunnel to the VPC and launches a configured Chrome instance to access the internal Swagger UI.
+
+```bash
+make access-swagger-api-v1
+```
+*👉 **[Read the Notion guide on how to access Cloud Run VPC APIs via SOCKS tunnel](https://www.notion.so/passcultureapp/Consulter-le-Swagger-d-une-API-Cloud-Run-VPC-Interne-en-local-via-un-tunnel-SOCKS-321ad4e0ff9880bea690ca240965d5a9?source=copy_link)**.*
+
+### 2. Get Staging API Token
+Retrieve a valid Bearer token for the staging environment (useful for Authorizing requests in the Swagger UI).
+
+```bash
+make get-staging-api-token
+```
+*Note: This requires `gcloud` to be authenticated.*
+
+---
+
+## ⚙️ Configuration Reference
+
+The application relies on environment variables for configuration. Copy `.env.template` to `.env` and fill in the values.
+**Note:** For security reasons, sensitive values (IPs, passwords, project IDs) are not committed. Ask the Data Science team for the correct values or check the internal documentation.
+
+### 🌐 API Server
+| Variable | Description |
+|----------|-------------|
+| `FASTAPI_SERVER_PORT` | The local port where the FastAPI server will run (e.g., `8801`). |
+
+### 🗄️ Database Connection
+Used to connect to the PostgreSQL database. When running locally with `make start-with-remote-db`, these should point to the **local end of the SSH tunnel**.
+
+| Variable | Description |
+|----------|-------------|
+| `SQL_HOST` | Hostname of the DB. Usually `127.0.0.1` when using the tunnel. |
+| `SQL_PORT` | Local port forwarded to the remote DB. |
+| `SQL_BASE` | Name of the database. |
+| `SQL_BASE_USER` | Database username. |
+| `SQL_BASE_PASSWORD` | Database password. |
+
+### 🧠 Google Cloud & Vertex AI
+Configuration for the Recommendation Engine's ML backend.
+
+| Variable | Description |
+|----------|-------------|
+| `GCP_PROJECT` | GCP Project ID where the Vertex AI endpoints are hosted. |
+| `VERTEX_RETRIEVAL_ENDPOINT_NAME` | Name of the Vertex AI Endpoint for the Retrieval model. |
+| `VERTEX_RANKING_ENDPOINT_NAME` | Name of the Vertex AI Endpoint for the Ranking model. |
+
+### 🏗️ Infrastructure & SSH Tunnels
+These variables are used by the `Makefile` to establish secure tunnels to the VPC (for DB access and Swagger access).
+
+| Variable | Description |
+|----------|-------------|
+| `GCP_ZONE` | GCP Zone where the Bastion VM is located. |
+| `GCP_IAP_BASTION_INSTANCE_NAME` | Name of the Bastion VM (Tinyproxy) used for the tunnel. |
+| `REMOTE_SQL_GCP_PROJECT` | GCP Project ID where the Cloud SQL instance is hosted. |
+| `REMOTE_SQL_HOST` | Internal Private IP of the Cloud SQL instance. |
+| `REMOTE_SQL_PORT` | Port of the remote Postgres instance (e.g., `5432`). |
+
+### 🔌 V1 Swagger Proxy (Legacy)
+Used by `make access-swagger-api-v1` to browse the internal API V1 documentation.
+
+| Variable | Description |
+|----------|-------------|
+| `RECOMMENDATION_V1_STAGING_SOCKS_PORT` | Local port to use for the SOCKS5 proxy tunnel. |
+| `RECOMMENDATION_V1_STAGING_CLOUDRUN_URL` | Full internal URL of the Staging Swagger UI to open (Cloud Run). |
+
+### 🔐 Secrets Management
+Used by `make get-staging-api-token` to fetch secrets from Google Secret Manager.
+
+| Variable | Description |
+|----------|-------------|
+| `GCP_SECRET_PROJECT` | GCP Project ID where secrets are stored. |
+| `API_RECO_TOKEN_SECRET_NAME` | Name of the secret in Secret Manager containing the API Token. |
+
+### 🛠️ Debugging & Logs
+| Variable | Description |
+|----------|-------------|
+| `LOGS_PRETTY_PRINT` | Set to `1` to enable colored, human-readable JSON logs for local dev. |
+| `ENABLE_TRACKING_LOGS` | Set to `0` to disable sending tracking events to BigQuery (avoids pollution during dev). |
+| `SWAGGER_UI_EXAMPLE_USER_ID` | A valid User ID to pre-fill in the Swagger UI "Execute" fields for testing. |
