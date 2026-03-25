@@ -26,7 +26,6 @@ from huggy.schemas.model_selection.model_configuration import (
 from huggy.schemas.offer import Offer
 from huggy.schemas.user import UserContext
 from huggy.schemas.utils import parse_input
-from huggy.utils.cloud_logging import logger
 from huggy.utils.env_vars import (
     DEFAULT_RECO_MODEL_DESCRIPTION,
     DEFAULT_SIMILAR_OFFER_DESCRIPTION,
@@ -351,9 +350,6 @@ def select_sim_model_params(
     Choose the model to apply for Similar Offers based on offer interaction.
 
     """
-    logger.info(
-        f"Selecting similar offer model with model_endpoint: {model_endpoint}, input_offers: {input_offers}, and retrieval_model: {retrieval_model}"
-    )
     if retrieval_model == RetrievalModelChoices.GRAPH:
         return (
             SIMILAR_OFFER_ENDPOINTS["graph"]

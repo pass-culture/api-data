@@ -9,7 +9,6 @@ from huggy.core.model_engine.recommendation import Recommendation
 from huggy.core.model_engine.similar_offer import SimilarOffer
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
-from huggy.utils.cloud_logging import logger
 
 
 @dataclass
@@ -42,9 +41,6 @@ class ModelEngineFactory:
 
         model_engine = ModelEngineFactory._determine_model_engine(
             user, params_in, call_id, context, input_offers
-        )
-        logger.info(
-            f"Selected model engine: {model_engine.__class__.__name__} for context: {context} and retrieval model: {params_in.retrieval_model}"
         )
 
         # Get results from the selected model engine
