@@ -14,6 +14,7 @@ class RetrievalEndpointName(enum.Enum):
     recommendation_semantic_retrieval = (
         f"recommendation_semantic_retrieval_{ENV_SHORT_NAME}"
     )
+    recommendation_graph_retrieval = f"recommendation_graph_retrieval_{ENV_SHORT_NAME}"
 
 
 class RankingEndpointName(enum.Enum):

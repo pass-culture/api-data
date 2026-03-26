@@ -22,4 +22,7 @@ class SimilarModelConfigurationInput(ModelConfigurationInput):
             RetrievalChoices.SEMANTIC: [
                 offer_retrieval.semantic_offer_retrieval_endpoint,
             ],
+            RetrievalChoices.GRAPH: [
+                offer_retrieval.graph_offer_retrieval_endpoint,
+            ],
         }.get(model_type, default)
