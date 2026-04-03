@@ -1,0 +1,34 @@
+<div class="offer-rank-badge">#{{ rank_number }}</div>
+<img class="card-img" src="{{ image_url }}" alt="Image offre">
+<div class="card-content">
+    <div class="like-badge"><span class="like-icon">👍</span>{{ likes_text }}</div>
+    <div class="card-category">{{ category }}</div>
+    <div class="card-title" title="{{ title }}">{{ title }}</div>
+    <div class="card-price">{{ price }}</div>
+
+    {% if dist.value is not none %}
+        {% if dist.violation %}
+            <div style="color: #dc2626; font-size: 12px; margin-top: 2px; margin-bottom: 6px; font-weight: 500;">
+                📍 {{ "%.1f"|format(dist.value) }} km (Trop loin pour ce produit)
+            </div>
+        {% elif dist.allowed %}
+            <div style="color: #f97316; font-size: 12px; margin-top: 2px; margin-bottom: 6px; font-weight: 500;">
+                📍 {{ "%.1f"|format(dist.value) }} km (Lieu unique, limite ignorée)
+            </div>
+        {% else %}
+            <div style="color: #16a34a; font-size: 12px; margin-top: 2px; margin-bottom: 6px; font-weight: 500;">
+                📍 {{ "%.1f"|format(dist.value) }} km
+            </div>
+        {% endif %}
+    {% endif %}
+
+    <div class="card-footer">
+        <div class="card-id">ID: <a href="{{ offer_url }}" target="_blank">#{{ offer_id }}</a></div>
+        <div class="card-desc">
+            {{ short_desc }}
+            {% if has_ellipsis %}
+                <span class="desc-more" title="{{ safe_desc }}">...</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
