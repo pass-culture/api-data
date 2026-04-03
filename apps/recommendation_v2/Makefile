@@ -4,7 +4,13 @@ install:
 	@echo "📦 Installing dependencies..."
 	UV_VENV_CLEAR=1 uv venv && uv sync --locked
 
-start:
+check-gcloud-auth:
+	@echo "🔍 Checking gcloud CLI authentication..."
+	@gcloud auth print-access-token > /dev/null 2>&1 || (echo "🔐 CLI not authenticated. Launching gcloud auth login..." && gcloud auth login)
+	@echo "🔍 Checking Application Default Credentials (ADC) for Python SDKs..."
+	@gcloud auth application-default print-access-token > /dev/null 2>&1 || (echo "🔐 ADC not authenticated. Launching gcloud application-default login..." && gcloud auth application-default login)
+
+start: check-gcloud-auth
 	uv run src/main.py
 
 
@@ -20,12 +26,12 @@ define PREPARE_TUNNEL
 	lsof -ti:$$SQL_PORT | xargs kill -9 2>/dev/null || true
 endef
 
-tunnel:
+tunnel: check-gcloud-auth
 	$(PREPARE_TUNNEL)
 	@echo "🔌 Opening standalone SSH tunnel..."
 	@source .env && $(SSH_BASE) -L "$$SQL_PORT":"$$REMOTE_SQL_HOST":"$$REMOTE_SQL_PORT"
 
-start-with-remote-db:
+start-with-remote-db: check-gcloud-auth
 	$(PREPARE_TUNNEL)
 	@echo "🔌 Establishing SSH tunnel in background..."
 	@source .env && $(SSH_BASE) -N -q -L "$$SQL_PORT":"$$REMOTE_SQL_HOST":"$$REMOTE_SQL_PORT" & \
@@ -56,7 +62,7 @@ else ifeq ($(UNAME_S),Darwin)
     CHROME_BIN := /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
 endif
 
-access-swagger-api-v1:
+access-swagger-api-v1: check-gcloud-auth
 	$(PREPARE_SWAGGER_TUNNEL)
 	@echo "🔌 Opening SOCKS tunnel to legacy V1 infrastructure..."
 	@source .env && $(SSH_BASE) -N -D "$$RECOMMENDATION_V1_STAGING_SOCKS_PORT" & \
@@ -76,7 +82,7 @@ access-swagger-api-v1:
 	trap "kill $$TUNNEL_PID" INT TERM EXIT; \
 	wait $$TUNNEL_PID
 
-get-staging-api-token:
+get-staging-api-token: check-gcloud-auth
 	@source .env && \
 	if [ -z "$$GCP_SECRET_PROJECT" ] || [ -z "$$API_RECO_TOKEN_SECRET_NAME" ]; then \
 		echo "❌ Error: GCP_SECRET_PROJECT or API_RECO_TOKEN_SECRET_NAME is missing from .env"; \
