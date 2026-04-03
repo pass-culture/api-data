@@ -20,6 +20,7 @@ from models.venue import Venue
 
 VENUE_H3_INDEX_RESOLUTION = 5
 H3_SEARCH_RADIUS_IN_KM = 50.0
+MAX_DISTANCE_METERS_FOR_OFFER_RETRIEVAL = H3_SEARCH_RADIUS_IN_KM * 1000.0
 
 
 async def get_iris_id_from_coordinates(db: AsyncSession, latitude: float | None, longitude: float | None) -> str | None:
@@ -147,6 +148,7 @@ async def find_closest_offers_with_h3_index(db: AsyncSession, item_ids: list[str
         .where(
             RecommendableOffers.item_id.in_(item_ids),
             h3_index_column.in_(candidate_h3_cells),
+            distance_expr <= MAX_DISTANCE_METERS_FOR_OFFER_RETRIEVAL,
         )
         # Keep only one offer per item (the closest one)
         .distinct(RecommendableOffers.item_id)
