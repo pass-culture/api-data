@@ -7,11 +7,18 @@ custom_logger = setup_logging()
 
 
 def init_app():
-    from pcpapillon.views.compliance import compliance_router
+    from pcpapillon.views.compliance import compliance_router, init_compliance_model
     from pcpapillon.views.home import main_router
     from pcpapillon.views.search_edito import search_edito_router
 
     app = FastAPI(title="Passculture offer validation API")
+
+    # Add startup event to load models after the app binds to port
+    @app.on_event("startup")
+    async def startup_event():
+        custom_logger.info("Application startup: loading ML models...")
+        init_compliance_model()
+        custom_logger.info("Application startup complete")
 
     app.include_router(main_router, tags=["home"])
     app.include_router(compliance_router, tags=["compliance"])

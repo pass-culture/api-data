@@ -21,11 +21,20 @@ from pcpapillon.utils_llm.data_model_llm import (
 compliance_router = APIRouter(tags=["compliance"])
 
 
-# Init model and scheduler
-compliance_model = ComplianceModel()
-compliance_scheduler = init_scheduler(
-    compliance_model.reload_model_if_newer_is_available, time_interval=600
-)
+# Model and scheduler will be initialized on startup
+compliance_model = None
+compliance_scheduler = None
+
+
+def init_compliance_model():
+    """Initialize the compliance model and scheduler. Called during app startup."""
+    global compliance_model, compliance_scheduler
+    custom_logger.info("Initializing compliance model...")
+    compliance_model = ComplianceModel()
+    compliance_scheduler = init_scheduler(
+        compliance_model.reload_model_if_newer_is_available, time_interval=600
+    )
+    custom_logger.info("Compliance model initialized successfully")
 
 
 @compliance_router.post(
