@@ -2123,6 +2123,8 @@ dependencies = [
     { name = "greenlet" },
     { name = "gunicorn" },
     { name = "h3" },
+    { name = "pydantic" },
+    { name = "redis" },
     { name = "sqlalchemy" },
     { name = "types-protobuf" },
     { name = "uvicorn" },
@@ -2157,6 +2159,8 @@ requires-dist = [
     { name = "greenlet", specifier = ">=3.3.1" },
     { name = "gunicorn", specifier = ">=25.3.0" },
     { name = "h3", specifier = ">=4.4.2" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "redis", specifier = ">=7.4.0" },
     { name = "sqlalchemy", specifier = "==2.0.46" },
     { name = "types-protobuf", specifier = ">=6.32.1.20251210" },
     { name = "uvicorn", specifier = "==0.40.0" },
@@ -2189,6 +2193,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/22/f5/df4e9027acead3ecc63e50fe1e36aca1523e1719559c499951bb4b53188f/referencing-0.37.0.tar.gz", hash = "sha256:44aefc3142c5b842538163acb373e24cce6632bd54bdb01b21ad5863489f50d8", size = 78036, upload-time = "2025-10-13T15:30:48.871Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2c/58/ca301544e1fa93ed4f80d724bf5b194f6e4b945841c5bfd555878eea9fcb/referencing-0.37.0-py3-none-any.whl", hash = "sha256:381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231", size = 26766, upload-time = "2025-10-13T15:30:47.625Z" },
+]
+
+[[package]]
+name = "redis"
+version = "7.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7b/7f/3759b1d0d72b7c92f0d70ffd9dc962b7b7b5ee74e135f9d7d8ab06b8a318/redis-7.4.0.tar.gz", hash = "sha256:64a6ea7bf567ad43c964d2c30d82853f8df927c5c9017766c55a1d1ed95d18ad", size = 4943913, upload-time = "2026-03-24T09:14:37.53Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/74/3a/95deec7db1eb53979973ebd156f3369a72732208d1391cd2e5d127062a32/redis-7.4.0-py3-none-any.whl", hash = "sha256:a9c74a5c893a5ef8455a5adb793a31bb70feb821c86eccb62eebef5a19c429ec", size = 409772, upload-time = "2026-03-24T09:14:35.968Z" },
 ]
 
 [[package]]

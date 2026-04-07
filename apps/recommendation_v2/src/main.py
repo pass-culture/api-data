@@ -93,8 +93,14 @@ async def lifespan(app: FastAPI):
     show_api_config()
 
     logger.info(
-        "🚀 Recommendation API started successfully!",
-        extra={"swagger_url": swagger_url, "environment": settings.ENV, "version": app.version},
+        "🚀 Recommendation API started successfully !"
+        f" Redis Cache: {'ENABLED 🟢' if settings.REDIS_CACHE_ENABLED else 'DISABLED 🔴'}",
+        extra={
+            "swagger_url": swagger_url,
+            "environment": settings.ENV,
+            "version": app.version,
+            "redis_enabled": settings.REDIS_CACHE_ENABLED,
+        },
     )
     yield
 

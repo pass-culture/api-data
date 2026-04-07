@@ -12,6 +12,26 @@ check-gcloud-auth:
 	@echo "🔍 Checking Application Default Credentials (ADC) for Python SDKs..."
 	@gcloud auth application-default print-access-token > /dev/null 2>&1 || (echo "🔐 ADC not authenticated. Launching gcloud application-default login..." && gcloud auth application-default login)
 
+start-redis:
+	@echo "🚀 Starting local Redis container..."
+	@docker start reco-redis 2>/dev/null || docker run -d --name reco-redis -p 6379:6379 redis:alpine 2>/dev/null || echo "⚠️ Warning: Failed to start Redis. Make sure Docker is running."
+
+stop-redis:
+	@echo "🛑 Stopping local Redis container..."
+	@docker stop reco-redis 2>/dev/null || true
+
+reset-redis:
+	@echo "🔄 Resetting local Redis container..."
+	@docker rm -f reco-redis 2>/dev/null || true
+	@docker run -d --name reco-redis -p 6379:6379 redis:alpine
+
+redis-cli:
+	@echo "💬 Connecting to local Redis container..."
+	@docker exec -it reco-redis redis-cli
+
+start: check-gcloud-auth start-redis
+	@trap '$(MAKE) stop-redis' EXIT INT TERM; \
+
 show-config:
 	@PYTHONPATH=src uv run python -c "from main import show_api_config; show_api_config()"
 
@@ -36,7 +56,7 @@ tunnel: check-gcloud-auth
 	@echo "🔌 Opening standalone SSH tunnel..."
 	@source .env && $(SSH_BASE) -L "$$SQL_PORT":"$$REMOTE_SQL_HOST":"$$REMOTE_SQL_PORT"
 
-start-with-remote-db: check-gcloud-auth
+start-with-remote-db:
 	$(PREPARE_TUNNEL)
 	@echo "🔌 Establishing SSH tunnel in background..."
 	@source .env && $(SSH_BASE) -N -q -L "$$SQL_PORT":"$$REMOTE_SQL_HOST":"$$REMOTE_SQL_PORT" & \

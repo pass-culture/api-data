@@ -32,11 +32,17 @@ ty check src
 
 The V2 API operates as a recommendation funnel. It takes millions of potential cultural offers and progressively filters, resolves, scores, and mixes them to return a tailored playlist of up to 60 personalized items.
 
-
+To drastically decrease repetitive computations and speed up subsequent identical user queries, the API utilizes a **Redis** caching layer that intercepts identical requests, returning the exact playlist directly without hitting the Vertex endpoints again.
 
 Here is the step-by-step lifecycle of a single request:
 
-### 1. 👤 Contextualization (`core/context.py`, `core/geo.py`)
+### 0. ⚡ Cache Interception (`connectors/redis_api.py`)
+* **The Goal:** Provide instant responses for identical repeated queries while ensuring data freshness.
+* **Process:** If enabled, the API generates a unique MD5 signature. To increase hit rates and handle GPS precision jitter, the exact coordinates are normalized into an **H3 index (resolution 5)**. This signature also includes the user ID and query parameters.
+* **Call ID Management:** If a result is returned from cache, a new unique `call_id` is automatically generated and injected into the response. This ensures that every recommendation display remains uniquely identifiable for downstream model retraining, even if the underlying list of offers was cached.
+* **Expiration:** Cached data is dynamically set to expire based on the upcoming database reset cycle (`REDIS_CACHE_RESET_HOUR`).
+
+### 1. 👤 Contextualization (`core/user_context.py`, `core/geo.py`)
 * **The Goal:** Build a snapshot of the user's state at request time.
 * **Process:** Retrieves the user's interaction history (bookings, clicks) and uses PostGIS spatial intersection to find their geographical zone (French 'IRIS'). This stage critically determines if the user is in a "Cold Start" state.
 
@@ -68,10 +74,10 @@ Here is the step-by-step lifecycle of a single request:
 src/
 ├── api/              # FastAPI Routes (HTTP Controllers)
 ├── config/           # Centralized configuration & Environment variables
-├── connectors/       # Adapters bridging core logic and external services (e.g., VertexAPI)
+├── connectors/       # Adapters bridging core logic and external services (e.g., VertexAPI, Redis)
 ├── core/             # Core recommendation engine logic
 │   ├── pipeline.py         # 1. Main orchestrator tying all steps together
-│   ├── context.py          # 2. User state management & ML feature engineering
+│   ├── user_context.py     # 2. User state management & ML feature engineering
 │   ├── geo.py              # 3. PostGIS spatial queries for user location
 │   ├── retrieval.py        # 4. Candidate fetching & Spatial routing
 │   ├── ranking.py          # 5. Scoring via Vertex Ranking
@@ -79,7 +85,7 @@ src/
 │   └── tracking.py         # 7. GCP Logging for BigQuery ingestion
 ├── models/           # SQLAlchemy database models (PostGIS/DB schema)
 ├── schemas/          # Pydantic models (Input/Output strict validation)
-├── services/         # External infrastructure clients (Vertex, DB, Logger)
+├── services/         # External infrastructure clients (Vertex, DB, Redis, H3, Logger)
 └── streamlit/        # Local Streamlit UI acting as a visual proxy for the API
 
 tests/
@@ -116,24 +122,35 @@ gcloud auth application-default login
 make install
 ```
 
-### 5. Run the API (with Staging Database)
-To develop locally, we connect to the Staging database using an automated SSH tunnel. The following command securely opens the tunnel in the background, starts the API, and gracefully closes the tunnel when you exit:
+### 5. Start Redis (Development / Cache Testing)
+If you wish to test or use the cache mechanism during local development, ensure Redis is running via docker (the `Makefile` automates it when standard API targets are launched, or you can manage it directly):
+```bash
+make start-redis
+```
+*💡 Note: To actually use the cache in the API, you must also set `REDIS_CACHE_ENABLED=1` in your `.env` file.*
 
+*(You can interact directly with the cache store via `make redis-cli` or flush it via `make reset-redis`)*
+
+### 6. Run the API (with Staging Database)
+To develop and test locally using the Staging database, we use an automated SSH tunnel. You have two options depending on your needs:
+
+#### **Option A: API Only**
+Use this if you only need the backend running for local development or testing via external tools (like Postman or cURL).
 ```bash
 make start-with-remote-db
 ```
-*Troubleshooting: If the SSH tunnel fails to establish via the command above, check your .env variables or 👉 **[Read the Notion guide on how to set up the SSH tunnel manually](https://www.notion.so/passcultureapp/Communiquer-avec-la-base-de-donn-es-de-l-API-Recommendation-Staging-via-sa-machine-locale-2fead4e0ff98808989e9d02d45394904?source=copy_link)**.*
 
-(Note: If you are running a fully local database instance, you can bypass the tunnel and simply run make start).
-
-### 6. Run the API & Streamlit Proxy UI (Recommended for Testing)
-To test the API easily, configure filters, simulate user states (e.g., active or cold start), and visually inspect the returned offers, a local Streamlit UI is available.
-
-Run the tunnel, FastAPI server, and Streamlit frontend all together using:
+#### **Option B: API + Streamlit Proxy UI (Recommended for Testing)**
+This is the best way to visually inspect results, configure filters, and simulate user states (e.g., active or cold start) through a dedicated interface.
 ```bash
 make dev-with-streamlit
 ```
-*Once running, navigate to the local URL provided by Streamlit. When finished, press `Ctrl+C` in your terminal to gracefully shut down the UI, API, and SSH tunnel simultaneously.*
+* **Access:** Navigate to the local URL provided by Streamlit in your terminal.
+* **Exit:** Press `Ctrl+C` to gracefully shut down the UI, API, and SSH tunnel simultaneously.
+
+#### 💡 Troubleshooting & Notes
+* **Manual SSH Setup:** If the tunnel fails to establish, check your `.env` variables or follow the **[Notion guide for manual SSH setup](https://www.notion.so/passcultureapp/Communiquer-avec-la-base-de-donn-es-de-l-API-Recommendation-Staging-via-sa-machine-locale-2fead4e0ff98808989e9d02d45394904?source=copy_link)**.
+* **Local DB:** If you are running a fully local database instance (bypassing the tunnel), simply run `make start`.
 
 ### 7. Run Tests
 ```bash
@@ -218,6 +235,15 @@ Used by `make get-staging-api-token` to fetch secrets from Google Secret Manager
 |----------|-------------|
 | `GCP_SECRET_PROJECT` | GCP Project ID where secrets are stored. |
 | `API_RECO_TOKEN_SECRET_NAME` | Name of the secret in Secret Manager containing the API Token. |
+
+### 🗄️ Redis Caching Layer
+Configuration for the internal memory caching layer designed to accelerate repetitive calls.
+
+| Variable | Description                                                                                                         |
+|----------|---------------------------------------------------------------------------------------------------------------------|
+| `REDIS_CACHE_ENABLED` | Set to `1` to enable caching endpoints in Redis, `0` to disable it. Default disables cache locally.                 |
+| `REDIS_URL` | Application connection string to the Redis server (e.g., `redis://localhost:6379/0`).                               |
+| `REDIS_CACHE_RESET_HOUR` | The hour [0-23] at which the cache automatically expires (usually `5` AM to match the daily Postgres repopulation). |
 
 ### 🛠️ Debugging & Logs
 | Variable | Description |

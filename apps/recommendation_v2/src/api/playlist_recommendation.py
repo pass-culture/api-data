@@ -1,3 +1,4 @@
+import uuid
 from enum import Enum
 from typing import Annotated
 
@@ -9,10 +10,13 @@ from fastapi import Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
+from connectors.redis_api import redis_api
 from core.pipeline import generate_playlist_recommendations
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.playlist_recommendation import RecommendationResponse
 from services.db import get_database_session
+from services.h3 import get_h3_index_from_coordinates
+from utils.benchmark import log_execution_time
 
 
 router = APIRouter()
@@ -55,6 +59,7 @@ PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING = {
     response_model=RecommendationResponse,
     summary="Generate a personalized recommendation playlist",
 )
+@log_execution_time
 async def get_playlist(
     params: Annotated[PlaylistRequestParams, Body(...)],
     db: Annotated[AsyncSession, Depends(get_database_session)],
@@ -106,7 +111,43 @@ async def get_playlist(
     if preset_location:
         latitude, longitude = PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING[preset_location]
 
+    # Use a finer resolution for cache to avoid reusing the same cache if a user moves within a large resolution cell.
+    cache_h3_resolution = settings.PLAYLIST_RECOMMENDATION_CACHE_H3_RESOLUTION
+    h3_index = get_h3_index_from_coordinates(latitude, longitude, resolution=cache_h3_resolution)
+
+    request_signature_data = {
+        "user_id": user_id,
+        "location_h3": h3_index,
+        "h3_resolution": cache_h3_resolution,
+        "params": params.model_dump(mode="json"),
+    }
+
+    # Handle Redis cache retrieval
+    if settings.REDIS_CACHE_ENABLED:
+        cached_playlist_result = await redis_api.fetch_cached_response(
+            namespace_prefix="playlist_recommendation",
+            request_signature_data=request_signature_data,
+            response_model_class=RecommendationResponse,
+        )
+        if isinstance(cached_playlist_result, RecommendationResponse):
+            cached_playlist_result.from_cache = True
+            # Overwrite the call_id with a newly generated UUID.
+            # This prevents massively linking multiple cache-hit offer displays
+            # to the same original call_id, which could otherwise bias model retraining.
+            cached_playlist_result.params.call_id = str(uuid.uuid4())
+            return cached_playlist_result
+
     # Delegate the heavy lifting to the core orchestration pipeline
-    return await generate_playlist_recommendations(
+    result = await generate_playlist_recommendations(
         db=db, user_id=user_id, latitude=latitude, longitude=longitude, params=params
     )
+
+    # Store the newly generated result in Cache
+    if settings.REDIS_CACHE_ENABLED:
+        await redis_api.store_endpoint_response(
+            namespace_prefix="playlist_recommendation",
+            request_signature_data=request_signature_data,
+            response_model_instance=result,
+        )
+
+    return result

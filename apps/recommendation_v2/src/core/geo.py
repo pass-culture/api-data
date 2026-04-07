@@ -1,4 +1,3 @@
-import math
 from typing import TYPE_CHECKING
 
 import h3
@@ -7,18 +6,18 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import ColumnElement
 
+from models.iris import IrisFrance
+from models.offer import RecommendableOffers
+from models.venue import Venue
+from services.h3 import DEFAULT_H3_RESOLUTION
+from services.h3 import calculate_h3_k_rings_to_cover_search_radius
+from services.h3 import get_h3_index_from_coordinates
 from utils.benchmark import log_execution_time
 
 
 if TYPE_CHECKING:
     from core.user_context import UserContext
 
-from models.iris import IrisFrance
-from models.offer import RecommendableOffers
-from models.venue import Venue
-
-
-VENUE_H3_INDEX_RESOLUTION = 5
 H3_SEARCH_RADIUS_IN_KM = 50.0
 MAX_DISTANCE_METERS_FOR_OFFER_RETRIEVAL = H3_SEARCH_RADIUS_IN_KM * 1000.0
 
@@ -128,18 +127,19 @@ async def find_closest_offers_with_h3_index(db: AsyncSession, item_ids: list[str
     user_lng: float = user_context.longitude
 
     # Identify the H3 cell containing the user
-    user_h3_cell = h3.latlng_to_cell(user_lat, user_lng, VENUE_H3_INDEX_RESOLUTION)
+    user_h3_cell = get_h3_index_from_coordinates(user_lat, user_lng)
 
     # Estimate the number of H3 rings needed to cover the search radius (50km)
-    edge_length = h3.average_hexagon_edge_length(VENUE_H3_INDEX_RESOLUTION, unit="km")
-    k_rings = math.ceil(H3_SEARCH_RADIUS_IN_KM / (edge_length * 1.732)) + 1
+    k_rings = calculate_h3_k_rings_to_cover_search_radius(
+        search_radius_in_km=H3_SEARCH_RADIUS_IN_KM, resolution=DEFAULT_H3_RESOLUTION
+    )
 
     # Get all cells within 'rings_count' distance (filled disk)
     candidate_h3_cells = h3.grid_disk(user_h3_cell, k=k_rings)
 
     # Build SQL components
     distance_expr = build_haversine_distance_expression(user_lat, user_lng, Venue).label("calc_distance")
-    h3_index_column = getattr(Venue, f"h3_res{VENUE_H3_INDEX_RESOLUTION}")
+    h3_index_column = getattr(Venue, f"h3_res{DEFAULT_H3_RESOLUTION}")
 
     # Construct the query
     stmt = (

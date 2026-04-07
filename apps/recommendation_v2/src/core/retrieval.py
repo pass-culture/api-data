@@ -12,6 +12,7 @@ from models.items import NonRecommendableItems
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.vertex_prediction_item import RecommendableItem
+from utils.benchmark import log_execution_time
 
 
 DEFAULT_MAX_DISTANCE_IN_METERS = 100_000
@@ -96,6 +97,7 @@ def _build_vertex_search_filters(user_context: UserContext, params: PlaylistRequ
     return {"$and": filters}
 
 
+@log_execution_time
 async def fetch_candidate_items_from_vertex(
     user_context: UserContext, params: PlaylistRequestParams, call_id: str
 ) -> VertexPredictionResult:
