@@ -1,5 +1,7 @@
 SHELL:=/bin/bash
 
+.PHONY: install start tunnel start-with-remote-db streamlit dev-with-streamlit test access-swagger-api-v1 get-staging-api-token
+
 install:
 	@echo "📦 Installing dependencies..."
 	UV_VENV_CLEAR=1 uv venv && uv sync --locked
@@ -39,6 +41,23 @@ start-with-remote-db: check-gcloud-auth
 	sleep 2; \
 	trap 'echo -e "\n🛑 Stopping API. Closing SSH tunnel (PID: $$TUNNEL_PID)..."; kill $$TUNNEL_PID 2>/dev/null || true' EXIT INT TERM ; \
 	$(MAKE) start
+
+streamlit: check-gcloud-auth
+	uv run streamlit run streamlit/app.py
+
+dev-with-streamlit: check-gcloud-auth
+	$(PREPARE_TUNNEL)
+	@echo "🔌 Establishing SSH tunnel in background..."
+	@source .env && $(SSH_BASE) -N -q -L "$$SQL_PORT":"$$REMOTE_SQL_HOST":"$$REMOTE_SQL_PORT" & \
+	TUNNEL_PID=$$! ; \
+	sleep 2; \
+	echo "🚀 Starting API in background..." ; \
+	uv run src/main.py & \
+	API_PID=$$! ; \
+	sleep 2; \
+	trap 'echo -e "\n🛑 Stopping dev environment. Closing SSH tunnel (PID: $$TUNNEL_PID) and API (PID: $$API_PID)..."; kill $$TUNNEL_PID $$API_PID 2>/dev/null || true' EXIT INT TERM ; \
+	echo "🎨 Starting Streamlit..." ; \
+	$(MAKE) streamlit
 
 test:
 	pytest ./tests
