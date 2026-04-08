@@ -15,5 +15,6 @@ start_as_not_local_dev:
 start_as_not_local_stg:
 	cd src && ENV_SHORT_NAME=stg uv run uvicorn main:app --reload
 
-start_as_not_local_prod:
-	cd src && ENV_SHORT_NAME=prod uv run uvicorn main:app --reload
+# This will fail beacuse gcpadmins do not have access to the SA of prod as of april 2026
+# start_as_not_local_prod:
+# 	cd src && ENV_SHORT_NAME=prod uv run uvicorn main:app --reload
