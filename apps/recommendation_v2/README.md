@@ -79,7 +79,8 @@ src/
 │   └── tracking.py         # 7. GCP Logging for BigQuery ingestion
 ├── models/           # SQLAlchemy database models (PostGIS/DB schema)
 ├── schemas/          # Pydantic models (Input/Output strict validation)
-└── services/         # External infrastructure clients (Vertex, DB, Logger)
+├── services/         # External infrastructure clients (Vertex, DB, Logger)
+└── streamlit/        # Local Streamlit UI acting as a visual proxy for the API
 
 tests/
 ├── api/              # Route integration tests
@@ -125,7 +126,16 @@ make start-with-remote-db
 
 (Note: If you are running a fully local database instance, you can bypass the tunnel and simply run make start).
 
-### 6. Run Tests
+### 6. Run the API & Streamlit Proxy UI (Recommended for Testing)
+To test the API easily, configure filters, simulate user states (e.g., active or cold start), and visually inspect the returned offers, a local Streamlit UI is available.
+
+Run the tunnel, FastAPI server, and Streamlit frontend all together using:
+```bash
+make dev-with-streamlit
+```
+*Once running, navigate to the local URL provided by Streamlit. When finished, press `Ctrl+C` in your terminal to gracefully shut down the UI, API, and SSH tunnel simultaneously.*
+
+### 7. Run Tests
 ```bash
 make test
 ```
