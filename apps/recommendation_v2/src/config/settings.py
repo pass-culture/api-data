@@ -22,13 +22,14 @@ load_dotenv(dotenv_path=environment_file_path, override=True)
 # --- 2. Application Environment ---
 ENV: str = os.environ.get("ENV", "local")
 
-IS_LOCAL: bool = ENV == "local"
+IS_LOCAL: bool = ENV in ("local", "ci")
 IS_TESTING: bool = ENV == "testing"
 IS_STAGING: bool = ENV == "staging"
 IS_PROD: bool = ENV == "production"
+IS_CI: bool = ENV == "ci"
 
 # Fail-fast mechanism: prevent the app from starting if the environment is unrecognized
-if ENV not in ("local", "testing", "staging", "production"):
+if ENV not in ("local", "testing", "staging", "production", "ci"):
     raise RuntimeError(f"Unknown environment detected: {ENV}")
 
 FASTAPI_SERVER_PORT: int = int(os.environ.get("FASTAPI_SERVER_PORT", "8000"))

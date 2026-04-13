@@ -60,7 +60,8 @@ dev-with-streamlit: check-gcloud-auth
 	$(MAKE) streamlit
 
 test:
-	pytest ./tests
+	@echo "🧪 Running unit tests..."
+	uv run pytest tests
 
 
 define PREPARE_SWAGGER_TUNNEL
