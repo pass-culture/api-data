@@ -203,7 +203,7 @@ jobs:
       - uses: technote-space/workflow-conclusion-action@v3
       - name: "Post to a Slack channel"
         if: always()
-        uses: slackapi/slack-github-action@v1.28.0
+        uses: slackapi/slack-github-action@v1.23.0
         env:
           SLACK_BOT_TOKEN: ${{ steps.secrets.outputs.SLACK_BOT_TOKEN }}
         with:
