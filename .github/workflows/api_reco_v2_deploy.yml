@@ -164,6 +164,7 @@ jobs:
       uses: 'google-github-actions/deploy-cloudrun@v2'
       with:
         service: "apireco-${{ env.ENV_SHORT_NAME }}"
+        revision_suffix: "v2-${{ steps.sha.outputs.short_sha }}"
         image: "${{ steps.vars.outputs.DOCKER_REPO }}/api-data/recommendation_v2:${{ steps.sha.outputs.short_sha }}"
         region: "${{ env.DOCKER_REGISTRY_REGION }}"
         project_id: ${{ env.DATA_GCP_PROJECT }}
