@@ -92,7 +92,7 @@ jobs:
         run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" >> "$GITHUB_OUTPUT"
       - name: "Get short SHA"
         id: "sha"
-        run: echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+        run: echo "short_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: "Set up Docker Buildx"
         uses: docker/setup-buildx-action@v3
@@ -151,7 +151,7 @@ jobs:
       run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" >> "$GITHUB_OUTPUT"
     - name: "Get short SHA"
       id: "sha"
-      run: echo "short_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+      run: echo "short_sha=${GITHUB_SHA}" | tee -a "$GITHUB_OUTPUT"
 
     - uses: 'google-github-actions/auth@v2'
       name: "Authenticate with Google Cloud for deploy"
@@ -170,13 +170,13 @@ jobs:
         no_traffic: ${{ needs.setup-job.outputs.no_traffic }}
         env_vars: |-
           ENV=${{ env.ENV_SHORT_NAME == 'prod' && 'production' || (env.ENV_SHORT_NAME == 'stg' && 'staging' || (env.ENV_SHORT_NAME == 'dev' && 'testing' || env.ENV_SHORT_NAME)) }}
+          GCP_PROJECT=${{ env.DATA_GCP_PROJECT }}
           SQL_BASE=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1
           SQL_BASE_USER=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1
-          GCP_PROJECT=${{ env.DATA_GCP_PROJECT }}
           SQL_PORT=5432
         secrets: |-
-          SQL_BASE_PASSWORD=${{ vars.GCP_SECRET_NAME_DB_PASSWORD }}:latest
           SQL_BASE_HOST=${{ vars.GCP_SECRET_NAME_DB_HOST }}:latest
+          SQL_BASE_PASSWORD=${{ vars.GCP_SECRET_NAME_DB_PASSWORD }}:latest
           API_TOKEN=${{ vars.GCP_SECRET_NAME_API_TOKEN }}:latest
 
   slack-notification:

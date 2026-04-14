@@ -50,7 +50,6 @@ SQL_BASE_USER: str = os.environ.get("SQL_BASE_USER", "")
 SQL_BASE_PASSWORD: str = os.environ.get("SQL_BASE_PASSWORD", "")
 SQL_BASE_PORT: str = os.environ.get("SQL_PORT", "5439")
 SQL_BASE_HOST: str = os.environ.get("SQL_HOST", "localhost")
-SQL_BASE_HOST_SECRET_ID: str = os.environ.get("SQL_HOST_SECRET_ID", "")
 
 # TODO: Fake key for now
 API_TOKEN: str = "api_token"
