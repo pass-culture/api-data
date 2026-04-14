@@ -151,7 +151,10 @@ jobs:
       run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" >> "$GITHUB_OUTPUT"
     - name: "Get short SHA"
       id: "sha"
-      run: echo "short_sha=${GITHUB_SHA}" | tee -a "$GITHUB_OUTPUT"
+      run: |
+        echo "short_sha=${GITHUB_SHA}" | tee -a "$GITHUB_OUTPUT"
+        echo "very_short_sha=${GITHUB_SHA::7}" | tee -a "$GITHUB_OUTPUT"
+        echo "rand=$(tr -dc 'a-z0-9' < /dev/urandom | head -c 3)" | tee -a "$GITHUB_OUTPUT"
 
     - uses: 'google-github-actions/auth@v2'
       name: "Authenticate with Google Cloud for deploy"
@@ -164,7 +167,7 @@ jobs:
       uses: 'google-github-actions/deploy-cloudrun@v2'
       with:
         service: "apireco-${{ env.ENV_SHORT_NAME }}"
-        suffix: "v2-${{ steps.sha.outputs.short_sha }}"
+        suffix: "v2-${{ steps.sha.outputs.very_short_sha }}-${{ steps.sha.outputs.rand }}"
         image: "${{ steps.vars.outputs.DOCKER_REPO }}/api-data/recommendation_v2:${{ steps.sha.outputs.short_sha }}"
         region: "${{ env.DOCKER_REGISTRY_REGION }}"
         project_id: ${{ env.DATA_GCP_PROJECT }}
