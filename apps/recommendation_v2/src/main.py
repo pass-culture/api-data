@@ -43,19 +43,51 @@ def verify_api_token(token: str = Query(...)) -> None:
 
 
 def get_version() -> str:
-    pyproject_path = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    """
+    Retrieves the application version from the pyproject.toml file.
 
-    try:
-        with open(pyproject_path, "rb") as f:
-            data = tomllib.load(f)
-            return data["project"]["version"]
-    except (FileNotFoundError, KeyError):
-        return "0.0.0"
+    It checks two locations for the pyproject.toml file to support both:
+    - Local execution (where pyproject.toml is in the parent directory of src/)
+    - Docker execution (where pyproject.toml is copied to the same directory as the source code)
+
+    Returns:
+        str: The version from pyproject.toml, or "0.0.0" if not found.
+    """
+    current_dir = Path(__file__).resolve().parent
+    # Check parent directory (local run) and current directory (Docker run)
+    for pyproject_path in [current_dir.parent / "pyproject.toml", current_dir / "pyproject.toml"]:
+        try:
+            with open(pyproject_path, "rb") as f:
+                data = tomllib.load(f)
+                return data["project"]["version"]
+        except (FileNotFoundError, KeyError):
+            continue
+    return "0.0.0"
+
+
+def show_api_config() -> None:
+    config_info = {
+        # Environment & Server
+        "ENV": settings.ENV,
+        "RECOMMENDATION_API_VERSION": settings.RECOMMENDATION_API_VERSION,
+        "FASTAPI_SERVER_PORT": settings.FASTAPI_SERVER_PORT,
+        "LOG_LEVEL": logging.getLevelName(settings.LOG_LEVEL),
+        # Google Cloud & Vertex AI
+        "GCP_PROJECT": settings.GCP_PROJECT,
+        "VERTEX_RETRIEVAL_ENDPOINT_NAME": settings.VERTEX_RETRIEVAL_ENDPOINT_NAME,
+        "VERTEX_RANKING_ENDPOINT_NAME": settings.VERTEX_RANKING_ENDPOINT_NAME,
+        "VERTEX_PREDICTION_TIMEOUT": settings.VERTEX_PREDICTION_TIMEOUT,
+        "ENABLE_TRACKING_LOGS": settings.ENABLE_TRACKING_LOGS,
+    }
+    logger.info("🔧 API Configuration", extra=config_info)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     swagger_url = f"http://127.0.0.1:{settings.FASTAPI_SERVER_PORT}/docs"
+
+    show_api_config()
+
     logger.info(
         "🚀 Recommendation API started successfully!",
         extra={"swagger_url": swagger_url, "environment": settings.ENV, "version": app.version},
@@ -84,5 +116,5 @@ if __name__ == "__main__":
         port=settings.FASTAPI_SERVER_PORT,
         reload=True,
         reload_includes=[".env"],
-        log_level=logging.getLevelName(settings.DEBUG_LEVEL).lower(),
+        log_level=logging.getLevelName(settings.LOG_LEVEL).lower(),
     )

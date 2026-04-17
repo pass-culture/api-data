@@ -102,7 +102,7 @@ async def generate_playlist_recommendations(
         # If the user does not exist in our database (is_authenticated=False), we skip tracking to avoid polluting
         # the dataset with guest/unknown users who cannot produce engagement signals (clicks/bookings).
         logger.debug(
-            "Skipping tracking: User is not authenticated (guest/unknown user).",
+            "⏭️ Skipping tracking: User is not authenticated (guest/unknown user).",
             extra={"user_id": user_id, "call_id": call_id},
         )
 

@@ -107,7 +107,7 @@ class VertexAPI:
 
         except Exception as error:
             logger.error(
-                f"Vertex Retrieval Prediction failed for {self.endpoint_name}",
+                f"💥 Vertex Retrieval Prediction failed for {self.endpoint_name}",
                 extra={"error": str(error), "traceback": traceback.format_exc()},
             )
             # Fail gracefully by returning an empty list rather than crashing the API
@@ -138,7 +138,7 @@ class VertexAPI:
 
                 except (KeyError, ValueError) as format_error:
                     logger.warning(
-                        f"Invalid ranking prediction format received: {raw_prediction}",
+                        f"⚠️ Invalid ranking prediction format received: {raw_prediction}",
                         extra={"error": str(format_error)},
                     )
                     continue
@@ -150,7 +150,7 @@ class VertexAPI:
 
         except Exception as error:
             logger.error(
-                f"Vertex Ranking Prediction failed for {self.endpoint_name}",
+                f"💥 Vertex Ranking Prediction failed for {self.endpoint_name}",
                 extra={"error": str(error), "traceback": traceback.format_exc()},
             )
             # Fail gracefully, the caller will fallback to standard ranking
