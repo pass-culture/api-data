@@ -52,7 +52,7 @@ SQL_BASE_PORT: str = os.environ.get("SQL_PORT", "5439")
 SQL_BASE_HOST: str = os.environ.get("SQL_HOST", "localhost")
 
 # TODO: Fake key for now
-API_TOKEN: str = "api_token"
+API_TOKEN: str = os.environ.get("API_TOKEN", "")
 
 # Construct the async SQLAlchemy connection string
 DATABASE_URL: str = os.getenv(
