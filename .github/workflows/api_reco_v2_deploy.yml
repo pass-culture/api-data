@@ -172,6 +172,7 @@ jobs:
         region: "${{ env.DOCKER_REGISTRY_REGION }}"
         project_id: ${{ env.DATA_GCP_PROJECT }}
         no_traffic: ${{ needs.setup-job.outputs.no_traffic }}
+        tag: "test"
         env_vars: |-
           ENV=${{ env.ENV_SHORT_NAME == 'prod' && 'production' || (env.ENV_SHORT_NAME == 'stg' && 'staging' || (env.ENV_SHORT_NAME == 'dev' && 'testing' || env.ENV_SHORT_NAME)) }}
           GCP_PROJECT=${{ env.DATA_GCP_PROJECT }}
@@ -179,7 +180,7 @@ jobs:
           SQL_BASE_USER=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1
           SQL_PORT=5432
         secrets: |-
-          SQL_BASE_HOST=${{ vars.GCP_SECRET_NAME_DB_HOST }}:latest
+          SQL_HOST=${{ vars.GCP_SECRET_NAME_DB_HOST }}:latest
           SQL_BASE_PASSWORD=${{ vars.GCP_SECRET_NAME_DB_PASSWORD }}:latest
           API_TOKEN=${{ vars.GCP_SECRET_NAME_API_TOKEN }}:latest
 
