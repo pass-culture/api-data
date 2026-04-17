@@ -71,7 +71,7 @@ class VertexService:
             return response.endpoints[0].name
 
         except Exception as error:
-            logger.error(f"Failed to resolve endpoint {display_name}: {error!s}")
+            logger.error(f"🔌 Failed to resolve endpoint {display_name}: {error!s}")
             raise error
 
     async def execute_grpc_prediction(self, feature_payloads: list[dict]) -> Any:
@@ -100,7 +100,7 @@ class VertexService:
         except gcp_exceptions.ServiceUnavailable as gcp_error:
             error_msg = str(gcp_error)
             if "Reauthentication is needed" in error_msg or "gcloud auth" in error_msg:
-                logger.error(f"Vertex Auth Error for {self.endpoint_name}", extra={"error": error_msg})
+                logger.error(f"🔐 Vertex Auth Error for {self.endpoint_name}", extra={"error": error_msg})
                 raise HTTPException(
                     status_code=401,
                     detail={
