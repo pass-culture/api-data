@@ -7,8 +7,9 @@ import uvicorn
 from fastapi import Depends
 from fastapi import FastAPI
 from fastapi import HTTPException
-from fastapi import Query
+from fastapi import Security
 from fastapi import status
+from fastapi.security import APIKeyQuery
 
 from api.health_check import router as health_check_router
 from api.playlist_recommendation import router as playlist_router
@@ -16,7 +17,10 @@ from config import settings
 from services.logger import logger
 
 
-def verify_api_token(token: str = Query(...)) -> None:
+api_key_query = APIKeyQuery(name="token", auto_error=True)
+
+
+def verify_api_token(token: str = Security(api_key_query)) -> None:
     """
     Verifies the API token provided in the application's query parameters.
 
