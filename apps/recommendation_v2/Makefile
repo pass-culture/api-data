@@ -31,13 +31,10 @@ redis-cli:
 
 start: check-gcloud-auth start-redis
 	@trap '$(MAKE) stop-redis' EXIT INT TERM; \
+	uv run src/main.py
 
 show-config:
 	@PYTHONPATH=src uv run python -c "from main import show_api_config; show_api_config()"
-
-start: check-gcloud-auth
-	uv run src/main.py
-
 
 SSH_BASE = gcloud compute ssh --zone "$$GCP_ZONE" "$$GCP_IAP_BASTION_INSTANCE_NAME" --tunnel-through-iap --project "$$REMOTE_SQL_GCP_PROJECT" --
 

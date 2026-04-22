@@ -15,6 +15,7 @@ from api.health_check import router as health_check_router
 from api.playlist_recommendation import router as playlist_router
 from config import settings
 from services.logger import logger
+from services.redis import redis_cache_service
 
 
 api_key_query = APIKeyQuery(name="token", auto_error=True)
@@ -88,6 +89,8 @@ def show_api_config() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await redis_cache_service.connect()
+
     swagger_url = f"http://127.0.0.1:{settings.FASTAPI_SERVER_PORT}/docs"
 
     show_api_config()
@@ -103,6 +106,7 @@ async def lifespan(app: FastAPI):
         },
     )
     yield
+    await redis_cache_service.disconnect()
 
 
 app = FastAPI(
