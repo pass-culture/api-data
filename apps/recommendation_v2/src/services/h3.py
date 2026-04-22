@@ -7,9 +7,7 @@ import h3
 DEFAULT_H3_RESOLUTION = 5
 
 
-def get_h3_index_from_coordinates(
-    latitude: float | None, longitude: float | None, resolution: int = DEFAULT_H3_RESOLUTION
-) -> str | None:
+def get_h3_index_from_coordinates(latitude: float | None, longitude: float | None, *, resolution) -> str | None:
     """
     Returns the H3 index for the given coordinates and resolution.
     Returns None if latitude or longitude is missing.
@@ -19,9 +17,7 @@ def get_h3_index_from_coordinates(
     return h3.latlng_to_cell(latitude, longitude, resolution)
 
 
-def calculate_h3_k_rings_to_cover_search_radius(
-    search_radius_in_km: float, resolution: int = DEFAULT_H3_RESOLUTION
-) -> int:
+def calculate_h3_k_rings_to_cover_search_radius(search_radius_in_km: float, *, resolution) -> int:
     """
     Calculates the number of H3 k-rings required to completely cover a given search radius.
 
@@ -34,7 +30,7 @@ def calculate_h3_k_rings_to_cover_search_radius(
 
     Args:
         search_radius_in_km (float): The maximum distance in kilometers to cover.
-        resolution (int): The H3 resolution used for the grid (defaults to DEFAULT_H3_RESOLUTION).
+        resolution (int): The H3 resolution used for the grid.
 
     Returns:
         int: The number of k-rings needed to cover the search radius.

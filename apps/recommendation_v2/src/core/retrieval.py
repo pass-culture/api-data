@@ -12,6 +12,7 @@ from models.items import NonRecommendableItems
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.vertex_prediction_item import RecommendableItem
+from services.h3 import DEFAULT_H3_RESOLUTION
 from utils.benchmark import log_execution_time
 
 
@@ -302,7 +303,9 @@ async def resolve_closest_venues_from_items(
     database_resolved_enriched_offers: list[EnrichedRecommendableOffer] = []
 
     if multi_venue_item_ids:
-        db_rows = await find_closest_offers_with_h3_index(db, multi_venue_item_ids, user_context)
+        db_rows = await find_closest_offers_with_h3_index(
+            db, multi_venue_item_ids, user_context, resolution=DEFAULT_H3_RESOLUTION
+        )
 
         # Map SQL results back to Vertex ML data
         for db_offer, distance in db_rows:

@@ -9,7 +9,6 @@ from sqlalchemy.sql import ColumnElement
 from models.iris import IrisFrance
 from models.offer import RecommendableOffers
 from models.venue import Venue
-from services.h3 import DEFAULT_H3_RESOLUTION
 from services.h3 import calculate_h3_k_rings_to_cover_search_radius
 from services.h3 import get_h3_index_from_coordinates
 from utils.benchmark import log_execution_time
@@ -98,7 +97,13 @@ def build_haversine_distance_expression(latitude: float, longitude: float, venue
 
 
 @log_execution_time
-async def find_closest_offers_with_h3_index(db: AsyncSession, item_ids: list[str], user_context: "UserContext"):
+async def find_closest_offers_with_h3_index(
+    db: AsyncSession,
+    item_ids: list[str],
+    user_context: "UserContext",
+    *,
+    resolution: int,
+):
     """
     Retrieves the closest offer for each item using H3 geospatial indexing.
 
@@ -116,6 +121,7 @@ async def find_closest_offers_with_h3_index(db: AsyncSession, item_ids: list[str
         db (AsyncSession): The active database session.
         item_ids (list[str]): List of Item IDs to find offers for.
         user_context (UserContext): User's context containing GPS coordinates.
+        resolution (int): H3 resolution to use for grid filtering.
 
     Returns:
         list[Row]: A list of rows containing (RecommendableOffers, calc_distance).
@@ -127,11 +133,11 @@ async def find_closest_offers_with_h3_index(db: AsyncSession, item_ids: list[str
     user_lng: float = user_context.longitude
 
     # Identify the H3 cell containing the user
-    user_h3_cell = get_h3_index_from_coordinates(user_lat, user_lng)
+    user_h3_cell = get_h3_index_from_coordinates(user_lat, user_lng, resolution=resolution)
 
     # Estimate the number of H3 rings needed to cover the search radius (50km)
     k_rings = calculate_h3_k_rings_to_cover_search_radius(
-        search_radius_in_km=H3_SEARCH_RADIUS_IN_KM, resolution=DEFAULT_H3_RESOLUTION
+        search_radius_in_km=H3_SEARCH_RADIUS_IN_KM, resolution=resolution
     )
 
     # Get all cells within 'rings_count' distance (filled disk)
@@ -139,7 +145,7 @@ async def find_closest_offers_with_h3_index(db: AsyncSession, item_ids: list[str
 
     # Build SQL components
     distance_expr = build_haversine_distance_expression(user_lat, user_lng, Venue).label("calc_distance")
-    h3_index_column = getattr(Venue, f"h3_res{DEFAULT_H3_RESOLUTION}")
+    h3_index_column = getattr(Venue, f"h3_res{resolution}")
 
     # Construct the query
     stmt = (
