@@ -30,6 +30,8 @@ def model_compliance_scoring(scoring_input: LLMComplianceInput):
         "scoring_input": scoring_input.dict(),
     }
     input_data = scoring_input.dict()
+    # TODO: remove default scoring when column will be removed from backend tables
+    # Here default values are set to bypass the catboost model scoring and avoid blocking the API when the offer subcategory is not in the allowed list for LLM scoring.
     default_scoring = {
         "offer_id": input_data["offer_id"],
         "probability_validated": 50,
