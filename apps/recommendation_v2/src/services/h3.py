@@ -3,10 +3,6 @@ import math
 import h3
 
 
-# Standard resolution used across the application for spatial indexing and caching
-DEFAULT_H3_RESOLUTION = 5
-
-
 def get_h3_index_from_coordinates(latitude: float | None, longitude: float | None, *, resolution) -> str | None:
     """
     Returns the H3 index for the given coordinates and resolution.
