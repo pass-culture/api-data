@@ -3,29 +3,18 @@ import traceback
 from fastapi import APIRouter, Depends
 from fastapi_versioning import version
 
-from pcpapillon.core.compliance_model import (
-    ComplianceModel,
-)
 from pcpapillon.core.llm_compliance_model import LLMComplianceModel
 from pcpapillon.utils.constants import (
     LLM_ALLOWED_SUBCATEGORY_WITH_MAPPING,
     PRICE_CHECK_CATEGORIES,
 )
 from pcpapillon.utils.logging.trace import custom_logger, get_call_id, setup_trace
-from pcpapillon.utils.scheduler import init_scheduler
 from pcpapillon.utils_llm.data_model_llm import (
     ComplianceOutput,
     LLMComplianceInput,
 )
 
 compliance_router = APIRouter(tags=["compliance"])
-
-
-# Init model and scheduler
-compliance_model = ComplianceModel()
-compliance_scheduler = init_scheduler(
-    compliance_model.reload_model_if_newer_is_available, time_interval=600
-)
 
 
 @compliance_router.post(
@@ -41,8 +30,14 @@ def model_compliance_scoring(scoring_input: LLMComplianceInput):
         "scoring_input": scoring_input.dict(),
     }
     input_data = scoring_input.dict()
-    predictions = compliance_model.predict(data=scoring_input)
-    predictions = predictions.dict()
+    default_scoring = {
+        "offer_id": input_data["offer_id"],
+        "probability_validated": 50,
+        "validation_main_features": ["NA"],
+        "probability_rejected": 50,
+        "rejection_main_features": ["NA"],
+    }
+    predictions = default_scoring
     if (
         input_data["offer_subcategory_id"]
         in LLM_ALLOWED_SUBCATEGORY_WITH_MAPPING.keys()
