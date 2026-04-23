@@ -22,13 +22,14 @@ load_dotenv(dotenv_path=environment_file_path, override=True)
 # --- 2. Application Environment ---
 ENV: str = os.environ.get("ENV", "local")
 
-IS_LOCAL: bool = ENV == "local"
+IS_LOCAL: bool = ENV in ("local", "ci")
 IS_TESTING: bool = ENV == "testing"
 IS_STAGING: bool = ENV == "staging"
 IS_PROD: bool = ENV == "production"
+IS_CI: bool = ENV == "ci"
 
 # Fail-fast mechanism: prevent the app from starting if the environment is unrecognized
-if ENV not in ("local", "testing", "staging", "production"):
+if ENV not in ("local", "testing", "staging", "production", "ci"):
     raise RuntimeError(f"Unknown environment detected: {ENV}")
 
 FASTAPI_SERVER_PORT: int = int(os.environ.get("FASTAPI_SERVER_PORT", "8000"))
@@ -38,7 +39,7 @@ RECOMMENDATION_API_VERSION = 2
 
 # --- 3. Logging Configuration ---
 # Reduce log noise in production by defaulting to INFO level
-DEBUG_LEVEL: int = logging.INFO if IS_PROD else logging.DEBUG
+LOG_LEVEL: int = logging.INFO if IS_PROD else logging.DEBUG
 
 LOGS_PRETTY_PRINT: bool = bool(int(os.environ.get("LOGS_PRETTY_PRINT", "1")))
 
@@ -49,10 +50,9 @@ SQL_BASE_USER: str = os.environ.get("SQL_BASE_USER", "")
 SQL_BASE_PASSWORD: str = os.environ.get("SQL_BASE_PASSWORD", "")
 SQL_BASE_PORT: str = os.environ.get("SQL_PORT", "5439")
 SQL_BASE_HOST: str = os.environ.get("SQL_HOST", "localhost")
-SQL_BASE_HOST_SECRET_ID: str = os.environ.get("SQL_HOST_SECRET_ID", "")
 
 # TODO: Fake key for now
-API_TOKEN: str = "api_token"
+API_TOKEN: str = os.environ.get("API_TOKEN", "")
 
 # Construct the async SQLAlchemy connection string
 DATABASE_URL: str = os.getenv(

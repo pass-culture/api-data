@@ -106,7 +106,7 @@ def initialize_application_logger() -> StructuredLogger:
         local_logger = logging.getLogger(logger_name)
 
         # Set the logging level based on configuration (DEBUG, INFO, etc.)
-        local_logger.setLevel(settings.DEBUG_LEVEL)
+        local_logger.setLevel(settings.LOG_LEVEL)
 
         # Ensure we have at least one handler to see output in the console
         if not local_logger.handlers:
@@ -121,7 +121,7 @@ def initialize_application_logger() -> StructuredLogger:
 
         # Retrieve the default handler which automatically formats logs for GCP
         gcp_log_handler = gcp_logging_client.get_default_handler()
-        gcp_log_handler.setLevel(settings.DEBUG_LEVEL)
+        gcp_log_handler.setLevel(settings.LOG_LEVEL)
 
         # Attach the custom filter to inject trace context (Trace ID, Span ID)
         trace_context_filter = GoogleCloudLogFilter(project=gcp_logging_client.project)
@@ -129,7 +129,7 @@ def initialize_application_logger() -> StructuredLogger:
 
         # Configure the root logger to capture all logs in the container environment
         root_logger = logging.getLogger()
-        root_logger.setLevel(settings.DEBUG_LEVEL)
+        root_logger.setLevel(settings.LOG_LEVEL)
 
         # Replace existing handlers to ensure only the GCP handler is used
         root_logger.handlers = [gcp_log_handler]

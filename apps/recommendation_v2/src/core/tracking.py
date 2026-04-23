@@ -26,7 +26,7 @@ def log_past_offer_context_to_sink(
     Architecture Flow:
     1. This JSON payload is logged to standard output (stdout).
     2. Google Cloud Logging captures it.
-    3. A GCP Log Sink matches the 'event_type' label ('NEW_recommendation_past_offer_context_sink').
+    3. A GCP Log Sink matches the 'event_type' label ('recommendation_past_offer_context_sink').
     4. The payload is automatically routed and ingested into a BigQuery table.
     5. Data Scientists use this historical BigQuery data to compute user engagement
        and train future iterations of the Vertex AI recommendation models.
