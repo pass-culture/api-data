@@ -16,6 +16,7 @@ dependencies = [
     "google-cloud-aiplatform==1.135.0",
     "google-cloud-logging==3.13.0",
     "greenlet>=3.3.1",
+    "gunicorn>=25.3.0",
     "sqlalchemy==2.0.46",
     "types-protobuf>=6.32.1.20251210",
     "uvicorn==0.40.0",

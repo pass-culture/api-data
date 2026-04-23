@@ -1,6 +1,6 @@
 SHELL:=/bin/bash
 
-.PHONY: install start tunnel start-with-remote-db streamlit dev-with-streamlit test access-swagger-api-v1 get-staging-api-token
+.PHONY: install start tunnel start-with-remote-db streamlit dev-with-streamlit test access-swagger-api-v1 get-staging-api-token show-config
 
 install:
 	@echo "📦 Installing dependencies..."
@@ -11,6 +11,9 @@ check-gcloud-auth:
 	@gcloud auth print-access-token > /dev/null 2>&1 || (echo "🔐 CLI not authenticated. Launching gcloud auth login..." && gcloud auth login)
 	@echo "🔍 Checking Application Default Credentials (ADC) for Python SDKs..."
 	@gcloud auth application-default print-access-token > /dev/null 2>&1 || (echo "🔐 ADC not authenticated. Launching gcloud application-default login..." && gcloud auth application-default login)
+
+show-config:
+	@PYTHONPATH=src uv run python -c "from main import show_api_config; show_api_config()"
 
 start: check-gcloud-auth
 	uv run src/main.py
@@ -60,7 +63,8 @@ dev-with-streamlit: check-gcloud-auth
 	$(MAKE) streamlit
 
 test:
-	pytest ./tests
+	@echo "🧪 Running unit tests..."
+	uv run pytest tests
 
 
 define PREPARE_SWAGGER_TUNNEL
