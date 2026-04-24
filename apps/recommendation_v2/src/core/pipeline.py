@@ -109,4 +109,5 @@ async def generate_playlist_recommendations(
     return RecommendationResponse(
         playlist_recommended_offers=[offer.offer_id for offer in final_playlist],
         params=RecommendationMetadata(reco_origin=recommendation_origin, model_origin="default", call_id=call_id),
+        from_cache=False,
     )

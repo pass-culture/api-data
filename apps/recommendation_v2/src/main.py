@@ -15,6 +15,7 @@ from api.health_check import router as health_check_router
 from api.playlist_recommendation import router as playlist_router
 from config import settings
 from services.logger import logger
+from services.redis import redis_cache_service
 
 
 api_key_query = APIKeyQuery(name="token", auto_error=True)
@@ -88,15 +89,24 @@ def show_api_config() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await redis_cache_service.connect()
+
     swagger_url = f"http://127.0.0.1:{settings.FASTAPI_SERVER_PORT}/docs"
 
     show_api_config()
 
     logger.info(
-        "🚀 Recommendation API started successfully!",
-        extra={"swagger_url": swagger_url, "environment": settings.ENV, "version": app.version},
+        "🚀 Recommendation API started successfully !"
+        f" Redis Cache: {'ENABLED 🟢' if settings.REDIS_CACHE_ENABLED else 'DISABLED 🔴'}",
+        extra={
+            "swagger_url": swagger_url,
+            "environment": settings.ENV,
+            "version": app.version,
+            "redis_enabled": settings.REDIS_CACHE_ENABLED,
+        },
     )
     yield
+    await redis_cache_service.disconnect()
 
 
 app = FastAPI(

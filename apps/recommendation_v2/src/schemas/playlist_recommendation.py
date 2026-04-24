@@ -207,3 +207,4 @@ class RecommendationResponse(BaseModel):
 
     playlist_recommended_offers: list[str]
     params: RecommendationMetadata
+    from_cache: bool

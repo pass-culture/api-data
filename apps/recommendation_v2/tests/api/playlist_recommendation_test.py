@@ -11,6 +11,7 @@ def test_get_playlist_success(client) -> None:
             "model_origin": "default",
             "call_id": "12345678-1234-5678-1234-567812345678",
         },
+        "from_cache": False,
     }
     expected_response_status_code = 200
 

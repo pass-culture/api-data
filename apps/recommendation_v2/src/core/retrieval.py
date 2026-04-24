@@ -4,6 +4,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import settings
 from connectors import retrieval_api_client
 from connectors.vertex_api import VertexPredictionResult
 from core.geo import find_closest_offers_with_h3_index
@@ -12,6 +13,7 @@ from models.items import NonRecommendableItems
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.vertex_prediction_item import RecommendableItem
+from utils.benchmark import log_execution_time
 
 
 DEFAULT_MAX_DISTANCE_IN_METERS = 100_000
@@ -96,6 +98,7 @@ def _build_vertex_search_filters(user_context: UserContext, params: PlaylistRequ
     return {"$and": filters}
 
 
+@log_execution_time
 async def fetch_candidate_items_from_vertex(
     user_context: UserContext, params: PlaylistRequestParams, call_id: str
 ) -> VertexPredictionResult:
@@ -300,7 +303,9 @@ async def resolve_closest_venues_from_items(
     database_resolved_enriched_offers: list[EnrichedRecommendableOffer] = []
 
     if multi_venue_item_ids:
-        db_rows = await find_closest_offers_with_h3_index(db, multi_venue_item_ids, user_context)
+        db_rows = await find_closest_offers_with_h3_index(
+            db, multi_venue_item_ids, user_context, resolution=settings.GEOSPATIAL_RETRIEVAL_H3_RESOLUTION
+        )
 
         # Map SQL results back to Vertex ML data
         for db_offer, distance in db_rows:

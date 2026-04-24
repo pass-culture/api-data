@@ -8,6 +8,7 @@ from unittest.mock import patch
 import pytest
 from starlette.testclient import TestClient
 
+from config import settings
 from connectors.vertex_api import VertexPredictionResult
 from main import app
 from schemas.vertex_prediction_item import RecommendableItem
@@ -15,6 +16,9 @@ from services.db import get_database_session
 
 
 MOCK_CALL_ID = "12345678-1234-5678-1234-567812345678"
+
+# Force Redis cache to be disabled during tests
+settings.REDIS_CACHE_ENABLED = False
 
 
 @pytest.fixture(scope="session", autouse=True)

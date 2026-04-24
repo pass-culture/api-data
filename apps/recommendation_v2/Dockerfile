@@ -25,4 +25,4 @@ ENV GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
 EXPOSE 8080
 
 # Start server
-CMD ["uv", "run", "gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--bind", ":8080", "--workers", "8", "--threads", "2", "--preload", "--timeout", "0", "main:app"]
+CMD ["uv", "run", "gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--bind", ":8080", "--workers", "8", "--preload", "--timeout", "0", "main:app"]
