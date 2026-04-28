@@ -27,9 +27,13 @@ def mock_uuid():
     Global mock for UUID generation.
     Ensures that all generated call_ids are identical and predictable.
     """
-    with patch("core.pipeline.uuid.uuid4") as mock_uuid_func:
-        mock_uuid_func.return_value = uuid.UUID(MOCK_CALL_ID)
-        yield mock_uuid_func
+    with (
+        patch("controllers.pipeline_playlist_recommendation.uuid.uuid4") as mock_uuid_playlist,
+        patch("controllers.pipeline_similar_offer.uuid.uuid4") as mock_uuid_similar,
+    ):
+        mock_uuid_playlist.return_value = uuid.UUID(MOCK_CALL_ID)
+        mock_uuid_similar.return_value = uuid.UUID(MOCK_CALL_ID)
+        yield (mock_uuid_playlist, mock_uuid_similar)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -39,8 +43,19 @@ def mock_vertex_services():
     Allows bypassing real model calls without altering the local pipeline.
     """
     with (
-        patch("core.pipeline.fetch_candidate_items_from_vertex", new_callable=AsyncMock) as mock_fetch,
-        patch("core.pipeline.rank_and_sort_offers_with_vertex", new_callable=AsyncMock) as mock_rank,
+        patch(
+            "controllers.pipeline_playlist_recommendation.fetch_retrieval_predictions_from_vertex",
+            new_callable=AsyncMock,
+        ) as mock_fetch_playlist,
+        patch(
+            "controllers.pipeline_similar_offer.fetch_retrieval_predictions_from_vertex", new_callable=AsyncMock
+        ) as mock_fetch_similar,
+        patch(
+            "controllers.pipeline_playlist_recommendation.rank_and_sort_offers_with_vertex", new_callable=AsyncMock
+        ) as mock_rank_playlist,
+        patch(
+            "controllers.pipeline_similar_offer.rank_and_sort_offers_with_vertex", new_callable=AsyncMock
+        ) as mock_rank_similar,
     ):
 
         def _create_recommendable_item(item_id: str) -> RecommendableItem:
@@ -73,7 +88,7 @@ def mock_vertex_services():
             )
 
         # Simulating the retrieval of recommendation candidates
-        mock_fetch.return_value = VertexPredictionResult(
+        prediction_result = VertexPredictionResult(
             status="success",
             predictions=[
                 _create_recommendable_item("1"),
@@ -81,14 +96,22 @@ def mock_vertex_services():
                 _create_recommendable_item("3"),
             ],
         )
+        mock_fetch_playlist.return_value = prediction_result
+        mock_fetch_similar.return_value = prediction_result
 
         # Simulating the scoring/ranking model
         async def fake_ranking_func(offers, user_context):
             return offers
 
-        mock_rank.side_effect = fake_ranking_func
+        mock_rank_playlist.side_effect = fake_ranking_func
+        mock_rank_similar.side_effect = fake_ranking_func
 
-        yield {"mock_fetch": mock_fetch, "mock_rank": mock_rank}
+        yield {
+            "mock_fetch_playlist": mock_fetch_playlist,
+            "mock_fetch_similar": mock_fetch_similar,
+            "mock_rank_playlist": mock_rank_playlist,
+            "mock_rank_similar": mock_rank_similar,
+        }
 
 
 @pytest.fixture(scope="module")

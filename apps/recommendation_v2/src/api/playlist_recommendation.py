@@ -1,5 +1,4 @@
 import uuid
-from enum import Enum
 from typing import Annotated
 
 from fastapi import APIRouter
@@ -11,47 +10,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
 from connectors.redis_api import redis_api
-from core.pipeline import generate_playlist_recommendations
+from controllers.pipeline_playlist_recommendation import generate_playlist_recommendations
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.playlist_recommendation import RecommendationResponse
 from services.db import get_database_session
 from services.h3 import get_h3_index_from_coordinates
 from utils.benchmark import log_execution_time
+from utils.location_presets import PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING
+from utils.location_presets import PresetLocation
 
 
 router = APIRouter()
-
-
-# --- TEST LOCATIONS CONFIGURATION ---
-class PresetLocation(str, Enum):
-    # Highly populated (Major metropolitan areas)
-    HIGH_DENSITY_PARIS = "High Density - Paris"
-    HIGH_DENSITY_LYON = "High Density - Lyon"
-    HIGH_DENSITY_MARSEILLE = "High Density - Marseille"
-
-    # Moderately populated (Medium-sized cities)
-    MEDIUM_DENSITY_TOURS = "Medium Density - Tours"
-    MEDIUM_DENSITY_ANNECY = "Medium Density - Annecy"
-    MEDIUM_DENSITY_LA_ROCHELLE = "Medium Density - La Rochelle"
-
-    # Sparsely populated (Rural areas)
-    LOW_DENSITY_MENDE = "Low Density - Mende (Lozère)"
-    LOW_DENSITY_GUERET = "Low Density - Guéret (Creuse)"
-    LOW_DENSITY_FLORAC = "Low Density - Florac (Cévennes)"
-
-
-# Exact coordinate mapping (Latitude, Longitude)
-PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING = {
-    PresetLocation.HIGH_DENSITY_PARIS: (48.8566, 2.3522),
-    PresetLocation.HIGH_DENSITY_LYON: (45.7640, 4.8357),
-    PresetLocation.HIGH_DENSITY_MARSEILLE: (43.2965, 5.3698),
-    PresetLocation.MEDIUM_DENSITY_TOURS: (47.3941, 0.6848),
-    PresetLocation.MEDIUM_DENSITY_ANNECY: (45.8992, 6.1294),
-    PresetLocation.MEDIUM_DENSITY_LA_ROCHELLE: (46.1603, -1.1511),
-    PresetLocation.LOW_DENSITY_MENDE: (44.5176, 3.5000),
-    PresetLocation.LOW_DENSITY_GUERET: (46.1667, 1.8667),
-    PresetLocation.LOW_DENSITY_FLORAC: (44.3239, 3.5971),
-}
 
 
 @router.post(

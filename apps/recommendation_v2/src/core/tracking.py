@@ -11,7 +11,7 @@ from services.logger import logger
 def log_past_offer_context_to_sink(
     user_context: UserContext,
     final_playlist: list[EnrichedRecommendableOffer],
-    params: PlaylistRequestParams,
+    params: PlaylistRequestParams | None,
     call_id: str,
     reco_origin: str,
     context_name: str,
@@ -36,8 +36,8 @@ def log_past_offer_context_to_sink(
 
     Args:
         user_context (UserContext): The current state/profile of the user.
-        final_playlist (list[RecommendableOffers]): The ordered list of offers shown to the user.
-        params (PlaylistRequestParams): The input filters requested by the client.
+        final_playlist (list[EnrichedRecommendableOffer]): The ordered list of offers shown to the user.
+        params (PlaylistRequestParams | None): The input filters requested by the client.
         call_id (str): The unique execution trace ID to link multiple logs together.
         reco_origin (str): Indicates if this was a 'cold_start' or an 'algo' recommendation.
         context_name (str): The specific endpoint or UI context calling this function.
@@ -46,11 +46,10 @@ def log_past_offer_context_to_sink(
     # --- 1. Compute Shared Context ---
     # We compute these values once outside the loop to optimize performance
     current_utc_date = datetime.now(UTC).isoformat()
-
     request_extra_data = {
         "reco_origin": reco_origin,
         "context": context_name,
-        "params_in": params.model_dump(by_alias=True, exclude_none=True),
+        "params_in": params.model_dump(by_alias=True, exclude_none=True) if params else None,
     }
 
     # --- 2. Iterate and Log Each Offer ---

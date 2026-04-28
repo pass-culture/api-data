@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.diversification import apply_offer_diversification
 from core.geo import get_iris_id_from_coordinates
 from core.ranking import rank_and_sort_offers_with_vertex
-from core.retrieval import FINAL_DIVERSIFIED_PLAYLIST_MAXIMUM_SIZE
-from core.retrieval import fetch_candidate_items_from_vertex
+from core.retrieval import build_playlist_recommendation_retrieval_payload
+from core.retrieval import fetch_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
 from core.retrieval import resolve_closest_venues_from_items
 from core.tracking import log_past_offer_context_to_sink
@@ -18,6 +18,9 @@ from schemas.playlist_recommendation import RecommendationResponse
 from services.logger import logger
 
 
+PLAYLIST_RECOMMENDATION_MAXIMUM_SIZE = 60
+
+
 async def generate_playlist_recommendations(
     db: AsyncSession, user_id: str, latitude: float | None, longitude: float | None, params: PlaylistRequestParams
 ) -> RecommendationResponse:
@@ -25,7 +28,7 @@ async def generate_playlist_recommendations(
     Orchestrates the entire recommendation pipeline to generate a personalized playlist of offers.
 
     This function acts as the main controller for the recommendation engine, following a standard
-    two-tower architecture flow: Retrieve -> Filter -> Rank -> Diversify.
+    recommender architecture flow: Retrieve -> Filter -> Rank -> Diversify.
 
     Pipeline Stages:
     1. Context Building: Fetches user profile and geographical data to build a standardized context.
@@ -63,7 +66,10 @@ async def generate_playlist_recommendations(
 
     # --- 2. Retrieval Phase ---
     # Fetch a broad array of raw item candidates from the ML model
-    raw_candidates = await fetch_candidate_items_from_vertex(user_context, params, call_id)
+    retrieval_payload = build_playlist_recommendation_retrieval_payload(
+        user_context=user_context, call_id=call_id, params=params
+    )
+    raw_candidates = await fetch_retrieval_predictions_from_vertex(prediction_payload=retrieval_payload)
 
     # --- 3. Filtering Phase & Resolution ---
     unbooked_candidate_items = await filter_out_already_booked_items(
@@ -84,7 +90,7 @@ async def generate_playlist_recommendations(
     diversified_offers = apply_offer_diversification(ranked_offers, should_shuffle_initial_list=False)
 
     # Cap the final playlist to a strict maximum
-    final_playlist = diversified_offers[:FINAL_DIVERSIFIED_PLAYLIST_MAXIMUM_SIZE]
+    final_playlist = diversified_offers[:PLAYLIST_RECOMMENDATION_MAXIMUM_SIZE]
 
     # --- 6. Logging & Formatting Phase ---
     recommendation_origin = "cold_start" if user_context.is_cold_start else "algo"
@@ -109,5 +115,6 @@ async def generate_playlist_recommendations(
     return RecommendationResponse(
         playlist_recommended_offers=[offer.offer_id for offer in final_playlist],
         params=RecommendationMetadata(reco_origin=recommendation_origin, model_origin="default", call_id=call_id),
+        # TODO : check if model_origin should be "reco" instead of "default"
         from_cache=False,
     )
