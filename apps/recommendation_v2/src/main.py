@@ -13,6 +13,7 @@ from fastapi.security import APIKeyQuery
 
 from api.health_check import router as health_check_router
 from api.playlist_recommendation import router as playlist_router
+from api.similar_offer import router as similar_offer_router
 from config import settings
 from services.logger import logger
 from services.redis import redis_cache_service
@@ -120,9 +121,9 @@ app = FastAPI(
 # In local environments, authentication is bypassed to simplify development
 api_token_dependencies = [Depends(verify_api_token)] if not settings.IS_LOCAL else []
 
-app.include_router(playlist_router, tags=["Recommendations"], dependencies=api_token_dependencies)
 app.include_router(health_check_router, tags=["Health"])
-
+app.include_router(similar_offer_router, tags=["Similar Offers"], dependencies=api_token_dependencies)
+app.include_router(playlist_router, tags=["Recommendations"], dependencies=api_token_dependencies)
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",

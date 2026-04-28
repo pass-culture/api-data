@@ -13,16 +13,17 @@ from services.database_service import get_random_user
 from streamlit_folium import st_folium
 
 import streamlit as st
-from api.playlist_recommendation import PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING
+from config.settings import SWAGGER_UI_EXAMPLE_OFFER_ID
 from config.settings import SWAGGER_UI_EXAMPLE_USER_ID
 from schemas.playlist_recommendation import CategoryEnum
 from schemas.playlist_recommendation import SearchGroupNameEnum
 from schemas.playlist_recommendation import SubcategoryEnum
+from utils.location_presets import PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING
 
 
-def render_sidebar() -> tuple:
+def render_playlist_recommendation_sidebar() -> tuple:
     """
-    Displays the sidebar and gathers inputs from the user.
+    Displays the sidebar and gathers inputs from the user for the playlist recommendation.
 
     Returns:
     - tuple: (user_id, params dict, payload dict, max_offers_to_fetch, run_fetch_boolean)
@@ -51,7 +52,7 @@ def render_sidebar() -> tuple:
 
         # Payload Configuration Blocks
         st.subheader("Filtres et Options (Payload)")
-        payload = _render_payload_filters()
+        payload = _render_playlist_recommendation_payload_filters()
 
         # Display and action
         st.subheader("Options d'Affichage")
@@ -68,6 +69,53 @@ def render_sidebar() -> tuple:
             params["longitude"] = longitude
 
         return user_id, params, payload, max_offers_to_fetch, run_btn
+
+
+def render_similar_offer_sidebar() -> tuple:
+    """
+    Displays the sidebar and gathers inputs from the user for similar offers.
+
+    Returns:
+    - tuple: (offer_id, params dict, payload dict, max_offers_to_fetch, run_fetch_boolean)
+    """
+    with st.sidebar:
+        st.header("1. Paramètres de la Requête")
+
+        # Offer identification
+        st.markdown("**Sélection de l'offre**")
+        offer_id_input = st.text_input(
+            "Identifiant de l'offre source",
+            value=st.session_state.get("similar_offer_id", SWAGGER_UI_EXAMPLE_OFFER_ID),
+            help="ID de l'offre (MongoID) pour laquelle chercher des similaires",
+            label_visibility="collapsed",
+        )
+        st.session_state.similar_offer_id = offer_id_input
+        st.divider()
+
+        offer_id = st.session_state.similar_offer_id
+
+        # Geolocation selection
+        latitude, longitude = _render_geolocation_inputs()
+
+        # Payload Configuration Blocks
+        st.subheader("Filtres")
+        payload = _render_similar_offer_filters()
+
+        # Display and action
+        st.subheader("Options d'Affichage")
+        max_offers_to_fetch = st.number_input(
+            "Nombre d'offres maximum à récupérer", min_value=1, max_value=20, value=20
+        )
+
+        run_btn = st.button("🚀 Rechercher des Similaires", type="primary")
+
+        # Mapping properties
+        params = {}
+        if latitude is not None and longitude is not None:
+            params["latitude"] = latitude
+            params["longitude"] = longitude
+
+        return offer_id, params, payload, max_offers_to_fetch, run_btn
 
 
 def _render_random_user_buttons():
@@ -163,7 +211,7 @@ def _render_geolocation_inputs() -> tuple:
     return latitude, longitude
 
 
-def _render_payload_filters() -> dict:  # noqa: PLR0912, PLR0915
+def _render_playlist_recommendation_payload_filters() -> dict:  # noqa: PLR0912, PLR0915
     """Renders the expanders for filtering options and builds the json payload."""
     with st.expander("Contraintes Temporelles"):
         start_date_val = st.date_input("Date de début", value=None)
@@ -232,5 +280,23 @@ def _render_payload_filters() -> dict:  # noqa: PLR0912, PLR0915
 
     if is_reco_shuffled is not None:
         payload["isRecoShuffled"] = is_reco_shuffled
+
+    return payload
+
+
+def _render_similar_offer_filters() -> dict:
+    """Renders the expanders for filtering options and builds the json payload for similar offers."""
+    with st.expander("Filtres Catégoriels"):
+        categories = st.multiselect("Catégories", [e.value for e in CategoryEnum])
+        subcategories = st.multiselect("Sous-catégories", [e.value for e in SubcategoryEnum])
+        search_group_names = st.multiselect("Groupes de recherche", [e.value for e in SearchGroupNameEnum])
+
+    payload = {}
+    if categories:
+        payload["categories"] = categories
+    if subcategories:
+        payload["subcategories"] = subcategories
+    if search_group_names:
+        payload["searchGroupNames"] = search_group_names
 
     return payload

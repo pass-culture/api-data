@@ -51,7 +51,6 @@ SQL_BASE_PASSWORD: str = os.environ.get("SQL_BASE_PASSWORD", "")
 SQL_BASE_PORT: str = os.environ.get("SQL_PORT", "5439")
 SQL_BASE_HOST: str = os.environ.get("SQL_HOST", "localhost")
 
-# TODO: Fake key for now
 API_TOKEN: str = os.environ.get("API_TOKEN", "")
 
 # Construct the async SQLAlchemy connection string
@@ -79,6 +78,7 @@ VERTEX_PREDICTION_TIMEOUT: float = float(os.environ.get("VERTEX_PREDICTION_TIMEO
 
 # --- 6. Swagger UI for API Testing ---
 SWAGGER_UI_EXAMPLE_USER_ID: str = os.environ.get("SWAGGER_UI_EXAMPLE_USER_ID", "")
+SWAGGER_UI_EXAMPLE_OFFER_ID: str = os.environ.get("SWAGGER_UI_EXAMPLE_OFFER_ID", "")
 
 # --- 7. Tracking Configuration ---
 ENABLE_TRACKING_LOGS: bool = bool(int(os.environ.get("ENABLE_TRACKING_LOGS", "1")))

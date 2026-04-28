@@ -19,8 +19,8 @@ import streamlit as st
 sys.path.append(str(Path(__file__).resolve().parent.parent / "src"))
 
 from components.card_renderer import show_recommendations
-from components.sidebar import render_sidebar
-from services.backend_api_client import fetch_recommendation_ids
+from components.sidebar import render_playlist_recommendation_sidebar
+from services.backend_api_client import fetch_playlist_recommendation_ids
 
 from config.settings import FASTAPI_SERVER_PORT
 
@@ -40,13 +40,13 @@ def main():
     st.markdown("Exécutez et testez l'API de recommandation en toute simplicité.")
 
     # Collect parameters from the sidebar
-    user_id, params, payload, max_offers_to_fetch, run_fetch = render_sidebar()
+    user_id, params, payload, max_offers_to_fetch, run_fetch = render_playlist_recommendation_sidebar()
 
     if run_fetch:
-        fetch_and_display_recommendations(user_id, params, payload, max_offers_to_fetch)
+        fetch_and_display_playlist_recommendations(user_id, params, payload, max_offers_to_fetch)
 
 
-def fetch_and_display_recommendations(user_id: str, params: dict, payload: dict, max_offers: int):
+def fetch_and_display_playlist_recommendations(user_id: str, params: dict, payload: dict, max_offers: int):
     """
     Calls the FastAPI backend to retrieve recommended offer IDs and renders them.
 
@@ -62,13 +62,12 @@ def fetch_and_display_recommendations(user_id: str, params: dict, payload: dict,
         start_time = time_mod.time()
 
         try:
-            offer_ids, reco_origin, model_origin = fetch_recommendation_ids(api_url, params, payload)
+            offer_ids, reco_origin, model_origin = fetch_playlist_recommendation_ids(api_url, params, payload)
         except requests.exceptions.RequestException as error:
             st.error(f"Erreur lors de l'appel de l'API : {error}")
             if error.response is not None:
                 st.json(error.response.json())
             st.stop()
-            return
 
         api_response_time = time_mod.time() - start_time
 
@@ -97,6 +96,7 @@ def fetch_and_display_recommendations(user_id: str, params: dict, payload: dict,
         max_offers_to_fetch=max_offers,
         latitude=params.get("latitude"),
         longitude=params.get("longitude"),
+        title="Recommandations de la Playlist",
     )
 
 

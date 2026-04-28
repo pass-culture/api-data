@@ -46,9 +46,13 @@ def mock_uuid():
     All call_ids generated via ``core.pipeline.uuid.uuid4`` will return ``MOCK_CALL_ID``,
     making snapshot assertions deterministic across runs.
     """
-    with patch("core.pipeline.uuid.uuid4") as mock_uuid_func:
-        mock_uuid_func.return_value = uuid.UUID(MOCK_CALL_ID)
-        yield mock_uuid_func
+    with (
+        patch("controllers.pipeline_playlist_recommendation.uuid.uuid4") as mock_uuid_playlist,
+        patch("controllers.pipeline_similar_offer.uuid.uuid4") as mock_uuid_similar,
+    ):
+        mock_uuid_playlist.return_value = uuid.UUID(MOCK_CALL_ID)
+        mock_uuid_similar.return_value = uuid.UUID(MOCK_CALL_ID)
+        yield (mock_uuid_playlist, mock_uuid_similar)
 
 
 @pytest.fixture(autouse=True)
