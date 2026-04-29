@@ -21,5 +21,7 @@ RUN if [ "$LOCAL" = "true" ]; then \
     cp ./application_default_credentials.json /root/.config/gcloud/application_default_credentials.json; \
     fi
 
+USER 1000
+
 # Run the container
 CMD ["/bin/sh", "-c", "exec gunicorn main:app --workers 1 --log-level debug --timeout 300 --bind 0.0.0.0:${PORT}"]
