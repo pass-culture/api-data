@@ -5,7 +5,7 @@ requires-python = ">=3.11,<3.12"
 dependencies = [
     "fastapi~=0.115",
     "fastapi-versioning~=0.10",
-    "google-cloud-logging~=3.12.1",
+    "google-cloud-logging~=3.12",
     "gunicorn~=23.0.0",
     "langchain~=0.3",
     "langchain-google-vertexai~=2.0",
