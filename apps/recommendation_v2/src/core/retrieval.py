@@ -237,6 +237,7 @@ def build_similar_offer_retrieval_payload(
 # SHARED / POST-PROCESSING
 # ==============================================================================
 
+
 @log_execution_time
 async def fetch_retrieval_predictions_from_vertex(prediction_payload: dict[str, Any]) -> VertexPredictionResult:
     """
