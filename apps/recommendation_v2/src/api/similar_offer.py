@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter
@@ -7,12 +8,15 @@ from fastapi import Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
+from connectors.redis_api import redis_api
 from controllers.pipeline_similar_offer import generate_similar_offers
 from schemas.categories import CategoryEnum
 from schemas.categories import SearchGroupNameEnum
 from schemas.categories import SubcategoryEnum
 from schemas.similar_offer import SimilarOfferResponse
 from services.db import get_database_session
+from services.h3 import get_h3_index_from_coordinates
+from utils.benchmark import log_execution_time
 from utils.location_presets import PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING
 from utils.location_presets import PresetLocation
 
@@ -25,6 +29,7 @@ router = APIRouter()
     response_model=SimilarOfferResponse,
     summary="Generate similar offer recommendations",
 )
+@log_execution_time
 async def get_similar_offers(  # noqa: PLR0913
     db: Annotated[AsyncSession, Depends(get_database_session)],
     offer_id: Annotated[
@@ -94,8 +99,37 @@ async def get_similar_offers(  # noqa: PLR0913
     if preset_location:
         latitude, longitude = PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING[preset_location]
 
+    # Use a finer resolution for cache to avoid reusing the same cache if a user moves within a large resolution cell.
+    cache_h3_resolution = settings.SIMILAR_OFFER_CACHE_H3_RESOLUTION
+    h3_index = get_h3_index_from_coordinates(latitude, longitude, resolution=cache_h3_resolution)
+
+    request_signature_data = {
+        "offer_id": offer_id,
+        "user_id": user_id,
+        "location_h3": h3_index,
+        "h3_resolution": cache_h3_resolution,
+        "categories": sorted([c.value for c in categories]) if categories else None,
+        "subcategories": sorted([s.value for s in subcategories]) if subcategories else None,
+        "search_group_names": sorted([s.value for s in search_group_names]) if search_group_names else None,
+    }
+
+    # Handle Redis cache retrieval
+    if settings.REDIS_CACHE_ENABLED:
+        cached_similar_offer_result = await redis_api.fetch_cached_response(
+            namespace_prefix="similar_offer",
+            request_signature_data=request_signature_data,
+            response_model_class=SimilarOfferResponse,
+        )
+        if isinstance(cached_similar_offer_result, SimilarOfferResponse):
+            cached_similar_offer_result.from_cache = True
+            # Overwrite the call_id with a newly generated UUID.
+            # This prevents massively linking multiple cache-hit offer displays
+            # to the same original call_id, which could otherwise bias model retraining.
+            cached_similar_offer_result.params.call_id = str(uuid.uuid4())
+            return cached_similar_offer_result
+
     # Delegate the heavy lifting to the core orchestration pipeline
-    return await generate_similar_offers(
+    result = await generate_similar_offers(
         db=db,
         offer_id=offer_id,
         user_id=user_id,
@@ -105,3 +139,13 @@ async def get_similar_offers(  # noqa: PLR0913
         latitude=latitude,
         longitude=longitude,
     )
+
+    # Store the newly generated result in Cache (dummy skip in similar offer for now)
+    if settings.REDIS_CACHE_ENABLED:
+        await redis_api.store_endpoint_response(
+            namespace_prefix="similar_offer",
+            request_signature_data=request_signature_data,
+            response_model_instance=result,
+        )
+
+    return result
