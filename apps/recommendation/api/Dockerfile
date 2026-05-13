@@ -36,4 +36,4 @@ RUN if [ "$LOCAL" = "true" ]; then \
 USER appuser
 
 # Use uv to run the app with Gunicorn and Uvicorn workers
-ENTRYPOINT ["uv", "run", "gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--bind", ":8080", "--workers", "8", "--threads", "2", "--preload", "--timeout", "0", "main:app"]
+ENTRYPOINT ["uv", "run", "--no-dev", "gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--bind", ":8080", "--workers", "8", "--threads", "2", "--preload", "--timeout", "0", "main:app"]
