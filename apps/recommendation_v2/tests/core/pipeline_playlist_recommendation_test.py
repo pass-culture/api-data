@@ -4,8 +4,8 @@ import pytest
 from api.playlist_recommendation import PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING
 from api.playlist_recommendation import PresetLocation
 from config import settings
-from core.pipeline import generate_playlist_recommendations
-from core.retrieval import FINAL_DIVERSIFIED_PLAYLIST_MAXIMUM_SIZE
+from controllers.pipeline_playlist_recommendation import PLAYLIST_RECOMMENDATION_MAXIMUM_SIZE
+from controllers.pipeline_playlist_recommendation import generate_playlist_recommendations
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.playlist_recommendation import RecommendationResponse
@@ -87,9 +87,9 @@ async def test_pipeline_generates_successful_playlist_for_geolocated_user(
         for i in range(50)
     ]
 
-    mock_vertex_retrieval.return_value = VertexPredictionResultFactory.build(predictions=digital_items)
-    mock_vertex_ranking.side_effect = lambda offers, _ctx: offers
-    mock_tracking = mocker.patch("core.pipeline.log_past_offer_context_to_sink")
+    mock_vertex_retrieval[0].return_value = VertexPredictionResultFactory.build(predictions=digital_items)
+    mock_vertex_ranking[0].side_effect = lambda offers, _ctx: offers
+    mock_tracking = mocker.patch("controllers.pipeline_playlist_recommendation.log_past_offer_context_to_sink")
 
     response = await generate_playlist_recommendations(
         db=db_session,
@@ -100,7 +100,7 @@ async def test_pipeline_generates_successful_playlist_for_geolocated_user(
     )
 
     assert isinstance(response, RecommendationResponse)
-    assert len(response.playlist_recommended_offers) <= FINAL_DIVERSIFIED_PLAYLIST_MAXIMUM_SIZE
+    assert len(response.playlist_recommended_offers) <= PLAYLIST_RECOMMENDATION_MAXIMUM_SIZE
     assert len(response.playlist_recommended_offers) > 0
     mock_tracking.assert_called_once()
 
@@ -148,11 +148,11 @@ async def test_pipeline_generates_successful_playlist_without_gps(
         example_venue_longitude=2.3522,
     )
 
-    mock_vertex_retrieval.return_value = VertexPredictionResultFactory.build(
+    mock_vertex_retrieval[0].return_value = VertexPredictionResultFactory.build(
         predictions=[*digital_items, geolocated_item]
     )
-    mock_vertex_ranking.side_effect = lambda offers, _ctx: offers
-    mocker.patch("core.pipeline.log_past_offer_context_to_sink")
+    mock_vertex_ranking[0].side_effect = lambda offers, _ctx: offers
+    mocker.patch("controllers.pipeline_playlist_recommendation.log_past_offer_context_to_sink")
 
     response = await generate_playlist_recommendations(
         db=db_session,
@@ -195,7 +195,7 @@ async def test_pipeline_filters_out_already_booked_items(
     item_b = RecommendableItemFactory.build(item_id="item-B", is_geolocated=False, total_offers=1)
     item_c = RecommendableItemFactory.build(item_id="item-C", is_geolocated=False, total_offers=1)
 
-    mock_vertex_retrieval.return_value = VertexPredictionResultFactory.build(predictions=[item_a, item_b, item_c])
+    mock_vertex_retrieval[0].return_value = VertexPredictionResultFactory.build(predictions=[item_a, item_b, item_c])
 
     await NonRecommendableItemsFactory.create_async(
         user_id=user_id,
@@ -206,11 +206,11 @@ async def test_pipeline_filters_out_already_booked_items(
     offer_c = _make_enriched_offer("offer-C")
 
     mock_resolve = mocker.patch(
-        "core.pipeline.resolve_closest_venues_from_items",
+        "controllers.pipeline_playlist_recommendation.resolve_closest_venues_from_items",
         new_callable=mocker.AsyncMock,
         return_value=[offer_b, offer_c],
     )
-    mocker.patch("core.pipeline.log_past_offer_context_to_sink")
+    mocker.patch("controllers.pipeline_playlist_recommendation.log_past_offer_context_to_sink")
 
     response = await generate_playlist_recommendations(
         db=db_session,
@@ -334,11 +334,11 @@ async def test_pipeline_handles_venues_out_of_range(
         total_offers=3,
     )
 
-    mock_vertex_retrieval.return_value = VertexPredictionResultFactory.build(
+    mock_vertex_retrieval[0].return_value = VertexPredictionResultFactory.build(
         predictions=[item_close, item_far, item_multi]
     )
-    mock_vertex_ranking.side_effect = lambda offers, _ctx: offers
-    mocker.patch("core.pipeline.log_past_offer_context_to_sink")
+    mock_vertex_ranking[0].side_effect = lambda offers, _ctx: offers
+    mocker.patch("controllers.pipeline_playlist_recommendation.log_past_offer_context_to_sink")
 
     response = await generate_playlist_recommendations(
         db=db_session,
@@ -393,14 +393,14 @@ async def test_pipeline_applies_diversification_correctly(
     ]
     all_offers = music_offers + other_offers
 
-    mock_vertex_retrieval.return_value = VertexPredictionResultFactory.build(predictions=[])
+    mock_vertex_retrieval[0].return_value = VertexPredictionResultFactory.build(predictions=[])
     mocker.patch(
-        "core.pipeline.resolve_closest_venues_from_items",
+        "controllers.pipeline_playlist_recommendation.resolve_closest_venues_from_items",
         new_callable=mocker.AsyncMock,
         return_value=all_offers,
     )
-    mock_vertex_ranking.side_effect = lambda offers, _ctx: offers
-    mocker.patch("core.pipeline.log_past_offer_context_to_sink")
+    mock_vertex_ranking[0].side_effect = lambda offers, _ctx: offers
+    mocker.patch("controllers.pipeline_playlist_recommendation.log_past_offer_context_to_sink")
 
     response = await generate_playlist_recommendations(
         db=db_session,
@@ -440,15 +440,15 @@ async def test_pipeline_handles_new_user_cold_start(
     cold_start_user = await EnrichedUserFactory.create_cold_start()
 
     cold_start_items = [RecommendableItemFactory.build(is_geolocated=False, total_offers=1) for _ in range(5)]
-    mock_vertex_retrieval.return_value = VertexPredictionResultFactory.build(predictions=cold_start_items)
+    mock_vertex_retrieval[0].return_value = VertexPredictionResultFactory.build(predictions=cold_start_items)
 
     resolved_offers = [_make_enriched_offer(str(i)) for i in range(5)]
     mocker.patch(
-        "core.pipeline.resolve_closest_venues_from_items",
+        "controllers.pipeline_playlist_recommendation.resolve_closest_venues_from_items",
         new_callable=mocker.AsyncMock,
         return_value=resolved_offers,
     )
-    mock_tracking = mocker.patch("core.pipeline.log_past_offer_context_to_sink")
+    mock_tracking = mocker.patch("controllers.pipeline_playlist_recommendation.log_past_offer_context_to_sink")
 
     response = await generate_playlist_recommendations(
         db=db_session,
@@ -481,8 +481,8 @@ async def test_pipeline_handles_empty_retrieval_from_vertex(
     """
     user = await EnrichedUserFactory.create_warm()
 
-    mock_vertex_retrieval.return_value = VertexPredictionResultFactory.build(predictions=[])
-    mocker.patch("core.pipeline.log_past_offer_context_to_sink")
+    mock_vertex_retrieval[0].return_value = VertexPredictionResultFactory.build(predictions=[])
+    mocker.patch("controllers.pipeline_playlist_recommendation.log_past_offer_context_to_sink")
 
     response = await generate_playlist_recommendations(
         db=db_session,
@@ -494,8 +494,8 @@ async def test_pipeline_handles_empty_retrieval_from_vertex(
 
     assert isinstance(response, RecommendationResponse)
     assert response.playlist_recommended_offers == []
-    mock_vertex_ranking.assert_called_once()
-    assert mock_vertex_ranking.call_args[0][0] == []
+    mock_vertex_ranking[0].assert_called_once()
+    assert mock_vertex_ranking[0].call_args[0][0] == []
 
 
 @pytest.mark.asyncio
@@ -520,9 +520,9 @@ async def test_pipeline_skips_tracking_for_unauthenticated_user(
     unknown_user_id = "non-existent-user-id-99999"
 
     unauthenticated_items = [RecommendableItemFactory.build(is_geolocated=False, total_offers=1) for _ in range(5)]
-    mock_vertex_retrieval.return_value = VertexPredictionResultFactory.build(predictions=unauthenticated_items)
-    mock_vertex_ranking.side_effect = lambda offers, _ctx: offers
-    mock_tracking = mocker.patch("core.pipeline.log_past_offer_context_to_sink")
+    mock_vertex_retrieval[0].return_value = VertexPredictionResultFactory.build(predictions=unauthenticated_items)
+    mock_vertex_ranking[0].side_effect = lambda offers, _ctx: offers
+    mock_tracking = mocker.patch("controllers.pipeline_playlist_recommendation.log_past_offer_context_to_sink")
 
     response = await generate_playlist_recommendations(
         db=db_session,

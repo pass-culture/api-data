@@ -18,7 +18,7 @@ env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
 
 
 def show_recommendations(
-    offer_ids: list, max_offers_to_fetch: int, latitude: float | None = None, longitude: float | None = None
+    offer_ids: list, max_offers_to_fetch: int, latitude: float | None, longitude: float | None, title: str
 ):
     """
     Renders the retrieved offers dynamically directly onto the Streamlit UI.
@@ -28,6 +28,7 @@ def show_recommendations(
     - max_offers_to_fetch (int): Limit threshold constraint.
     - latitude (float, optional)
     - longitude (float, optional)
+    - title (str): Title string for the subheader.
     """
     fetched_offers = []
     offers_to_fetch = offer_ids[:max_offers_to_fetch]
@@ -100,9 +101,7 @@ def show_recommendations(
             cards_html_list.append(f'<div class="{wrapper_class}">{card_html}</div>')
 
             # 3. Progressive Render Refreshes
-            subheader_placeholder.subheader(
-                f"📚 Recommandations de la Playlist ({len(fetched_offers)}/{total_to_fetch} chargées)"
-            )
+            subheader_placeholder.subheader(f"📚 {title} ({len(fetched_offers)}/{total_to_fetch} chargées)")
 
             if has_strict_offers:
                 if out_of_bounds_strict_count == 0:
@@ -126,7 +125,42 @@ def show_recommendations(
                 carousel_placeholder.markdown(full_html.replace("            <", "<"), unsafe_allow_html=True)
 
     progress_bar.empty()
-    subheader_placeholder.subheader(f"📚 Recommandations de la Playlist ({len(fetched_offers)} offres)")
+    subheader_placeholder.subheader(f"📚 {title} ({len(fetched_offers)} offres)")
+
+
+def show_similar_offer_source(offer_id: str, title: str):
+    """
+    Renders a single offer card seamlessly onto the Streamlit UI.
+    Optimized for displaying single items without recommendation overhead
+    (no progress bar, no loading counts, no distance constraints tracking).
+
+    Parameters:
+    - offer_id (str): The offer ID to display.
+    - title (str): Title string for the subheader.
+    """
+    offer_payload = fetch_offer_details(offer_id)
+    if not offer_payload:
+        st.warning("Impossible de récupérer les détails de cette offre.")
+        return
+
+    template_style = env.get_template("style.css")
+    style_content = template_style.render()
+    template_html = env.get_template("offer_card.html")
+
+    # Format simple Jinja injection dict
+    context = _build_jinja_render_context(offer_payload, rank_index=0)
+    card_html = template_html.render(context)
+
+    # Render simple HTML overlay without carousel constraints loop logic
+    full_html = (
+        f"<style>{style_content}</style>\n<div class='carousel-wrapper'><div class='offer-card'>{card_html}</div></div>"
+    )
+
+    st.subheader(f"📚 {title}")
+    if hasattr(st, "html"):
+        st.html(full_html)
+    else:
+        st.markdown(full_html.replace("            <", "<"), unsafe_allow_html=True)
 
 
 def _evaluate_geolocation_constraints(

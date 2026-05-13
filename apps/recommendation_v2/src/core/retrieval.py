@@ -10,6 +10,9 @@ from connectors.vertex_api import VertexPredictionResult
 from core.geo import find_closest_offers_with_h3_index
 from core.user_context import UserContext
 from models.items import NonRecommendableItems
+from schemas.categories import CategoryEnum
+from schemas.categories import SearchGroupNameEnum
+from schemas.categories import SubcategoryEnum
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.vertex_prediction_item import RecommendableItem
@@ -18,11 +21,16 @@ from utils.benchmark import log_execution_time
 
 DEFAULT_MAX_DISTANCE_IN_METERS = 100_000
 EARTH_RADIUS_METERS = 6371000
-FINAL_DIVERSIFIED_PLAYLIST_MAXIMUM_SIZE = 60
 VERTEX_API_CANDIDATE_ITEMS_FETCH_SIZE_LIMIT = 600
 
+# ==============================================================================
+# PLAYLIST RECOMMENDATION
+# ==============================================================================
 
-def _build_vertex_search_filters(user_context: UserContext, params: PlaylistRequestParams) -> dict[str, Any]:
+
+def _build_playlist_recommendation_search_filters(
+    user_context: UserContext, params: PlaylistRequestParams
+) -> dict[str, Any]:
     """
     Builds the filter dictionary required by Vertex AI Vector Search.
 
@@ -98,28 +106,15 @@ def _build_vertex_search_filters(user_context: UserContext, params: PlaylistRequ
     return {"$and": filters}
 
 
-@log_execution_time
-async def fetch_candidate_items_from_vertex(
-    user_context: UserContext, params: PlaylistRequestParams, call_id: str
-) -> VertexPredictionResult:
+def build_playlist_recommendation_retrieval_payload(
+    user_context: UserContext, call_id: str, params: PlaylistRequestParams
+) -> dict[str, Any]:
     """
-    Calls the Vertex AI matching engine to retrieve a raw list of candidate Item IDs.
-
-    Depending on the user profile (Cold Start vs Active), it switches between
-    a popularity-based model ('tops') or a personalized collaborative filtering model.
-
-    Args:
-        user_context (UserContext): The enriched user profile determining the model to use.
-        params (PlaylistRequestParams): Recommendation rules requested by the client.
-        call_id (str): A unique execution trace ID for logging purposes.
-
-    Returns:
-        VertexPredictionResult: A structured payload containing the raw predicted items.
+    Constructs the prediction payload for playlist recommendations.
     """
-    search_filters = _build_vertex_search_filters(user_context, params)
+    search_filters = _build_playlist_recommendation_search_filters(user_context, params)
 
-    # Base payload structure for the Vertex AI endpoint
-    prediction_instance = {
+    prediction_payload: dict[str, Any] = {
         "call_id": call_id,
         "user_id": user_context.user_id,
         "params": search_filters,
@@ -130,18 +125,124 @@ async def fetch_candidate_items_from_vertex(
         "size": VERTEX_API_CANDIDATE_ITEMS_FETCH_SIZE_LIMIT,
     }
 
-    # Route to the appropriate model logic based on user maturity
     if user_context.is_cold_start:
-        prediction_instance["model_type"] = "tops"
+        prediction_payload["model_type"] = "tops"
         # TODO find out which vector column(s) fit best for cold start scenario.
-        prediction_instance["vector_column_name"] = (
+        prediction_payload["vector_column_name"] = (
             "booking_number_desc"  # "booking_creation_trend_desc", "booking_release_trend_desc"
         )
-        prediction_instance["re_rank"] = 0
+        prediction_payload["re_rank"] = 0
     else:
-        prediction_instance["model_type"] = "recommendation"
+        prediction_payload["model_type"] = "recommendation"
 
-    prediction_result = await retrieval_api_client.fetch_retrieval_predictions(feature_payloads=[prediction_instance])
+    return prediction_payload
+
+
+# ==============================================================================
+# SIMILAR OFFER
+# ==============================================================================
+
+
+def _build_similar_offer_search_filters(
+    categories: list[CategoryEnum] | None = None,
+    subcategories: list[SubcategoryEnum] | None = None,
+    search_group_names: list[SearchGroupNameEnum] | None = None,
+) -> dict[str, Any]:
+    """
+    Builds the filter dictionary required by Vertex AI Vector Search for similar offers.
+
+    Vertex AI expects a specific JSON syntax to filter embeddings before nearest-neighbor
+    search. This function translates lists of categories into those strict filters.
+
+    Args:
+        categories (list[CategoryEnum] | None): A list of categories to filter by.
+        subcategories (list[SubcategoryEnum] | None): A list of subcategories to filter by.
+        search_group_names (list[SearchGroupNameEnum] | None): A list of search group names to filter by.
+
+    Returns:
+        dict[str, Any]: A dictionary representing the '$and' filter block for Vertex AI.
+
+    Example:
+        {"$and": [{"category": {"$in": ["LIVRES", "CINEMA"]}}]}
+    """
+    filters = {}
+    and_conditions = []
+
+    if categories:
+        and_conditions.append({"category": {"$in": [c.value for c in categories]}})
+    if subcategories:
+        and_conditions.append({"subcategory_id": {"$in": [s.value for s in subcategories]}})
+    if search_group_names:
+        and_conditions.append({"search_group_name": {"$in": [s.value for s in search_group_names]}})
+
+    if and_conditions:
+        for condition in and_conditions:
+            filters.update(condition)
+
+    return {"$and": filters}
+
+
+def build_similar_offer_retrieval_payload(
+    user_context: UserContext,
+    call_id: str,
+    offer_id: str | None,
+    categories: list[CategoryEnum] | None = None,
+    subcategories: list[SubcategoryEnum] | None = None,
+    search_group_names: list[SearchGroupNameEnum] | None = None,
+) -> dict[str, Any]:
+    """
+    Constructs the prediction payload for similar offer recommendations.
+
+    Args:
+        user_context (UserContext): Standardized user context.
+        call_id (str): Tracker call id.
+        offer_id (str | None): ID of the offer to find similarities for.
+        categories (list[CategoryEnum] | None): Filter by categories.
+        subcategories (list[SubcategoryEnum] | None): Filter by subcategories.
+        search_group_names (list[SearchGroupNameEnum] | None): Filter by search groups.
+
+    Returns:
+        dict[str, Any]: The prediction payload required by Vertex API to retrieve similar items.
+    """
+    prediction_payload: dict[str, Any] = {
+        "call_id": call_id,
+        "user_id": user_context.user_id,
+        "offer_id": offer_id,
+        "debug": 1,
+        "prefilter": 1,
+        "size": VERTEX_API_CANDIDATE_ITEMS_FETCH_SIZE_LIMIT,
+        "search_after": None,
+    }
+
+    if categories or subcategories or search_group_names:
+        prediction_payload["params"] = _build_similar_offer_search_filters(
+            categories=categories,
+            subcategories=subcategories,
+            search_group_names=search_group_names,
+        )
+
+    if offer_id is None:
+        prediction_payload["model_type"] = "tops"
+        prediction_payload["vector_column_name"] = (
+            "booking_number_desc"  # "booking_creation_trend_desc", "booking_release_trend_desc"
+        )
+        prediction_payload["re_rank"] = 0
+    else:
+        prediction_payload["model_type"] = "similar_offer"
+
+    return prediction_payload
+
+
+# ==============================================================================
+# SHARED / POST-PROCESSING
+# ==============================================================================
+
+@log_execution_time
+async def fetch_retrieval_predictions_from_vertex(prediction_payload: dict[str, Any]) -> VertexPredictionResult:
+    """
+    Calls the Vertex AI matching engine to retrieve a raw list of candidate Item IDs.
+    """
+    prediction_result = await retrieval_api_client.fetch_retrieval_predictions(feature_payloads=[prediction_payload])
 
     return prediction_result
 

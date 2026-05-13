@@ -46,9 +46,13 @@ def mock_uuid():
     All call_ids generated via ``core.pipeline.uuid.uuid4`` will return ``MOCK_CALL_ID``,
     making snapshot assertions deterministic across runs.
     """
-    with patch("core.pipeline.uuid.uuid4") as mock_uuid_func:
-        mock_uuid_func.return_value = uuid.UUID(MOCK_CALL_ID)
-        yield mock_uuid_func
+    with (
+        patch("controllers.pipeline_playlist_recommendation.uuid.uuid4") as mock_uuid_playlist,
+        patch("controllers.pipeline_similar_offer.uuid.uuid4") as mock_uuid_similar,
+    ):
+        mock_uuid_playlist.return_value = uuid.UUID(MOCK_CALL_ID)
+        mock_uuid_similar.return_value = uuid.UUID(MOCK_CALL_ID)
+        yield (mock_uuid_playlist, mock_uuid_similar)
 
 
 @pytest.fixture(autouse=True)
@@ -56,16 +60,21 @@ def mock_vertex_retrieval(mocker):
     """
     Replace the Vertex AI candidate-retrieval call with a pre-built factory result.
 
-    The mock is applied to ``core.pipeline.fetch_candidate_items_from_vertex`` so every
-    test that exercises the pipeline receives a consistent, offline response.
+    The mock is applied to both controllers so every test that exercises the pipeline
+    receives a consistent, offline response.
     """
-    mock_retrieval = mocker.patch(
-        "core.pipeline.fetch_candidate_items_from_vertex",
+    mock_retrieval_playlist = mocker.patch(
+        "controllers.pipeline_playlist_recommendation.fetch_retrieval_predictions_from_vertex",
         new_callable=mocker.AsyncMock,
     )
-    mock_retrieval.return_value = VertexPredictionResultFactory.build()
+    mock_retrieval_similar = mocker.patch(
+        "controllers.pipeline_similar_offer.fetch_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+    )
+    mock_retrieval_playlist.return_value = VertexPredictionResultFactory.build()
+    mock_retrieval_similar.return_value = VertexPredictionResultFactory.build()
 
-    return mock_retrieval
+    return mock_retrieval_playlist, mock_retrieval_similar
 
 
 @pytest.fixture(autouse=True)
@@ -73,16 +82,21 @@ def mock_vertex_ranking(mocker):
     """
     Replace the Vertex AI ranking call with an identity function.
 
-    ``core.pipeline.rank_and_sort_offers_with_vertex`` is patched so that it returns
+    Both controllers are patched so that ``rank_and_sort_offers_with_vertex`` returns
     the input offers unchanged, removing any dependency on the live ranking service.
     """
-    mock_rank = mocker.patch(
-        "core.pipeline.rank_and_sort_offers_with_vertex",
+    mock_rank_playlist = mocker.patch(
+        "controllers.pipeline_playlist_recommendation.rank_and_sort_offers_with_vertex",
         new_callable=mocker.AsyncMock,
     )
-    mock_rank.side_effect = lambda offers, user_context: offers
+    mock_rank_similar = mocker.patch(
+        "controllers.pipeline_similar_offer.rank_and_sort_offers_with_vertex",
+        new_callable=mocker.AsyncMock,
+    )
+    mock_rank_playlist.side_effect = lambda offers, user_context: offers
+    mock_rank_similar.side_effect = lambda offers, user_context: offers
 
-    return mock_rank
+    return mock_rank_playlist, mock_rank_similar
 
 
 @pytest.fixture(scope="session")

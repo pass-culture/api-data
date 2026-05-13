@@ -63,7 +63,7 @@ class UserContext:
     clicks_count: int = 0  # Mapped from 'consult_offer'
     favorites_count: int = 0  # Mapped from 'has_added_offer_to_favorites'
     remaining_credit: float = 150.0  # Business logic: theoretical OR initial
-    # TODO: is 150.0 the right default value here? It were 300.0 in the previous code
+    # TODO: is 150.0 the right default value here? It was 300.0 in the previous code
 
     # --- Geographical Context ---
     latitude: float | None = None
