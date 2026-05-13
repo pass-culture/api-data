@@ -1,28 +1,39 @@
-FROM python:3.11-slim
+FROM astral/uv:0.11-python3.11-trixie
 
-COPY --from=ghcr.io/astral-sh/uv:0.10.9 /uv /bin/uv
+# Build arguments for configuration
+ARG LOCAL=false
+ARG GOOGLE_CLOUD_PROJECT
 
-ENV PYTHONUNBUFFERED True
-ENV APP_HOME /app
-WORKDIR $APP_HOME
+# Create non-root user early so COPY --chown can reference it
+RUN groupadd --system --gid 999 appuser \
+    && useradd --system --gid 999 --uid 999 appuser
+
+# Allow uv to compile bytecode (faster init) and disable caching to reduce image size
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_NO_CACHE=1
 
 # Install libraries
-COPY ./pyproject.toml ./
-COPY ./uv.lock ./
+WORKDIR /app
+COPY ./pyproject.toml ./uv.lock ./
 RUN uv sync --locked --no-dev
 
 # Copy local code to the container
 COPY ./src .
 COPY ./src/huggy ./huggy
 
-ARG LOCAL=false
-ARG GOOGLE_CLOUD_PROJECT
-ENV GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
+# Expose the application port and set environment variables
 EXPOSE 8080
+ENV GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
+ENV PYTHONUNBUFFERED=True
 
+# If running locally, copy the application default credentials for Google Cloud authentication
 RUN if [ "$LOCAL" = "true" ]; then \
     mkdir -p /root/.config/gcloud && \
     cp ./application_default_credentials.json /root/.config/gcloud/application_default_credentials.json; \
     fi
 
-CMD ["uv", "run", "gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--bind", ":8080", "--workers", "8", "--threads", "2", "--preload", "--timeout", "0", "main:app"]
+# Switch to non-root user for security
+USER appuser
+
+# Use uv to run the app with Gunicorn and Uvicorn workers
+ENTRYPOINT ["uv", "run", "gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--bind", ":8080", "--workers", "8", "--threads", "2", "--preload", "--timeout", "0", "main:app"]
