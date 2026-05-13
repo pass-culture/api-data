@@ -1,19 +1,18 @@
 [project]
 name = "api-compliance"
 version = "0.1.0"
-requires-python = ">=3.10,<3.11"
+requires-python = ">=3.11,<3.12"
 dependencies = [
-    "fastapi~=0.115.5",
-    "fastapi-versioning~=0.10.0",
+    "fastapi~=0.115",
+    "fastapi-versioning~=0.10",
     "google-cloud-logging~=3.12.1",
     "gunicorn~=23.0.0",
-    "langchain~=0.3.23",
-    "langchain-google-vertexai~=2.0.24",
-    "loguru~=0.7.0",
-    "pandas~=2.2.0",
-    "python-multipart~=0.0.17",
-    "starlette~=0.41.3",
-    "uvicorn~=0.22.0",
+    "langchain~=0.3",
+    "langchain-google-vertexai~=2.0",
+    "loguru~=0.7",
+    "pandas~=2.2",
+    "python-multipart~=0.0",
+    "uvicorn~=0.22",
 ]
 
 
