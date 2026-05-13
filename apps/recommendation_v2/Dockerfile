@@ -28,4 +28,4 @@ ENV PYTHONUNBUFFERED=True
 USER appuser
 
 # Start server
-CMD ["uv", "run", "--no-dev", "gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--bind", ":8080", "--workers", "8", "--preload", "--timeout", "0", "main:app"]
+CMD ["uv", "run", "--no-dev", "gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--bind", ":8080", "--workers", "8", "--preload", "--timeout", "0", "--control-socket", "/tmp/gunicorn.ctl", "main:app"]
