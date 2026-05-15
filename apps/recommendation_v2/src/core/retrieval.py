@@ -47,7 +47,6 @@ def _build_playlist_recommendation_search_filters(
     Example:
         {"$and": [{"stock_price": {"$lte": 150.0}}, {"category": {"$in": ["LIVRES", "CINEMA"]}}]}
     """
-    filters = {}
     and_conditions = []
 
     # 1. Date constraints
@@ -98,12 +97,7 @@ def _build_playlist_recommendation_search_filters(
         if values:
             and_conditions.append({vertex_field: {"$in": values}})
 
-    # Assemble final query payload
-    if and_conditions:
-        for condition in and_conditions:
-            filters.update(condition)
-
-    return {"$and": filters}
+    return {"$and": and_conditions}
 
 
 def build_playlist_recommendation_retrieval_payload(
@@ -165,7 +159,6 @@ def _build_similar_offer_search_filters(
     Example:
         {"$and": [{"category": {"$in": ["LIVRES", "CINEMA"]}}]}
     """
-    filters = {}
     and_conditions = []
 
     if categories:
@@ -175,17 +168,13 @@ def _build_similar_offer_search_filters(
     if search_group_names:
         and_conditions.append({"search_group_name": {"$in": [s.value for s in search_group_names]}})
 
-    if and_conditions:
-        for condition in and_conditions:
-            filters.update(condition)
-
-    return {"$and": filters}
+    return {"$and": and_conditions}
 
 
 def build_similar_offer_retrieval_payload(
     user_context: UserContext,
     call_id: str,
-    offer_id: str | None,
+    item_id: str | None,
     categories: list[CategoryEnum] | None = None,
     subcategories: list[SubcategoryEnum] | None = None,
     search_group_names: list[SearchGroupNameEnum] | None = None,
@@ -196,7 +185,7 @@ def build_similar_offer_retrieval_payload(
     Args:
         user_context (UserContext): Standardized user context.
         call_id (str): Tracker call id.
-        offer_id (str | None): ID of the offer to find similarities for.
+        item_id (str | None): ID of the item to find similarities for.
         categories (list[CategoryEnum] | None): Filter by categories.
         subcategories (list[SubcategoryEnum] | None): Filter by subcategories.
         search_group_names (list[SearchGroupNameEnum] | None): Filter by search groups.
@@ -207,7 +196,9 @@ def build_similar_offer_retrieval_payload(
     prediction_payload: dict[str, Any] = {
         "call_id": call_id,
         "user_id": user_context.user_id,
-        "offer_id": offer_id,
+        "offer_id": item_id,
+        # Vertex endpoint calls this field "offer_id" but it is actually the "item_id".
+        # A bit misleading but we keep it for consistency with the Vertex API.
         "debug": 1,
         "prefilter": 1,
         "size": VERTEX_API_CANDIDATE_ITEMS_FETCH_SIZE_LIMIT,
@@ -221,7 +212,7 @@ def build_similar_offer_retrieval_payload(
             search_group_names=search_group_names,
         )
 
-    if offer_id is None:
+    if item_id is None:
         prediction_payload["model_type"] = "tops"
         prediction_payload["vector_column_name"] = (
             "booking_number_desc"  # "booking_creation_trend_desc", "booking_release_trend_desc"

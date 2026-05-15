@@ -75,17 +75,19 @@ async def generate_similar_offers(  # noqa: PLR0913
 
     if not reference_offer:
         logger.warning(
-            "Offer not found in recommendable offers table. Returning top offers",
+            "Offer not found in recommendable offers table. Falling back to 'tops' model.",
             extra={"offer_id": offer_id, "call_id": call_id},
         )
+        reference_item_id = None
+    else:
+        reference_item_id = reference_offer.item_id
 
     # 1.2. Determine geolocation context
-    user_location_missing = latitude is None and longitude is None
+    user_location_missing = latitude is None or longitude is None
     offer_has_location = reference_offer and reference_offer.venue_latitude and reference_offer.venue_longitude
 
     if user_location_missing and offer_has_location:
         # Fallback to the offer's venue location if user location is not provided
-        assert reference_offer is not None
         latitude = reference_offer.venue_latitude
         longitude = reference_offer.venue_longitude
 
@@ -106,7 +108,7 @@ async def generate_similar_offers(  # noqa: PLR0913
     logger.info(
         "Fetching similar offers from Vertex AI.",
         extra={
-            "offer_id": offer_id,
+            "item_id": reference_item_id,
             "call_id": call_id,
             "has_filters": any([categories, subcategories, search_group_names]),
         },
@@ -114,7 +116,7 @@ async def generate_similar_offers(  # noqa: PLR0913
     retrieval_payload = build_similar_offer_retrieval_payload(
         user_context=user_context,
         call_id=call_id,
-        offer_id=reference_offer.item_id if reference_offer else None,
+        item_id=reference_item_id,
         categories=categories,
         subcategories=subcategories,
         search_group_names=search_group_names,
