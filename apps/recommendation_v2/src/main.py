@@ -13,6 +13,7 @@ from fastapi.security import APIKeyQuery
 
 from api.health_check import router as health_check_router
 from api.playlist_recommendation import router as playlist_router
+from api.similar_artists import router as similar_artists_router
 from api.similar_offer import router as similar_offer_router
 from config import settings
 from services.logger import logger
@@ -124,6 +125,7 @@ api_token_dependencies = [Depends(verify_api_token)] if not settings.IS_LOCAL el
 app.include_router(health_check_router, tags=["Health"])
 app.include_router(similar_offer_router, tags=["Similar Offers"], dependencies=api_token_dependencies)
 app.include_router(playlist_router, tags=["Recommendations"], dependencies=api_token_dependencies)
+app.include_router(similar_artists_router, tags=["Similar Artists"], dependencies=api_token_dependencies)
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",
