@@ -121,10 +121,6 @@ class RedisAPI:
 
         time_to_live_in_seconds = RedisAPI.calculate_seconds_until_next_database_population_time()
 
-        # dummy return for now
-        if namespace_prefix == "similar_offer":
-            return
-
         await redis_cache_service.set_cached_value(
             cache_key=cache_key, value_to_cache=serialized_payload, time_to_live_in_seconds=time_to_live_in_seconds
         )
