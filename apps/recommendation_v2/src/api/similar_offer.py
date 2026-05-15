@@ -140,7 +140,7 @@ async def get_similar_offers(  # noqa: PLR0913
         longitude=longitude,
     )
 
-    # Store the newly generated result in Cache (dummy skip in similar offer for now)
+    # Store the newly generated result in Cache
     if settings.REDIS_CACHE_ENABLED:
         await redis_api.store_endpoint_response(
             namespace_prefix="similar_offer",
