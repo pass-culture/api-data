@@ -9,6 +9,7 @@ from datetime import time
 
 import folium
 from geopy.geocoders import Nominatim
+from services.database_service import get_random_offer
 from services.database_service import get_random_user
 from streamlit_folium import st_folium
 
@@ -90,6 +91,9 @@ def render_similar_offer_sidebar() -> tuple:
             label_visibility="collapsed",
         )
         st.session_state.similar_offer_id = offer_id_input
+
+        _render_random_offer_button()
+
         st.divider()
 
         offer_id = st.session_state.similar_offer_id
@@ -139,6 +143,18 @@ def _render_random_user_buttons():
                     st.rerun()
                 else:
                     st.toast("Aucun utilisateur cold start trouvé", icon="❌")
+
+
+def _render_random_offer_button():
+    """Renders a button to fetch a random offer from the database."""
+    if st.button("🎲 Offre aléatoire", use_container_width=True):
+        with st.spinner("Recherche d'une offre aléatoire..."):
+            oid = get_random_offer()
+            if oid:
+                st.session_state.similar_offer_id = oid
+                st.rerun()
+            else:
+                st.toast("Aucune offre trouvée", icon="❌")
 
 
 def _render_geolocation_inputs() -> tuple:
