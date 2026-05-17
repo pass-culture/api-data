@@ -12,6 +12,9 @@ COPY ./uv.lock ./
 RUN uv sync --locked --no-dev
 COPY ./src .
 
+RUN mkdir -p /.cache/uv
+RUN chown 1000 /.cache/uv && chown -R 1000 $APP_HOME/.venv
+
 # Conditionally copy the Google Cloud credentials file based on the argument
 ARG LOCAL=false
 ARG GOOGLE_CLOUD_PROJECT
@@ -22,6 +25,8 @@ RUN if [ "$LOCAL" = "true" ]; then \
     mkdir -p /root/.config/gcloud && \
     cp ./application_default_credentials.json /root/.config/gcloud/application_default_credentials.json; \
     fi
+
+USER 1000
 
 # Run the container
 CMD exec uv run gunicorn -k uvicorn.workers.UvicornWorker --bind :$PORT --workers 1 --threads 10 --preload --timeout 0 main:app

@@ -15,6 +15,9 @@ WORKDIR $APP_HOME
 COPY ./pyproject.toml ./uv.lock ./
 RUN uv sync --locked --no-dev
 
+RUN mkdir -p /.cache/uv /.gunicorn
+RUN chown 1000 /.cache/uv && chown -R 1000 $APP_HOME/.venv /.gunicorn
+
 # Copy application code
 COPY ./src ./
 
@@ -23,6 +26,8 @@ ARG GOOGLE_CLOUD_PROJECT
 ENV GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
 
 EXPOSE 8080
+
+USER 1000
 
 # Start server
 CMD ["uv", "run", "gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--bind", ":8080", "--workers", "8", "--preload", "--timeout", "0", "main:app"]

@@ -11,6 +11,9 @@ COPY ./pyproject.toml ./
 COPY ./uv.lock ./
 RUN uv sync --locked --no-dev
 
+RUN mkdir -p /.cache/uv
+RUN chown 1000 /.cache/uv && chown -R 1000 $APP_HOME/.venv
+
 # Copy local code to the container
 COPY ./src .
 COPY ./src/huggy ./huggy
@@ -24,5 +27,7 @@ RUN if [ "$LOCAL" = "true" ]; then \
     mkdir -p /root/.config/gcloud && \
     cp ./application_default_credentials.json /root/.config/gcloud/application_default_credentials.json; \
     fi
+
+USER 1000
 
 CMD ["uv", "run", "gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--bind", ":8080", "--workers", "8", "--threads", "2", "--preload", "--timeout", "0", "main:app"]
