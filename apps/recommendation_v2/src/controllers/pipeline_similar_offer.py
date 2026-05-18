@@ -95,6 +95,7 @@ async def generate_similar_offers(  # noqa: PLR0913
     effective_user_id = user_id if user_id else UNAUTHENTICATED_USER_ID
     db_user = await db.get(EnrichedUser, effective_user_id)
     iris_id = await get_iris_id_from_coordinates(db, latitude, longitude)
+    # If latitude and longitude are None, get_iris_id_from_coordinates returns None
 
     user_context = UserContext.build_from_database_record(
         user_id=effective_user_id,
