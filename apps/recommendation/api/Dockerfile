@@ -4,9 +4,9 @@ FROM astral/uv:0.11-python3.11-trixie
 ARG LOCAL=false
 ARG GOOGLE_CLOUD_PROJECT
 
-# Create non-root user early so COPY --chown can reference it
+# Create non-root user
 RUN groupadd --system --gid 999 appuser \
-    && useradd --system --gid 999 --uid 999 appuser
+    && useradd --system --gid 999 --uid 999 --create-home appuser
 
 # Allow uv to compile bytecode (faster init) and disable caching to reduce image size
 ENV UV_COMPILE_BYTECODE=1
@@ -28,8 +28,9 @@ ENV PYTHONUNBUFFERED=True
 
 # If running locally, copy the application default credentials for Google Cloud authentication
 RUN if [ "$LOCAL" = "true" ]; then \
-    mkdir -p /root/.config/gcloud && \
-    cp ./application_default_credentials.json /root/.config/gcloud/application_default_credentials.json; \
+    mkdir -p /home/appuser/.config/gcloud && \
+    cp ./application_default_credentials.json /home/appuser/.config/gcloud/application_default_credentials.json && \
+    chown -R appuser:appuser /home/appuser/.config; \
     fi
 
 # Switch to non-root user for security
