@@ -62,4 +62,4 @@ build_and_run_locally_in_docker:
 	cp ~/.config/gcloud/application_default_credentials.json src/
 	docker build . -t reco_v1 --build-arg LOCAL=true
 	rm src/application_default_credentials.json
-	docker run -p 8080:8080 reco_v1_fix:latest -e API_LOCAL=true
+	docker run -p 8080:8080 reco_v1:latest -e API_LOCAL=true
