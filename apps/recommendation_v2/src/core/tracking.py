@@ -5,11 +5,11 @@ from config import settings
 from core.user_context import UserContext
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
-from schemas.tracking_log import GCP_SINK_EVENT_TYPE
-from schemas.tracking_log import TrackingLabels
-from schemas.tracking_log import TrackingLogPayload
-from schemas.tracking_log import TrackingOfferExtraData
-from schemas.tracking_log import TrackingRequestExtraData
+from schemas.tracking_payload import GCP_SINK_EVENT_TYPE
+from schemas.tracking_payload import TrackingLabels
+from schemas.tracking_payload import TrackingLogPayload
+from schemas.tracking_payload import TrackingOfferExtraData
+from schemas.tracking_payload import TrackingRequestExtraData
 from services.logger import logger
 
 

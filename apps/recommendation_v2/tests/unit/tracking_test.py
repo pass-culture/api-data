@@ -8,10 +8,10 @@ import config.settings as _settings
 from core.tracking import log_past_offer_context_to_sink
 from models.past_offer_context import PastOfferContext
 from schemas.playlist_recommendation import PlaylistRequestParams
-from schemas.tracking_log import TrackingLabels
-from schemas.tracking_log import TrackingLogPayload
-from schemas.tracking_log import TrackingOfferExtraData
-from schemas.tracking_log import TrackingRequestExtraData
+from schemas.tracking_payload import TrackingLabels
+from schemas.tracking_payload import TrackingLogPayload
+from schemas.tracking_payload import TrackingOfferExtraData
+from schemas.tracking_payload import TrackingRequestExtraData
 
 from tests.factories.schemas import EnrichedRecommendableOfferFactory
 from tests.factories.schemas import UserContextFactory
