@@ -15,26 +15,21 @@ DOCKER_PORT      ?= 8081
 ## Local development tasks
 
 install:
-	uv venv --python 3.10
-	source .venv/bin/activate && uv pip sync dev-requirements.txt
+	uv sync
 
 start:
 	@echo "Starting in development mode..."
-	source .venv/bin/activate && cd src && API_LOCAL=True uvicorn main:app --reload
+	cd src && API_LOCAL=True uv run uvicorn main:app --reload
 
 start_with_gunicorn:
 	@echo "Starting with Gunicorn (production simulation)..."
-	source .venv/bin/activate && cd src && API_LOCAL=True gunicorn -k uvicorn.workers.UvicornWorker \
+	cd src && API_LOCAL=True uv run gunicorn -k uvicorn.workers.UvicornWorker \
 		--bind :8000 --workers 1 --threads 10 --preload --timeout 0 main:app
 
 start_as_not_local:
 	@echo "Starting as if in production (without API_LOCAL flag)..."
-	source .venv/bin/activate && cd src && uvicorn main:app --reload
+	cd src && uv run uvicorn main:app --reload
 
-compile_requirements:
-	uv pip compile requirements.in -o requirements.txt
-
-## Docker tasks
 
 # Build the Docker image. The Dockerfile can use the build-arg LOCAL
 # to adapt behavior for local vs. production builds.
