@@ -29,10 +29,10 @@ RUN if [ "$LOCAL" = "true" ]; then \
 # Environment variables and expose port
 ENV GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
 ENV PYTHONUNBUFFERED=True
-EXPOSE 8080
+EXPOSE 8081
 
 # Switch to non-root user for security
 USER appuser
 
 # Run the container
-ENTRYPOINT ["uv", "run", "--no-dev", "gunicorn", "--bind", ":8080", "--workers", "1", "--timeout", "300", "main:app"]
+ENTRYPOINT ["uv", "run", "--no-dev", "gunicorn", "--bind", ":8081", "--workers", "1", "--timeout", "300", "main:app"]
