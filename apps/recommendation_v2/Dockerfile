@@ -1,28 +1,31 @@
-FROM python:3.13-slim
+FROM astral/uv:0.11-python3.13-trixie-slim
 
-# Build prerequisites
-# Using uv for ultra-fast package management
-COPY --from=ghcr.io/astral-sh/uv:0.11.6 /uv /bin/uv
+# Build arguments for configuration
+ARG GOOGLE_CLOUD_PROJECT
 
-# Set Environment variables
-ENV PYTHONUNBUFFERED=True \
-    APP_HOME=/app
+# Create non-root user early
+RUN groupadd --system --gid 999 appuser \
+    && useradd --system --gid 999 --uid 999 appuser
 
-WORKDIR $APP_HOME
+# Allow uv to compile bytecode (faster init) and disable caching to reduce image size
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_NO_CACHE=1
 
-# Install dependencies
-# Copied first to leverage Docker layer caching
+# Install libraries
+WORKDIR /app
 COPY ./pyproject.toml ./uv.lock ./
 RUN uv sync --locked --no-dev
 
 # Copy application code
-COPY ./src ./
+COPY ./src .
 
-# Inject Cloud project configuration
-ARG GOOGLE_CLOUD_PROJECT
-ENV GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
-
+# Expose the application port and set environment variables
 EXPOSE 8080
+ENV GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
+ENV PYTHONUNBUFFERED=True
+
+# Switch to non-root user for security
+USER appuser
 
 # Start server
-CMD ["uv", "run", "gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--bind", ":8080", "--workers", "8", "--preload", "--timeout", "0", "main:app"]
+CMD ["uv", "run", "--no-dev", "gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--bind", ":8080", "--workers", "8", "--preload", "--timeout", "0", "--control-socket", "/tmp/gunicorn.ctl", "main:app"]
