@@ -30,6 +30,9 @@ RUN if [ "$LOCAL" = "true" ]; then \
     cp ./application_default_credentials.json /root/.config/gcloud/application_default_credentials.json; \
     fi
 
+# Create Log directory and set permissions
+RUN mkdir -p /app/logs && chown appuser:appuser /app/logs
+
 # Switch to non-root user for security
 USER appuser
 
