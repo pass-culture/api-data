@@ -1,4 +1,4 @@
-FROM astral/uv:0.11-python3.10-trixie-slim
+FROM astral/uv:0.11-python3.11-trixie-slim
 
 # Conditionally copy the Google Cloud credentials file based on the argument
 ARG LOCAL=false
