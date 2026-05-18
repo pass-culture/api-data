@@ -14,6 +14,7 @@ from models.iris import IrisFrance
 from models.items import NonRecommendableItems
 from models.offer import RecommendableOffers
 from models.past_offer_context import PastOfferContext
+from models.similar_artists import SimilarArtist
 from models.user import EnrichedUser
 from models.venue import Venue
 
@@ -172,3 +173,7 @@ class NonRecommendableItemsFactory(BaseModelFactory[NonRecommendableItems]):
 
 class PastOfferContextFactory(BaseModelFactory[PastOfferContext]):
     __model__ = PastOfferContext
+
+
+class SimilarArtistFactory(BaseModelFactory[SimilarArtist]):
+    __model__ = SimilarArtist

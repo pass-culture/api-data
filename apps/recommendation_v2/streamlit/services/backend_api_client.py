@@ -90,3 +90,23 @@ def fetch_offer_details(offer_id: str) -> dict | None:
         pass
 
     return None
+
+
+def fetch_similar_artist_ids(api_url: str, params: dict) -> tuple[list[dict], str]:
+    """
+    Executes a GET request to retrieve similar artists data.
+
+    Returns:
+    - Tuple: (list of {artist_id_match, rank} dicts, call_id string)
+    """
+    response = requests.get(api_url, params=params)
+    response.raise_for_status()
+
+    data = response.json()
+    call_id = data.get("params", {}).get("call_id", "N/A")
+
+    similar_artists_raw = data.get("similar_artists", [])
+    if not isinstance(similar_artists_raw, list):
+        similar_artists_raw = []
+
+    return similar_artists_raw, call_id
