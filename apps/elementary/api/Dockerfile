@@ -1,25 +1,38 @@
-FROM python:3.10-slim
-COPY --from=ghcr.io/astral-sh/uv:0.3.4 /uv /bin/uv
-
-ENV PYTHONUNBUFFERED=True
-ENV APP_HOME=/app
-WORKDIR $APP_HOME
-
-
-# Install libraries
-COPY ./requirements.txt ./
-RUN uv pip install -r requirements.txt --system
-COPY ./src .
+FROM astral/uv:0.11-python3.11-trixie-slim
 
 # Conditionally copy the Google Cloud credentials file based on the argument
 ARG LOCAL=false
 ARG GOOGLE_CLOUD_PROJECT
-ENV GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
-ENV PORT=8081
+
+# Create non-root user early so COPY --chown can reference it
+RUN groupadd --system --gid 999 appuser \
+    && useradd --system --gid 999 --uid 999 appuser
+
+# Allow uv to compile bytecode (faster init) and disable caching to reduce image size
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_NO_CACHE=1
+
+# Install libraries
+WORKDIR /app
+COPY ./pyproject.toml ./uv.lock ./
+RUN uv sync --locked --no-dev
+
+# Copy application code
+COPY ./src .
+
+# Conditionally copy the Google Cloud credentials file based on the argument
 RUN if [ "$LOCAL" = "true" ]; then \
     mkdir -p /root/.config/gcloud && \
     cp ./application_default_credentials.json /root/.config/gcloud/application_default_credentials.json; \
     fi
 
+# Environment variables and expose port
+ENV GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT}
+ENV PYTHONUNBUFFERED=True
+EXPOSE 8080
+
+# Switch to non-root user for security
+USER appuser
+
 # Run the container
-CMD ["/bin/sh", "-c", "exec gunicorn main:app --workers 1 --log-level debug --timeout 300 --bind 0.0.0.0:${PORT}"]
+ENTRYPOINT ["uv", "run", "--no-dev", "gunicorn", "--bind", ":8080", "--workers", "1", "--timeout", "300", "main:app"]
