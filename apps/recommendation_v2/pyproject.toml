@@ -20,7 +20,7 @@ dependencies = [
     "redis>=7.4.0",
     "sqlalchemy==2.0.46",
     "types-protobuf>=6.32.1.20251210",
-    "uvicorn==0.40.0",
+    "uvicorn==0.47.0",
 ]
 
 [dependency-groups]
