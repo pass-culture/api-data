@@ -18,17 +18,12 @@ install:
 	uv sync
 
 start:
-	@echo "Starting in development mode..."
-	cd src && API_LOCAL=True uv run uvicorn main:app --reload
-
-start_with_gunicorn:
 	@echo "Starting with Gunicorn (production simulation)..."
-	cd src && API_LOCAL=True uv run gunicorn -k uvicorn.workers.UvicornWorker \
-		--bind :8000 --workers 1 --threads 10 --preload --timeout 0 main:app
+	cd src && API_LOCAL=True uv run gunicorn --bind :8081 --workers 1 --threads 10 --preload --timeout 0 main:app
 
 start_as_not_local:
 	@echo "Starting as if in production (without API_LOCAL flag)..."
-	cd src && uv run uvicorn main:app --reload
+	cd src && uv run gunicorn --bind :8081 --workers 1 --threads 10 --preload --timeout 0 main:app
 
 
 # Build the Docker image. The Dockerfile can use the build-arg LOCAL
