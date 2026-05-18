@@ -5,6 +5,11 @@ from config import settings
 from core.user_context import UserContext
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
+from schemas.tracking_log import GCP_SINK_EVENT_TYPE
+from schemas.tracking_log import TrackingLabels
+from schemas.tracking_log import TrackingLogPayload
+from schemas.tracking_log import TrackingOfferExtraData
+from schemas.tracking_log import TrackingRequestExtraData
 from services.logger import logger
 
 
@@ -45,68 +50,62 @@ def log_past_offer_context_to_sink(
 
     # --- 1. Compute Shared Context ---
     # We compute these values once outside the loop to optimize performance
-    current_utc_date = datetime.now(UTC).isoformat()
-    request_extra_data = {
-        "reco_origin": reco_origin,
-        "context": context_name,
-        "params_in": params.model_dump(by_alias=True, exclude_none=True) if params else None,
-    }
+    current_utc_date = datetime.now(UTC)
+    request_extra_data = TrackingRequestExtraData(
+        reco_origin=reco_origin,
+        context=context_name,
+        params_in=params.model_dump(by_alias=True, exclude_none=True) if params else None,
+    )
 
     # --- 2. Iterate and Log Each Offer ---
     for rank_index, offer in enumerate(final_playlist):
-        # TODO: Tech Debt - Create a strict Pydantic model for this specific log payload.
-        # This dictionary maps directly to a BigQuery table schema. Using a Pydantic model
-        # here would enforce type safety, prevent schema mismatches, and provide self-documenting code.
+        ranking_score = getattr(offer, "ranking_score", None)
 
-        log_payload = {
+        log_payload = TrackingLogPayload(
             # --- GCP Sink Routing Label ---
-            "labels": {
-                "event_type": "recommendation_past_offer_context_sink",
-            },
+            labels=TrackingLabels(event_type=GCP_SINK_EVENT_TYPE),
             # --- Execution Metadata ---
-            "call_id": call_id,
-            "context": f"{context_name}:{offer.item_origin}",
-            "context_extra_data": request_extra_data,
-            "date": current_utc_date,
+            call_id=call_id,
+            context=f"{context_name}:{offer.item_origin}",
+            context_extra_data=request_extra_data,
+            date=current_utc_date,
             # --- User Context & Features ---
-            "user_id": user_context.user_id,
-            "user_bookings_count": user_context.bookings_count,
-            "user_clicks_count": user_context.clicks_count,
-            "user_favorites_count": user_context.favorites_count,
-            "user_deposit_remaining_credit": user_context.remaining_credit,
-            "user_iris_id": user_context.iris_id,
-            "user_is_geolocated": user_context.is_geolocated,
-            "user_latitude": None,
-            "user_longitude": None,
-            "user_extra_data": {},
+            user_id=user_context.user_id,
+            user_bookings_count=user_context.bookings_count,
+            user_clicks_count=user_context.clicks_count,
+            user_favorites_count=user_context.favorites_count,
+            user_deposit_remaining_credit=user_context.remaining_credit,
+            user_iris_id=user_context.iris_id,
+            user_is_geolocated=user_context.is_geolocated,
+            user_latitude=None,
+            user_longitude=None,
+            user_extra_data={},
             # --- Offer Data & Features ---
-            "offer_id": offer.offer_id,
-            "offer_item_id": offer.item_id,
-            "offer_user_distance": offer.offer_user_distance,
-            "offer_is_geolocated": offer.is_geolocated,
-            "offer_booking_number": offer.booking_number,
-            "offer_stock_price": offer.stock_price,
-            "offer_category": offer.category,
-            "offer_subcategory_id": offer.subcategory_id,
-            "offer_item_rank": offer.item_rank,
-            "offer_item_score": offer.item_score,
-            "offer_order": rank_index,  # Critical for understanding ranking performance
-            "offer_venue_id": None,
-            "offer_creation_date": offer.offer_creation_date.isoformat() if offer.offer_creation_date else None,
-            "offer_stock_beginning_date": offer.stock_beginning_date.isoformat()
-            if offer.stock_beginning_date
-            else None,
+            offer_id=offer.offer_id,
+            offer_item_id=offer.item_id,
+            offer_user_distance=offer.offer_user_distance,
+            offer_is_geolocated=offer.is_geolocated,
+            offer_booking_number=offer.booking_number,
+            offer_stock_price=offer.stock_price,
+            offer_category=offer.category,
+            offer_subcategory_id=offer.subcategory_id,
+            offer_item_rank=offer.item_rank,
+            offer_item_score=offer.item_score,
+            offer_order=rank_index,  # Critical for understanding ranking performance
+            offer_venue_id=None,
+            offer_creation_date=offer.offer_creation_date,
+            offer_stock_beginning_date=offer.stock_beginning_date,
             # --- Extra Model & Ranking Scores ---
-            "offer_extra_data": {
-                "offer_ranking_score": getattr(offer, "ranking_score", None),  # ?
-                "offer_ranking_origin": "model" if getattr(offer, "ranking_score", None) else "item_rank",
-                "offer_booking_number_last_7_days": offer.booking_number_last_7_days,
-                "offer_booking_number_last_14_days": offer.booking_number_last_14_days,
-                "offer_booking_number_last_28_days": offer.booking_number_last_28_days,
-                "offer_semantic_emb_mean": offer.semantic_emb_mean,
-            },
-            "recommendation_api_version": settings.RECOMMENDATION_API_VERSION,
-        }
+            offer_extra_data=TrackingOfferExtraData(
+                offer_ranking_score=ranking_score,
+                offer_ranking_origin="model" if ranking_score else "item_rank",
+                offer_booking_number_last_7_days=offer.booking_number_last_7_days,
+                offer_booking_number_last_14_days=offer.booking_number_last_14_days,
+                offer_booking_number_last_28_days=offer.booking_number_last_28_days,
+                offer_semantic_emb_mean=offer.semantic_emb_mean,
+            ),
+            recommendation_api_version=settings.RECOMMENDATION_API_VERSION,
+        )
 
         # 2. Local Development Noise Control:
         # In local environments, we can disable tracking via a feature flag to prevent flooding the console.
@@ -114,4 +113,4 @@ def log_past_offer_context_to_sink(
             return
 
         # Send to stdout for the GCP Logging Agent to capture
-        logger.info("Past Offer Context", extra=log_payload)
+        logger.info("Past Offer Context", extra=log_payload.model_dump(mode="json"))
