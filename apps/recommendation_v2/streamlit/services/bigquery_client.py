@@ -1,7 +1,12 @@
+import os
+
 from google.cloud import bigquery
 
 
-ARTIST_TABLE = "passculture-data-prod.analytics_prod.global_artist"
+GCP_PROJECT = os.environ.get("GCP_PROJECT", "passculture-data-ehp")
+ENV_SHORT_NAME = os.environ.get("ENV_SHORT_NAME", "stg")
+DATASET_NAME = f"analytics_{ENV_SHORT_NAME}"
+ARTIST_TABLE = f"{GCP_PROJECT}.{DATASET_NAME}.global_artist"
 
 
 def fetch_artist_details(artist_id: str) -> dict | None:

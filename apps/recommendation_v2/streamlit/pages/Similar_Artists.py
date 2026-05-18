@@ -3,23 +3,15 @@ Similar Artists Page for the Streamlit Recommendation Application.
 """
 
 import html
-import sys
 import time as time_mod
 from http import HTTPStatus
-from pathlib import Path
 
 import requests
-
-import streamlit as st
-
-
-# Ensure internal imports from 'src' work smoothly
-sys.path.append(str(Path(__file__).resolve().parent.parent.parent / "src"))
-
 from services.backend_api_client import fetch_similar_artist_ids
 from services.bigquery_client import fetch_artist_details
 from services.bigquery_client import fetch_artists_details_batch
 
+import streamlit as st
 from config.settings import FASTAPI_SERVER_PORT
 
 

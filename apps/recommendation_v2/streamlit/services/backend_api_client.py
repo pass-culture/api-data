@@ -104,6 +104,9 @@ def fetch_similar_artist_ids(api_url: str, params: dict) -> tuple[list[dict], st
 
     data = response.json()
     call_id = data.get("params", {}).get("call_id", "N/A")
-    similar_artists = data.get("similar_artists", [])
 
-    return similar_artists, call_id
+    similar_artists_raw = data.get("similar_artists", [])
+    if not isinstance(similar_artists_raw, list):
+        similar_artists_raw = []
+
+    return similar_artists_raw, call_id
