@@ -12,6 +12,7 @@ dependencies = [
     "loguru~=0.7",
     "pandas~=2.2",
     "python-multipart~=0.0",
+    "tqdm>=4.67.3",
     "uvicorn~=0.22",
 ]
 
