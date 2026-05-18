@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from constants import GCP_PROJECT_ID, file_prefix
+from constants import ELEMENTARY_REPORTS_PREFIX, GCP_PROJECT_ID
 from google.cloud import storage
 
 storage_client = storage.Client(project=GCP_PROJECT_ID)
@@ -19,7 +19,7 @@ def get_latest_file(bucket_name):
     latest_file = None
     latest_date = None
 
-    for blob in bucket.list_blobs(prefix=file_prefix):
+    for blob in bucket.list_blobs(prefix=ELEMENTARY_REPORTS_PREFIX):
         filename = blob.name
         try:
             date_str = filename.replace(".html", "")[-8:]

@@ -3,8 +3,9 @@
 import os
 from datetime import datetime
 
-ENV_SHORT_NAME = os.environ.get("ENV_SHORT_NAME", "dev")
+ENV_SHORT_NAME = os.environ.get(
+    "ENV_SHORT_NAME", "stg"
+)  # No reports in dev, so default to staging environment
 GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "passculture-data-ehp")
-DATA_BUCKET_NAME = f"data-bucket-{ENV_SHORT_NAME}"
-yyyy = datetime.now().year
-file_prefix = f"elementary_reports/{yyyy}"
+DATA_BUCKET_NAME = f"de-bigquery-data-export-{ENV_SHORT_NAME}"
+ELEMENTARY_REPORTS_PREFIX = f"elementary_reports/{datetime.now().year}"
