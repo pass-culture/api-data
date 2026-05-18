@@ -3,7 +3,7 @@ FROM astral/uv:0.11-python3.13-trixie-slim
 # Build arguments for configuration
 ARG GOOGLE_CLOUD_PROJECT
 
-# Create non-root user early so COPY --chown can reference it
+# Create non-root user early
 RUN groupadd --system --gid 999 appuser \
     && useradd --system --gid 999 --uid 999 appuser
 
