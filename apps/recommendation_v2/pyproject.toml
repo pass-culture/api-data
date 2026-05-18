@@ -25,7 +25,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "commitizen==4.12.1",
+    "commitizen==4.16.2",
     "geopy>=2.4.1",
     "httpx==0.28.1",
     "ipdb==0.13.13",
