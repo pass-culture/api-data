@@ -86,7 +86,7 @@ async def generate_similar_offers(  # noqa: PLR0913
     user_location_missing = latitude is None or longitude is None
     offer_has_location = reference_offer and reference_offer.venue_latitude and reference_offer.venue_longitude
 
-    if user_location_missing and offer_has_location:
+    if user_location_missing and reference_offer and offer_has_location:
         # Fallback to the offer's venue location if user location is not provided
         latitude = reference_offer.venue_latitude
         longitude = reference_offer.venue_longitude
