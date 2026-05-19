@@ -5,12 +5,15 @@ from datetime import datetime
 from models.user import EnrichedUser
 
 
+DEFAULT_FALLBACK_USER_AGE = 18
+
 # Thresholds used to determine if a user has enough history to exit the 'Cold Start' state
 THRESHOLD_BOOKINGS = 2
 THRESHOLD_CLICKS = 25
 THRESHOLD_FAVORITES = 2
 
-DEFAULT_FALLBACK_USER_AGE = 18
+# Default value for unauthenticated or unknown users
+UNAUTHENTICATED_USER_ID = "-1"
 
 
 def calculate_user_age_from_birthdate(birth_date: datetime | None) -> int:
@@ -60,7 +63,7 @@ class UserContext:
     clicks_count: int = 0  # Mapped from 'consult_offer'
     favorites_count: int = 0  # Mapped from 'has_added_offer_to_favorites'
     remaining_credit: float = 150.0  # Business logic: theoretical OR initial
-    # TODO: is 150.0 the right default value here? It were 300.0 in the previous code
+    # TODO: is 150.0 the right default value here? It was 300.0 in the previous code
 
     # --- Geographical Context ---
     latitude: float | None = None
@@ -124,7 +127,7 @@ class UserContext:
         # --- 1. Handle Unauthenticated / Unknown Users ---
         if not database_user_record:
             return cls(
-                user_id=user_id,
+                user_id=UNAUTHENTICATED_USER_ID,
                 is_authenticated=False,
                 latitude=latitude,
                 longitude=longitude,

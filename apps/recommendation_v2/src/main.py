@@ -13,8 +13,11 @@ from fastapi.security import APIKeyQuery
 
 from api.health_check import router as health_check_router
 from api.playlist_recommendation import router as playlist_router
+from api.similar_artists import router as similar_artists_router
+from api.similar_offer import router as similar_offer_router
 from config import settings
 from services.logger import logger
+from services.redis import redis_cache_service
 
 
 api_key_query = APIKeyQuery(name="token", auto_error=True)
@@ -88,15 +91,24 @@ def show_api_config() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await redis_cache_service.connect()
+
     swagger_url = f"http://127.0.0.1:{settings.FASTAPI_SERVER_PORT}/docs"
 
     show_api_config()
 
     logger.info(
-        "🚀 Recommendation API started successfully!",
-        extra={"swagger_url": swagger_url, "environment": settings.ENV, "version": app.version},
+        "🚀 Recommendation API started successfully !"
+        f" Redis Cache: {'ENABLED 🟢' if settings.REDIS_CACHE_ENABLED else 'DISABLED 🔴'}",
+        extra={
+            "swagger_url": swagger_url,
+            "environment": settings.ENV,
+            "version": app.version,
+            "redis_enabled": settings.REDIS_CACHE_ENABLED,
+        },
     )
     yield
+    await redis_cache_service.disconnect()
 
 
 app = FastAPI(
@@ -110,9 +122,10 @@ app = FastAPI(
 # In local environments, authentication is bypassed to simplify development
 api_token_dependencies = [Depends(verify_api_token)] if not settings.IS_LOCAL else []
 
-app.include_router(playlist_router, tags=["Recommendations"], dependencies=api_token_dependencies)
 app.include_router(health_check_router, tags=["Health"])
-
+app.include_router(similar_offer_router, tags=["Similar Offers"], dependencies=api_token_dependencies)
+app.include_router(playlist_router, tags=["Recommendations"], dependencies=api_token_dependencies)
+app.include_router(similar_artists_router, tags=["Similar Artists"], dependencies=api_token_dependencies)
 if __name__ == "__main__":
     uvicorn.run(
         "main:app",

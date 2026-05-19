@@ -1,4 +1,4 @@
-from enum import Enum
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter
@@ -9,45 +9,18 @@ from fastapi import Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
-from core.pipeline import generate_playlist_recommendations
+from connectors.redis_api import redis_api
+from controllers.pipeline_playlist_recommendation import generate_playlist_recommendations
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.playlist_recommendation import RecommendationResponse
 from services.db import get_database_session
+from services.h3 import get_h3_index_from_coordinates
+from utils.benchmark import log_execution_time
+from utils.location_presets import PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING
+from utils.location_presets import PresetLocation
 
 
 router = APIRouter()
-
-
-# --- TEST LOCATIONS CONFIGURATION ---
-class PresetLocation(str, Enum):
-    # Highly populated (Major metropolitan areas)
-    HIGH_DENSITY_PARIS = "High Density - Paris"
-    HIGH_DENSITY_LYON = "High Density - Lyon"
-    HIGH_DENSITY_MARSEILLE = "High Density - Marseille"
-
-    # Moderately populated (Medium-sized cities)
-    MEDIUM_DENSITY_TOURS = "Medium Density - Tours"
-    MEDIUM_DENSITY_ANNECY = "Medium Density - Annecy"
-    MEDIUM_DENSITY_LA_ROCHELLE = "Medium Density - La Rochelle"
-
-    # Sparsely populated (Rural areas)
-    LOW_DENSITY_MENDE = "Low Density - Mende (Lozère)"
-    LOW_DENSITY_GUERET = "Low Density - Guéret (Creuse)"
-    LOW_DENSITY_FLORAC = "Low Density - Florac (Cévennes)"
-
-
-# Exact coordinate mapping (Latitude, Longitude)
-PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING = {
-    PresetLocation.HIGH_DENSITY_PARIS: (48.8566, 2.3522),
-    PresetLocation.HIGH_DENSITY_LYON: (45.7640, 4.8357),
-    PresetLocation.HIGH_DENSITY_MARSEILLE: (43.2965, 5.3698),
-    PresetLocation.MEDIUM_DENSITY_TOURS: (47.3941, 0.6848),
-    PresetLocation.MEDIUM_DENSITY_ANNECY: (45.8992, 6.1294),
-    PresetLocation.MEDIUM_DENSITY_LA_ROCHELLE: (46.1603, -1.1511),
-    PresetLocation.LOW_DENSITY_MENDE: (44.5176, 3.5000),
-    PresetLocation.LOW_DENSITY_GUERET: (46.1667, 1.8667),
-    PresetLocation.LOW_DENSITY_FLORAC: (44.3239, 3.5971),
-}
 
 
 @router.post(
@@ -55,6 +28,7 @@ PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING = {
     response_model=RecommendationResponse,
     summary="Generate a personalized recommendation playlist",
 )
+@log_execution_time
 async def get_playlist(
     params: Annotated[PlaylistRequestParams, Body(...)],
     db: Annotated[AsyncSession, Depends(get_database_session)],
@@ -106,7 +80,43 @@ async def get_playlist(
     if preset_location:
         latitude, longitude = PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING[preset_location]
 
+    # Use a finer resolution for cache to avoid reusing the same cache if a user moves within a large resolution cell.
+    cache_h3_resolution = settings.PLAYLIST_RECOMMENDATION_CACHE_H3_RESOLUTION
+    h3_index = get_h3_index_from_coordinates(latitude, longitude, resolution=cache_h3_resolution)
+
+    request_signature_data = {
+        "user_id": user_id,
+        "location_h3": h3_index,
+        "h3_resolution": cache_h3_resolution,
+        "params": params.model_dump(mode="json"),
+    }
+
+    # Handle Redis cache retrieval
+    if settings.REDIS_CACHE_ENABLED:
+        cached_playlist_result = await redis_api.fetch_cached_response(
+            namespace_prefix="playlist_recommendation",
+            request_signature_data=request_signature_data,
+            response_model_class=RecommendationResponse,
+        )
+        if isinstance(cached_playlist_result, RecommendationResponse):
+            cached_playlist_result.from_cache = True
+            # Overwrite the call_id with a newly generated UUID.
+            # This prevents massively linking multiple cache-hit offer displays
+            # to the same original call_id, which could otherwise bias model retraining.
+            cached_playlist_result.params.call_id = str(uuid.uuid4())
+            return cached_playlist_result
+
     # Delegate the heavy lifting to the core orchestration pipeline
-    return await generate_playlist_recommendations(
+    result = await generate_playlist_recommendations(
         db=db, user_id=user_id, latitude=latitude, longitude=longitude, params=params
     )
+
+    # Store the newly generated result in Cache
+    if settings.REDIS_CACHE_ENABLED:
+        await redis_api.store_endpoint_response(
+            namespace_prefix="playlist_recommendation",
+            request_signature_data=request_signature_data,
+            response_model_instance=result,
+        )
+
+    return result
