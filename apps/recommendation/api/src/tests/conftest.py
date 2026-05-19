@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import ExitStack
@@ -104,15 +103,8 @@ def app_config() -> dict[str, Any]:
     return {}
 
 
-@pytest.fixture(scope="session")
-def event_loop(request):
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
-
 @pytest.fixture(scope="session", autouse=True)
-async def _connection_test(event_loop):
+async def _connection_test():
     sessionmanager.init(config.DB_CONFIG)
     async with sessionmanager.session():
         yield

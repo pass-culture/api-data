@@ -15,6 +15,8 @@ start_as_not_local_dev:
 start_as_not_local_stg:
 	cd src && ENV_SHORT_NAME=stg uv run uvicorn main:app --reload
 
-# This will fail beacuse gcpadmins do not have access to the SA of prod as of april 2026
-# start_as_not_local_prod:
-# 	cd src && ENV_SHORT_NAME=prod uv run uvicorn main:app --reload
+build_and_run_locally_in_docker:
+	cp ~/.config/gcloud/application_default_credentials.json src/
+	docker build . -t compliance --build-arg LOCAL=true
+	rm src/application_default_credentials.json
+	docker run -p 8080:8080 compliance:latest -e API_LOCAL=true

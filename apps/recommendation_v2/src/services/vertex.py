@@ -11,6 +11,7 @@ from google.protobuf.struct_pb2 import Value
 
 from config import settings
 from services.logger import logger
+from utils.benchmark import log_execution_time
 
 
 class VertexService:
@@ -74,6 +75,7 @@ class VertexService:
             logger.error(f"🔌 Failed to resolve endpoint {display_name}: {error!s}")
             raise error
 
+    @log_execution_time
     async def execute_grpc_prediction(self, feature_payloads: list[dict]) -> Any:
         """
         Transforms native Python dicts to Protobuf and executes the gRPC call.
