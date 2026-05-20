@@ -123,7 +123,7 @@ def test_tracking_payload_top_level_date_is_iso_string(mocker):
 
 
 @pytest.mark.parametrize(
-    "factory_field, log_key, datetime_value",
+    ("factory_field", "log_key", "datetime_value"),
     [
         ("offer_creation_date", "offer_creation_date", CREATION_DATE),
         ("stock_beginning_date", "offer_stock_beginning_date", STOCK_DATE),
@@ -140,13 +140,13 @@ def test_tracking_payload_datetime_fields_are_iso_strings_when_set(
     _invoke([EnrichedRecommendableOfferFactory.build(**factory_kwargs)])
 
     value = mock_logger.call_args.kwargs["extra"][log_key]
-    
+
     assert isinstance(value, str)
     assert datetime.fromisoformat(value) == datetime_value
 
 
 @pytest.mark.parametrize(
-    "factory_field, log_key",
+    ("factory_field", "log_key"),
     [
         ("offer_creation_date", "offer_creation_date"),
         ("stock_beginning_date", "offer_stock_beginning_date"),
