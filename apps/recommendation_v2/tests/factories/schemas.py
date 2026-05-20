@@ -9,8 +9,10 @@ from connectors.vertex_api import VertexPredictionResult
 from core.user_context import UserContext
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import CategoryEnum
+from schemas.playlist_recommendation import RecommendationResponse
 from schemas.playlist_recommendation import SearchGroupNameEnum
 from schemas.playlist_recommendation import SubcategoryEnum
+from schemas.similar_offer import SimilarOfferResponse
 from schemas.vertex_prediction_item import RecommendableItem
 
 
@@ -40,3 +42,15 @@ class EnrichedRecommendableOfferFactory(DataclassFactory[EnrichedRecommendableOf
 
 class UserContextFactory(DataclassFactory[UserContext]):
     __model__ = UserContext
+
+
+class RecommendationResponseFactory(ModelFactory[RecommendationResponse]):
+    __model__ = RecommendationResponse
+
+    from_cache = False
+
+
+class SimilarOfferResponseFactory(ModelFactory[SimilarOfferResponse]):
+    __model__ = SimilarOfferResponse
+
+    from_cache = False
