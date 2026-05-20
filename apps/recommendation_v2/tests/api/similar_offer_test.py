@@ -76,7 +76,7 @@ async def test_category_order_does_not_affect_cache_key(client: AsyncClient, moc
     must not produce a different cache entry — otherwise the same logical request
     could bypass the cache simply by reordering query params.
     """
-    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", True)
+    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
     fetch_mock = mocker.patch(
         "api.similar_offer.redis_api.fetch_cached_response", new_callable=AsyncMock, return_value=None
     )
@@ -85,7 +85,7 @@ async def test_category_order_does_not_affect_cache_key(client: AsyncClient, moc
     await client.get("/similar_offers/offer-ref?categories=CINEMA&categories=LIVRE")
     await client.get("/similar_offers/offer-ref?categories=LIVRE&categories=CINEMA")
 
-    assert fetch_mock.call_count == 2
+    assert fetch_mock.call_count == 2  # noqa: PLR2004
     first_sig = fetch_mock.call_args_list[0].kwargs["request_signature_data"]
     second_sig = fetch_mock.call_args_list[1].kwargs["request_signature_data"]
     assert first_sig["categories"] == second_sig["categories"]
@@ -95,7 +95,7 @@ async def test_category_order_does_not_affect_cache_key(client: AsyncClient, moc
 async def test_user_id_query_param_affects_cache_key(client: AsyncClient, mocker):
     """The optional user_id query param must be included in the signature so two users
     never share a similar-offer cache entry."""
-    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", True)
+    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
     fetch_mock = mocker.patch(
         "api.similar_offer.redis_api.fetch_cached_response", new_callable=AsyncMock, return_value=None
     )
@@ -104,7 +104,7 @@ async def test_user_id_query_param_affects_cache_key(client: AsyncClient, mocker
     await client.get("/similar_offers/offer-ref?user_id=user-A")
     await client.get("/similar_offers/offer-ref?user_id=user-B")
 
-    assert fetch_mock.call_count == 2
+    assert fetch_mock.call_count == 2  # noqa: PLR2004
     first_sig = fetch_mock.call_args_list[0].kwargs["request_signature_data"]
     second_sig = fetch_mock.call_args_list[1].kwargs["request_signature_data"]
     assert first_sig["user_id"] != second_sig["user_id"]
