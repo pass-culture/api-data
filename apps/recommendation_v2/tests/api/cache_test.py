@@ -1,4 +1,5 @@
 import uuid
+from http import HTTPStatus
 from unittest.mock import AsyncMock
 
 import pytest
@@ -12,6 +13,7 @@ from tests.factories.schemas import SimilarOfferResponseFactory
 
 
 ORIGINAL_CALL_ID = "00000000-0000-0000-0000-000000000000"
+
 
 _PLAYLIST_CACHED_METADATA = RecommendationMetadata(
     reco_origin="algo",
@@ -70,7 +72,7 @@ async def _request(client: AsyncClient, method: str, url: str, body):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(_PARAMS, CACHE_ENDPOINTS)
-async def test_cache_hit_returns_from_cache_true(
+async def test_cache_hit_returns_from_cache_true(  # noqa: PLR0913
     client: AsyncClient,
     mocker,
     method,
@@ -80,11 +82,9 @@ async def test_cache_hit_returns_from_cache_true(
     pipeline,
     factory,
     cached_metadata,
-    result_key,
-    namespace,
 ):
     """Cache hit must set from_cache=True and skip the recommendation pipeline entirely."""
-    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", True)
+    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
     mocker.patch(
         f"{redis_module}.fetch_cached_response",
         new_callable=AsyncMock,
@@ -94,32 +94,29 @@ async def test_cache_hit_returns_from_cache_true(
 
     response = await _request(client, method, url, body)
 
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     assert response.json()["from_cache"] is True
     mock_pipeline.assert_not_called()
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(_PARAMS, CACHE_ENDPOINTS)
-async def test_cache_hit_injects_new_call_id(
+async def test_cache_hit_injects_new_call_id(  # noqa: PLR0913
     client: AsyncClient,
     mocker,
     method,
     url,
     body,
     redis_module,
-    pipeline,
     factory,
     cached_metadata,
-    result_key,
-    namespace,
 ):
     """
     A cache hit must overwrite the original call_id with a newly generated UUID.
     Re-using the original call_id would link every cache-hit impression back to
     the same training event, which biases model retraining.
     """
-    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", True)
+    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
     mocker.patch(
         f"{redis_module}.fetch_cached_response",
         new_callable=AsyncMock,
@@ -135,22 +132,20 @@ async def test_cache_hit_injects_new_call_id(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(_PARAMS, CACHE_ENDPOINTS)
-async def test_cache_hit_preserves_result_list(
+async def test_cache_hit_preserves_result_list(  # noqa: PLR0913
     client: AsyncClient,
     mocker,
     method,
     url,
     body,
     redis_module,
-    pipeline,
     factory,
     cached_metadata,
     result_key,
-    namespace,
 ):
     """The cached offer/result list must be returned unchanged."""
     expected = ["offer-A", "offer-B", "offer-C"]
-    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", True)
+    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
     mocker.patch(
         f"{redis_module}.fetch_cached_response",
         new_callable=AsyncMock,
@@ -164,27 +159,23 @@ async def test_cache_hit_preserves_result_list(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(_PARAMS, CACHE_ENDPOINTS)
-async def test_cache_miss_runs_pipeline_and_stores_result(
+async def test_cache_miss_runs_pipeline_and_stores_result(  # noqa: PLR0913
     client: AsyncClient,
     mocker,
     method,
     url,
     body,
     redis_module,
-    pipeline,
-    factory,
-    cached_metadata,
-    result_key,
     namespace,
 ):
     """On a cache miss the pipeline must run and store the result under the correct namespace."""
-    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", True)
+    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
     mocker.patch(f"{redis_module}.fetch_cached_response", new_callable=AsyncMock, return_value=None)
     mock_store = mocker.patch(f"{redis_module}.store_endpoint_response", new_callable=AsyncMock)
 
     response = await _request(client, method, url, body)
 
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     assert response.json()["from_cache"] is False
     mock_store.assert_called_once()
     assert mock_store.call_args.kwargs["namespace_prefix"] == namespace
@@ -199,19 +190,14 @@ async def test_no_cache_interaction_when_disabled(
     url,
     body,
     redis_module,
-    pipeline,
-    factory,
-    cached_metadata,
-    result_key,
-    namespace,
 ):
     """With REDIS_CACHE_ENABLED=False neither fetch nor store must be called."""
-    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", False)
+    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=False)
     mock_fetch = mocker.patch(f"{redis_module}.fetch_cached_response", new_callable=AsyncMock)
     mock_store = mocker.patch(f"{redis_module}.store_endpoint_response", new_callable=AsyncMock)
 
     response = await _request(client, method, url, body)
 
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     mock_fetch.assert_not_called()
     mock_store.assert_not_called()
