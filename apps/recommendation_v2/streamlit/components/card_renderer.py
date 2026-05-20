@@ -2,6 +2,7 @@
 Logic to render recommendation cards visually in the application using Jinja2 templates.
 """
 
+import html as html_mod
 from pathlib import Path
 
 from jinja2 import Environment
@@ -161,6 +162,86 @@ def show_similar_offer_source(offer_id: str, title: str):
         st.html(full_html)
     else:
         st.markdown(full_html.replace("            <", "<"), unsafe_allow_html=True)
+
+
+def _build_artist_jinja_context(artist: dict, rank_index: int) -> dict:
+    """Prepares context dict for the artist_card.html Jinja template."""
+    MAX_DESCRIPTION_LENGTH = 80
+    name = html_mod.escape(artist.get("artist_name", artist.get("artist_id", "Inconnu")))
+    artist_id = html_mod.escape(artist.get("artist_id", ""))
+    raw_desc = artist.get("artist_description", "") or ""
+    safe_desc = raw_desc.replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+    description = safe_desc[:MAX_DESCRIPTION_LENGTH] + ("…" if len(safe_desc) > MAX_DESCRIPTION_LENGTH else "")
+
+    image_url = artist.get("wikidata_image_file_url") or ""
+
+    return {
+        "rank_number": rank_index + 1,
+        "name": name,
+        "artist_id": artist_id,
+        "description": description,
+        "image_url": image_url,
+    }
+
+
+def show_artist_source(artist: dict, title: str):
+    """
+    Renders a single artist card (source) in a small carousel-style wrapper.
+
+    Parameters:
+    - artist (dict): Artist data dict from BigQuery.
+    - title (str): Section title.
+    """
+    template_style = env.get_template("style.css")
+    style_content = template_style.render()
+    template_html = env.get_template("artist_card.html")
+
+    context = _build_artist_jinja_context(artist, rank_index=-1)
+    # Source card has no rank badge
+    context["rank_number"] = None
+    card_html = template_html.render(context)
+
+    full_html = (
+        f"<style>{style_content}</style>\n<div class='carousel-wrapper'><div class='offer-card'>{card_html}</div></div>"
+    )
+    st.subheader(f"🎵 {title}")
+    if hasattr(st, "html"):
+        st.html(full_html)
+    else:
+        st.markdown(full_html, unsafe_allow_html=True)
+
+
+def show_similar_artists(similar_artists: list, artist_details_map: dict, title: str):
+    """
+    Renders a horizontal scrollable carousel of artist cards.
+
+    Parameters:
+    - similar_artists (list): List of dicts with 'artist_id_match' and 'rank'.
+    - artist_details_map (dict): Map of artist_id -> artist detail dict (from BigQuery).
+    - title (str): Section title.
+    """
+    template_style = env.get_template("style.css")
+    style_content = template_style.render()
+    template_html = env.get_template("artist_card.html")
+
+    cards_html_list = []
+    for item in similar_artists:
+        artist = artist_details_map.get(item["artist_id_match"]) or {"artist_id": item["artist_id_match"]}
+        rank_index = item["rank"] - 1  # rank is 1-based
+        context = _build_artist_jinja_context(artist, rank_index=rank_index)
+        card_html = template_html.render(context)
+        is_last = item == similar_artists[-1]
+        wrapper_class = "offer-card animate-new" if is_last else "offer-card"
+        cards_html_list.append(f"<div class='{wrapper_class}'>{card_html}</div>")
+
+    rendered_cards = "".join(cards_html_list)
+    full_html = f"<style>{style_content}</style>\n<div class='carousel-wrapper'>{rendered_cards}</div>"
+
+    st.subheader(f"🎵 {title} ({len(similar_artists)} artistes)")
+    if hasattr(st, "html"):
+        st.html(full_html)
+    else:
+        st.markdown(full_html, unsafe_allow_html=True)
 
 
 def _evaluate_geolocation_constraints(
