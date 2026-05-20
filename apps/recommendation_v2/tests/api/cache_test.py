@@ -14,7 +14,6 @@ from tests.factories.schemas import SimilarOfferResponseFactory
 
 ORIGINAL_CALL_ID = "00000000-0000-0000-0000-000000000000"
 
-
 _PLAYLIST_CACHED_METADATA = RecommendationMetadata(
     reco_origin="algo",
     model_origin="default",
@@ -82,6 +81,8 @@ async def test_cache_hit_returns_from_cache_true(  # noqa: PLR0913
     pipeline,
     factory,
     cached_metadata,
+    result_key,
+    namespace,
 ):
     """Cache hit must set from_cache=True and skip the recommendation pipeline entirely."""
     mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
@@ -108,8 +109,11 @@ async def test_cache_hit_injects_new_call_id(  # noqa: PLR0913
     url,
     body,
     redis_module,
+    pipeline,
     factory,
     cached_metadata,
+    result_key,
+    namespace,
 ):
     """
     A cache hit must overwrite the original call_id with a newly generated UUID.
@@ -139,9 +143,11 @@ async def test_cache_hit_preserves_result_list(  # noqa: PLR0913
     url,
     body,
     redis_module,
+    pipeline,
     factory,
     cached_metadata,
     result_key,
+    namespace,
 ):
     """The cached offer/result list must be returned unchanged."""
     expected = ["offer-A", "offer-B", "offer-C"]
@@ -166,6 +172,10 @@ async def test_cache_miss_runs_pipeline_and_stores_result(  # noqa: PLR0913
     url,
     body,
     redis_module,
+    pipeline,
+    factory,
+    cached_metadata,
+    result_key,
     namespace,
 ):
     """On a cache miss the pipeline must run and store the result under the correct namespace."""
@@ -183,13 +193,18 @@ async def test_cache_miss_runs_pipeline_and_stores_result(  # noqa: PLR0913
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(_PARAMS, CACHE_ENDPOINTS)
-async def test_no_cache_interaction_when_disabled(
+async def test_no_cache_interaction_when_disabled(  # noqa: PLR0913
     client: AsyncClient,
     mocker,
     method,
     url,
     body,
     redis_module,
+    pipeline,
+    factory,
+    cached_metadata,
+    result_key,
+    namespace,
 ):
     """With REDIS_CACHE_ENABLED=False neither fetch nor store must be called."""
     mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=False)
