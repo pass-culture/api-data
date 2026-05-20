@@ -100,7 +100,7 @@ async def get_similar_offers(  # noqa: PLR0913
         latitude, longitude = PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING[preset_location]
 
     # Use a finer resolution for cache to avoid reusing the same cache if a user moves within a large resolution cell.
-    cache_h3_resolution = settings.SIMILAR_OFFER_CACHE_H3_RESOLUTION
+    cache_h3_resolution = settings.CACHE_H3_RESOLUTION
     h3_index = get_h3_index_from_coordinates(latitude, longitude, resolution=cache_h3_resolution)
 
     request_signature_data = {
