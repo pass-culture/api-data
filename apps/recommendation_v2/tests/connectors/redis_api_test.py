@@ -19,10 +19,10 @@ _TEST_RESET_HOUR = 5
 _SECONDS_PER_DAY = 86400
 
 _TTL_BOUNDARY_CASES = [
-    pytest.param(datetime(2024, 6, 15, 4, 59, 59, tzinfo=UTC), 1,              id="one_second_before_reset"),
-    pytest.param(datetime(2024, 6, 15, 5,  0,  0, tzinfo=UTC), _SECONDS_PER_DAY, id="exactly_at_reset_rolls_over"),
-    pytest.param(datetime(2024, 6, 15, 5,  0,  1, tzinfo=UTC), _SECONDS_PER_DAY - 1, id="one_second_after_reset"),
-    pytest.param(datetime(2024, 6, 15, 0,  0,  0, tzinfo=UTC), 18000,          id="midnight_five_hours_out"),
+    pytest.param(datetime(2024, 6, 15, 4, 59, 59, tzinfo=UTC), 1, id="one_second_before_reset"),
+    pytest.param(datetime(2024, 6, 15, 5, 0, 0, tzinfo=UTC), _SECONDS_PER_DAY, id="exactly_at_reset_rolls_over"),
+    pytest.param(datetime(2024, 6, 15, 5, 0, 1, tzinfo=UTC), _SECONDS_PER_DAY - 1, id="one_second_after_reset"),
+    pytest.param(datetime(2024, 6, 15, 0, 0, 0, tzinfo=UTC), 18000, id="midnight_five_hours_out"),
 ]
 
 
@@ -65,7 +65,7 @@ def test_generate_cache_key_format_is_namespace_colon_hash():
     key = RedisAPI.generate_cache_key("playlist_recommendation", {"user_id": "x"})
     namespace, hash_part = key.split(":", 1)
     assert namespace == "playlist_recommendation"
-    assert len(hash_part) == _MD5_HEX_LENGTH # sligthly pointless since hashlib is probably extensively tested
+    assert len(hash_part) == _MD5_HEX_LENGTH  # sligthly pointless since hashlib is probably extensively tested
 
 
 # ---------------------------------------------------------------------------
@@ -73,7 +73,7 @@ def test_generate_cache_key_format_is_namespace_colon_hash():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("frozen_now,expected_ttl", _TTL_BOUNDARY_CASES)
+@pytest.mark.parametrize(("frozen_now", "expected_ttl"), _TTL_BOUNDARY_CASES)
 def test_ttl_boundary_cases(mocker, frozen_now, expected_ttl):
     """
     Boundary conditions around the reset hour at 05:00:00 UTC:
@@ -102,7 +102,10 @@ def test_ttl_points_to_the_next_reset_hour():
     if now >= next_population_at:
         next_population_at += timedelta(days=1)
 
-    assert abs((cache_expiry - next_population_at).total_seconds()) < 1 # allow 1 second of execution time between calculation and assertion
+    assert (
+        abs((cache_expiry - next_population_at).total_seconds()) < 1
+    )  # allow 1 second of execution time between calculation and assertion
+
 
 # ---------------------------------------------------------------------------
 # RedisAPI.fetch_cached_response
@@ -170,7 +173,6 @@ async def test_fetch_returns_none_on_miss(mocker):
     assert result is None
 
 
-
 # ---------------------------------------------------------------------------
 # RedisAPI.store_endpoint_response
 # ---------------------------------------------------------------------------
@@ -222,4 +224,3 @@ async def test_store_calls_set_with_serialized_payload_and_ttl(mocker):
     assert kwargs["value_to_cache"] == model.model_dump(mode="json")
     assert isinstance(kwargs["time_to_live_in_seconds"], int)
     assert kwargs["time_to_live_in_seconds"] > 0
-

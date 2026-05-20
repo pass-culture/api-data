@@ -26,6 +26,7 @@ _TRACKING_ONLY_FIELDS = {"labels", "recommendation_api_version"}
 CREATION_DATE = datetime(2024, 1, 15, 10, 30, 0, tzinfo=UTC)
 STOCK_DATE = datetime(2024, 6, 1, 0, 0, 0, tzinfo=UTC)
 
+
 @pytest.fixture(autouse=True)
 def _tracking_enabled(mocker):
     """Force tracking on regardless of the local .env so logger.info is always reachable."""
@@ -129,9 +130,7 @@ def test_tracking_payload_top_level_date_is_iso_string(mocker):
         ("stock_beginning_date", "offer_stock_beginning_date", STOCK_DATE),
     ],
 )
-def test_tracking_payload_datetime_fields_are_iso_strings_when_set(
-    mocker, factory_field, log_key, datetime_value
-):
+def test_tracking_payload_datetime_fields_are_iso_strings_when_set(mocker, factory_field, log_key, datetime_value):
     """Verify datetime fields are correctly serialized to ISO format strings in the log payload."""
     mock_logger = mocker.patch("core.tracking.logger.info")
 
@@ -152,9 +151,7 @@ def test_tracking_payload_datetime_fields_are_iso_strings_when_set(
         ("stock_beginning_date", "offer_stock_beginning_date"),
     ],
 )
-def test_tracking_payload_datetime_fields_are_none_when_not_set(
-    mocker, factory_field, log_key
-):
+def test_tracking_payload_datetime_fields_are_none_when_not_set(mocker, factory_field, log_key):
     """Verify datetime fields remain None in the log payload when they are not provided."""
     mock_logger = mocker.patch("core.tracking.logger.info")
 
