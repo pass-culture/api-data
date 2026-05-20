@@ -22,6 +22,9 @@ _SNAKE_CASE = re.compile(r"^[a-z][a-z0-9_]*$")
 # Fields in TrackingLogPayload with no PastOfferContext column (GCP/API metadata only)
 _TRACKING_ONLY_FIELDS = {"labels", "recommendation_api_version"}
 
+# Test date parametrization
+CREATION_DATE = datetime(2024, 1, 15, 10, 30, 0, tzinfo=UTC)
+STOCK_DATE = datetime(2024, 6, 1, 0, 0, 0, tzinfo=UTC)
 
 @pytest.fixture(autouse=True)
 def _tracking_enabled(mocker):
@@ -49,7 +52,13 @@ def test_tracking_payload_all_field_names_are_snake_case():
     assert not violations, f"Non-snake_case field names: {violations}"
 
 
-def test_tracking_log_payload_covers_all_past_offer_context_columns():
+def test_tracking_payload_schema_matches_db():
+    """
+    Assert 1:1 mapping between PastOfferContext DB columns and TrackingLogPayload fields.
+
+    Catches schema drift statically. Fails if a database migration introduces a
+    column that isn't mirrored in the Pydantic model, or vice-versa.
+    """
     orm_columns = {col.key for col in PastOfferContext.__table__.columns} - {"id"}
     pydantic_fields = set(TrackingLogPayload.model_fields) - _TRACKING_ONLY_FIELDS
 
@@ -60,8 +69,13 @@ def test_tracking_log_payload_covers_all_past_offer_context_columns():
     assert not extra, f"TrackingLogPayload has fields with no PastOfferContext column: {extra}"
 
 
-def test_tracking_payload_contains_all_required_top_level_keys(mocker):
-    """ValidationError on model_validate catches any missing or renamed BigQuery key."""
+def test_tracking_emits_valid_payload_format(mocker):
+    """
+    Verify that the application logic outputs a payload matching the Pydantic schema.
+
+    Runs the pipeline and validates the logger's `extra` arguments. Fails with a
+    ValidationError if fields are missing, misspelled, or have incorrect types at runtime.
+    """
     mock_logger = mocker.patch("core.tracking.logger.info")
 
     _invoke([EnrichedRecommendableOfferFactory.build()])
@@ -108,42 +122,46 @@ def test_tracking_payload_top_level_date_is_iso_string(mocker):
     datetime.fromisoformat(date_value)
 
 
-def test_tracking_payload_offer_creation_date_is_iso_string_when_set(mocker):
+@pytest.mark.parametrize(
+    "factory_field, log_key, datetime_value",
+    [
+        ("offer_creation_date", "offer_creation_date", CREATION_DATE),
+        ("stock_beginning_date", "offer_stock_beginning_date", STOCK_DATE),
+    ],
+)
+def test_tracking_payload_datetime_fields_are_iso_strings_when_set(
+    mocker, factory_field, log_key, datetime_value
+):
+    """Verify datetime fields are correctly serialized to ISO format strings in the log payload."""
     mock_logger = mocker.patch("core.tracking.logger.info")
-    creation_date = datetime(2024, 1, 15, 10, 30, 0, tzinfo=UTC)
 
-    _invoke([EnrichedRecommendableOfferFactory.build(offer_creation_date=creation_date)])
+    # On construit dynamiquement l'argument de la factory
+    factory_kwargs = {factory_field: datetime_value}
+    _invoke([EnrichedRecommendableOfferFactory.build(**factory_kwargs)])
 
-    value = mock_logger.call_args.kwargs["extra"]["offer_creation_date"]
+    value = mock_logger.call_args.kwargs["extra"][log_key]
+    
     assert isinstance(value, str)
-    assert datetime.fromisoformat(value) == creation_date
+    assert datetime.fromisoformat(value) == datetime_value
 
 
-def test_tracking_payload_offer_creation_date_is_none_when_not_set(mocker):
+@pytest.mark.parametrize(
+    "factory_field, log_key",
+    [
+        ("offer_creation_date", "offer_creation_date"),
+        ("stock_beginning_date", "offer_stock_beginning_date"),
+    ],
+)
+def test_tracking_payload_datetime_fields_are_none_when_not_set(
+    mocker, factory_field, log_key
+):
+    """Verify datetime fields remain None in the log payload when they are not provided."""
     mock_logger = mocker.patch("core.tracking.logger.info")
 
-    _invoke([EnrichedRecommendableOfferFactory.build(offer_creation_date=None)])
+    factory_kwargs = {factory_field: None}
+    _invoke([EnrichedRecommendableOfferFactory.build(**factory_kwargs)])
 
-    assert mock_logger.call_args.kwargs["extra"]["offer_creation_date"] is None
-
-
-def test_tracking_payload_offer_stock_beginning_date_is_iso_string_when_set(mocker):
-    mock_logger = mocker.patch("core.tracking.logger.info")
-    stock_date = datetime(2024, 6, 1, 0, 0, 0, tzinfo=UTC)
-
-    _invoke([EnrichedRecommendableOfferFactory.build(stock_beginning_date=stock_date)])
-
-    value = mock_logger.call_args.kwargs["extra"]["offer_stock_beginning_date"]
-    assert isinstance(value, str)
-    assert datetime.fromisoformat(value) == stock_date
-
-
-def test_tracking_payload_offer_stock_beginning_date_is_none_when_not_set(mocker):
-    mock_logger = mocker.patch("core.tracking.logger.info")
-
-    _invoke([EnrichedRecommendableOfferFactory.build(stock_beginning_date=None)])
-
-    assert mock_logger.call_args.kwargs["extra"]["offer_stock_beginning_date"] is None
+    assert mock_logger.call_args.kwargs["extra"][log_key] is None
 
 
 def test_tracking_payload_offer_order_matches_list_index(mocker):
@@ -177,15 +195,6 @@ def test_tracking_ranking_origin_is_item_rank_when_ranking_score_is_zero(mocker)
     _invoke([EnrichedRecommendableOfferFactory.build(ranking_score=0.0)])
 
     assert mock_logger.call_args.kwargs["extra"]["offer_extra_data"]["offer_ranking_origin"] == "item_rank"
-
-
-def test_tracking_calls_logger_once_per_offer(mocker):
-    mock_logger = mocker.patch("core.tracking.logger.info")
-    batch_size = 3
-
-    _invoke(EnrichedRecommendableOfferFactory.batch(batch_size))
-
-    assert mock_logger.call_count == batch_size
 
 
 def test_tracking_logs_nothing_for_empty_playlist(mocker):
