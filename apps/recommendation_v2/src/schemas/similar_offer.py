@@ -14,3 +14,4 @@ class SimilarOfferResponse(BaseModel):
 
     results: list[str]
     params: RecommendationMetadata
+    from_cache: bool = False

@@ -17,6 +17,7 @@ from config import settings
 from core.user_context import THRESHOLD_BOOKINGS
 from core.user_context import THRESHOLD_CLICKS
 from core.user_context import THRESHOLD_FAVORITES
+from models.offer import RecommendableOffers
 from models.user import EnrichedUser
 
 
@@ -70,5 +71,33 @@ def get_random_user(*, is_cold_start: bool) -> str:
     asyncio.set_event_loop(loop)
     try:
         return loop.run_until_complete(_get_user_async())
+    finally:
+        loop.close()
+
+
+def get_random_offer() -> str:
+    """
+    Retrieves a random offer ID from the database.
+
+    Returns:
+    - str: The offer_id of the randomly selected offer.
+    """
+
+    async def _get_offer_async():
+        temp_engine = create_async_engine(settings.DATABASE_URL, poolclass=pool.NullPool)
+        temp_session_factory = async_sessionmaker(temp_engine, expire_on_commit=False)
+
+        async with temp_session_factory() as session:
+            stmt = select(RecommendableOffers.offer_id).order_by(func.random()).limit(1)
+            result = await session.execute(stmt)
+            offer_id_found = result.scalar()
+
+        await temp_engine.dispose()
+        return offer_id_found
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        return loop.run_until_complete(_get_offer_async())
     finally:
         loop.close()
