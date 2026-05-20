@@ -87,7 +87,6 @@ async def get_playlist(
     request_signature_data = {
         "user_id": user_id,
         "location_h3": h3_index,
-        "h3_resolution": cache_h3_resolution,
         "params": params.model_dump(mode="json"),
     }
 

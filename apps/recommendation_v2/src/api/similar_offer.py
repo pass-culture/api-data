@@ -107,7 +107,6 @@ async def get_similar_offers(  # noqa: PLR0913
         "offer_id": offer_id,
         "user_id": user_id,
         "location_h3": h3_index,
-        "h3_resolution": cache_h3_resolution,
         "categories": sorted([c.value for c in categories]) if categories else None,
         "subcategories": sorted([s.value for s in subcategories]) if subcategories else None,
         "search_group_names": sorted([s.value for s in search_group_names]) if search_group_names else None,
