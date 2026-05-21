@@ -284,3 +284,78 @@ async def test_monitor_connections_logs_debug_and_does_not_crash_on_info_error(m
 
     mock_logger.debug.assert_called_once()
     mock_logger.info.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Integration tests — require a live Redis container (redis_service fixture)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_connect_sets_live_client_and_ping_succeeds(redis_service):
+    """
+    Verifies that connect() produces a usable client when pointed at a real Redis server.
+
+    A fresh service instance is created so the test exercises the full connect() path
+    rather than relying on the already-connected global singleton.
+    """
+    service = RedisCacheService()
+    await service.connect()
+
+    assert service.redis_client is not None
+    await service.disconnect()
+
+
+@pytest.mark.asyncio
+async def test_get_returns_value_stored_by_set(redis_service):
+    """Round-trip: set then get must return the original dict."""
+    await redis_service.set_cached_value(cache_key="rt-key", value_to_cache={"answer": 42}, time_to_live_in_seconds=60)
+
+    result = await redis_service.get_cached_value(cache_key="rt-key")
+
+    assert result == {"answer": 42}
+
+
+@pytest.mark.asyncio
+async def test_key_expires_after_ttl(redis_service):
+    """A key stored with TTL=1 must not be retrievable after 2 seconds."""
+    await redis_service.set_cached_value(cache_key="ttl-key", value_to_cache={"x": 1}, time_to_live_in_seconds=1)
+
+    await asyncio.sleep(2)
+
+    result = await redis_service.get_cached_value(cache_key="ttl-key")
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_disconnect_closes_connection(redis_service):
+    """After disconnect(), the monitor task reference must be cleared."""
+    service = RedisCacheService()
+    await service.connect()
+    assert service.redis_client is not None
+
+    await service.disconnect()
+
+    assert service._monitor_task is None
+
+
+@pytest.mark.asyncio
+async def test_connect_disables_cache_on_connection_failure(redis_service, mocker):
+    """
+    When the Redis URL is unreachable, connect() must set redis_client to None
+    and disable the cache rather than raising.
+    """
+    mocker.patch.object(_settings, "REDIS_URL", new="redis://localhost:1")
+    service = RedisCacheService()
+    await service.connect()
+
+    assert service.redis_client is None
+
+
+@pytest.mark.asyncio
+async def test_get_returns_none_for_missing_key(redis_service):
+    """get_cached_value must return None when the key has never been written."""
+    result = await redis_service.get_cached_value(cache_key="never-written-key-xyz")
+
+    assert result is None

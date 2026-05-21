@@ -240,4 +240,3 @@ async def redis_service(redis_container):
     await redis_cache_service.disconnect()
     settings.REDIS_URL = original_url
     settings.REDIS_CACHE_ENABLED = original_enabled
-
