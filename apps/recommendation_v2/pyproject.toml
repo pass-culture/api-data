@@ -94,3 +94,7 @@ python_files = ["*test.py", "test*.py"]
 python_classes = ["*Test"]
 python_functions = ["test_*", "when_*", "expect_*", "should_*"]
 verbosity_assertions = 2
+markers = [
+    "unit: pure logic tests, no external services — no Docker required",
+    "integration: tests that require one real external service (PostgreSQL or Redis)",
+]
