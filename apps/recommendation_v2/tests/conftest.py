@@ -44,21 +44,10 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
         else:
             item.add_marker(pytest.mark.unit)
 
+
 # ---------------------------------------------------------------------------
-# PostgreSQL integration fixtures
+# Global autouse mocks (apply to every test)
 # ---------------------------------------------------------------------------
-
-
-@pytest.fixture(scope="session")
-def postgres_container():
-    """
-    Start a Docker container running PostgreSQL with PostGIS for the test session.
-
-    Yields the container instance so dependent fixtures can retrieve the connection URL.
-    The container is automatically stopped once the session ends.
-    """
-    with PostgresContainer(image="postgis/postgis:15-3.3-alpine") as postgres:
-        yield postgres
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -122,6 +111,23 @@ def mock_vertex_ranking(mocker):
     mock_rank_similar.side_effect = lambda offers, user_context: offers
 
     return mock_rank_playlist, mock_rank_similar
+
+
+# ---------------------------------------------------------------------------
+# PostgreSQL integration fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def postgres_container():
+    """
+    Start a Docker container running PostgreSQL with PostGIS for the test session.
+
+    Yields the container instance so dependent fixtures can retrieve the connection URL.
+    The container is automatically stopped once the session ends.
+    """
+    with PostgresContainer(image="postgis/postgis:15-3.3-alpine") as postgres:
+        yield postgres
 
 
 @pytest.fixture(scope="session")
