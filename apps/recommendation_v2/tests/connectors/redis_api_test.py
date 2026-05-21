@@ -307,5 +307,7 @@ async def test_different_signatures_produce_independent_cache_entries(redis_serv
     result_a = await RedisAPI.fetch_cached_response("similar_offer", sig_a, RecommendationResponse)
     result_b = await RedisAPI.fetch_cached_response("similar_offer", sig_b, RecommendationResponse)
 
+    assert isinstance(result_a, RecommendationResponse)
+    assert isinstance(result_b, RecommendationResponse)
     assert result_a.playlist_recommended_offers == model_a.playlist_recommended_offers
     assert result_b.playlist_recommended_offers == model_b.playlist_recommended_offers

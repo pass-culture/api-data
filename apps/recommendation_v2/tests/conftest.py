@@ -38,7 +38,7 @@ _INTEGRATION_FIXTURES = {"db_session", "client", "redis_service"}
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     """Auto-apply unit / integration markers based on fixture usage."""
     for item in items:
-        names = set(item.fixturenames)
+        names = set(getattr(item, "fixturenames", []))
         if names.intersection(_INTEGRATION_FIXTURES):
             item.add_marker(pytest.mark.integration)
         else:
