@@ -89,8 +89,9 @@ def test_haversine_returns_none_when_any_coordinate_is_missing(user_lat, user_lo
 def test_haversine_computes_correct_distance_for_known_coordinates():
     # Paris → London ≈ 343,56 km ± 10m  source https://www.vcalc.com/wiki/vcalc/haversine-distance
     distance = calculate_haversine_distance_in_meters(48.8566, 2.3522, 51.5074, -0.1278)
-    distance_precision_meter = 10
-    assert abs(distance - 343_560) <= distance_precision_meter
+    distance_precision_meters = 10
+    assert distance is not None
+    assert abs(distance - 343_560) <= distance_precision_meters
 
 
 # ---------------------------------------------------------------------------

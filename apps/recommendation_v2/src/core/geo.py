@@ -126,8 +126,8 @@ async def find_closest_offers_with_h3_index(
     Returns:
         list[Row]: A list of rows containing (RecommendableOffers, calc_distance).
     """
-    if any(
-        [not user_context.is_geolocated, user_context.latitude is None, user_context.longitude is None]
+    if (
+        not user_context.is_geolocated or user_context.latitude is None or user_context.longitude is None
     ):  # pragma: no cover
         return []
 
