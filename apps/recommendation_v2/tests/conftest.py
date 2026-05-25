@@ -1,5 +1,6 @@
 import asyncio
 import uuid
+from unittest.mock import AsyncMock
 from unittest.mock import patch
 
 import pytest
@@ -13,6 +14,7 @@ from sqlalchemy.pool import NullPool
 from testcontainers.postgres import PostgresContainer
 
 from config import settings
+from connectors.vertex_api import VertexAPI
 from main import app
 from models.base import Base
 from services.db import get_database_session
@@ -170,3 +172,15 @@ async def client(db_session):
         yield async_client
 
     app.dependency_overrides.clear()
+
+
+# ---------------------------------------------------------------------------
+# VertexAPI
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def vertex_api():
+    api = VertexAPI(endpoint_name="test-endpoint")
+    api.vertex_infrastructure_service.execute_grpc_prediction = AsyncMock()
+    return api
