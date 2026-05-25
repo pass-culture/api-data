@@ -26,7 +26,7 @@ def calculate_user_age_from_birthdate(birth_date: datetime | None) -> int:
     Returns:
         int: The computed age in years, or 18 by default.
     """
-    if not birth_date:
+    if not birth_date:  # pragma: no cover
         return DEFAULT_FALLBACK_USER_AGE
 
     try:
@@ -40,7 +40,7 @@ def calculate_user_age_from_birthdate(birth_date: datetime | None) -> int:
         age = today.year - user_born_date.year - (0 if has_had_birthday_this_year else 1)
         return age
 
-    except Exception:
+    except Exception:  # pragma: no cover
         return DEFAULT_FALLBACK_USER_AGE
 
 

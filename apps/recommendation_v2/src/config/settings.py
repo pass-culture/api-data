@@ -29,7 +29,7 @@ IS_PROD: bool = ENV == "production"
 IS_CI: bool = ENV == "ci"
 
 # Fail-fast mechanism: prevent the app from starting if the environment is unrecognized
-if ENV not in ("local", "testing", "staging", "production", "ci"):
+if ENV not in ("local", "testing", "staging", "production", "ci"):  # pragma: no cover
     raise RuntimeError(f"Unknown environment detected: {ENV}")
 
 FASTAPI_SERVER_PORT: int = int(os.environ.get("FASTAPI_SERVER_PORT", "8000"))

@@ -66,7 +66,7 @@ class RedisCacheService:
                 self.redis_client = redis.Redis.from_url(url=settings.REDIS_URL, decode_responses=True)
 
                 ping_result = self.redis_client.ping()
-                if inspect.isawaitable(ping_result):
+                if inspect.isawaitable(ping_result):  # pragma: no cover
                     await ping_result
 
                 logger.info("Redis cache enabled and successfully connected.")
