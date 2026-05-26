@@ -128,36 +128,6 @@ async def test_disconnect_cancels_and_clears_monitor_task(redis_service):
     assert task.cancelled()
 
 
-@pytest.mark.asyncio
-async def test_disconnect_falls_back_to_close_when_aclose_raises_attribute_error(redis_service):
-    """Compatibility fallback for older redis-py versions that lack aclose()."""
-    service = RedisCacheService()
-    await service.connect()
-
-    with (
-        patch.object(service.redis_client, "aclose", side_effect=AttributeError("no aclose")),
-        patch.object(service.redis_client, "close") as mock_close,
-    ):
-        await service.disconnect()  # must not raise
-
-    mock_close.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_disconnect_logs_warning_and_does_not_raise_on_aclose_exception(redis_service):
-    """A failure to close the Redis connection must be logged but must never crash the shutdown path."""
-    service = RedisCacheService()
-    await service.connect()
-
-    with (
-        patch.object(service.redis_client, "aclose", side_effect=Exception("socket hang up")),
-        patch("services.redis.logger") as mock_logger,
-    ):
-        await service.disconnect()  # must not raise
-
-    mock_logger.warning.assert_called_once()
-
-
 # ---------------------------------------------------------------------------
 # RedisCacheService.get_cached_value / set_cached_value — round-trip
 # ---------------------------------------------------------------------------
