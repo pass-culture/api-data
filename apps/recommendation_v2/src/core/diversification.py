@@ -113,7 +113,7 @@ def apply_offer_diversification(
         return []
 
     # --- 1. Initial Entropy / Shuffling ---
-    if should_shuffle_initial_list:  # pragma: no cover
+    if should_shuffle_initial_list:
         offers = list(offers)
         random.shuffle(offers)
 

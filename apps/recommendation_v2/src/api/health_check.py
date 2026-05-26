@@ -9,5 +9,5 @@ router = APIRouter()
 
 @router.get("/")
 @log_execution_time
-async def health_check(request: Request) -> dict[str, str]:  # pragma: no cover
+async def health_check(request: Request) -> dict[str, str]:
     return {"status": "OK", "version": request.app.version}
