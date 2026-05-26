@@ -3,6 +3,7 @@ import pytest
 from controllers.pipeline_similar_offer import SIMILAR_OFFERS_LIST_MAXIMUM_SIZE
 from controllers.pipeline_similar_offer import generate_similar_offers
 from schemas.enriched_offer import EnrichedRecommendableOffer
+from schemas.similar_offer import SimilarOfferModelChoices
 from schemas.similar_offer import SimilarOfferResponse
 
 from tests.factories.models import EnrichedUserFactory
@@ -312,3 +313,35 @@ async def test_similar_offer_caps_results_at_maximum_size(
     )
 
     assert len(response.results) <= SIMILAR_OFFERS_LIST_MAXIMUM_SIZE
+
+
+@pytest.mark.asyncio
+async def test_similar_offer_uses_graph_retrieval_when_model_is_graph(
+    db_session,
+    mock_vertex_ranking,
+    mocker,
+):
+    """When retrieval_model=graph, the graph retrieval client must be used."""
+    reference_offer = await RecommendableOffersFactory.create_async(offer_id="offer-ref", item_id="item-ref")
+
+    graph_items = [RecommendableItemFactory.build(is_geolocated=False, total_offers=1) for _ in range(5)]
+    mock_graph_fetch = mocker.patch(
+        "controllers.pipeline_similar_offer.fetch_graph_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=VertexPredictionResultFactory.build(predictions=graph_items),
+    )
+    mock_standard_fetch = mocker.patch(
+        "controllers.pipeline_similar_offer.fetch_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+    )
+    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: offers
+    mocker.patch("controllers.pipeline_similar_offer.log_past_offer_context_to_sink")
+
+    await generate_similar_offers(
+        db=db_session,
+        offer_id=reference_offer.offer_id,
+        retrieval_model=SimilarOfferModelChoices.graph,
+    )
+
+    mock_graph_fetch.assert_called_once()
+    mock_standard_fetch.assert_not_called()

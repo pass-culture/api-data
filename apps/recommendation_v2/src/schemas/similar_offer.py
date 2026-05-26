@@ -1,6 +1,13 @@
+from enum import Enum
+
 from pydantic import BaseModel
 
 from schemas.playlist_recommendation import RecommendationMetadata
+
+
+class SimilarOfferModelChoices(str, Enum):
+    graph = "graph"
+    coreservation = "coreservation"
 
 
 class SimilarOfferResponse(BaseModel):
