@@ -155,12 +155,6 @@ jobs:
         echo "short_sha=${GITHUB_SHA}" | tee -a "$GITHUB_OUTPUT"
         echo "very_short_sha=${GITHUB_SHA::7}" | tee -a "$GITHUB_OUTPUT"
         echo "rand=$(tr -dc 'a-z0-9' < /dev/urandom | head -c 3)" | tee -a "$GITHUB_OUTPUT"
-    - name: "Redis URL"
-      id: "redis"
-      env:
-        REDIS_URL: ${{ secrets.REDIS_URL }}
-      run: echo "$REDIS_URL"
-
     - uses: 'google-github-actions/auth@v2'
       name: "Authenticate with Google Cloud for deploy"
       with:
@@ -185,11 +179,12 @@ jobs:
           SQL_BASE_USER=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1
           SQL_PORT=5432
           REDIS_URL=${{ secrets.REDIS_URL }}
+          REDIS_CA_CERT_PATH=/secrets/redis_ca
         secrets: |-
           SQL_HOST=${{ vars.GCP_SECRET_NAME_DB_HOST }}:latest
           SQL_BASE_PASSWORD=${{ vars.GCP_SECRET_NAME_DB_PASSWORD }}:latest
           API_TOKEN=${{ vars.GCP_SECRET_NAME_API_TOKEN }}:latest
-          REDIS_CA=${{ vars.REDIS_CA }}:latest
+          /secrets/redis_ca=${{ vars.REDIS_CA }}:latest #this secret starting with "/" is mounted as a volume
 
   slack-notification:
     runs-on: ubuntu-latest

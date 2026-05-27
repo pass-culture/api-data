@@ -63,11 +63,18 @@ class RedisCacheService:
                     settings.REDIS_CACHE_ENABLED = False
                     return
 
-                self.redis_client = redis.Redis.from_url(url=settings.REDIS_URL, decode_responses=True)
+                tls_kwargs: dict = {}
+                if settings.REDIS_CA_CERT_PATH:
+                    tls_kwargs = {
+                        "ssl_ca_certs": settings.REDIS_CA_CERT_PATH,
+                    }
+                    logger.info("Redis TLS configuration enabled", extra={"ca_cert_path": settings.REDIS_CA_CERT_PATH})
+                self.redis_client = redis.Redis.from_url(url=settings.REDIS_URL, decode_responses=True, **tls_kwargs)
 
-                ping_result = self.redis_client.ping()
-                if inspect.isawaitable(ping_result):
-                    await ping_result
+                if self.redis_client is not None:
+                    ping_result = self.redis_client.ping()
+                    if inspect.isawaitable(ping_result):
+                        await ping_result
 
                 logger.info("Redis cache enabled and successfully connected.")
 
