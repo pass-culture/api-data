@@ -1,0 +1,16 @@
+{% if rank_number is not none %}<div class="offer-rank-badge">#{{ rank_number }}</div>{% endif %}
+{% if image_url %}
+<img class="card-img artist-card-img" src="{{ image_url }}" alt="Image artiste">
+{% else %}
+<div class="card-img artist-card-img" style="display:flex; align-items:center; justify-content:center; background:#e0e0e0; color:#888;">Pas d'image</div>
+{% endif %}
+<div class="card-content">
+    <div class="card-category">Artiste</div>
+    <div class="card-title" title="{{ name }}">{{ name }}</div>
+    {% if description %}
+        <div class="card-desc" style="height:auto; margin-bottom:6px;">{{ description }}</div>
+    {% endif %}
+    <div class="card-footer">
+        <div class="card-id">ID: {{ artist_id }}</div>
+    </div>
+</div>

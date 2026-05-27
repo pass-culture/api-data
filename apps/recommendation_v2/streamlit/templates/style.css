@@ -140,3 +140,7 @@
     cursor: help;
     padding-left: 2px;
 }
+.artist-card-img {
+    aspect-ratio: 1/1;
+    object-fit: cover;
+}
