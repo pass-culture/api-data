@@ -13,6 +13,7 @@ from controllers.pipeline_similar_offer import generate_similar_offers
 from schemas.categories import CategoryEnum
 from schemas.categories import SearchGroupNameEnum
 from schemas.categories import SubcategoryEnum
+from schemas.similar_offer import SimilarOfferModelChoices
 from schemas.similar_offer import SimilarOfferResponse
 from services.db import get_database_session
 from services.h3 import get_h3_index_from_coordinates
@@ -54,6 +55,13 @@ async def get_similar_offers(  # noqa: PLR0913
     longitude: Annotated[
         float | None, Query(description="The user's GPS longitude, if provided by the mobile app.")
     ] = None,
+    retrieval_model: Annotated[
+        SimilarOfferModelChoices,
+        Query(
+            description="""The retrieval model to use for generating similar offers.
+            Options are 'graph' and 'coreservation'. Default is 'coreservation'."""
+        ),
+    ] = SimilarOfferModelChoices.coreservation,
     preset_location: Annotated[
         PresetLocation | None,
         Query(
@@ -110,6 +118,7 @@ async def get_similar_offers(  # noqa: PLR0913
         "categories": sorted([c.value for c in categories]) if categories else None,
         "subcategories": sorted([s.value for s in subcategories]) if subcategories else None,
         "search_group_names": sorted([s.value for s in search_group_names]) if search_group_names else None,
+        "retrieval_model": retrieval_model,
     }
 
     # Handle Redis cache retrieval
@@ -137,6 +146,7 @@ async def get_similar_offers(  # noqa: PLR0913
         search_group_names=search_group_names,
         latitude=latitude,
         longitude=longitude,
+        retrieval_model=retrieval_model,
     )
 
     # Store the newly generated result in Cache
