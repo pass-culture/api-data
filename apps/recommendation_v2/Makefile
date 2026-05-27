@@ -83,6 +83,25 @@ test:
 	@echo "🧪 Running unit tests..."
 	uv run pytest tests
 
+unit-test:
+	@echo "🧪 Running unit tests..."
+	uv run pytest tests -m unit
+
+integration-test:
+	@docker info > /dev/null 2>&1 || (echo "❌ Error: Docker is not running. Please start Docker and try again."; exit 1)
+	@echo "🧪 Running integration tests..."
+	uv run pytest tests -m integration
+
+test-with-markers:
+	@echo "🧪 Verifying all tests are marked..."
+	@TOTAL=$$(uv run pytest --collect-only -q | grep -c "test_"); \
+	MARKED=$$(uv run pytest --collect-only -m "unit or integration" -q | grep -c "test_"); \
+	if [ "$$TOTAL" -eq "$$MARKED" ]; then \
+		echo "✓ All tests are marked (total: $$TOTAL)"; \
+	else \
+		echo "✗ Missing markers! Total: $$TOTAL, Marked: $$MARKED"; \
+		exit 1; \
+	fi
 
 define PREPARE_SWAGGER_TUNNEL
 	@source .env && \
