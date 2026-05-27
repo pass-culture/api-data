@@ -72,6 +72,8 @@ VERTEX_RETRIEVAL_ENDPOINT_NAME: str = os.environ.get(
     "VERTEX_RETRIEVAL_ENDPOINT_NAME", "recommendation_user_retrieval_stg"
 )
 
+VERTEX_GRAPH_ENDPOINT_NAME: str = os.environ.get("VERTEX_GRAPH_ENDPOINT_NAME", "recommendation_graph_retrieval_stg")
+
 VERTEX_RANKING_ENDPOINT_NAME: str = os.environ.get("VERTEX_RANKING_ENDPOINT_NAME", "recommendation_user_ranking_stg")
 
 VERTEX_PREDICTION_TIMEOUT: float = float(os.environ.get("VERTEX_PREDICTION_TIMEOUT", "10.0" if IS_LOCAL else "2.0"))
@@ -92,6 +94,4 @@ REDIS_MONITOR_INTERVAL_SECONDS: int = int(os.environ.get("REDIS_MONITOR_INTERVAL
 # --- 9. Geospatial Configuration ---
 GEOSPATIAL_RETRIEVAL_H3_RESOLUTION: int = int(os.environ.get("GEOSPATIAL_RETRIEVAL_H3_RESOLUTION", "5"))
 
-PLAYLIST_RECOMMENDATION_CACHE_H3_RESOLUTION: int = int(
-    os.environ.get("PLAYLIST_RECOMMENDATION_CACHE_H3_RESOLUTION", "8")
-)
+CACHE_H3_RESOLUTION: int = int(os.environ.get("CACHE_H3_RESOLUTION", "8"))

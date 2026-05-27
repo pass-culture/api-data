@@ -9,6 +9,7 @@ from datetime import time
 
 import folium
 from geopy.geocoders import Nominatim
+from services.database_service import get_random_offer
 from services.database_service import get_random_user
 from streamlit_folium import st_folium
 
@@ -18,6 +19,7 @@ from config.settings import SWAGGER_UI_EXAMPLE_USER_ID
 from schemas.playlist_recommendation import CategoryEnum
 from schemas.playlist_recommendation import SearchGroupNameEnum
 from schemas.playlist_recommendation import SubcategoryEnum
+from schemas.similar_offer import SimilarOfferModelChoices
 from utils.location_presets import PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING
 
 
@@ -76,7 +78,7 @@ def render_similar_offer_sidebar() -> tuple:
     Displays the sidebar and gathers inputs from the user for similar offers.
 
     Returns:
-    - tuple: (offer_id, params dict, payload dict, max_offers_to_fetch, run_fetch_boolean)
+    - tuple: (offer_id, retrieval_model, user_id, params dict, payload dict, max_offers_to_fetch, run_fetch_boolean)
     """
     with st.sidebar:
         st.header("1. Paramètres de la Requête")
@@ -88,11 +90,39 @@ def render_similar_offer_sidebar() -> tuple:
             value=st.session_state.get("similar_offer_id", SWAGGER_UI_EXAMPLE_OFFER_ID),
             help="ID de l'offre (MongoID) pour laquelle chercher des similaires",
             label_visibility="collapsed",
+            placeholder="26429343",
         )
         st.session_state.similar_offer_id = offer_id_input
+
+        _render_random_offer_button()
+
+        st.divider()
+
+        # Model selection
+        st.subheader("Modèle de Similarité")
+        retrieval_model = st.selectbox(
+            "Sélectionnez le modèle de similarité à utiliser",
+            [e.value for e in SimilarOfferModelChoices],
+            index=1,
+        )
+
+        # Optional user identification
+        st.markdown("**Utilisateur (optionnel)**")
+        user_id_input = st.text_input(
+            "Identifiant utilisateur",
+            value=st.session_state.get("similar_offer_user_id", ""),
+            help="UUID de l'utilisateur pour personnaliser les similaires (optionnel)",
+            label_visibility="collapsed",
+            placeholder="Laisser vide pour ignorer",
+        )
+        st.session_state.similar_offer_user_id = user_id_input
+
+        _render_random_user_buttons(session_key="similar_offer_user_id")
+
         st.divider()
 
         offer_id = st.session_state.similar_offer_id
+        user_id = st.session_state.similar_offer_user_id or None
 
         # Geolocation selection
         latitude, longitude = _render_geolocation_inputs()
@@ -115,30 +145,42 @@ def render_similar_offer_sidebar() -> tuple:
             params["latitude"] = latitude
             params["longitude"] = longitude
 
-        return offer_id, params, payload, max_offers_to_fetch, run_btn
+        return offer_id, retrieval_model, user_id, params, payload, max_offers_to_fetch, run_btn
 
 
-def _render_random_user_buttons():
+def _render_random_user_buttons(session_key: str = "user_id"):
     """Renders buttons to fetch a random 'warm' or 'cold start' user."""
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("🎲 Actif", use_container_width=True):
+        if st.button("🎲 Actif", use_container_width=True, key=f"btn_active_{session_key}"):
             with st.spinner("Recherche d'un utilisateur actif..."):
                 uid = get_random_user(is_cold_start=False)
                 if uid:
-                    st.session_state.user_id = uid
+                    st.session_state[session_key] = uid
                     st.rerun()
                 else:
                     st.toast("Aucun utilisateur actif trouvé", icon="❌")
     with col2:
-        if st.button("🎲 Cold Start", use_container_width=True):
+        if st.button("🎲 Cold Start", use_container_width=True, key=f"btn_cold_{session_key}"):
             with st.spinner("Recherche d'un utilisateur cold start..."):
                 uid = get_random_user(is_cold_start=True)
                 if uid:
-                    st.session_state.user_id = uid
+                    st.session_state[session_key] = uid
                     st.rerun()
                 else:
                     st.toast("Aucun utilisateur cold start trouvé", icon="❌")
+
+
+def _render_random_offer_button():
+    """Renders a button to fetch a random offer from the database."""
+    if st.button("🎲 Offre aléatoire", use_container_width=True):
+        with st.spinner("Recherche d'une offre aléatoire..."):
+            oid = get_random_offer()
+            if oid:
+                st.session_state.similar_offer_id = oid
+                st.rerun()
+            else:
+                st.toast("Aucune offre trouvée", icon="❌")
 
 
 def _render_geolocation_inputs() -> tuple:

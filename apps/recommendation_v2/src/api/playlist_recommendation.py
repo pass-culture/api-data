@@ -81,13 +81,12 @@ async def get_playlist(
         latitude, longitude = PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING[preset_location]
 
     # Use a finer resolution for cache to avoid reusing the same cache if a user moves within a large resolution cell.
-    cache_h3_resolution = settings.PLAYLIST_RECOMMENDATION_CACHE_H3_RESOLUTION
+    cache_h3_resolution = settings.CACHE_H3_RESOLUTION
     h3_index = get_h3_index_from_coordinates(latitude, longitude, resolution=cache_h3_resolution)
 
     request_signature_data = {
         "user_id": user_id,
         "location_h3": h3_index,
-        "h3_resolution": cache_h3_resolution,
         "params": params.model_dump(mode="json"),
     }
 

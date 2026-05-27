@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 from unittest.mock import patch
 
 import pytest
@@ -66,3 +67,62 @@ async def test_similar_offer_enforces_token_verification_when_not_local(
             )
 
     assert response.status_code == expected_status_code
+
+
+@pytest.mark.asyncio
+async def test_category_order_does_not_affect_cache_key(client: AsyncClient, mocker):
+    """
+    The endpoint sorts categories before building the cache key, so request order
+    must not produce a different cache entry — otherwise the same logical request
+    could bypass the cache simply by reordering query params.
+    """
+    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
+    fetch_mock = mocker.patch(
+        "api.similar_offer.redis_api.fetch_cached_response", new_callable=AsyncMock, return_value=None
+    )
+    mocker.patch("api.similar_offer.redis_api.store_endpoint_response", new_callable=AsyncMock)
+
+    await client.get("/similar_offers/offer-ref?categories=CINEMA&categories=LIVRE")
+    await client.get("/similar_offers/offer-ref?categories=LIVRE&categories=CINEMA")
+
+    assert fetch_mock.call_count == 2  # noqa: PLR2004
+    first_sig = fetch_mock.call_args_list[0].kwargs["request_signature_data"]
+    second_sig = fetch_mock.call_args_list[1].kwargs["request_signature_data"]
+    assert first_sig["categories"] == second_sig["categories"]
+
+
+@pytest.mark.asyncio
+async def test_user_id_query_param_affects_cache_key(client: AsyncClient, mocker):
+    """The optional user_id query param must be included in the signature so two users
+    never share a similar-offer cache entry."""
+    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
+    fetch_mock = mocker.patch(
+        "api.similar_offer.redis_api.fetch_cached_response", new_callable=AsyncMock, return_value=None
+    )
+    mocker.patch("api.similar_offer.redis_api.store_endpoint_response", new_callable=AsyncMock)
+
+    await client.get("/similar_offers/offer-ref?user_id=user-A")
+    await client.get("/similar_offers/offer-ref?user_id=user-B")
+
+    assert fetch_mock.call_count == 2  # noqa: PLR2004
+    first_sig = fetch_mock.call_args_list[0].kwargs["request_signature_data"]
+    second_sig = fetch_mock.call_args_list[1].kwargs["request_signature_data"]
+    assert first_sig["user_id"] != second_sig["user_id"]
+
+
+@pytest.mark.asyncio
+async def test_retrieval_model_query_param_affects_cache_key(client: AsyncClient, mocker):
+    """The cache signature must vary by retrieval model to avoid cross-model cache reuse."""
+    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
+    fetch_mock = mocker.patch(
+        "api.similar_offer.redis_api.fetch_cached_response", new_callable=AsyncMock, return_value=None
+    )
+    mocker.patch("api.similar_offer.redis_api.store_endpoint_response", new_callable=AsyncMock)
+
+    await client.get("/similar_offers/offer-ref?retrieval_model=coreservation")
+    await client.get("/similar_offers/offer-ref?retrieval_model=graph")
+
+    assert fetch_mock.call_count == 2  # noqa: PLR2004
+    first_sig = fetch_mock.call_args_list[0].kwargs["request_signature_data"]
+    second_sig = fetch_mock.call_args_list[1].kwargs["request_signature_data"]
+    assert first_sig["retrieval_model"] != second_sig["retrieval_model"]

@@ -2,11 +2,12 @@
 Similar Artists Page for the Streamlit Recommendation Application.
 """
 
-import html
 import time as time_mod
 from http import HTTPStatus
 
 import requests
+from components.card_renderer import show_artist_source
+from components.card_renderer import show_similar_artists
 from services.backend_api_client import fetch_similar_artist_ids
 from services.bigquery_client import fetch_artist_details
 from services.bigquery_client import fetch_artists_details_batch
@@ -48,10 +49,7 @@ def main():
         with st.spinner("Récupération de l'artiste source..."):
             source_artist = fetch_artist_details(artist_id)
         if source_artist:
-            st.markdown("### Artiste source")
-            col, _ = st.columns([1, 3])
-            with col:
-                _render_artist_card(source_artist, rank=None)
+            show_artist_source(source_artist, title="Artiste source")
         else:
             st.warning(f"Artiste `{artist_id}` introuvable dans BigQuery.")
 
@@ -64,13 +62,12 @@ def main():
 
 def _fetch_and_display_similar_artists(artist_id: str):
     api_url = f"http://localhost:{FASTAPI_SERVER_PORT}/similar_artists/{artist_id}"
-    params = {}
 
     with st.spinner("Appel de l'API des artistes similaires en cours..."):
         start_time = time_mod.time()
 
         try:
-            similar_artists, call_id = fetch_similar_artist_ids(api_url, params)
+            similar_artists, call_id = fetch_similar_artist_ids(api_url, params={})
         except requests.exceptions.HTTPError as error:
             if error.response is not None and error.response.status_code == HTTPStatus.NOT_FOUND:
                 st.warning(f"Artiste `{artist_id}` introuvable dans la table des artistes similaires.")
@@ -101,47 +98,14 @@ def _fetch_and_display_similar_artists(artist_id: str):
         st.warning("Aucun artiste similaire retourné par le moteur.")
         return
 
-    # Batch-fetch all artist details from BigQuery in one query
     artist_ids = [item["artist_id_match"] for item in similar_artists]
     with st.spinner("Récupération des détails des artistes depuis BigQuery..."):
         artist_details_map = fetch_artists_details_batch(artist_ids)
 
-    st.markdown("### Artistes similaires")
-    cols = st.columns(3)
-    for i, item in enumerate(similar_artists):
-        details = artist_details_map.get(item["artist_id_match"])
-        with cols[i % 3]:
-            _render_artist_card(details or {"artist_id": item["artist_id_match"]}, rank=item["rank"])
-
-
-def _render_artist_card(artist: dict, rank: int | None):
-    image_url = artist.get("wikidata_image_file_url")
-    name = html.escape(artist.get("artist_name", artist.get("artist_id", "Inconnu")))
-    description = html.escape(artist.get("artist_description", "") or "")
-    rank_label = f"#{rank} — " if rank is not None else ""
-    artist_id_escaped = html.escape(artist.get("artist_id", ""))
-
-    image_html = (
-        f'<img src="{image_url}" style="width:100%; height:auto; border-radius:8px; margin-bottom:8px;">'
-        if image_url
-        else '<div style="width:100%; height:160px; background:#e9ecef; border-radius:8px; margin-bottom:8px; display:flex; align-items:center; justify-content:center; color:#adb5bd; font-size:12px;">Pas d\'image</div>'  # noqa: E501
-    )
-
-    description_html = (
-        f'<p style="font-size:20px; color:#6c757d; margin:4px 0;">{description}</p>' if description else ""
-    )
-
-    st.markdown(
-        f"""
-        <div style="border:1px solid #e9ecef; border-radius:10px; padding:10px; margin-bottom:8px;">
-            {image_html}
-            <p style="font-weight:1000; font-size:20px; margin:4px 0;">{rank_label}{name}</p>
-            {description_html}
-            <p style="font-size:10px; color:#adb5bd; margin:4px 0; word-break:break-all;">{artist_id_escaped}
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    show_similar_artists(
+        similar_artists=similar_artists,
+        artist_details_map=artist_details_map,
+        title="Artistes similaires",
     )
 
 
