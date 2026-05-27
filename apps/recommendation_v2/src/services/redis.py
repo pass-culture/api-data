@@ -50,6 +50,28 @@ class RedisCacheService:
 
             await asyncio.sleep(settings.REDIS_MONITOR_INTERVAL_SECONDS)
 
+    def _build_ssl_context(self, ca_cert: str) -> dict:
+        """
+        Builds SSL kwargs for redis-py from either a file path or a raw PEM certificate string.
+
+        Supports two formats for REDIS_TLS_CA_CERT:
+        - A file path (e.g. /path/to/ca.pem or .redis-tls/ca.pem)
+        - The raw PEM content (e.g. the value of a GCP secret: "-----BEGIN CERTIFICATE-----\\n...")
+
+        Args:
+            ca_cert: Either a path to a .pem file or the raw PEM certificate content.
+
+        Returns:
+            dict: SSL kwargs to pass directly to redis.Redis.from_url().
+        """
+        is_pem_content = ca_cert.strip().startswith("-----BEGIN")
+
+        if is_pem_content:
+            return {"ssl_ca_data": ca_cert}
+        else:
+            # ssl_ca_certs accepts a file path
+            return {"ssl_ca_certs": ca_cert}
+
     async def connect(self) -> None:
         """
         Connects to the Redis instance and verifies the connection.
@@ -63,7 +85,11 @@ class RedisCacheService:
                     settings.REDIS_CACHE_ENABLED = False
                     return
 
-                self.redis_client = redis.Redis.from_url(url=settings.REDIS_URL, decode_responses=True)
+                tls_kwargs: dict = {}
+                if settings.REDIS_URL.startswith("rediss://") and settings.REDIS_TLS_CA_CERT:
+                    tls_kwargs = self._build_ssl_context(settings.REDIS_TLS_CA_CERT)
+
+                self.redis_client = redis.Redis.from_url(url=settings.REDIS_URL, decode_responses=True, **tls_kwargs)
 
                 ping_result = self.redis_client.ping()
                 if inspect.isawaitable(ping_result):

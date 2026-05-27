@@ -1,6 +1,6 @@
 SHELL:=/bin/bash
 
-.PHONY: install start tunnel start-with-remote-db streamlit dev-with-streamlit test access-swagger-api-v1 get-staging-api-token show-config
+.PHONY: install start start-tls tunnel start-with-remote-db start-with-remote-db-tls streamlit dev-with-streamlit test access-swagger-api-v1 get-staging-api-token show-config
 
 install:
 	@echo "📦 Installing dependencies..."
@@ -29,8 +29,67 @@ redis-cli:
 	@echo "💬 Connecting to local Redis container..."
 	@docker exec -it reco-redis redis-cli
 
+# --- TLS Redis (pour tester un Redis sécurisé en local) ---
+REDIS_TLS_DIR := $(shell pwd)/.redis-tls
+
+generate-redis-tls-certs:
+	@if [ -f $(REDIS_TLS_DIR)/ca.pem ]; then \
+		echo "✅ TLS certificates already exist in $(REDIS_TLS_DIR), skipping generation."; \
+	else \
+		echo "🔐 Generating self-signed TLS certificates for Redis..."; \
+		mkdir -p $(REDIS_TLS_DIR); \
+		openssl req -x509 -newkey rsa:4096 -days 365 -nodes \
+			-keyout $(REDIS_TLS_DIR)/redis.key \
+			-out $(REDIS_TLS_DIR)/redis.crt \
+			-subj "/CN=localhost" \
+			-addext "subjectAltName=IP:127.0.0.1,DNS:localhost" 2>/dev/null; \
+		cp $(REDIS_TLS_DIR)/redis.crt $(REDIS_TLS_DIR)/ca.pem; \
+		echo "✅ Certificates generated in $(REDIS_TLS_DIR)"; \
+		echo "   → CA cert  : $(REDIS_TLS_DIR)/ca.pem"; \
+		echo "   → TLS cert : $(REDIS_TLS_DIR)/redis.crt"; \
+		echo "   → TLS key  : $(REDIS_TLS_DIR)/redis.key"; \
+	fi
+
+start-redis-tls: generate-redis-tls-certs
+	@echo "🚀 Starting local Redis container with TLS enabled (port 6380)..."
+	@docker rm -f reco-redis-tls 2>/dev/null || true
+	@docker run -d --name reco-redis-tls \
+		-p 6380:6380 \
+		-v $(REDIS_TLS_DIR):/tls:ro \
+		redis:alpine \
+		redis-server \
+		--tls-port 6380 \
+		--port 0 \
+		--tls-cert-file /tls/redis.crt \
+		--tls-key-file /tls/redis.key \
+		--tls-ca-cert-file /tls/ca.pem \
+		--tls-auth-clients no \
+		2>/dev/null || echo "⚠️ Warning: Failed to start TLS Redis. Make sure Docker is running."
+	@echo "✅ Redis TLS started on port 6380"
+	@echo "   Set in your .env:"
+	@echo "   REDIS_URL=rediss://localhost:6380/0"
+	@echo "   REDIS_TLS_CA_CERT=$(REDIS_TLS_DIR)/ca.pem"
+	@echo "   REDIS_CACHE_ENABLED=1"
+
+stop-redis-tls:
+	@echo "🛑 Stopping local Redis TLS container..."
+	@docker stop reco-redis-tls 2>/dev/null || true
+
+redis-cli-tls:
+	@echo "💬 Connecting to local Redis TLS container..."
+	@docker exec -it reco-redis-tls redis-cli \
+		--tls \
+		--cert /tls/redis.crt \
+		--key /tls/redis.key \
+		--cacert /tls/ca.crt \
+		-p 6380
+
 start: check-gcloud-auth start-redis
 	@trap '$(MAKE) stop-redis' EXIT INT TERM; \
+	uv run src/main.py
+
+start-tls: check-gcloud-auth start-redis-tls
+	@trap '$(MAKE) stop-redis-tls' EXIT INT TERM; \
 	uv run src/main.py
 
 show-config:
@@ -61,6 +120,15 @@ start-with-remote-db:
 	sleep 2; \
 	trap 'echo -e "\n🛑 Stopping API. Closing SSH tunnel (PID: $$TUNNEL_PID)..."; kill $$TUNNEL_PID 2>/dev/null || true' EXIT INT TERM ; \
 	$(MAKE) start
+
+start-with-remote-db-tls:
+	$(PREPARE_TUNNEL)
+	@echo "🔌 Establishing SSH tunnel in background..."
+	@source .env && $(SSH_BASE) -N -q -L "$$SQL_PORT":"$$REMOTE_SQL_HOST":"$$REMOTE_SQL_PORT" & \
+	TUNNEL_PID=$$! ; \
+	sleep 2; \
+	trap 'echo -e "\n🛑 Stopping API. Closing SSH tunnel (PID: $$TUNNEL_PID)..."; kill $$TUNNEL_PID 2>/dev/null || true' EXIT INT TERM ; \
+	$(MAKE) start-tls
 
 streamlit: check-gcloud-auth
 	uv run streamlit run streamlit/app.py
