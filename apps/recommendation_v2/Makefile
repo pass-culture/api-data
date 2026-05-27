@@ -83,6 +83,14 @@ test:
 	@echo "🧪 Running unit tests..."
 	uv run pytest tests
 
+unit-test:
+	@echo "🧪 Running unit tests..."
+	uv run pytest tests -m unit
+
+integration-test:
+	@docker info > /dev/null 2>&1 || (echo "❌ Error: Docker is not running. Please start Docker and try again."; exit 1)
+	@echo "🧪 Running integration tests..."
+	uv run pytest tests -m integration
 
 define PREPARE_SWAGGER_TUNNEL
 	@source .env && \
