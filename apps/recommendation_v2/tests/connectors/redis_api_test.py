@@ -10,6 +10,8 @@ from connectors.redis_api import RedisAPI
 from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.playlist_recommendation import RecommendationResponse
 
+from tests.factories.schemas import RecommendationResponseFactory
+
 
 _MD5_HEX_LENGTH = 32
 
@@ -224,3 +226,88 @@ async def test_store_calls_set_with_serialized_payload_and_ttl(mocker):
     assert kwargs["value_to_cache"] == model.model_dump(mode="json")
     assert isinstance(kwargs["time_to_live_in_seconds"], int)
     assert kwargs["time_to_live_in_seconds"] > 0
+
+
+# ---------------------------------------------------------------------------
+# Integration tests — require a live Redis container (redis_service fixture)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_store_then_fetch_returns_original_model(redis_service):
+    """A response stored via store_endpoint_response must be returned verbatim by fetch_cached_response."""
+    model = RecommendationResponseFactory.build()
+    sig = {"user_id": "integration-user-1"}
+
+    await RedisAPI.store_endpoint_response(
+        namespace_prefix="playlist_recommendation",
+        request_signature_data=sig,
+        response_model_instance=model,
+    )
+    result = await RedisAPI.fetch_cached_response(
+        namespace_prefix="playlist_recommendation",
+        request_signature_data=sig,
+        response_model_class=RecommendationResponse,
+    )
+
+    assert isinstance(result, RecommendationResponse)
+    assert result.playlist_recommended_offers == model.playlist_recommended_offers
+
+
+@pytest.mark.asyncio
+async def test_different_namespace_returns_none(redis_service):
+    """A cache entry stored under namespace 'ns-a' must not be retrievable under 'ns-b'."""
+    sig = {"user_id": "ns-test-user"}
+
+    await RedisAPI.store_endpoint_response(
+        namespace_prefix="ns-a",
+        request_signature_data=sig,
+        response_model_instance=RecommendationResponseFactory.build(),
+    )
+    result = await RedisAPI.fetch_cached_response(
+        namespace_prefix="ns-b",
+        request_signature_data=sig,
+        response_model_class=RecommendationResponse,
+    )
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_different_signature_returns_none(redis_service):
+    """A cache entry keyed on user-A must not be returned when querying for user-B."""
+    sig_a = {"user_id": "user-A"}
+    sig_b = {"user_id": "user-B"}
+
+    await RedisAPI.store_endpoint_response(
+        namespace_prefix="playlist_recommendation",
+        request_signature_data=sig_a,
+        response_model_instance=RecommendationResponseFactory.build(),
+    )
+    result = await RedisAPI.fetch_cached_response(
+        namespace_prefix="playlist_recommendation",
+        request_signature_data=sig_b,
+        response_model_class=RecommendationResponse,
+    )
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_different_signatures_produce_independent_cache_entries(redis_service):
+    """Two distinct signatures must produce independent cache entries without cross-contamination."""
+    sig_a = {"offer_id": "offer-1", "user_id": "user-A"}
+    sig_b = {"offer_id": "offer-1", "user_id": "user-B"}
+    model_a = RecommendationResponseFactory.build()
+    model_b = RecommendationResponseFactory.build()
+
+    await RedisAPI.store_endpoint_response("similar_offer", sig_a, model_a)
+    await RedisAPI.store_endpoint_response("similar_offer", sig_b, model_b)
+
+    result_a = await RedisAPI.fetch_cached_response("similar_offer", sig_a, RecommendationResponse)
+    result_b = await RedisAPI.fetch_cached_response("similar_offer", sig_b, RecommendationResponse)
+
+    assert isinstance(result_a, RecommendationResponse)
+    assert isinstance(result_b, RecommendationResponse)
+    assert result_a.playlist_recommended_offers == model_a.playlist_recommended_offers
+    assert result_b.playlist_recommended_offers == model_b.playlist_recommended_offers

@@ -12,12 +12,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 from testcontainers.postgres import PostgresContainer
+from testcontainers.redis import RedisContainer
 
 from config import settings
 from connectors.vertex_api import VertexAPI
 from main import app
 from models.base import Base
 from services.db import get_database_session
+from services.redis import redis_cache_service
 
 from tests.factories.models import factory_session
 from tests.factories.schemas import VertexPredictionResultFactory
@@ -28,16 +30,26 @@ MOCK_CALL_ID = "12345678-1234-5678-1234-567812345678"
 settings.REDIS_CACHE_ENABLED = False
 
 
-@pytest.fixture(scope="session")
-def postgres_container():
-    """
-    Start a Docker container running PostgreSQL with PostGIS for the test session.
+# ---------------------------------------------------------------------------
+# Marker auto-assignment
+# ---------------------------------------------------------------------------
 
-    Yields the container instance so dependent fixtures can retrieve the connection URL.
-    The container is automatically stopped once the session ends.
-    """
-    with PostgresContainer(image="postgis/postgis:15-3.3-alpine") as postgres:
-        yield postgres
+_INTEGRATION_FIXTURES = {"db_session", "client", "redis_service"}
+
+
+def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+    """Auto-apply unit / integration markers based on fixture usage."""
+    for item in items:
+        names = set(getattr(item, "fixturenames", []))
+        if names.intersection(_INTEGRATION_FIXTURES):
+            item.add_marker(pytest.mark.integration)
+        else:
+            item.add_marker(pytest.mark.unit)
+
+
+# ---------------------------------------------------------------------------
+# Global autouse mocks (apply to every test)
+# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -101,6 +113,23 @@ def mock_vertex_ranking(mocker):
     mock_rank_similar.side_effect = lambda offers, user_context: offers
 
     return mock_rank_playlist, mock_rank_similar
+
+
+# ---------------------------------------------------------------------------
+# PostgreSQL integration fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def postgres_container():
+    """
+    Start a Docker container running PostgreSQL with PostGIS for the test session.
+
+    Yields the container instance so dependent fixtures can retrieve the connection URL.
+    The container is automatically stopped once the session ends.
+    """
+    with PostgresContainer(image="postgis/postgis:15-3.3-alpine") as postgres:
+        yield postgres
 
 
 @pytest.fixture(scope="session")
@@ -184,3 +213,44 @@ def vertex_api():
     api = VertexAPI(endpoint_name="test-endpoint")
     api.vertex_infrastructure_service.execute_grpc_prediction = AsyncMock()
     return api
+  
+
+# ---------------------------------------------------------------------------
+# Redis integration fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session")
+def redis_container():
+    """
+    Start a Docker container running Redis for the test session.
+
+    Yields the container instance so dependent fixtures can retrieve the connection URL.
+    The container is automatically stopped once the session ends.
+    """
+    with RedisContainer() as redis:
+        yield redis
+
+
+@pytest_asyncio.fixture()
+async def redis_service(redis_container):
+    """
+    Connect the global redis_cache_service singleton to the test Redis container.
+
+    Yields the global singleton so:
+    - Tests can call service methods directly.
+    - RedisAPI (which imports redis_cache_service at module level) transparently
+      hits the real container without any additional patching.
+    Settings are restored after each test.
+    """
+    original_url = settings.REDIS_URL
+    original_enabled = settings.REDIS_CACHE_ENABLED
+    host = redis_container.get_container_host_ip()
+    port = redis_container.get_exposed_port(6379)
+    settings.REDIS_URL = f"redis://{host}:{port}"
+    settings.REDIS_CACHE_ENABLED = True
+    await redis_cache_service.connect()
+    yield redis_cache_service
+    await redis_cache_service.disconnect()
+    settings.REDIS_URL = original_url
+    settings.REDIS_CACHE_ENABLED = original_enabled
