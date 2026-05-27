@@ -130,20 +130,6 @@ jobs:
     defaults:
       run:
         working-directory: "apps/recommendation_v2"
-    services:
-      postgres:
-        image: postgis/postgis:15-3.4
-        env:
-          POSTGRES_HOST_AUTH_METHOD: trust
-          POSTGRES_USER: postgres
-          POSTGRES_DB: db
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v6
@@ -162,14 +148,7 @@ jobs:
       - name: "Install dependencies"
         run: uv sync --locked
 
-      - name: "Install psql client"
-        run: sudo apt update && sudo apt install -y postgresql-client
-
       - name: "Run Integration Tests"
         env:
           ENV: "ci"
-          SQL_HOST: "localhost"
-          SQL_BASE: "db"
-          SQL_BASE_USER: "postgres"
-          SQL_PORT: "5432"
         run: make integration-test
