@@ -66,8 +66,66 @@ jobs:
       - name: "Run Type Checker (ty)"
         run: uv run ty check
 
+  marked-tests:
+    name: "Verify all tests are marked"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: "apps/recommendation_v2"
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v6
+
+      - name: "Set up Python 3.13"
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: "Set up uv"
+        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "apps/recommendation_v2/uv.lock"
+
+      - name: "Install dependencies"
+        run: uv sync --locked
+
+      - name: "Verify all tests are marked"
+        env:
+          ENV: "ci"
+        run: make test-with-markers
+
   unit-tests:
     name: "Unit Tests"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: "apps/recommendation_v2"
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v6
+
+      - name: "Set up Python 3.13"
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: "Set up uv"
+        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8.0.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: "apps/recommendation_v2/uv.lock"
+
+      - name: "Install dependencies"
+        run: uv sync --locked
+
+      - name: "Run Unit Tests"
+        env:
+          ENV: "ci"
+        run: make unit-test
+
+  integration-tests:
+    name: "Integration Tests"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -107,11 +165,11 @@ jobs:
       - name: "Install psql client"
         run: sudo apt update && sudo apt install -y postgresql-client
 
-      - name: "Run Unit Tests"
+      - name: "Run Integration Tests"
         env:
           ENV: "ci"
           SQL_HOST: "localhost"
           SQL_BASE: "db"
           SQL_BASE_USER: "postgres"
           SQL_PORT: "5432"
-        run: make test
+        run: make integration-test
