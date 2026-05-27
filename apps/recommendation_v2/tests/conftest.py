@@ -213,7 +213,7 @@ def vertex_api():
     api = VertexAPI(endpoint_name="test-endpoint")
     api.vertex_infrastructure_service.execute_grpc_prediction = AsyncMock()
     return api
-  
+
 
 # ---------------------------------------------------------------------------
 # Redis integration fixtures
