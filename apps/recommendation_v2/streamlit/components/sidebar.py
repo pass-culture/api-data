@@ -103,6 +103,7 @@ def render_similar_offer_sidebar() -> tuple:
         retrieval_model = st.selectbox(
             "Sélectionnez le modèle de similarité à utiliser",
             [e.value for e in SimilarOfferModelChoices],
+            index=1,
         )
 
         # Optional user identification

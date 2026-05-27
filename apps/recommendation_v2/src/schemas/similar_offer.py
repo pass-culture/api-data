@@ -1,11 +1,11 @@
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel
 
 from schemas.playlist_recommendation import RecommendationMetadata
 
 
-class SimilarOfferModelChoices(str, Enum):
+class SimilarOfferModelChoices(StrEnum):
     graph = "graph"
     coreservation = "coreservation"
 
