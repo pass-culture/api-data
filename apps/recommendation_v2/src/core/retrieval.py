@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
+from connectors import graph_api_client
 from connectors import retrieval_api_client
 from connectors.vertex_api import VertexPredictionResult
 from core.geo import find_closest_offers_with_h3_index
@@ -235,6 +236,16 @@ async def fetch_retrieval_predictions_from_vertex(prediction_payload: dict[str, 
     Calls the Vertex AI matching engine to retrieve a raw list of candidate Item IDs.
     """
     prediction_result = await retrieval_api_client.fetch_retrieval_predictions(feature_payloads=[prediction_payload])
+
+    return prediction_result
+
+
+@log_execution_time
+async def fetch_graph_predictions_from_vertex(prediction_payload: dict[str, Any]) -> VertexPredictionResult:
+    """
+    Calls the Vertex AI matching engine to retrieve a raw list of candidate Item IDs.
+    """
+    prediction_result = await graph_api_client.fetch_retrieval_predictions(feature_payloads=[prediction_payload])
 
     return prediction_result
 

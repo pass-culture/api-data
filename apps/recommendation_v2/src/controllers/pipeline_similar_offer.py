@@ -7,6 +7,7 @@ from core.diversification import apply_offer_diversification
 from core.geo import get_iris_id_from_coordinates
 from core.ranking import rank_and_sort_offers_with_vertex
 from core.retrieval import build_similar_offer_retrieval_payload
+from core.retrieval import fetch_graph_predictions_from_vertex
 from core.retrieval import fetch_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
 from core.retrieval import resolve_closest_venues_from_items
@@ -19,6 +20,7 @@ from schemas.categories import CategoryEnum
 from schemas.categories import SearchGroupNameEnum
 from schemas.categories import SubcategoryEnum
 from schemas.playlist_recommendation import RecommendationMetadata
+from schemas.similar_offer import SimilarOfferModelChoices
 from schemas.similar_offer import SimilarOfferResponse
 from services.logger import logger
 
@@ -29,6 +31,7 @@ SIMILAR_OFFERS_LIST_MAXIMUM_SIZE = 20
 async def generate_similar_offers(  # noqa: PLR0913
     db: AsyncSession,
     offer_id: str,
+    retrieval_model: SimilarOfferModelChoices = SimilarOfferModelChoices.coreservation,
     user_id: str | None = None,
     categories: list[CategoryEnum] | None = None,
     subcategories: list[SubcategoryEnum] | None = None,
@@ -56,12 +59,14 @@ async def generate_similar_offers(  # noqa: PLR0913
         db (AsyncSession): The active asynchronous database session.
         offer_id (str): The unique identifier of the offer to find similarities for.
         user_id (str | None): Optional user ID for personalized filtering (e.g., excluding booked items).
-        categories (list[str] | None): Optional list of categories to filter the similar offers.
-        subcategories (list[str] | None): Optional list of subcategories to filter the similar offers.
-        search_group_names (list[str] | None): Optional list of search group names to filter the similar offers.
+        categories (list[CategoryEnum] | None): Optional list of categories to filter the similar offers.
+        subcategories (list[SubcategoryEnum] | None): Optional list of subcategories to filter the similar offers.
+        search_group_names (list[SearchGroupNameEnum] | None):
+                        Optional list of search group names to filter the similar offers.
         latitude (float | None): The user's current latitude (if geolocated).
         longitude (float | None): The user's current longitude (if geolocated).
-
+        retrieval_model (SimilarOfferModelChoices):
+                        The retrieval model to use for similar offers (coreservation or graph).
     Returns:
         SimilarOfferResponse: A structured payload containing the ordered list of similar offer IDs.
     """
@@ -122,7 +127,10 @@ async def generate_similar_offers(  # noqa: PLR0913
         subcategories=subcategories,
         search_group_names=search_group_names,
     )
-    vertex_raw_predictions = await fetch_retrieval_predictions_from_vertex(prediction_payload=retrieval_payload)
+    if retrieval_model == SimilarOfferModelChoices.graph:
+        vertex_raw_predictions = await fetch_graph_predictions_from_vertex(prediction_payload=retrieval_payload)
+    else:
+        vertex_raw_predictions = await fetch_retrieval_predictions_from_vertex(prediction_payload=retrieval_payload)
 
     # --- 3. Filtering Phase ---
     # Remove already-booked items if the user is authenticated
@@ -164,6 +172,5 @@ async def generate_similar_offers(  # noqa: PLR0913
 
     return SimilarOfferResponse(
         results=[offer.offer_id for offer in final_similar_offers],
-        params=RecommendationMetadata(reco_origin=recommendation_origin, model_origin="default", call_id=call_id),
-        # TODO : check if model_origin should be "similar_offer" instead of "default"
+        params=RecommendationMetadata(reco_origin=recommendation_origin, model_origin=retrieval_model, call_id=call_id),
     )

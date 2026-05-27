@@ -19,6 +19,7 @@ from config.settings import SWAGGER_UI_EXAMPLE_USER_ID
 from schemas.playlist_recommendation import CategoryEnum
 from schemas.playlist_recommendation import SearchGroupNameEnum
 from schemas.playlist_recommendation import SubcategoryEnum
+from schemas.similar_offer import SimilarOfferModelChoices
 from utils.location_presets import PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING
 
 
@@ -77,7 +78,7 @@ def render_similar_offer_sidebar() -> tuple:
     Displays the sidebar and gathers inputs from the user for similar offers.
 
     Returns:
-    - tuple: (offer_id, user_id | None, params dict, payload dict, max_offers_to_fetch, run_fetch_boolean)
+    - tuple: (offer_id, retrieval_model, user_id, params dict, payload dict, max_offers_to_fetch, run_fetch_boolean)
     """
     with st.sidebar:
         st.header("1. Paramètres de la Requête")
@@ -89,12 +90,21 @@ def render_similar_offer_sidebar() -> tuple:
             value=st.session_state.get("similar_offer_id", SWAGGER_UI_EXAMPLE_OFFER_ID),
             help="ID de l'offre (MongoID) pour laquelle chercher des similaires",
             label_visibility="collapsed",
+            placeholder="26429343",
         )
         st.session_state.similar_offer_id = offer_id_input
 
         _render_random_offer_button()
 
         st.divider()
+
+        # Model selection
+        st.subheader("Modèle de Similarité")
+        retrieval_model = st.selectbox(
+            "Sélectionnez le modèle de similarité à utiliser",
+            [e.value for e in SimilarOfferModelChoices],
+            index=1,
+        )
 
         # Optional user identification
         st.markdown("**Utilisateur (optionnel)**")
@@ -135,7 +145,7 @@ def render_similar_offer_sidebar() -> tuple:
             params["latitude"] = latitude
             params["longitude"] = longitude
 
-        return offer_id, user_id, params, payload, max_offers_to_fetch, run_btn
+        return offer_id, retrieval_model, user_id, params, payload, max_offers_to_fetch, run_btn
 
 
 def _render_random_user_buttons(session_key: str = "user_id"):
