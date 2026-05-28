@@ -37,7 +37,6 @@ jobs:
       env_name: ${{ steps.set-variable.outputs.env_name }}
       no_traffic: ${{ steps.set-variable.outputs.no_traffic }}
     steps:
-      - uses: actions/checkout@v4
       - name: "Set environment variable"
         id: "set-variable"
         env:
@@ -69,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
-      contents: write
+      contents: read
     env:
       DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
       ENV_SHORT_NAME: ${{ vars.ENV_SHORT_NAME }}
@@ -153,8 +152,18 @@ jobs:
       id: "sha"
       run: |
         echo "short_sha=${GITHUB_SHA}" | tee -a "$GITHUB_OUTPUT"
-        echo "very_short_sha=${GITHUB_SHA::7}" | tee -a "$GITHUB_OUTPUT"
+        echo "very_short_sha=$(echo "$GITHUB_SHA" | cut -c1-7)" | tee -a "$GITHUB_OUTPUT"
         echo "rand=$(tr -dc 'a-z0-9' < /dev/urandom | head -c 3)" | tee -a "$GITHUB_OUTPUT"
+
+        if [ "${{ env.ENV_SHORT_NAME }}" = "prod" ]; then
+          echo "env_long_name=production" >> "$GITHUB_OUTPUT"
+        elif [ "${{ env.ENV_SHORT_NAME }}" = "stg" ]; then
+          echo "env_long_name=staging" >> "$GITHUB_OUTPUT"
+        elif [ "${{ env.ENV_SHORT_NAME }}" = "dev" ]; then
+          echo "env_long_name=testing" >> "$GITHUB_OUTPUT"
+        else
+          echo "env_long_name=${{ env.ENV_SHORT_NAME }}" >> "$GITHUB_OUTPUT"
+        fi
 
     - uses: 'google-github-actions/auth@v2'
       name: "Authenticate with Google Cloud for deploy"
@@ -173,16 +182,22 @@ jobs:
         project_id: ${{ env.DATA_GCP_PROJECT }}
         no_traffic: ${{ needs.setup-job.outputs.no_traffic }}
         tag: "test"
+        env_vars_update_strategy: overwrite
+        secrets_update_strategy: overwrite
         env_vars: |-
-          ENV=${{ env.ENV_SHORT_NAME == 'prod' && 'production' || (env.ENV_SHORT_NAME == 'stg' && 'staging' || (env.ENV_SHORT_NAME == 'dev' && 'testing' || env.ENV_SHORT_NAME)) }}
+          ENV=${{ steps.vars.outputs.env_long_name }}
           GCP_PROJECT=${{ env.DATA_GCP_PROJECT }}
-          SQL_BASE=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1
-          SQL_BASE_USER=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1
           SQL_PORT=5432
+          VERTEX_RETRIEVAL_ENDPOINT_NAME=recommendation_user_retrieval_${{ env.ENV_SHORT_NAME }}
+          VERTEX_RANKING_ENDPOINT_NAME=recommendation_user_ranking_${{ env.ENV_SHORT_NAME }}
         secrets: |-
-          SQL_HOST=${{ vars.GCP_SECRET_NAME_DB_HOST }}:latest
-          SQL_BASE_PASSWORD=${{ vars.GCP_SECRET_NAME_DB_PASSWORD }}:latest
-          API_TOKEN=${{ vars.GCP_SECRET_NAME_API_TOKEN }}:latest
+          SQL_HOST=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1_private_ip:latest
+          SQL_BASE=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1_database_credentials_usename:latest
+          SQL_BASE_USER=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1_database_credentials_usename:latest
+          SQL_BASE_PASSWORD=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1_database_credentials_password:latest
+          API_TOKEN=apireco-token-${{ env.ENV_SHORT_NAME }}:latest
+
+
 
   slack-notification:
     runs-on: ubuntu-latest
@@ -190,10 +205,8 @@ jobs:
     needs: [setup-job, deploy-api]
     permissions:
       id-token: write
-      contents: write
     if: always()
     steps:
-      - uses: actions/checkout@v4
       - name: "Connect to Secret Manager"
         uses: "google-github-actions/auth@v2"
         with:
@@ -218,13 +231,13 @@ jobs:
               "attachments": [
                 {
                   "mrkdwn_in": ["text"],
-                  "color": "${{ fromJSON('["#36a64f", "#A30002"]')[(env.WORKFLOW_CONCLUSION == 'failure') && 1 || 0] }}",
+                  "color": "${{ env.WORKFLOW_CONCLUSION == 'failure' && '#A30002' || '#36a64f' }}",
                   "author_name": "${{github.actor}}",
                   "author_link": "https://github.com/${{github.actor}}",
                   "author_icon": "https://github.com/${{github.actor}}.png",
                   "title": "API Reco V2 Deployment",
                   "title_link": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}",
-                  "text": "Le déploiement de `l'API reco v2 sur ${{ needs.setup-job.outputs.env_name }}` est ${{ fromJSON('["réussi", "échoué"]')[(env.WORKFLOW_CONCLUSION == 'failure') && 1 || 0] }} ${{ fromJSON('[":muscle:", ":boom:"]')[(env.WORKFLOW_CONCLUSION == 'failure') && 1 || 0] }}"
+                  "text": "Le déploiement de `l'API reco v2 sur ${{ needs.setup-job.outputs.env_name }}` est ${{ env.WORKFLOW_CONCLUSION == 'failure' && 'échoué :boom:' || 'réussi :muscle:' }}"
                 }
               ],
               "unfurl_links": false,
