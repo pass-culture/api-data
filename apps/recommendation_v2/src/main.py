@@ -126,7 +126,7 @@ app.include_router(health_check_router, tags=["Health"])
 app.include_router(similar_offer_router, tags=["Similar Offers"], dependencies=api_token_dependencies)
 app.include_router(playlist_router, tags=["Recommendations"], dependencies=api_token_dependencies)
 app.include_router(similar_artists_router, tags=["Similar Artists"], dependencies=api_token_dependencies)
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     uvicorn.run(
         "main:app",
         host="127.0.0.1",
