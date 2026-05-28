@@ -152,7 +152,7 @@ jobs:
       id: "sha"
       run: |
         echo "short_sha=${GITHUB_SHA}" | tee -a "$GITHUB_OUTPUT"
-        echo "very_short_sha=$(echo $GITHUB_SHA | cut -c1-7)" | tee -a "$GITHUB_OUTPUT"
+        echo "very_short_sha=$(echo "$GITHUB_SHA" | cut -c1-7)" | tee -a "$GITHUB_OUTPUT"
         echo "rand=$(tr -dc 'a-z0-9' < /dev/urandom | head -c 3)" | tee -a "$GITHUB_OUTPUT"
 
         if [ "${{ env.ENV_SHORT_NAME }}" = "prod" ]; then
