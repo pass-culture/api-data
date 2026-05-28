@@ -179,11 +179,12 @@ jobs:
           SQL_BASE_USER=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1
           SQL_PORT=5432
           REDIS_URL=${{ secrets.REDIS_URL }}
+          REDIS_CA_CERT_PATH=/secrets/redis-ca-cert
         secrets: |-
           SQL_HOST=${{ vars.GCP_SECRET_NAME_DB_HOST }}:latest
           SQL_BASE_PASSWORD=${{ vars.GCP_SECRET_NAME_DB_PASSWORD }}:latest
           API_TOKEN=${{ vars.GCP_SECRET_NAME_API_TOKEN }}:latest
-          REDIS_CA_CERT=${{ vars.REDIS_CA }}:latest
+          /secrets/redis-ca-cert=${{ vars.REDIS_CA }}:latest
 
   slack-notification:
     runs-on: ubuntu-latest
