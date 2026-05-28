@@ -185,12 +185,12 @@ jobs:
         env_vars: |-
           ENV=${{ steps.vars.outputs.env_long_name }}
           GCP_PROJECT=${{ env.DATA_GCP_PROJECT }}
-          SQL_BASE=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1
           SQL_PORT=5432
           VERTEX_RETRIEVAL_ENDPOINT_NAME=recommendation_user_retrieval_${{ env.ENV_SHORT_NAME }}
           VERTEX_RANKING_ENDPOINT_NAME=recommendation_user_ranking_${{ env.ENV_SHORT_NAME }}
         secrets: |-
           SQL_HOST=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1_private_ip:latest
+          SQL_BASE=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1_database_credentials_usename:latest
           SQL_BASE_USER=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1_database_credentials_usename:latest
           SQL_BASE_PASSWORD=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1_database_credentials_password:latest
           API_TOKEN=apireco-token-${{ env.ENV_SHORT_NAME }}:latest
