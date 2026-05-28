@@ -182,6 +182,8 @@ jobs:
         project_id: ${{ env.DATA_GCP_PROJECT }}
         no_traffic: ${{ needs.setup-job.outputs.no_traffic }}
         tag: "test"
+        env_vars_update_strategy: overwrite
+        secrets_update_strategy: overwrite
         env_vars: |-
           ENV=${{ steps.vars.outputs.env_long_name }}
           GCP_PROJECT=${{ env.DATA_GCP_PROJECT }}
