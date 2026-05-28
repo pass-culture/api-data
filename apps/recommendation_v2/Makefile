@@ -1,6 +1,14 @@
 SHELL:=/bin/bash
 
-.PHONY: install start tunnel start-with-remote-db streamlit dev-with-streamlit test access-swagger-api-v1 get-staging-api-token show-config
+.PHONY: install start tunnel start-with-remote-db streamlit streamlit-remote dev-with-streamlit test access-remote-swagger get-staging-api-token show-config
+
+# Helper: load .env then optionally override with .env.<DEPLOY_ENV>
+# Usage: make <target> DEPLOY_ENV=dev|stg|prod
+# NOTE: we use DEPLOY_ENV (not ENV) to avoid collision with the app's ENV variable (used by settings.py)
+DEPLOY_ENV ?=
+define load_env_cmd
+	source .env $(if $(DEPLOY_ENV),&& [ -f .env.$(DEPLOY_ENV) ] && source .env.$(DEPLOY_ENV) || true,)
+endef
 
 install:
 	@echo "📦 Installing dependencies..."
@@ -36,11 +44,11 @@ start: check-gcloud-auth start-redis
 show-config:
 	@PYTHONPATH=src uv run python -c "from main import show_api_config; show_api_config()"
 
-SSH_BASE = gcloud compute ssh --zone "$$GCP_ZONE" "$$GCP_IAP_BASTION_INSTANCE_NAME" --tunnel-through-iap --project "$$REMOTE_SQL_GCP_PROJECT" --
+SSH_BASE = gcloud compute ssh --zone "$$GCP_ZONE" "$$GCP_IAP_BASTION_INSTANCE_NAME" --tunnel-through-iap --project "$$GCP_BASTION_PROJECT" --
 
 define PREPARE_TUNNEL
 	@source .env && \
-	REQUIRED_VARS=("GCP_ZONE" "GCP_IAP_BASTION_INSTANCE_NAME" "REMOTE_SQL_GCP_PROJECT" "SQL_PORT" "REMOTE_SQL_HOST" "REMOTE_SQL_PORT"); \
+	REQUIRED_VARS=("GCP_ZONE" "GCP_IAP_BASTION_INSTANCE_NAME" "GCP_BASTION_PROJECT" "SQL_PORT" "REMOTE_SQL_HOST" "REMOTE_SQL_PORT"); \
 	for var in "$${REQUIRED_VARS[@]}"; do \
 	   if [ -z "$${!var}" ]; then echo "❌ Error: $$var is missing in .env"; exit 1; fi; \
 	done; \
@@ -64,6 +72,22 @@ start-with-remote-db:
 
 streamlit: check-gcloud-auth
 	uv run streamlit run streamlit/app.py
+
+
+streamlit-remote: check-gcloud-auth
+	$(PREPARE_SWAGGER_TUNNEL)
+	@echo "🔌 Opening SOCKS tunnel in background for Streamlit$(if $(DEPLOY_ENV), [env: $(DEPLOY_ENV)],)..."
+	@$(load_env_cmd) && \
+	export REMOTE_API_URL REMOTE_API_V1_URL REMOTE_API_TOKEN REMOTE_API_SOCKS_PORT && \
+	export STREAMLIT_DEFAULT_API_VERSION="$(VERSION)" && \
+	SOCKS_PORT="$${REMOTE_API_SOCKS_PORT:-1080}" ; \
+	$(SSH_BASE) -N -q -D "$$SOCKS_PORT" & \
+	TUNNEL_PID=$$! ; \
+	sleep 2; \
+	trap 'echo -e "\n🛑 Closing SOCKS tunnel (PID: $$TUNNEL_PID)..."; kill $$TUNNEL_PID 2>/dev/null || true' EXIT INT TERM ; \
+	echo "✅ Tunnel SOCKS ouvert sur le port $$SOCKS_PORT" ; \
+	echo "👉 Dans le Streamlit, configurez le proxy : socks5://localhost:$$SOCKS_PORT" ; \
+	$(MAKE) streamlit
 
 dev-with-streamlit: check-gcloud-auth
 	$(PREPARE_TUNNEL)
@@ -104,13 +128,13 @@ test-with-markers:
 	fi
 
 define PREPARE_SWAGGER_TUNNEL
-	@source .env && \
-	REQUIRED_VARS=("GCP_ZONE" "GCP_IAP_BASTION_INSTANCE_NAME" "REMOTE_SQL_GCP_PROJECT" "RECOMMENDATION_V1_STAGING_SOCKS_PORT" "RECOMMENDATION_V1_STAGING_CLOUDRUN_URL"); \
+	@$(load_env_cmd) && \
+	REQUIRED_VARS=("GCP_ZONE" "GCP_IAP_BASTION_INSTANCE_NAME" "GCP_BASTION_PROJECT" "REMOTE_API_SOCKS_PORT" "REMOTE_API_URL"); \
 	for var in "$${REQUIRED_VARS[@]}"; do \
-	   if [ -z "$${!var}" ]; then echo "❌ Error: $$var is missing in .env"; exit 1; fi; \
+	   if [ -z "$${!var}" ]; then echo "❌ Error: $$var is missing in .env$(if $(DEPLOY_ENV),.$(DEPLOY_ENV),)"; exit 1; fi; \
 	done; \
-	echo "🧹 Cleaning up port $$RECOMMENDATION_V1_STAGING_SOCKS_PORT..." && \
-	lsof -ti:$$RECOMMENDATION_V1_STAGING_SOCKS_PORT | xargs kill -9 2>/dev/null || true
+	echo "🧹 Cleaning up port $$REMOTE_API_SOCKS_PORT..." && \
+	lsof -ti:$$REMOTE_API_SOCKS_PORT | xargs kill -9 2>/dev/null || true
 endef
 
 UNAME_S := $(shell uname -s)
@@ -121,21 +145,31 @@ else ifeq ($(UNAME_S),Darwin)
     CHROME_BIN := /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
 endif
 
-access-swagger-api-v1: check-gcloud-auth
+VERSION ?= v2
+
+access-remote-swagger: check-gcloud-auth
 	$(PREPARE_SWAGGER_TUNNEL)
-	@echo "🔌 Opening SOCKS tunnel to legacy V1 infrastructure..."
-	@source .env && $(SSH_BASE) -N -D "$$RECOMMENDATION_V1_STAGING_SOCKS_PORT" & \
+	@echo "🔌 Opening SOCKS tunnel to remote API$(if $(DEPLOY_ENV), [env: $(DEPLOY_ENV)],) [$(VERSION)]..."
+	@$(load_env_cmd) && \
+	SOCKS_PORT="$${REMOTE_API_SOCKS_PORT:-1080}" ; \
+	if [ "$(VERSION)" = "v1" ] || [ "$(VERSION)" = "V1" ] || [ "$(VERSION)" = "1" ]; then \
+		TARGET_URL="$$REMOTE_API_V1_URL" ; \
+		if [ -z "$$TARGET_URL" ]; then echo "❌ Error: REMOTE_API_V1_URL is missing in .env$(if $(DEPLOY_ENV),.$(DEPLOY_ENV),)"; exit 1; fi ; \
+	else \
+		TARGET_URL="$$REMOTE_API_URL" ; \
+	fi ; \
+	$(SSH_BASE) -N -D "$$SOCKS_PORT" & \
 	TUNNEL_PID=$$! ; \
 	echo "⏳ Waiting for tunnel initialization..." ; \
 	sleep 3 ; \
 	echo "🔄 Tunnel might need more time. If the page fails to load, please refresh the window." ; \
-	echo "🚀 Opening Google Chrome with SOCKS proxy..." ; \
-	source .env && "$(CHROME_BIN)" \
-		--proxy-server="socks5://localhost:$$RECOMMENDATION_V1_STAGING_SOCKS_PORT" \
+	echo "🚀 Opening Google Chrome with SOCKS proxy on $$TARGET_URL/docs ..." ; \
+	"$(CHROME_BIN)" \
+		--proxy-server="socks5://localhost:$$SOCKS_PORT" \
 		--user-data-dir="/tmp/chrome_proxy_tmp" \
 		--no-first-run \
 		--no-default-browser-check \
-		"$$RECOMMENDATION_V1_STAGING_CLOUDRUN_URL" \
+		"$$TARGET_URL/docs" \
 		> /dev/null 2>&1 & \
 	echo "✅ Connected. Press Ctrl+C to close the tunnel." ; \
 	trap "kill $$TUNNEL_PID" INT TERM EXIT; \

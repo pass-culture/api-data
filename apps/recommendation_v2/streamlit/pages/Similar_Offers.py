@@ -19,8 +19,6 @@ from components.card_renderer import show_similar_offer_source
 from components.sidebar import render_similar_offer_sidebar
 from services.backend_api_client import fetch_similar_offer_ids
 
-from config.settings import FASTAPI_SERVER_PORT
-
 
 def main():
     """
@@ -32,7 +30,18 @@ def main():
     st.markdown("Exécutez et testez l'API d'offres similaires en toute simplicité.")
 
     # Collect parameters from the sidebar
-    offer_id, retrieval_model, user_id, params, payload, max_offers_to_fetch, run_fetch = render_similar_offer_sidebar()
+    (
+        offer_id,
+        retrieval_model,
+        user_id,
+        params,
+        payload,
+        max_offers_to_fetch,
+        run_fetch,
+        api_base_url,
+        proxies,
+        api_token,
+    ) = render_similar_offer_sidebar()
 
     if offer_id:
         with st.spinner("Récupération de l'offre source..."):
@@ -40,18 +49,28 @@ def main():
 
     if run_fetch and offer_id:
         st.markdown("---")
-        fetch_and_display_similar_offers(offer_id, retrieval_model, user_id, params, payload, max_offers_to_fetch)
+        fetch_and_display_similar_offers(
+            offer_id, retrieval_model, user_id, params, payload, max_offers_to_fetch, api_base_url, proxies, api_token
+        )
     elif run_fetch and not offer_id:
         st.error("Veuillez renseigner un ID d'offre dans la barre latérale.")
 
 
-def fetch_and_display_similar_offers(
-    offer_id: str, retrieval_model: str, user_id: str | None, params: dict, payload: dict, max_offers: int
+def fetch_and_display_similar_offers(  # noqa: PLR0913
+    offer_id: str,
+    retrieval_model: str,
+    user_id: str | None,
+    params: dict,
+    payload: dict,
+    max_offers: int,
+    api_base_url: str,
+    proxies: dict | None = None,
+    api_token: str | None = None,
 ):
     """
     Calls the FastAPI backend to retrieve recommended similar offer IDs and renders them.
     """
-    api_url = f"http://localhost:{FASTAPI_SERVER_PORT}/similar_offers/{offer_id}"
+    api_url = f"{api_base_url.rstrip('/')}/similar_offers/{offer_id}"
 
     # Build query params
     query_params = {**params}
@@ -72,7 +91,7 @@ def fetch_and_display_similar_offers(
         start_time = time_mod.time()
 
         try:
-            offer_ids, reco_origin, model_origin = fetch_similar_offer_ids(api_url, query_params)
+            offer_ids, reco_origin, model_origin = fetch_similar_offer_ids(api_url, query_params, proxies, api_token)
         except requests.exceptions.RequestException as error:
             st.error(f"Erreur lors de l'appel de l'API : {error}")
             if error.response is not None:
