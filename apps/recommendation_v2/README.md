@@ -210,13 +210,14 @@ make access-remote-swagger DEPLOY_ENV=stg VERSION=v1  # opens v1 Swagger
 
 ### Get a remote API token
 
-Fetches a valid API token from Google Secret Manager (useful to authorize requests in the Swagger UI).
+Fetches a valid API token from Google Secret Manager for the specified environment. Useful to authorize requests in the Swagger UI or Streamlit.
 
 ```bash
-make get-staging-api-token
+make get-api-token DEPLOY_ENV=stg
+make get-api-token DEPLOY_ENV=prod
 ```
 
-*Note: This reads `GCP_SECRET_PROJECT` and `API_RECO_TOKEN_SECRET_NAME` from `.env`.*
+*Requires `GCP_SECRET_PROJECT` and `API_RECO_TOKEN_SECRET_NAME` to be set in the corresponding `.env.<env>` file.*
 
 ---
 
@@ -278,14 +279,6 @@ Used by the Makefile to establish secure tunnels to the VPC (for DB access).
 | `SWAGGER_UI_EXAMPLE_OFFER_ID` | A valid Offer ID to pre-fill in the Swagger UI for testing. |
 | `SWAGGER_UI_EXAMPLE_OFFER_NAME` | A valid Offer name to pre-fill in the Swagger UI for testing. |
 
-#### 🔐 Secrets Management
-Used by `make get-staging-api-token` to fetch secrets from Google Secret Manager.
-
-| Variable | Description |
-|----------|-------------|
-| `GCP_SECRET_PROJECT` | GCP Project ID where secrets are stored. |
-| `API_RECO_TOKEN_SECRET_NAME` | Name of the secret in Secret Manager containing the API Token. |
-
 ---
 
 ### Remote environment configuration (`.env.<env>`)
@@ -301,3 +294,5 @@ These variables override the base `.env` when `DEPLOY_ENV=<env>` is passed to a 
 | `REMOTE_API_SOCKS_PORT` | Local port for the SOCKS5 proxy tunnel (default: `1080`). |
 | `GCP_IAP_BASTION_INSTANCE_NAME` | Bastion VM name if different from the one in `.env`. |
 | `GCP_BASTION_PROJECT` | Bastion GCP project if different from the one in `.env`. |
+| `GCP_SECRET_PROJECT` | GCP project where the API token secret is stored (used by `get-api-token`). |
+| `API_RECO_TOKEN_SECRET_NAME` | Name of the secret in GCP Secret Manager containing the API token (used by `get-api-token`). |

@@ -1,6 +1,6 @@
 SHELL:=/bin/bash
 
-.PHONY: install start tunnel start-with-remote-db streamlit streamlit-remote dev-with-streamlit test unit-test integration-test test-with-markers access-remote-swagger get-staging-api-token show-config help
+.PHONY: install start tunnel start-with-remote-db streamlit streamlit-remote dev-with-streamlit test unit-test integration-test test-with-markers access-remote-swagger get-api-token show-config help
 
 
 # ===========================================
@@ -187,13 +187,14 @@ access-remote-swagger: check-gcloud-auth ## Open remote Swagger UI in Chrome via
 	trap "kill $$TUNNEL_PID" INT TERM EXIT; \
 	wait $$TUNNEL_PID
 
-get-staging-api-token: check-gcloud-auth ## Fetch the API token from GCP Secret Manager
-	@source .env && \
+get-api-token: check-gcloud-auth ## Fetch the API token from GCP Secret Manager. Requires DEPLOY_ENV=dev|stg|prod
+	@[ -n "$(DEPLOY_ENV)" ] || (echo "❌ Error: DEPLOY_ENV is required. Usage: make get-api-token DEPLOY_ENV=dev|stg|prod"; exit 1)
+	@$(load_env_cmd) && \
 	if [ -z "$$GCP_SECRET_PROJECT" ] || [ -z "$$API_RECO_TOKEN_SECRET_NAME" ]; then \
-		echo "❌ Error: GCP_SECRET_PROJECT or API_RECO_TOKEN_SECRET_NAME is missing from .env"; \
+		echo "❌ Error: GCP_SECRET_PROJECT or API_RECO_TOKEN_SECRET_NAME is missing from .env.$(DEPLOY_ENV)"; \
 		exit 1; \
 	fi; \
-	echo "🔐 Fetching API token..." && \
+	echo "🔐 Fetching API token for [$(DEPLOY_ENV)]..." && \
 	gcloud secrets versions access latest --secret "$$API_RECO_TOKEN_SECRET_NAME" --project "$$GCP_SECRET_PROJECT"
 
 
