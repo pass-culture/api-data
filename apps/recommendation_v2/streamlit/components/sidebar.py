@@ -52,6 +52,11 @@ def _render_api_url_input(default_url: str | None = None) -> tuple[str, dict | N
     remote_v1_url = os.environ.get("REMOTE_API_V1_URL", "")
     remote_v2_url = os.environ.get("REMOTE_API_URL", "") or default_url
 
+    # Version selector is rendered first so it updates api_base_url
+    # in session_state before the URL text_input reads it.
+    if remote_v1_url:
+        _render_api_version_selector(remote_v1_url, remote_v2_url)
+
     # --- API URL ---
     st.markdown("**URL de l'API**")
     api_url = st.text_input(
@@ -70,10 +75,6 @@ def _render_api_url_input(default_url: str | None = None) -> tuple[str, dict | N
         return api_url, None, None
 
     # --- Remote-only fields ---
-
-    # Version selector: shown only when both v1 and v2 remote URLs are configured
-    if remote_v1_url:
-        _render_api_version_selector(remote_v1_url, remote_v2_url)
 
     # Token
     st.markdown("**Token API**")
@@ -102,39 +103,27 @@ def _render_api_url_input(default_url: str | None = None) -> tuple[str, dict | N
     if socks_proxy.strip():
         proxies = {"http": socks_proxy.strip(), "https": socks_proxy.strip()}
 
-    return api_url, proxies, api_token.strip() or None
+    return st.session_state.api_base_url, proxies, api_token.strip() or None
 
 
 def _render_api_version_selector(remote_v1_url: str, remote_v2_url: str) -> None:
-    """Render the v1/v2 radio selector and update the API URL in session state when the version changes.
-
-    The default selected version is driven by the STREAMLIT_DEFAULT_API_VERSION environment variable,
-    set by the Makefile when launching with VERSION=1 or VERSION=v1.
+    """Render the v1/v2 radio selector and update the API URL in session state.
 
     Args:
         remote_v1_url: The base URL of the v1 (legacy) API.
         remote_v2_url: The base URL of the v2 (default) API.
     """
-    raw_default_version = os.environ.get("STREAMLIT_DEFAULT_API_VERSION", "v2").strip().lower().lstrip("v")
-    should_default_to_v1 = raw_default_version == "1"
-
-    version_options = [V1_LABEL, V2_LABEL] if should_default_to_v1 else [V2_LABEL, V1_LABEL]
-
     st.markdown("**Version de l'API**")
     selected_version = st.radio(
         "Version de l'API",
-        version_options,
+        [V2_LABEL, V1_LABEL],
         horizontal=True,
         label_visibility="collapsed",
         key="api_version_selector",
     )
 
-    url_for_selected_version = remote_v1_url if selected_version == V1_LABEL else remote_v2_url
-
-    # Update the URL input when the user switches version
-    if st.session_state.get("_last_selected_api_version") != selected_version:
-        st.session_state.api_base_url = url_for_selected_version
-        st.session_state._last_selected_api_version = selected_version
+    # Always sync the URL with the currently selected version
+    st.session_state.api_base_url = remote_v1_url if selected_version == V1_LABEL else remote_v2_url
 
 
 def render_playlist_recommendation_sidebar() -> tuple:

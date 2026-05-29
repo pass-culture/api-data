@@ -16,6 +16,8 @@ sys.path.append(str(Path(__file__).resolve().parent.parent.parent / "src"))
 
 from components.card_renderer import show_recommendations
 from components.card_renderer import show_similar_offer_source
+from components.env_banner import render_env_banner
+from components.request_debug import render_request_debug
 from components.sidebar import render_similar_offer_sidebar
 from services.backend_api_client import fetch_similar_offer_ids
 
@@ -42,6 +44,8 @@ def main():
         proxies,
         api_token,
     ) = render_similar_offer_sidebar()
+
+    render_env_banner(api_base_url)
 
     if offer_id:
         with st.spinner("Récupération de l'offre source..."):
@@ -99,6 +103,8 @@ def fetch_and_display_similar_offers(  # noqa: PLR0913
             st.stop()
 
         api_response_time = time_mod.time() - start_time
+
+    render_request_debug(method="GET", url=api_url, query_params=query_params, proxies=proxies)
 
     # Display execution metadata
     st.markdown(

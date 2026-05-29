@@ -11,6 +11,7 @@ import time as time_mod
 from pathlib import Path
 
 import requests
+from components.env_banner import render_env_banner
 
 import streamlit as st
 
@@ -19,6 +20,7 @@ import streamlit as st
 sys.path.append(str(Path(__file__).resolve().parent.parent / "src"))
 
 from components.card_renderer import show_recommendations
+from components.request_debug import render_request_debug
 from components.sidebar import render_playlist_recommendation_sidebar
 from services.backend_api_client import fetch_playlist_recommendation_ids
 
@@ -41,6 +43,8 @@ def main():
     user_id, params, payload, max_offers_to_fetch, run_fetch, api_base_url, proxies, api_token = (
         render_playlist_recommendation_sidebar()
     )
+
+    render_env_banner(api_base_url)
 
     if run_fetch:
         fetch_and_display_playlist_recommendations(
@@ -85,6 +89,8 @@ def fetch_and_display_playlist_recommendations(  # noqa: PLR0913
             st.stop()
 
         api_response_time = time_mod.time() - start_time
+
+    render_request_debug(method="POST", url=api_url, query_params=params, body=payload, proxies=proxies)
 
     # Display execution metadata
     st.markdown(

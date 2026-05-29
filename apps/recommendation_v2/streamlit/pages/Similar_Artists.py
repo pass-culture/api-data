@@ -8,6 +8,8 @@ from http import HTTPStatus
 import requests
 from components.card_renderer import show_artist_source
 from components.card_renderer import show_similar_artists
+from components.env_banner import render_env_banner
+from components.request_debug import render_request_debug
 from components.sidebar import _render_api_url_input
 from services.backend_api_client import fetch_similar_artist_ids
 from services.bigquery_client import fetch_artist_details
@@ -46,6 +48,8 @@ def main():
             artist_id = PRESET_ARTISTS[selected]
 
         run_fetch = st.button("🚀 Obtenir les artistes similaires", type="primary")
+
+    render_env_banner(api_base_url)
 
     if artist_id:
         with st.spinner("Récupération de l'artiste source..."):
@@ -98,6 +102,10 @@ def _fetch_and_display_similar_artists(
             st.stop()
 
         api_response_time = time_mod.time() - start_time
+
+    render_request_debug(
+        method="GET", url=api_url, query_params={"token": api_token} if api_token else {}, proxies=proxies
+    )
 
     st.markdown(
         f"""

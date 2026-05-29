@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 # --- 1. Environment Loading ---
 # Resolve the path to the .env file located at the root of the src directory
 environment_file_path = Path(".env")
-load_dotenv(dotenv_path=environment_file_path, override=True)
+load_dotenv(dotenv_path=environment_file_path, override=False)
 
 
 # --- 2. Application Environment ---

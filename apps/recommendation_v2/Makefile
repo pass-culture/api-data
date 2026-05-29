@@ -75,11 +75,10 @@ streamlit: check-gcloud-auth
 
 
 streamlit-remote: check-gcloud-auth
+	@[ -n "$(DEPLOY_ENV)" ] || (echo "❌ Error: DEPLOY_ENV is required. Usage: make streamlit-remote DEPLOY_ENV=dev|stg|prod"; exit 1)
 	$(PREPARE_SWAGGER_TUNNEL)
 	@echo "🔌 Opening SOCKS tunnel in background for Streamlit$(if $(DEPLOY_ENV), [env: $(DEPLOY_ENV)],)..."
 	@$(load_env_cmd) && \
-	export REMOTE_API_URL REMOTE_API_V1_URL REMOTE_API_TOKEN REMOTE_API_SOCKS_PORT && \
-	export STREAMLIT_DEFAULT_API_VERSION="$(VERSION)" && \
 	SOCKS_PORT="$${REMOTE_API_SOCKS_PORT:-1080}" ; \
 	$(SSH_BASE) -N -q -D "$$SOCKS_PORT" & \
 	TUNNEL_PID=$$! ; \
@@ -87,7 +86,11 @@ streamlit-remote: check-gcloud-auth
 	trap 'echo -e "\n🛑 Closing SOCKS tunnel (PID: $$TUNNEL_PID)..."; kill $$TUNNEL_PID 2>/dev/null || true' EXIT INT TERM ; \
 	echo "✅ Tunnel SOCKS ouvert sur le port $$SOCKS_PORT" ; \
 	echo "👉 Dans le Streamlit, configurez le proxy : socks5://localhost:$$SOCKS_PORT" ; \
-	$(MAKE) streamlit
+	REMOTE_API_URL="$$REMOTE_API_URL" \
+	REMOTE_API_V1_URL="$$REMOTE_API_V1_URL" \
+	REMOTE_API_TOKEN="$$REMOTE_API_TOKEN" \
+	REMOTE_API_SOCKS_PORT="$$REMOTE_API_SOCKS_PORT" \
+	uv run --no-env-file streamlit run streamlit/app.py
 
 dev-with-streamlit: check-gcloud-auth
 	$(PREPARE_TUNNEL)
@@ -147,17 +150,26 @@ endif
 
 VERSION ?= v2
 
-access-remote-swagger: check-gcloud-auth
-	$(PREPARE_SWAGGER_TUNNEL)
-	@echo "🔌 Opening SOCKS tunnel to remote API$(if $(DEPLOY_ENV), [env: $(DEPLOY_ENV)],) [$(VERSION)]..."
-	@$(load_env_cmd) && \
-	SOCKS_PORT="$${REMOTE_API_SOCKS_PORT:-1080}" ; \
+# Helper: resolve TARGET_URL based on VERSION (v1 → REMOTE_API_V1_URL, else → REMOTE_API_URL)
+# Usage: call inside a shell block after load_env_cmd
+# Sets TARGET_URL and exports STREAMLIT_DEFAULT_API_VERSION
+define resolve_api_url
 	if [ "$(VERSION)" = "v1" ] || [ "$(VERSION)" = "V1" ] || [ "$(VERSION)" = "1" ]; then \
 		TARGET_URL="$$REMOTE_API_V1_URL" ; \
 		if [ -z "$$TARGET_URL" ]; then echo "❌ Error: REMOTE_API_V1_URL is missing in .env$(if $(DEPLOY_ENV),.$(DEPLOY_ENV),)"; exit 1; fi ; \
 	else \
 		TARGET_URL="$$REMOTE_API_URL" ; \
 	fi ; \
+	export STREAMLIT_DEFAULT_API_VERSION="$(VERSION)"
+endef
+
+access-remote-swagger: check-gcloud-auth
+	@[ -n "$(DEPLOY_ENV)" ] || (echo "❌ Error: DEPLOY_ENV is required. Usage: make access-remote-swagger DEPLOY_ENV=dev|stg|prod"; exit 1)
+	$(PREPARE_SWAGGER_TUNNEL)
+	@echo "🔌 Opening SOCKS tunnel to remote API$(if $(DEPLOY_ENV), [env: $(DEPLOY_ENV)],) [$(VERSION)]..."
+	@$(load_env_cmd) && \
+	SOCKS_PORT="$${REMOTE_API_SOCKS_PORT:-1080}" ; \
+	$(resolve_api_url) ; \
 	$(SSH_BASE) -N -D "$$SOCKS_PORT" & \
 	TUNNEL_PID=$$! ; \
 	echo "⏳ Waiting for tunnel initialization..." ; \
