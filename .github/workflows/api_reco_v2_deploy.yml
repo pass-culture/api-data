@@ -197,9 +197,9 @@ jobs:
           SQL_BASE_USER=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1_database_credentials_username:latest
           SQL_BASE_PASSWORD=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1_database_credentials_password:latest
           API_TOKEN=api-reco-token-${{ env.ENV_SHORT_NAME }}:latest
-          REDIS_URL=apireco-${{ env.ENV_SHORT_NAME }}_redis_url:latest
-          /secrets/redis-ca-cert=apireco-${{ env.ENV_SHORT_NAME }}_redis_ca:latest
-          REDIS_AUTH_STRING=apireco-${{ env.ENV_SHORT_NAME }}_redis_auth_string:latest
+          REDIS_URL=apireco-${{ needs.setup-job.outputs.env_name }}_redis_url:latest
+          /secrets/redis-ca-cert=apireco-${{ needs.setup-job.outputs.env_name }}_redis_ca:latest
+          REDIS_AUTH_STRING=apireco-${{ needs.setup-job.outputs.env_name }}_redis_auth_string:latest
 
   slack-notification:
     runs-on: ubuntu-latest
