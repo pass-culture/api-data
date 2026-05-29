@@ -185,21 +185,21 @@ jobs:
         env_vars_update_strategy: overwrite
         secrets_update_strategy: overwrite
         env_vars: |-
-          ENV=${{ steps.vars.outputs.env_long_name }}
+          ENV=${{ steps.sha.outputs.env_long_name }}
           GCP_PROJECT=${{ env.DATA_GCP_PROJECT }}
           SQL_PORT=5432
           VERTEX_RETRIEVAL_ENDPOINT_NAME=recommendation_user_retrieval_${{ env.ENV_SHORT_NAME }}
           VERTEX_RANKING_ENDPOINT_NAME=recommendation_user_ranking_${{ env.ENV_SHORT_NAME }}
-          REDIS_URL=${{ secrets.REDIS_URL }}
           REDIS_CA_CERT_PATH=/secrets/redis-ca-cert
         secrets: |-
           SQL_HOST=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1_private_ip:latest
-          SQL_BASE=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1_database_credentials_usename:latest
-          SQL_BASE_USER=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1_database_credentials_usename:latest
+          SQL_BASE=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1_database_credentials_username:latest
+          SQL_BASE_USER=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1_database_credentials_username:latest
           SQL_BASE_PASSWORD=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1_database_credentials_password:latest
-          API_TOKEN=apireco-token-${{ env.ENV_SHORT_NAME }}:latest
-          /secrets/redis-ca-cert=${{ vars.REDIS_CA }}:latest
-          REDIS_AUTH_STRING=${{ vars.REDIS_AUTH_STRING }}:latest
+          API_TOKEN=api-reco-token-${{ env.ENV_SHORT_NAME }}:latest
+          REDIS_URL=apireco-${{ env.ENV_SHORT_NAME }}_redis_url:latest
+          /secrets/redis-ca-cert=apireco-${{ env.ENV_SHORT_NAME }}_redis_ca:latest
+          REDIS_AUTH_STRING=apireco-${{ env.ENV_SHORT_NAME }}_redis_auth_string:latest
 
   slack-notification:
     runs-on: ubuntu-latest
