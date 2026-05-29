@@ -6,6 +6,7 @@ import traceback
 from typing import Any
 
 import redis.asyncio as redis
+
 from config import settings
 from services.logger import logger
 
