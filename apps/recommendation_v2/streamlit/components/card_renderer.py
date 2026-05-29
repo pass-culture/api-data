@@ -10,7 +10,7 @@ from jinja2 import FileSystemLoader
 from services.backend_api_client import fetch_offer_details
 
 import streamlit as st
-from core.retrieval import calculate_haversine_distance_in_meters
+from core.geo import calculate_haversine_distance_in_meters
 
 
 # Jinja2 Setup

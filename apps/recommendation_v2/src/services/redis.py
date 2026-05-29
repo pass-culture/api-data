@@ -6,7 +6,6 @@ import traceback
 from typing import Any
 
 import redis.asyncio as redis
-
 from config import settings
 from services.logger import logger
 
@@ -76,7 +75,7 @@ class RedisCacheService:
                 if self.redis_client is not None:  # ping raises a ruff error because redis_client can be None
                     logger.debug("Attempting to connect to Redis cache and ping the server...")
                     ping_result = self.redis_client.ping()
-                    if inspect.isawaitable(ping_result):
+                    if inspect.isawaitable(ping_result):  # pragma: no cover
                         await ping_result
 
                 logger.info("Redis cache enabled and successfully connected.")

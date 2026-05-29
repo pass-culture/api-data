@@ -1,4 +1,3 @@
-import math
 from typing import Any
 
 from sqlalchemy import select
@@ -8,6 +7,7 @@ from config import settings
 from connectors import graph_api_client
 from connectors import retrieval_api_client
 from connectors.vertex_api import VertexPredictionResult
+from core.geo import calculate_haversine_distance_in_meters
 from core.geo import find_closest_offers_with_h3_index
 from core.user_context import UserContext
 from models.items import NonRecommendableItems
@@ -21,7 +21,6 @@ from utils.benchmark import log_execution_time
 
 
 DEFAULT_MAX_DISTANCE_IN_METERS = 100_000
-EARTH_RADIUS_METERS = 6371000
 VERTEX_API_CANDIDATE_ITEMS_FETCH_SIZE_LIMIT = 600
 
 # ==============================================================================
@@ -248,40 +247,6 @@ async def fetch_graph_predictions_from_vertex(prediction_payload: dict[str, Any]
     prediction_result = await graph_api_client.fetch_retrieval_predictions(feature_payloads=[prediction_payload])
 
     return prediction_result
-
-
-def calculate_haversine_distance_in_meters(
-    user_lat: float | None, user_lon: float | None, offer_lat: float | None, offer_lon: float | None
-) -> float | None:
-    """
-    Calculates the great-circle distance between two GPS points on Earth.
-
-    Args:
-        user_lat (float | None): User's latitude in decimal degrees.
-        user_lon (float | None): User's longitude in decimal degrees.
-        offer_lat (float | None): Offer venue's latitude in decimal degrees.
-        offer_lon (float | None): Offer venue's longitude in decimal degrees.
-
-    Returns:
-        float | None: The distance in meters, or None if any coordinate is missing.
-    """
-    if user_lat is None or user_lon is None or offer_lat is None or offer_lon is None:
-        return None
-
-    user_lat_rad = math.radians(user_lat)
-    offer_lat_rad = math.radians(offer_lat)
-
-    delta_lat_rad = math.radians(offer_lat - user_lat)
-    delta_lon_rad = math.radians(offer_lon - user_lon)
-
-    haversine_a = (
-        math.sin(delta_lat_rad / 2) ** 2
-        + math.cos(user_lat_rad) * math.cos(offer_lat_rad) * math.sin(delta_lon_rad / 2) ** 2
-    )
-
-    distance = 2 * EARTH_RADIUS_METERS * math.atan2(math.sqrt(haversine_a), math.sqrt(1 - haversine_a))
-
-    return distance
 
 
 async def filter_out_already_booked_items(
