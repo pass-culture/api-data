@@ -3,6 +3,7 @@ import traceback
 from fastapi import HTTPException
 from pydantic import BaseModel
 
+from schemas.vertex_prediction_item import ItemOrigin
 from schemas.vertex_prediction_item import RecommendableItem
 from services.logger import logger
 from services.vertex import VertexService
@@ -22,6 +23,33 @@ class RankingPrediction(BaseModel):
 
     offer_id: str
     score: float
+
+
+def get_item_origin(model_type: str) -> ItemOrigin:
+    """Deduce item_origin from model_type.
+
+    Args:
+        model_type (str): The model type from the feature payload (e.g. 'recommendation', 'similar_offer', 'tops').
+
+    Returns:
+        ItemOrigin: The corresponding item_origin enum value.
+    """
+    model_type_to_item_origin: dict[str, ItemOrigin] = {
+        "recommendation": ItemOrigin.USER_BASED,
+        "similar_offer": ItemOrigin.USER_BASED,
+        "tops": ItemOrigin.TOPS,
+    }
+
+    if model_type not in model_type_to_item_origin:
+        logger.error(
+            "Unknown model type",
+            extra={"unknown_model_type": model_type, "allowed_model_types": model_type_to_item_origin.keys()},
+        )
+        raise ValueError(
+            f"Unknown model_type '{model_type}'. Expected one of: {list(model_type_to_item_origin.keys())}"
+        )
+
+    return model_type_to_item_origin[model_type]
 
 
 class VertexAPI:
@@ -65,13 +93,16 @@ class VertexAPI:
             response = await self.vertex_infrastructure_service.execute_grpc_prediction(feature_payloads)
 
             # --- 2. Parse Protobuf Response into Pydantic Models ---
+            model_type = feature_payloads[0]["model_type"]
+            item_origin = get_item_origin(model_type)
+
             parsed_predictions = []
             for raw_prediction in response.predictions:
                 parsed_item = RecommendableItem(
                     item_id=raw_prediction["item_id"],
                     item_rank=raw_prediction["idx"],
                     item_score=raw_prediction.get("_distance", None),
-                    item_origin="user_based",
+                    item_origin=item_origin,
                     item_cluster_id=raw_prediction.get("cluster_id", None),
                     item_topic_id=raw_prediction.get("topic_id", None),
                     semantic_emb_mean=raw_prediction.get("semantic_emb_mean", None),

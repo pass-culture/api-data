@@ -1,6 +1,12 @@
 from datetime import datetime
+from enum import StrEnum
 
 from pydantic import BaseModel
+
+
+class ItemOrigin(StrEnum):
+    USER_BASED = "user_based"
+    TOPS = "tops"
 
 
 class RecommendableItem(BaseModel):
@@ -17,7 +23,7 @@ class RecommendableItem(BaseModel):
 
     # --- Core Identifiers ---
     item_id: str
-    item_origin: str
+    item_origin: ItemOrigin
 
     # --- ML & Ranking Scores ---
     item_rank: int
