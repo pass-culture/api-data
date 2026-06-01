@@ -66,15 +66,10 @@ class RedisCacheService:
                 tls_kwargs: dict = {}
                 if settings.REDIS_URL.startswith("rediss://") and settings.REDIS_CA_CERT_PATH:
                     tls_kwargs = {"ssl_ca_certs": settings.REDIS_CA_CERT_PATH}
-                    logger.info(
-                        f"Redis TLS configuration detected. Redis URL is {settings.REDIS_URL} SSL CA path will be used"
-                    )
-                    logger.debug(f"Redis TLS kwargs: {tls_kwargs['ssl_ca_certs']}")
                 self.redis_client = redis.Redis.from_url(
                     url=settings.REDIS_URL, password=settings.REDIS_AUTH_STRING, decode_responses=True, **tls_kwargs
                 )
                 if self.redis_client is not None:  # ping raises a ruff error because redis_client can be None
-                    logger.debug("Attempting to connect to Redis cache and ping the server...")
                     ping_result = self.redis_client.ping()
                     if inspect.isawaitable(ping_result):  # pragma: no cover
                         await ping_result
