@@ -63,11 +63,16 @@ class RedisCacheService:
                     settings.REDIS_CACHE_ENABLED = False
                     return
 
-                self.redis_client = redis.Redis.from_url(url=settings.REDIS_URL, decode_responses=True)
-
-                ping_result = self.redis_client.ping()
-                if inspect.isawaitable(ping_result):  # pragma: no cover
-                    await ping_result
+                tls_kwargs: dict = {}
+                if settings.REDIS_URL.startswith("rediss://") and settings.REDIS_CA_CERT_PATH:
+                    tls_kwargs = {"ssl_ca_certs": settings.REDIS_CA_CERT_PATH}
+                self.redis_client = redis.Redis.from_url(
+                    url=settings.REDIS_URL, password=settings.REDIS_AUTH_STRING, decode_responses=True, **tls_kwargs
+                )
+                if self.redis_client is not None:  # ping raises a ruff error because redis_client can be None
+                    ping_result = self.redis_client.ping()
+                    if inspect.isawaitable(ping_result):  # pragma: no cover
+                        await ping_result
 
                 logger.info("Redis cache enabled and successfully connected.")
 
