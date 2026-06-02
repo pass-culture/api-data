@@ -79,6 +79,29 @@ async def test_fetch_retrieval_maps_renamed_grpc_fields(vertex_api, feature_payl
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("feature_payloads", "expected_item_origin"),
+    [
+        ([{"model_type": "similar_offer"}], ItemOrigin.GRAPH),
+        ([{"model_type": "tops"}], ItemOrigin.TOPS),  # tops fallback overrides graph
+    ],
+)
+async def test_fetch_retrieval_graph_endpoint_sets_item_origin(
+    graph_vertex_api, feature_payloads, expected_item_origin
+):
+    """
+    When the graph endpoint is used, item_origin must be GRAPH — unless the model fell back
+    to 'tops', in which case item_origin stays TOPS regardless of the endpoint.
+    """
+    raw = _make_raw_retrieval_prediction()
+    graph_vertex_api.vertex_infrastructure_service.execute_grpc_prediction.return_value = _grpc_response([raw])
+
+    item = (await graph_vertex_api.fetch_retrieval_predictions(feature_payloads=feature_payloads)).predictions[0]
+
+    assert item.item_origin == expected_item_origin
+
+
+@pytest.mark.asyncio
 async def test_fetch_retrieval_casts_is_geolocated_int_to_bool(vertex_api):
     """gRPC returns is_geolocated as an integer; the connector explicitly casts it via bool()."""
     vertex_api.vertex_infrastructure_service.execute_grpc_prediction.return_value = _grpc_response(

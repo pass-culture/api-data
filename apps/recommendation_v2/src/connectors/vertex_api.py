@@ -3,6 +3,7 @@ import traceback
 from fastapi import HTTPException
 from pydantic import BaseModel
 
+from config import settings
 from schemas.vertex_prediction_item import ItemOrigin
 from schemas.vertex_prediction_item import RecommendableItem
 from services.logger import logger
@@ -23,33 +24,6 @@ class RankingPrediction(BaseModel):
 
     offer_id: str
     score: float
-
-
-def get_item_origin(model_type: str) -> ItemOrigin:
-    """Deduce item_origin from model_type.
-
-    Args:
-        model_type (str): The model type from the feature payload (e.g. 'recommendation', 'similar_offer', 'tops').
-
-    Returns:
-        ItemOrigin: The corresponding item_origin enum value.
-    """
-    model_type_to_item_origin: dict[str, ItemOrigin] = {
-        "recommendation": ItemOrigin.USER_BASED,
-        "similar_offer": ItemOrigin.USER_BASED,
-        "tops": ItemOrigin.TOPS,
-    }
-
-    if model_type not in model_type_to_item_origin:
-        logger.error(
-            "Unknown model type",
-            extra={"unknown_model_type": model_type, "allowed_model_types": model_type_to_item_origin.keys()},
-        )
-        raise ValueError(
-            f"Unknown model_type '{model_type}'. Expected one of: {list(model_type_to_item_origin.keys())}"
-        )
-
-    return model_type_to_item_origin[model_type]
 
 
 class VertexAPI:
@@ -76,6 +50,44 @@ class VertexAPI:
         self.endpoint_name = endpoint_name
         self.vertex_infrastructure_service = VertexService(endpoint_name=endpoint_name, location=location)
 
+    def get_item_origin(self, model_type: str) -> ItemOrigin:
+        """Deduce item_origin from model_type and the current endpoint.
+
+        If this instance targets the graph endpoint and the model did not fall back
+        to 'tops', the origin is GRAPH. Otherwise the standard mapping applies.
+
+        Args:
+            model_type (str): The model type from the feature payload
+                              (e.g. 'recommendation', 'similar_offer', 'tops').
+
+        Returns:
+            ItemOrigin: The corresponding item_origin enum value.
+        """
+        model_type_to_item_origin: dict[str, ItemOrigin] = {
+            "recommendation": ItemOrigin.USER_BASED,
+            "similar_offer": ItemOrigin.USER_BASED,
+            "tops": ItemOrigin.TOPS,
+        }
+
+        if model_type not in model_type_to_item_origin:
+            logger.error(
+                "Unknown model type",
+                extra={"unknown_model_type": model_type, "allowed_model_types": model_type_to_item_origin.keys()},
+            )
+            raise ValueError(
+                f"Unknown model_type '{model_type}'. Expected one of: {list(model_type_to_item_origin.keys())}"
+            )
+
+        item_origin = model_type_to_item_origin[model_type]
+
+        # If this is the graph endpoint and the model did not fall back to tops,
+        # override item_origin to reflect the graph provenance.
+        is_graph_endpoint = self.endpoint_name == settings.VERTEX_GRAPH_ENDPOINT_NAME
+        if is_graph_endpoint and item_origin != ItemOrigin.TOPS:
+            return ItemOrigin.GRAPH
+
+        return item_origin
+
     async def fetch_retrieval_predictions(self, feature_payloads: list[dict]) -> VertexPredictionResult:
         """
         Calls the Retrieval model to get a massive list of candidate items.
@@ -94,7 +106,7 @@ class VertexAPI:
 
             # --- 2. Parse Protobuf Response into Pydantic Models ---
             model_type = feature_payloads[0]["model_type"]
-            item_origin = get_item_origin(model_type)
+            item_origin = self.get_item_origin(model_type)
 
             parsed_predictions = []
             for raw_prediction in response.predictions:

@@ -7,6 +7,7 @@ from pydantic import BaseModel
 class ItemOrigin(StrEnum):
     USER_BASED = "user_based"
     TOPS = "tops"
+    GRAPH = "graph"
 
 
 class RecommendableItem(BaseModel):
