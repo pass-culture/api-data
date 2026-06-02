@@ -111,6 +111,50 @@ async def test_user_id_query_param_affects_cache_key(client: AsyncClient, mocker
 
 
 @pytest.mark.asyncio
+async def test_nearby_coordinates_in_same_h3_cell_share_cache_key(client: AsyncClient, mocker):
+    """
+    Two coordinates close enough to fall inside the same H3 cell must normalize to the
+    same location_h3, and therefore the same cache key — this is the whole point of H3
+    in caching: a user moving a few metres should hit the existing cache entry.
+    """
+    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
+    fetch_mock = mocker.patch(
+        "api.similar_offer.redis_api.fetch_cached_response", new_callable=AsyncMock, return_value=None
+    )
+    mocker.patch("api.similar_offer.redis_api.store_endpoint_response", new_callable=AsyncMock)
+
+    # Both points sit ~50 m apart inside the same resolution-8 H3 cell.
+    await client.get("/similar_offers/offer-ref?latitude=48.8566&longitude=2.3522")
+    await client.get("/similar_offers/offer-ref?latitude=48.8568&longitude=2.3524")
+
+    assert fetch_mock.call_count == 2  # noqa: PLR2004
+    first_sig = fetch_mock.call_args_list[0].kwargs["request_signature_data"]
+    second_sig = fetch_mock.call_args_list[1].kwargs["request_signature_data"]
+    assert first_sig["location_h3"] is not None
+    assert first_sig["location_h3"] == second_sig["location_h3"]
+
+
+@pytest.mark.asyncio
+async def test_distant_coordinates_produce_different_cache_key(client: AsyncClient, mocker):
+    """Coordinates in different H3 cells must normalize to different location_h3 values
+    so a far-away user never reuses an unrelated location's cache entry."""
+    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
+    fetch_mock = mocker.patch(
+        "api.similar_offer.redis_api.fetch_cached_response", new_callable=AsyncMock, return_value=None
+    )
+    mocker.patch("api.similar_offer.redis_api.store_endpoint_response", new_callable=AsyncMock)
+
+    # Paris vs Versailles (~17 km apart) fall in different resolution-8 H3 cells.
+    await client.get("/similar_offers/offer-ref?latitude=48.8566&longitude=2.3522")
+    await client.get("/similar_offers/offer-ref?latitude=48.8048&longitude=2.1203")
+
+    assert fetch_mock.call_count == 2  # noqa: PLR2004
+    first_sig = fetch_mock.call_args_list[0].kwargs["request_signature_data"]
+    second_sig = fetch_mock.call_args_list[1].kwargs["request_signature_data"]
+    assert first_sig["location_h3"] != second_sig["location_h3"]
+
+
+@pytest.mark.asyncio
 async def test_retrieval_model_query_param_affects_cache_key(client: AsyncClient, mocker):
     """The cache signature must vary by retrieval model to avoid cross-model cache reuse."""
     mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
