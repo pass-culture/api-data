@@ -195,6 +195,8 @@ jobs:
           VERTEX_RETRIEVAL_ENDPOINT_NAME=recommendation_user_retrieval_${{ env.ENV_SHORT_NAME }}
           VERTEX_RANKING_ENDPOINT_NAME=recommendation_user_ranking_${{ env.ENV_SHORT_NAME }}
           REDIS_CA_CERT_PATH=/secrets/redis-ca-cert
+          SIMILAR_OFFER_MODEL_CONTEXT=default
+          RECO_MODEL_CONTEXT=default
         secrets: |-
           API_TOKEN=api-reco-token-${{ env.ENV_SHORT_NAME }}:latest
           REDIS_AUTH_STRING=apireco-${{ needs.setup-job.outputs.env_name }}_redis_auth_string:latest
