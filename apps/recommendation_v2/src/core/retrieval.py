@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 
 from sqlalchemy import select
@@ -21,7 +22,12 @@ from utils.benchmark import log_execution_time
 
 
 DEFAULT_MAX_DISTANCE_IN_METERS = 100_000
-VERTEX_API_CANDIDATE_ITEMS_FETCH_SIZE_LIMIT = 600
+
+# ISO v1: each retrieval endpoint fetches 150 items; 4 endpoints * 150 = up to 600 items before deduplication.
+PLAYLIST_RECOMMENDATION_RETRIEVAL_SIZE_PER_ENDPOINT = 150
+
+# ISO v1: OfferRetrievalEndpoint uses size=100.
+SIMILAR_OFFER_RETRIEVAL_SIZE = 100
 
 # ==============================================================================
 # PLAYLIST RECOMMENDATION
@@ -116,7 +122,7 @@ def build_playlist_recommendation_retrieval_payload(
         #  It is currently required, but having a hardcoded "debug" flag in production is confusing.
         "debug": 1,
         "prefilter": 1,
-        "size": VERTEX_API_CANDIDATE_ITEMS_FETCH_SIZE_LIMIT,
+        "size": PLAYLIST_RECOMMENDATION_RETRIEVAL_SIZE_PER_ENDPOINT,
     }
 
     if user_context.is_cold_start:
@@ -130,6 +136,220 @@ def build_playlist_recommendation_retrieval_payload(
         prediction_payload["model_type"] = "recommendation"
 
     return prediction_payload
+
+
+# ==============================================================================
+# PLAYLIST RECOMMENDATION — MULTI-ENDPOINT (ISO v1)
+# ==============================================================================
+
+
+def _build_base_playlist_recommendation_payload(
+    user_context: UserContext, call_id: str, params: PlaylistRequestParams
+) -> dict[str, Any]:
+    """
+    Builds the common base fields shared by all playlist recommendation retrieval payloads.
+
+    This base dict is injected into each specific payload variant (tops or recommendation)
+    via dictionary unpacking.
+
+    Args:
+        user_context (UserContext): The contextual data of the current user.
+        call_id (str): The unique identifier for the current API call.
+        params (PlaylistRequestParams): Filtering constraints provided by the API client.
+
+    Returns:
+        dict[str, Any]: Base fields common to all retrieval payload variants.
+    """
+    search_filters = _build_playlist_recommendation_search_filters(user_context, params)
+
+    return {
+        "call_id": call_id,
+        "user_id": user_context.user_id,
+        "params": search_filters,
+        "debug": 1,
+        "size": PLAYLIST_RECOMMENDATION_RETRIEVAL_SIZE_PER_ENDPOINT,
+    }
+
+
+def _build_personalized_recommendation_retrieval_payload(
+    user_context: UserContext, call_id: str, params: PlaylistRequestParams
+) -> dict[str, Any]:
+    """
+    Builds the personalized collaborative filtering retrieval payload.
+
+    ISO v1: RecommendationRetrievalEndpoint — model_type="recommendation", prefilter=1.
+    Returns items predicted from the user's historical interactions.
+    """
+    base = _build_base_playlist_recommendation_payload(user_context, call_id, params)
+
+    return {
+        **base,
+        "model_type": "recommendation",
+        "prefilter": 1,
+    }
+
+
+def _build_booking_number_tops_retrieval_payload(
+    user_context: UserContext, call_id: str, params: PlaylistRequestParams
+) -> dict[str, Any]:
+    """
+    Builds the tops retrieval payload ranked by total booking number (overall popularity).
+
+    ISO v1: BookingNumberRetrievalEndpoint — model_type="tops", vector_column_name="booking_number_desc".
+    """
+    base = _build_base_playlist_recommendation_payload(user_context, call_id, params)
+
+    return {
+        **base,
+        "model_type": "tops",
+        "vector_column_name": "booking_number_desc",
+        "re_rank": 0,
+    }
+
+
+def _build_release_trend_tops_retrieval_payload(
+    user_context: UserContext, call_id: str, params: PlaylistRequestParams
+) -> dict[str, Any]:
+    """
+    Builds the tops retrieval payload ranked by recent release trend.
+
+    ISO v1: ReleaseTrendRetrievalEndpoint — model_type="tops", vector_column_name="booking_release_trend_desc".
+    """
+    base = _build_base_playlist_recommendation_payload(user_context, call_id, params)
+
+    return {
+        **base,
+        "model_type": "tops",
+        "vector_column_name": "booking_release_trend_desc",
+        "re_rank": 0,
+    }
+
+
+def _build_creation_trend_tops_retrieval_payload(
+    user_context: UserContext, call_id: str, params: PlaylistRequestParams
+) -> dict[str, Any]:
+    """
+    Builds the tops retrieval payload ranked by recent creation trend.
+
+    ISO v1: CreationTrendRetrievalEndpoint — model_type="tops", vector_column_name="booking_creation_trend_desc".
+    """
+    base = _build_base_playlist_recommendation_payload(user_context, call_id, params)
+
+    return {
+        **base,
+        "model_type": "tops",
+        "vector_column_name": "booking_creation_trend_desc",
+        "re_rank": 0,
+    }
+
+
+def build_all_playlist_recommendation_retrieval_payloads(
+    user_context: UserContext, call_id: str, params: PlaylistRequestParams
+) -> list[dict[str, Any]]:
+    """
+    Returns all retrieval payloads to be sent to Vertex AI in parallel.
+
+    Mirrors the v1 multi-endpoint strategy:
+    - Cold start (no user history): 1 payload  → tops by booking number only.
+    - Warm start (user has history): 4 payloads → tops * 3 + personalized recommendation.
+
+    Warm start payload breakdown (each fetches 150 items):
+    ┌───┬────────────────────────────┬────────────────────────────────────┐
+    │ # │ Model Type                 │ vector_column_name                 │
+    ├───┼────────────────────────────┼────────────────────────────────────┤
+    │ 1 │ recommendation (personal.) │ N/A  (user embedding)              │
+    │ 2 │ tops                       │ booking_number_desc                │
+    │ 3 │ tops                       │ booking_release_trend_desc         │
+    │ 4 │ tops                       │ booking_creation_trend_desc        │
+    └───┴────────────────────────────┴────────────────────────────────────┘
+
+    Maximum candidate pool before deduplication: 4 * 150 = 600 items.
+
+    Args:
+        user_context (UserContext): The contextual data of the current user.
+        call_id (str): The unique identifier for the current API call.
+        params (PlaylistRequestParams): Filtering constraints provided by the API client.
+
+    Returns:
+        list[dict[str, Any]]: A list of prediction payloads ready to be sent in parallel to Vertex AI.
+
+    Example:
+        >>> payloads = build_all_playlist_recommendation_retrieval_payloads(user_context, call_id, params)
+        >>> len(payloads)  # 4 for warm start, 1 for cold start
+        4
+    """
+    if user_context.is_cold_start:
+        return [_build_booking_number_tops_retrieval_payload(user_context, call_id, params)]
+
+    return [
+        _build_personalized_recommendation_retrieval_payload(user_context, call_id, params),
+        _build_booking_number_tops_retrieval_payload(user_context, call_id, params),
+        _build_release_trend_tops_retrieval_payload(user_context, call_id, params),
+        _build_creation_trend_tops_retrieval_payload(user_context, call_id, params),
+    ]
+
+
+def deduplicate_candidate_items_by_item_id(
+    candidate_items: list[RecommendableItem],
+) -> list[RecommendableItem]:
+    """
+    Removes duplicate items from a candidate list, keeping only the first occurrence per item_id.
+
+    When multiple retrieval endpoints return overlapping results, the same item_id can appear
+    several times. This function ensures each item_id is represented only once in the output.
+
+    Args:
+        candidate_items (list[RecommendableItem]): Raw items from one or more retrieval endpoints,
+            possibly containing duplicates.
+
+    Returns:
+        list[RecommendableItem]: A deduplicated list preserving the order of first occurrences.
+
+    Example:
+        Input:  [Item("A"), Item("B"), Item("A"), Item("C")]
+        Output: [Item("A"), Item("B"), Item("C")]
+    """
+    seen_item_ids: set[str] = set()
+    deduplicated_items: list[RecommendableItem] = []
+
+    for item in candidate_items:
+        if item.item_id not in seen_item_ids:
+            seen_item_ids.add(item.item_id)
+            deduplicated_items.append(item)
+
+    return deduplicated_items
+
+
+@log_execution_time
+async def fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
+    retrieval_payloads: list[dict[str, Any]],
+) -> list[RecommendableItem]:
+    """
+    Fetches candidate items from all retrieval payloads concurrently, then deduplicates the results.
+
+    Calls each Vertex AI retrieval endpoint simultaneously using asyncio.gather, then merges all
+    raw predictions into a single flat list and removes duplicates. This mirrors the v1 behavior
+    where all retrieval endpoints are called in parallel via asyncio.gather.
+
+    Args:
+        retrieval_payloads (list[dict[str, Any]]): One payload per retrieval endpoint,
+            as returned by build_all_playlist_recommendation_retrieval_payloads.
+
+    Returns:
+        list[RecommendableItem]: A flat, deduplicated list of candidate items from all endpoints.
+
+    Example (warm start, 4 payloads):
+        Each endpoint returns up to 150 items → up to 600 raw items → deduplicated output.
+    """
+    parallel_results: list[VertexPredictionResult] = await asyncio.gather(
+        *[fetch_retrieval_predictions_from_vertex(payload) for payload in retrieval_payloads]
+    )
+
+    all_candidate_items: list[RecommendableItem] = []
+    for result in parallel_results:
+        all_candidate_items.extend(result.predictions)
+
+    return deduplicate_candidate_items_by_item_id(all_candidate_items)
 
 
 # ==============================================================================
@@ -201,7 +421,7 @@ def build_similar_offer_retrieval_payload(
         # A bit misleading but we keep it for consistency with the Vertex API.
         "debug": 1,
         "prefilter": 1,
-        "size": VERTEX_API_CANDIDATE_ITEMS_FETCH_SIZE_LIMIT,
+        "size": SIMILAR_OFFER_RETRIEVAL_SIZE,
         "search_after": None,
     }
 

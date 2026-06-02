@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.diversification import apply_offer_diversification
 from core.geo import get_iris_id_from_coordinates
 from core.ranking import rank_and_sort_offers_with_vertex
-from core.retrieval import build_playlist_recommendation_retrieval_payload
-from core.retrieval import fetch_retrieval_predictions_from_vertex
+from core.retrieval import build_all_playlist_recommendation_retrieval_payloads
+from core.retrieval import fetch_all_playlist_recommendation_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
 from core.retrieval import resolve_closest_venues_from_items
 from core.tracking import log_past_offer_context_to_sink
@@ -65,15 +65,17 @@ async def generate_playlist_recommendations(
     )
 
     # --- 2. Retrieval Phase ---
-    # Fetch a broad array of raw item candidates from the ML model
-    retrieval_payload = build_playlist_recommendation_retrieval_payload(
+    # Build all retrieval payloads (1 for cold start, 4 for warm start) and fetch them in parallel
+    retrieval_payloads = build_all_playlist_recommendation_retrieval_payloads(
         user_context=user_context, call_id=call_id, params=params
     )
-    raw_candidates = await fetch_retrieval_predictions_from_vertex(prediction_payload=retrieval_payload)
+    raw_candidate_items = await fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
+        retrieval_payloads=retrieval_payloads
+    )
 
     # --- 3. Filtering Phase & Resolution ---
     unbooked_candidate_items = await filter_out_already_booked_items(
-        db=db, candidate_items=raw_candidates.predictions, user_id=user_context.user_id
+        db=db, candidate_items=raw_candidate_items, user_id=user_context.user_id
     )
 
     # Convert abstract items into actionable offers, keeping only the closest venues for physical items
