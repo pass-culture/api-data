@@ -100,21 +100,15 @@ def run_global_validation(
                 else:
                     prompt_args["context_available"] = False
 
-                # Make the LLM call using LCEL invoke instead of run
                 result = chain.invoke(prompt_args)
 
-                # Extract content from AIMessage if needed (LCEL returns AIMessage objects)
                 if hasattr(result, "content"):
                     result = result.content
-
-                logger.debug(f"Raw LLM result type: {type(result)}")
-                logger.debug(f"Raw LLM result (first 500 chars): {str(result)[:500]}")
 
                 try:
                     # Tentative de parsing normal
                     parsed_result = output_parser.parse(result)
                     logger.info(f"Successfully parsed result: {parsed_result}")
-                    logger.debug(f"Parsed result type: {type(parsed_result)}")
                     clean_result_df = post_process_result(
                         config, offre_commerciale, parsed_result, response_schemas
                     )

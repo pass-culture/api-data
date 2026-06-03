@@ -41,7 +41,6 @@ IMPORTANT:
 
 def create_output_parser(config, response_schemas):
     """Creates a structured parser for LLM responses based on the specified schema."""
-    # For langchain 1.x, we use our custom JsonOutputParser with format instructions
     return ComplianceJsonOutputParser(response_schemas)
 
 

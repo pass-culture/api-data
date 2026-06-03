@@ -47,11 +47,6 @@ class LLMComplianceModel:
         results_df = run_validation_pipeline(self.config, data)
         results_dict = results_df.to_dict(orient="records")[0]
 
-        # Log the results for debugging
-        logger.debug(f"Results DataFrame columns: {results_df.columns.tolist()}")
-        logger.debug(f"Results dict keys: {list(results_dict.keys())}")
-        logger.debug(f"Results dict values: {results_dict}")
-
         # Gestion des deux modes de validation
         validation_mode = self.config["validation"].get("mode", "llm_only")
 
