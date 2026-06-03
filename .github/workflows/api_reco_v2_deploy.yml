@@ -194,6 +194,7 @@ jobs:
           SQL_PORT=5432
           VERTEX_RETRIEVAL_ENDPOINT_NAME=recommendation_user_retrieval_${{ env.ENV_SHORT_NAME }}
           VERTEX_RANKING_ENDPOINT_NAME=recommendation_user_ranking_${{ env.ENV_SHORT_NAME }}
+          VERTEX_GRAPH_ENDPOINT_NAME=recommendation_graph_retrieval_${{ env.ENV_SHORT_NAME }}
           REDIS_CA_CERT_PATH=/secrets/redis-ca-cert
           SIMILAR_OFFER_MODEL_CONTEXT=default
           RECO_MODEL_CONTEXT=default
