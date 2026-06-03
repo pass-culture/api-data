@@ -7,6 +7,7 @@ from core.retrieval import _build_playlist_recommendation_search_filters
 from core.retrieval import _build_similar_offer_search_filters
 from core.retrieval import build_playlist_recommendation_retrieval_payload
 from core.retrieval import build_similar_offer_retrieval_payload
+from core.retrieval import fetch_all_playlist_recommendation_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
 from core.retrieval import resolve_closest_venues_from_items
 from core.user_context import UserContext
@@ -18,6 +19,7 @@ from schemas.playlist_recommendation import PlaylistRequestParams
 from tests.factories.models import NonRecommendableItemsFactory
 from tests.factories.schemas import RecommendableItemFactory
 from tests.factories.schemas import UserContextFactory
+from tests.factories.schemas import VertexPredictionResultFactory
 
 
 # ---------------------------------------------------------------------------
@@ -369,3 +371,60 @@ async def test_resolve_sorts_offers_by_distance_with_none_last(db_session):
     non_none = [d for d in distances if d is not None]
     assert non_none == sorted(non_none)
     assert distances[-1] is None
+
+
+# ---------------------------------------------------------------------------
+# fetch_all_playlist_recommendation_retrieval_predictions_from_vertex
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_fetch_all_predictions_deduplicates_items_across_endpoints(mocker):
+    """
+    Verifies that items returned by multiple retrieval endpoints are deduplicated correctly.
+
+    A warm user triggers 4 parallel retrieval calls:
+        - Endpoint 1 (personalized recommendation): [item-A, item-B]
+        - Endpoint 2 (tops — booking_number):       [item-A, item-C]   ← item-A duplicated
+        - Endpoint 3 (tops — release_trend):        [item-B, item-D]   ← item-B duplicated
+        - Endpoint 4 (tops — creation_trend):       [item-C, item-E]   ← item-C duplicated
+
+    Expected behaviour:
+    - The final list contains exactly 5 unique items: [item-A, item-B, item-C, item-D, item-E].
+    - The order of first occurrence is preserved (item-A before item-B, etc.).
+    - No item_id appears more than once.
+    """
+    item_a = RecommendableItemFactory.build(item_id="item-A")
+    item_b = RecommendableItemFactory.build(item_id="item-B")
+    item_c = RecommendableItemFactory.build(item_id="item-C")
+    item_d = RecommendableItemFactory.build(item_id="item-D")
+    item_e = RecommendableItemFactory.build(item_id="item-E")
+
+    endpoint_results = [
+        VertexPredictionResultFactory.build(predictions=[item_a, item_b]),
+        VertexPredictionResultFactory.build(predictions=[item_a, item_c]),
+        VertexPredictionResultFactory.build(predictions=[item_b, item_d]),
+        VertexPredictionResultFactory.build(predictions=[item_c, item_e]),
+    ]
+
+    mocker.patch(
+        "core.retrieval.fetch_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        side_effect=endpoint_results,
+    )
+
+    # 4 dummy payloads — one per warm-start endpoint
+    dummy_payloads = [{} for _ in range(4)]
+
+    result = await fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(dummy_payloads)
+
+    result_item_ids = [item.item_id for item in result]
+
+    expected_unique_items_after_deduplication = 5
+    assert len(result_item_ids) == expected_unique_items_after_deduplication, (
+        f"Expected 5 unique items after deduplication, got {len(result_item_ids)}: {result_item_ids}"
+    )
+    assert len(set(result_item_ids)) == len(result_item_ids), f"Duplicate item_ids found in result: {result_item_ids}"
+    assert result_item_ids == ["item-A", "item-B", "item-C", "item-D", "item-E"], (
+        "First-occurrence order must be preserved across endpoints."
+    )
