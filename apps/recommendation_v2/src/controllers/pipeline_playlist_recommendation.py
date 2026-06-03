@@ -2,6 +2,7 @@ import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import settings
 from core.diversification import apply_offer_diversification
 from core.geo import get_iris_id_from_coordinates
 from core.ranking import rank_and_sort_offers_with_vertex
@@ -10,6 +11,7 @@ from core.retrieval import fetch_all_playlist_recommendation_retrieval_predictio
 from core.retrieval import filter_out_already_booked_items
 from core.retrieval import resolve_closest_venues_from_items
 from core.tracking import log_past_offer_context_to_sink
+from core.user_context import UNAUTHENTICATED_USER_ID
 from core.user_context import UserContext
 from models.user import EnrichedUser
 from schemas.playlist_recommendation import PlaylistRequestParams
@@ -95,7 +97,10 @@ async def generate_playlist_recommendations(
     final_playlist = diversified_offers[:PLAYLIST_RECOMMENDATION_MAXIMUM_SIZE]
 
     # --- 6. Logging & Formatting Phase ---
-    recommendation_origin = "cold_start" if user_context.is_cold_start else "algo"
+    if user_context.user_id == UNAUTHENTICATED_USER_ID:
+        recommendation_origin = "unknown"
+    else:
+        recommendation_origin = "cold_start" if user_context.is_cold_start else "algo"
 
     if user_context.is_authenticated:
         log_past_offer_context_to_sink(
@@ -116,7 +121,10 @@ async def generate_playlist_recommendations(
 
     return RecommendationResponse(
         playlist_recommended_offers=[offer.offer_id for offer in final_playlist],
-        params=RecommendationMetadata(reco_origin=recommendation_origin, model_origin="default", call_id=call_id),
-        # TODO : check if model_origin should be "reco" instead of "default"
+        params=RecommendationMetadata(
+            reco_origin=recommendation_origin,
+            model_origin=settings.PLAYLIST_RECOMMENDATION_MODEL_CONTEXT,
+            call_id=call_id,
+        ),
         from_cache=False,
     )
