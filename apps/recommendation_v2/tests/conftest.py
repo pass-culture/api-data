@@ -22,6 +22,7 @@ from services.db import get_database_session
 from services.redis import redis_cache_service
 
 from tests.factories.models import factory_session
+from tests.factories.schemas import RecommendableItemFactory
 from tests.factories.schemas import VertexPredictionResultFactory
 
 
@@ -78,16 +79,21 @@ def mock_vertex_retrieval(mocker):
 
     The mock is applied to both controllers so every test that exercises the pipeline
     receives a consistent, offline response.
+
+    Note: the playlist pipeline uses ``fetch_all_playlist_recommendation_retrieval_predictions_from_vertex``
+    which returns a ``list[RecommendableItem]`` directly (already merged and deduplicated).
+    The similar-offer pipeline still uses ``fetch_retrieval_predictions_from_vertex``
+    which returns a ``VertexPredictionResult``.
     """
     mock_retrieval_playlist = mocker.patch(
-        "controllers.pipeline_playlist_recommendation.fetch_retrieval_predictions_from_vertex",
+        "controllers.pipeline_playlist_recommendation.fetch_all_playlist_recommendation_retrieval_predictions_from_vertex",
         new_callable=mocker.AsyncMock,
     )
     mock_retrieval_similar = mocker.patch(
         "controllers.pipeline_similar_offer.fetch_retrieval_predictions_from_vertex",
         new_callable=mocker.AsyncMock,
     )
-    mock_retrieval_playlist.return_value = VertexPredictionResultFactory.build()
+    mock_retrieval_playlist.return_value = RecommendableItemFactory.batch(10)
     mock_retrieval_similar.return_value = VertexPredictionResultFactory.build()
 
     return mock_retrieval_playlist, mock_retrieval_similar
