@@ -4,15 +4,16 @@ LLM initialization and management.
 
 import json
 
-from langchain import LLMChain
 from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import Runnable
 from loguru import logger
 
+from pcpapillon.utils.env_vars import GCP_LOCATION
 from pcpapillon.utils_llm.models import LLMConfig
 
 
-def get_llm_chain(config: LLMConfig, langchain_prompt: ChatPromptTemplate) -> LLMChain:
+def get_llm_chain(config: LLMConfig, langchain_prompt: ChatPromptTemplate) -> Runnable:
     """
     Create an LLMChain from the provided configuration and prompt.
 
@@ -21,7 +22,7 @@ def get_llm_chain(config: LLMConfig, langchain_prompt: ChatPromptTemplate) -> LL
         langchain_prompt (ChatPromptTemplate): The prompt template to use
 
     Returns:
-        LLMChain: Initialized LLM chain
+        Runnable: Initialized LLM chain using LCEL pattern
 
     Raises:
         ValueError: If the provider is not supported or configuration is invalid
@@ -47,17 +48,20 @@ def get_llm_chain(config: LLMConfig, langchain_prompt: ChatPromptTemplate) -> LL
     try:
         if config.provider == "google":
             model_string = f"google_vertexai:{config.model}"
-            llm = init_chat_model(model_string, temperature=config.temperature)
+            llm = init_chat_model(
+                model_string, temperature=config.temperature, location=GCP_LOCATION
+            )
             logger.info(
                 f"Initialized Google model: {config.model} "
-                f"with temperature {config.temperature}"
+                f"with temperature {config.temperature} in region {GCP_LOCATION}"
             )
 
         else:
             raise ValueError(f"Unsupported provider: {config.provider}")
 
-        logger.debug("Successfully initialized LLM chain")
-        return LLMChain(llm=llm, prompt=langchain_prompt)
+        logger.debug("Successfully initialized LLM chain using LCEL pattern")
+        # Use LCEL pattern: prompt | llm
+        return langchain_prompt | llm
 
     except Exception as e:
         logger.error(f"Error initializing LLM chain: {e!s}")

@@ -2,6 +2,7 @@ import os
 
 import pandas as pd
 import yaml
+from loguru import logger
 
 from pcpapillon.utils_llm.data_model_llm import (
     ComplianceValidationStatusPredictionOutput,
@@ -46,6 +47,11 @@ class LLMComplianceModel:
         results_df = run_validation_pipeline(self.config, data)
         results_dict = results_df.to_dict(orient="records")[0]
 
+        # Log the results for debugging
+        logger.debug(f"Results DataFrame columns: {results_df.columns.tolist()}")
+        logger.debug(f"Results dict keys: {list(results_dict.keys())}")
+        logger.debug(f"Results dict values: {results_dict}")
+
         # Gestion des deux modes de validation
         validation_mode = self.config["validation"].get("mode", "llm_only")
 
@@ -53,15 +59,23 @@ class LLMComplianceModel:
             # Mode LLM seul : utiliser les colonnes de base
             response = results_dict.get("reponse_LLM")
             explanation = results_dict.get("explication_classification")
+            logger.info(
+                f"LLM only mode - response: {response}, explanation: {explanation}"
+            )
         else:
             # Mode sequential : utiliser les colonnes finales
             response = results_dict.get("reponse_LLM_finale")
             explanation = results_dict.get("explication_finale")
+            logger.info(
+                f"Sequential mode - response: {response}, explanation: {explanation}"
+            )
 
         normalized_output = {
             "validation_status_prediction": response,
             "validation_status_prediction_reason": explanation,
         }
+
+        logger.info(f"Normalized output: {normalized_output}")
 
         return ComplianceValidationStatusPredictionOutput.model_validate(
             normalized_output
