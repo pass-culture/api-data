@@ -215,6 +215,13 @@ def vertex_api():
     return api
 
 
+@pytest.fixture
+def graph_vertex_api():
+    api = VertexAPI(endpoint_name=settings.VERTEX_GRAPH_ENDPOINT_NAME)
+    api.vertex_infrastructure_service.execute_grpc_prediction = AsyncMock()
+    return api
+
+
 # ---------------------------------------------------------------------------
 # Redis integration fixtures
 # ---------------------------------------------------------------------------

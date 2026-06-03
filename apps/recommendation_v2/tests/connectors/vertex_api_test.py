@@ -4,6 +4,8 @@ import pytest
 from fastapi import HTTPException
 from fastapi import status
 
+from schemas.vertex_prediction_item import ItemOrigin
+
 
 def _grpc_response(predictions: list, deployed_model_id: str = "model-v1") -> MagicMock:
     response = MagicMock()
@@ -49,7 +51,15 @@ def _make_raw_retrieval_prediction(**overrides) -> dict:
 
 
 @pytest.mark.asyncio
-async def test_fetch_retrieval_maps_renamed_grpc_fields(vertex_api):
+@pytest.mark.parametrize(
+    ("feature_payloads", "expected_item_origin"),
+    [
+        ([{"model_type": "recommendation"}], ItemOrigin.USER_BASED),
+        ([{"model_type": "similar_offer"}], ItemOrigin.USER_BASED),
+        ([{"model_type": "tops"}], ItemOrigin.TOPS),
+    ],
+)
+async def test_fetch_retrieval_maps_renamed_grpc_fields(vertex_api, feature_payloads, expected_item_origin):
     """
     gRPC key names differ from Pydantic field names
     this pins the mapping so a rename in either schema won't go unnoticed.
@@ -59,24 +69,36 @@ async def test_fetch_retrieval_maps_renamed_grpc_fields(vertex_api):
     raw = _make_raw_retrieval_prediction(idx=rank, _distance=dist, cluster_id="clu-1", topic_id="top-1")
     vertex_api.vertex_infrastructure_service.execute_grpc_prediction.return_value = _grpc_response([raw])
 
-    item = (await vertex_api.fetch_retrieval_predictions(feature_payloads=[{}])).predictions[0]
+    item = (await vertex_api.fetch_retrieval_predictions(feature_payloads=feature_payloads)).predictions[0]
 
     assert item.item_rank == rank  # idx → item_rank
     assert item.item_score == dist  # _distance → item_score
     assert item.item_cluster_id == "clu-1"  # cluster_id → item_cluster_id
     assert item.item_topic_id == "top-1"  # topic_id → item_topic_id
+    assert item.item_origin == expected_item_origin
 
 
 @pytest.mark.asyncio
-async def test_fetch_retrieval_hardcodes_item_origin_to_user_based(vertex_api):
-    """item_origin is not sourced from the gRPC response; the connector always sets it to "user_based"."""
-    vertex_api.vertex_infrastructure_service.execute_grpc_prediction.return_value = _grpc_response(
-        [_make_raw_retrieval_prediction()]
-    )
+@pytest.mark.parametrize(
+    ("feature_payloads", "expected_item_origin"),
+    [
+        ([{"model_type": "similar_offer"}], ItemOrigin.GRAPH),
+        ([{"model_type": "tops"}], ItemOrigin.TOPS),  # tops fallback overrides graph
+    ],
+)
+async def test_fetch_retrieval_graph_endpoint_sets_item_origin(
+    graph_vertex_api, feature_payloads, expected_item_origin
+):
+    """
+    When the graph endpoint is used, item_origin must be GRAPH — unless the model fell back
+    to 'tops', in which case item_origin stays TOPS regardless of the endpoint.
+    """
+    raw = _make_raw_retrieval_prediction()
+    graph_vertex_api.vertex_infrastructure_service.execute_grpc_prediction.return_value = _grpc_response([raw])
 
-    item = (await vertex_api.fetch_retrieval_predictions(feature_payloads=[{}])).predictions[0]
+    item = (await graph_vertex_api.fetch_retrieval_predictions(feature_payloads=feature_payloads)).predictions[0]
 
-    assert item.item_origin == "user_based"
+    assert item.item_origin == expected_item_origin
 
 
 @pytest.mark.asyncio
@@ -89,7 +111,9 @@ async def test_fetch_retrieval_casts_is_geolocated_int_to_bool(vertex_api):
         ]
     )
 
-    predictions = (await vertex_api.fetch_retrieval_predictions(feature_payloads=[{}])).predictions
+    predictions = (
+        await vertex_api.fetch_retrieval_predictions(feature_payloads=[{"model_type": "recommendation"}])
+    ).predictions
 
     assert predictions[0].is_geolocated is True
     assert predictions[1].is_geolocated is False

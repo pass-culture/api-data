@@ -93,6 +93,11 @@ class VertexService:
             # Convert standard Python dictionaries into Protobuf 'Value' objects required by gRPC
             protobuf_instances = [json_format.ParseDict(payload, Value()) for payload in feature_payloads]
 
+            logger.debug(
+                "Information sent to Vertex AI Prediction API",
+                extra={"endpoint_name": self.endpoint_name, "payload": {"instances": feature_payloads}},
+            )
+
             return await client.predict(
                 endpoint=endpoint_resource_path,
                 instances=protobuf_instances,
