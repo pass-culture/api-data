@@ -1,3 +1,4 @@
+from unittest.mock import AsyncMock
 from unittest.mock import patch
 
 import pytest
@@ -67,3 +68,43 @@ async def test_playlist_recommendation_enforces_token_verification_when_not_loca
             )
 
     assert response.status_code == expected_status_code
+
+
+@pytest.mark.asyncio
+async def test_nearby_coordinates_in_same_h3_cell_share_cache_key(client: AsyncClient, mocker):
+    """Two coordinates inside the same H3 cell normalize to the same location_h3,
+    so a user moving a few metres reuses the existing playlist cache entry."""
+    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
+    fetch_mock = mocker.patch(
+        "api.playlist_recommendation.redis_api.fetch_cached_response", new_callable=AsyncMock, return_value=None
+    )
+    mocker.patch("api.playlist_recommendation.redis_api.store_endpoint_response", new_callable=AsyncMock)
+
+    await client.post("/playlist_recommendation/user-1?latitude=48.8566&longitude=2.3522", json={})
+    await client.post("/playlist_recommendation/user-1?latitude=48.8568&longitude=2.3524", json={})
+
+    assert fetch_mock.call_count == 2  # noqa: PLR2004
+    first_sig = fetch_mock.call_args_list[0].kwargs["request_signature_data"]
+    second_sig = fetch_mock.call_args_list[1].kwargs["request_signature_data"]
+    assert first_sig["location_h3"] is not None
+    assert first_sig["location_h3"] == second_sig["location_h3"]
+
+
+@pytest.mark.asyncio
+async def test_distant_coordinates_produce_different_cache_keys(client: AsyncClient, mocker):
+    """Two coordinates in different H3 cells produce different location_h3 values,
+    so a user moving a large distance generates a new playlist cache entry."""
+    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
+    fetch_mock = mocker.patch(
+        "api.playlist_recommendation.redis_api.fetch_cached_response", new_callable=AsyncMock, return_value=None
+    )
+    mocker.patch("api.playlist_recommendation.redis_api.store_endpoint_response", new_callable=AsyncMock)
+
+    await client.post("/playlist_recommendation/user-1?latitude=48.8566&longitude=2.3522", json={})
+    await client.post("/playlist_recommendation/user-1?latitude=48.8048&longitude=2.1203", json={})
+
+    assert fetch_mock.call_count == 2  # noqa: PLR2004
+    first_sig = fetch_mock.call_args_list[0].kwargs["request_signature_data"]
+    second_sig = fetch_mock.call_args_list[1].kwargs["request_signature_data"]
+    assert first_sig["location_h3"] is not None
+    assert first_sig["location_h3"] != second_sig["location_h3"]
