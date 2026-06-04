@@ -2,6 +2,7 @@ from langchain.chat_models import init_chat_model
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
+from pcpapillon.utils.env_vars import GCP_LOCATION
 from pcpapillon.utils_llm.models import LLMConfig
 
 # importer LLMConfig (config)
@@ -12,6 +13,7 @@ def get_web_search_chain(config: LLMConfig, langchain_prompt: ChatPromptTemplate
     model = config.model
     llm = init_chat_model(
         model=f"google_vertexai:{model}",
+        location=GCP_LOCATION,
         web_search_options={
             "user_location": {
                 "type": "approximate",

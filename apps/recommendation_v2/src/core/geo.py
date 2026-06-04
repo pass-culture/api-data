@@ -1,3 +1,4 @@
+import math
 from typing import TYPE_CHECKING
 
 import h3
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
     from core.user_context import UserContext
 
 H3_SEARCH_RADIUS_IN_KM = 50.0
+EARTH_RADIUS_METERS = 6371000
 MAX_DISTANCE_METERS_FOR_OFFER_RETRIEVAL = H3_SEARCH_RADIUS_IN_KM * 1000.0
 
 
@@ -167,3 +169,37 @@ async def find_closest_offers_with_h3_index(
     result = await db.execute(stmt)
 
     return result.all()
+
+
+def calculate_haversine_distance_in_meters(
+    user_lat: float | None, user_lon: float | None, offer_lat: float | None, offer_lon: float | None
+) -> float | None:
+    """
+    Calculates the great-circle distance between two GPS points on Earth.
+
+    Args:
+        user_lat (float | None): User's latitude in decimal degrees.
+        user_lon (float | None): User's longitude in decimal degrees.
+        offer_lat (float | None): Offer venue's latitude in decimal degrees.
+        offer_lon (float | None): Offer venue's longitude in decimal degrees.
+
+    Returns:
+        float | None: The distance in meters, or None if any coordinate is missing.
+    """
+    if user_lat is None or user_lon is None or offer_lat is None or offer_lon is None:
+        return None
+
+    user_lat_rad = math.radians(user_lat)
+    offer_lat_rad = math.radians(offer_lat)
+
+    delta_lat_rad = math.radians(offer_lat - user_lat)
+    delta_lon_rad = math.radians(offer_lon - user_lon)
+
+    haversine_a = (
+        math.sin(delta_lat_rad / 2) ** 2
+        + math.cos(user_lat_rad) * math.cos(offer_lat_rad) * math.sin(delta_lon_rad / 2) ** 2
+    )
+
+    distance = 2 * EARTH_RADIUS_METERS * math.atan2(math.sqrt(haversine_a), math.sqrt(1 - haversine_a))
+
+    return distance

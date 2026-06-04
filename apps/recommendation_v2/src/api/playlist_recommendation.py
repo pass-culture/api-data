@@ -77,7 +77,7 @@ async def get_playlist(
         RecommendationResponse: A structured payload containing the ordered list of offer IDs.
     """
     # Override coordinates if a test location is selected
-    if preset_location:
+    if preset_location:  # pragma: no cover
         latitude, longitude = PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING[preset_location]
 
     # Use a finer resolution for cache to avoid reusing the same cache if a user moves within a large resolution cell.

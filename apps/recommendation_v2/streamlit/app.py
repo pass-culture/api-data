@@ -11,6 +11,7 @@ import time as time_mod
 from pathlib import Path
 
 import requests
+from components.env_banner import render_env_banner
 
 import streamlit as st
 
@@ -19,10 +20,9 @@ import streamlit as st
 sys.path.append(str(Path(__file__).resolve().parent.parent / "src"))
 
 from components.card_renderer import show_recommendations
+from components.request_debug import render_request_debug
 from components.sidebar import render_playlist_recommendation_sidebar
 from services.backend_api_client import fetch_playlist_recommendation_ids
-
-from config.settings import FASTAPI_SERVER_PORT
 
 
 def main():
@@ -40,13 +40,27 @@ def main():
     st.markdown("Exécutez et testez l'API de recommandation en toute simplicité.")
 
     # Collect parameters from the sidebar
-    user_id, params, payload, max_offers_to_fetch, run_fetch = render_playlist_recommendation_sidebar()
+    user_id, params, payload, max_offers_to_fetch, run_fetch, api_base_url, proxies, api_token = (
+        render_playlist_recommendation_sidebar()
+    )
+
+    render_env_banner(api_base_url)
 
     if run_fetch:
-        fetch_and_display_playlist_recommendations(user_id, params, payload, max_offers_to_fetch)
+        fetch_and_display_playlist_recommendations(
+            user_id, params, payload, max_offers_to_fetch, api_base_url, proxies, api_token
+        )
 
 
-def fetch_and_display_playlist_recommendations(user_id: str, params: dict, payload: dict, max_offers: int):
+def fetch_and_display_playlist_recommendations(  # noqa: PLR0913
+    user_id: str,
+    params: dict,
+    payload: dict,
+    max_offers: int,
+    api_base_url: str,
+    proxies: dict | None = None,
+    api_token: str | None = None,
+):
     """
     Calls the FastAPI backend to retrieve recommended offer IDs and renders them.
 
@@ -55,14 +69,19 @@ def fetch_and_display_playlist_recommendations(user_id: str, params: dict, paylo
     - params (dict): URL query parameters (like geolocation).
     - payload (dict): The request payload (filters and options).
     - max_offers (int): The maximum number of offers to display.
+    - api_base_url (str): The base URL of the FastAPI backend.
+    - proxies (dict | None): Optional SOCKS5 proxy for VPC tunneling.
+    - api_token (str | None): Optional API token passed as query param `token`.
     """
-    api_url = f"http://localhost:{FASTAPI_SERVER_PORT}/playlist_recommendation/{user_id}"
+    api_url = f"{api_base_url.rstrip('/')}/playlist_recommendation/{user_id}"
 
     with st.spinner("Appel de l'API de recommandation en cours..."):
         start_time = time_mod.time()
 
         try:
-            offer_ids, reco_origin, model_origin = fetch_playlist_recommendation_ids(api_url, params, payload)
+            offer_ids, reco_origin, model_origin = fetch_playlist_recommendation_ids(
+                api_url, params, payload, proxies, api_token
+            )
         except requests.exceptions.RequestException as error:
             st.error(f"Erreur lors de l'appel de l'API : {error}")
             if error.response is not None:
@@ -70,6 +89,8 @@ def fetch_and_display_playlist_recommendations(user_id: str, params: dict, paylo
             st.stop()
 
         api_response_time = time_mod.time() - start_time
+
+    render_request_debug(method="POST", url=api_url, query_params=params, body=payload, proxies=proxies)
 
     # Display execution metadata
     st.markdown(

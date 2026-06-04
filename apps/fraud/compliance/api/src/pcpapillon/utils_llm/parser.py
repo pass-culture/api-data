@@ -3,25 +3,45 @@ Response parsing utilities for LLM outputs.
 """
 
 import pandas as pd
-from langchain.output_parsers.structured import ResponseSchema, StructuredOutputParser
+from langchain_core.output_parsers.json import JsonOutputParser
 
 from pcpapillon.utils_llm.rules.subcategory_rules_mapping import get_rules_file
 
 
+class ComplianceJsonOutputParser(JsonOutputParser):
+    """Custom JSON output parser that provides format instructions for LLM."""
+
+    def __init__(self, response_schemas, **kwargs):
+        super().__init__(**kwargs)
+        # Store schemas in __dict__ to avoid Pydantic field validation
+        self.__dict__["_response_schemas"] = response_schemas
+
+    def get_format_instructions(self) -> str:
+        """Generate format instructions based on the response schemas."""
+        response_schemas = self.__dict__.get("_response_schemas", [])
+        schema_desc = []
+        for schema in response_schemas:
+            name = schema.get("name")
+            desc = schema.get("description", "")
+            field_type = schema.get("type", "string")
+            schema_desc.append(f'  "{name}": <{field_type}> - {desc}')
+
+        schema_str = ",\n".join(schema_desc)
+
+        return f"""Respond with a valid JSON object with the following structure:
+{{
+{schema_str}
+}}
+
+IMPORTANT: 
+- Respond ONLY with the JSON object, no additional text before or after
+- Ensure all string values are properly escaped
+- Use double quotes for JSON keys and string values"""
+
+
 def create_output_parser(config, response_schemas):
     """Creates a structured parser for LLM responses based on the specified schema."""
-
-    response_schemas_parsed = []
-    for schema in response_schemas:
-        response_schemas_parsed.append(
-            ResponseSchema(
-                name=schema.get("name"),
-                description=schema.get("description", ""),
-                type=schema.get("type", "string"),
-            )
-        )
-
-    return StructuredOutputParser.from_response_schemas(response_schemas_parsed)
+    return ComplianceJsonOutputParser(response_schemas)
 
 
 def post_process_result(config, offre_commerciale, result, response_schemas):

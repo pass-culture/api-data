@@ -12,7 +12,6 @@ from pcpapillon.utils_llm.models import LLMConfig
 from pcpapillon.utils_llm.parser import create_output_parser, post_process_result
 from pcpapillon.utils_llm.prompt_manager import get_prompt_template
 from pcpapillon.utils_llm.rules.subcategory_rules_mapping import get_rules_file
-from pcpapillon.utils_llm.tools.logging_utils import log_llm_prompt
 from pcpapillon.utils_llm.validators import get_txt_from_path
 
 
@@ -101,33 +100,15 @@ def run_global_validation(
                 else:
                     prompt_args["context_available"] = False
 
-                rendered_prompt = chain.prompt.format(**prompt_args)
+                result = chain.invoke(prompt_args)
 
-                subcat_id = offers.loc[0, "offer_subcategory_id"]
-                # Log the prompt with metadata
-                log_llm_prompt(
-                    prompt=rendered_prompt,
-                    config=config.dict() if hasattr(config, "dict") else vars(config),
-                    offer_id=offre_commerciale.get("offer_id"),
-                    metadata={
-                        "rules_file": get_rules_file(subcat_id),
-                        "prompt_type": config.prompt_type
-                        if hasattr(config, "prompt_type")
-                        else config.get("prompt_type"),  # type: ignore
-                        "has_llm_context": has_llm_context,
-                        "llm_context_fields": list(llm_context.keys())
-                        if llm_context
-                        else [],
-                    },
-                )
-
-                # Make the LLM call
-                result = chain.run(**prompt_args)
+                if hasattr(result, "content"):
+                    result = result.content
 
                 try:
                     # Tentative de parsing normal
                     parsed_result = output_parser.parse(result)
-                    logger.info(f"result: {parsed_result}")
+                    logger.info(f"Successfully parsed result: {parsed_result}")
                     clean_result_df = post_process_result(
                         config, offre_commerciale, parsed_result, response_schemas
                     )

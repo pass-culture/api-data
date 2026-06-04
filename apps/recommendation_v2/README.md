@@ -86,7 +86,7 @@ src/
 ├── models/           # SQLAlchemy database models (PostGIS/DB schema)
 ├── schemas/          # Pydantic models (Input/Output strict validation)
 ├── services/         # External infrastructure clients (Vertex, DB, Redis, H3, Logger)
-└── streamlit/        # Local Streamlit UI acting as a visual proxy for the API
+└── streamlit/        # Streamlit UI acting as a visual proxy for the API
 
 tests/
 ├── api/              # Route integration tests
@@ -100,15 +100,31 @@ tests/
 ### 1. Prerequisites
 We use `uv`, an ultra-fast tool for managing Python versions and virtual environments:
 ```bash
-curl -LsSf [https://astral.sh/uv/install.sh](https://astral.sh/uv/install.sh) | sh
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 ### 2. Environment Setup
-Configuration is managed via environment variables. Start by duplicating the template to create your local environment file:
+
+Configuration is split across two types of files:
+
+| File | Purpose |
+|------|---------|
+| `.env` | Base configuration for the application (DB, GCP, Redis, logging, etc.) |
+| `.env.<env>` | Environment-specific overrides for remote access (dev, stg, prod) |
+
+Start by creating your base configuration file:
 ```bash
 cp .env.template .env
+# Fill in the missing values
 ```
-*Fill in the missing values in your `.env` file according to the instructions below.*
+
+If you need to connect to a remote environment (staging, prod), also create the corresponding override file:
+```bash
+cp .env.remote.template .env.stg   # or .env.dev / .env.prod
+# Fill in the remote API URLs, token, and SSH tunnel configuration
+```
+
+The `.env.<env>` file is automatically loaded on top of `.env` when you pass `DEPLOY_ENV=<env>` to any Makefile command. Variables defined in `.env.<env>` take precedence over those in `.env`.
 
 ### 3. Google Cloud Authentication
 To make local calls to the Vertex AI recommendation endpoints, you must authenticate your local machine with Google Cloud:
@@ -123,7 +139,7 @@ make install
 ```
 
 ### 5. Start Redis (Development / Cache Testing)
-If you wish to test or use the cache mechanism during local development, ensure Redis is running via docker (the `Makefile` automates it when standard API targets are launched, or you can manage it directly):
+If you wish to test or use the cache mechanism during local development, ensure Redis is running via Docker (the `Makefile` automates it when standard API targets are launched, or you can manage it directly):
 ```bash
 make start-redis
 ```
@@ -154,42 +170,70 @@ make dev-with-streamlit
 
 ### 7. Run Tests
 ```bash
-make test
+make test           # all tests
+make unit-test      # unit tests only
+make integration-test  # integration tests only (requires Docker)
 ```
 
-## 🔌 Accessing Staging Environment (Swagger & Tokens)
+---
 
-To debug or inspect the legacy V1 API in the staging environment (which is protected inside a VPC), we provide dedicated Makefile commands to automate the secure tunnel connection.
+## 🔌 Accessing Remote Environments
 
-### 1. Access V1 Swagger UI
-This command opens a SOCKS proxy tunnel to the VPC and launches a configured Chrome instance to access the internal Swagger UI.
+Two dedicated Makefile commands allow you to connect to and inspect remote APIs (dev, staging, prod). Both require:
+1. A `.env.<env>` file with the remote API configuration (see `.env.remote.template`).
+2. `gcloud` to be authenticated (`make check-gcloud-auth`).
+3. The `DEPLOY_ENV` variable to be explicitly passed — both commands **refuse to run without it**.
+
+### Streamlit UI against a remote API
+
+Launches a local Streamlit instance connected to a remote API through a SOCKS5 tunnel. The Streamlit sidebar lets you switch between API v1 and v2, configure a proxy, and inspect each request in detail.
 
 ```bash
-make access-swagger-api-v1
+make streamlit-remote DEPLOY_ENV=stg
+# or
+make streamlit-remote DEPLOY_ENV=prod
 ```
-*👉 **[Read the Notion guide on how to access Cloud Run VPC APIs via SOCKS tunnel](https://www.notion.so/passcultureapp/Consulter-le-Swagger-d-une-API-Cloud-Run-VPC-Interne-en-local-via-un-tunnel-SOCKS-321ad4e0ff9880bea690ca240965d5a9?source=copy_link)**.*
 
-### 2. Get Staging API Token
-Retrieve a valid Bearer token for the staging environment (useful for Authorizing requests in the Swagger UI).
+Once started:
+- Open the Streamlit URL in your browser (default: `http://localhost:8501`)
+- In the sidebar, set the **Proxy SOCKS5** field to: `socks5h://localhost:1080`
+- The environment banner at the top of the page confirms which API you are targeting
+
+### Access remote Swagger UI
+
+Opens the Swagger `/docs` of a remote API directly in Google Chrome, routed through a SOCKS5 tunnel. Supports selecting API version v1 or v2.
 
 ```bash
-make get-staging-api-token
+make access-remote-swagger DEPLOY_ENV=stg           # opens v2 Swagger (default)
+make access-remote-swagger DEPLOY_ENV=stg VERSION=v1  # opens v1 Swagger
 ```
-*Note: This requires `gcloud` to be authenticated.*
+
+### Get a remote API token
+
+Fetches a valid API token from Google Secret Manager for the specified environment. Useful to authorize requests in the Swagger UI or Streamlit.
+
+```bash
+make get-api-token DEPLOY_ENV=stg
+make get-api-token DEPLOY_ENV=prod
+```
+
+*Requires `GCP_SECRET_PROJECT` and `API_RECO_TOKEN_SECRET_NAME` to be set in the corresponding `.env.<env>` file.*
 
 ---
 
 ## ⚙️ Configuration Reference
 
-The application relies on environment variables for configuration. Copy `.env.template` to `.env` and fill in the values.
+### Base configuration (`.env`)
+
+Copy `.env.template` to `.env` and fill in the values.
 **Note:** For security reasons, sensitive values (IPs, passwords, project IDs) are not committed. Ask the Data Science team for the correct values or check the internal documentation.
 
-### 🌐 API Server
+#### 🌐 API Server
 | Variable | Description |
 |----------|-------------|
 | `FASTAPI_SERVER_PORT` | The local port where the FastAPI server will run (e.g., `8801`). |
 
-### 🗄️ Database Connection
+#### 🗄️ Database Connection
 Used to connect to the PostgreSQL database. When running locally with `make start-with-remote-db`, these should point to the **local end of the SSH tunnel**.
 
 | Variable | Description |
@@ -200,54 +244,55 @@ Used to connect to the PostgreSQL database. When running locally with `make star
 | `SQL_BASE_USER` | Database username. |
 | `SQL_BASE_PASSWORD` | Database password. |
 
-### 🧠 Google Cloud & Vertex AI
-Configuration for the Recommendation Engine's ML backend.
-
+#### 🧠 Google Cloud & Vertex AI
 | Variable | Description |
 |----------|-------------|
 | `GCP_PROJECT` | GCP Project ID where the Vertex AI endpoints are hosted. |
 | `VERTEX_RETRIEVAL_ENDPOINT_NAME` | Name of the Vertex AI Endpoint for the Retrieval model. |
 | `VERTEX_RANKING_ENDPOINT_NAME` | Name of the Vertex AI Endpoint for the Ranking model. |
+| `VERTEX_GRAPH_ENDPOINT_NAME` | Name of the Vertex AI Endpoint for the Graph model. |
 
-### 🏗️ Infrastructure & SSH Tunnels
-These variables are used by the `Makefile` to establish secure tunnels to the VPC (for DB access and Swagger access).
+#### 🏗️ Infrastructure & SSH Tunnels
+Used by the Makefile to establish secure tunnels to the VPC (for DB access).
 
 | Variable | Description |
 |----------|-------------|
 | `GCP_ZONE` | GCP Zone where the Bastion VM is located. |
-| `GCP_IAP_BASTION_INSTANCE_NAME` | Name of the Bastion VM (Tinyproxy) used for the tunnel. |
-| `REMOTE_SQL_GCP_PROJECT` | GCP Project ID where the Cloud SQL instance is hosted. |
+| `GCP_IAP_BASTION_INSTANCE_NAME` | Name of the Bastion VM used for the DB tunnel. |
+| `GCP_BASTION_PROJECT` | GCP Project ID where the Bastion VM is hosted. |
 | `REMOTE_SQL_HOST` | Internal Private IP of the Cloud SQL instance. |
 | `REMOTE_SQL_PORT` | Port of the remote Postgres instance (e.g., `5432`). |
 
-### 🔌 V1 Swagger Proxy (Legacy)
-Used by `make access-swagger-api-v1` to browse the internal API V1 documentation.
-
+#### 🗄️ Redis Caching Layer
 | Variable | Description |
 |----------|-------------|
-| `RECOMMENDATION_V1_STAGING_SOCKS_PORT` | Local port to use for the SOCKS5 proxy tunnel. |
-| `RECOMMENDATION_V1_STAGING_CLOUDRUN_URL` | Full internal URL of the Staging Swagger UI to open (Cloud Run). |
+| `REDIS_CACHE_ENABLED` | Set to `1` to enable Redis caching, `0` to disable. Default: `0` locally. |
+| `REDIS_URL` | Connection string to the Redis server (e.g., `redis://localhost:6379/0`). |
+| `REDIS_CACHE_RESET_HOUR` | The hour [0-23] at which the cache automatically expires (usually `5` AM). |
 
-### 🔐 Secrets Management
-Used by `make get-staging-api-token` to fetch secrets from Google Secret Manager.
-
-| Variable | Description |
-|----------|-------------|
-| `GCP_SECRET_PROJECT` | GCP Project ID where secrets are stored. |
-| `API_RECO_TOKEN_SECRET_NAME` | Name of the secret in Secret Manager containing the API Token. |
-
-### 🗄️ Redis Caching Layer
-Configuration for the internal memory caching layer designed to accelerate repetitive calls.
-
-| Variable | Description                                                                                                         |
-|----------|---------------------------------------------------------------------------------------------------------------------|
-| `REDIS_CACHE_ENABLED` | Set to `1` to enable caching endpoints in Redis, `0` to disable it. Default disables cache locally.                 |
-| `REDIS_URL` | Application connection string to the Redis server (e.g., `redis://localhost:6379/0`).                               |
-| `REDIS_CACHE_RESET_HOUR` | The hour [0-23] at which the cache automatically expires (usually `5` AM to match the daily Postgres repopulation). |
-
-### 🛠️ Debugging & Logs
+#### 🛠️ Debugging & Logs
 | Variable | Description |
 |----------|-------------|
 | `LOGS_PRETTY_PRINT` | Set to `1` to enable colored, human-readable JSON logs for local dev. |
-| `ENABLE_TRACKING_LOGS` | Set to `0` to disable sending tracking events to BigQuery (avoids pollution during dev). |
-| `SWAGGER_UI_EXAMPLE_USER_ID` | A valid User ID to pre-fill in the Swagger UI "Execute" fields for testing. |
+| `ENABLE_TRACKING_LOGS` | Set to `0` to disable sending tracking events to BigQuery during dev. |
+| `SWAGGER_UI_EXAMPLE_USER_ID` | A valid User ID to pre-fill in the Swagger UI for testing. |
+| `SWAGGER_UI_EXAMPLE_OFFER_ID` | A valid Offer ID to pre-fill in the Swagger UI for testing. |
+| `SWAGGER_UI_EXAMPLE_OFFER_NAME` | A valid Offer name to pre-fill in the Swagger UI for testing. |
+
+---
+
+### Remote environment configuration (`.env.<env>`)
+
+Copy `.env.remote.template` to `.env.dev`, `.env.stg`, or `.env.prod` and fill in the values.
+These variables override the base `.env` when `DEPLOY_ENV=<env>` is passed to a Makefile command.
+
+| Variable | Description |
+|----------|-------------|
+| `REMOTE_API_URL` | URL of the remote v2 API (used by `streamlit-remote` and `access-remote-swagger`). |
+| `REMOTE_API_V1_URL` | URL of the remote v1 API (optional, enables the v1/v2 version selector in Streamlit). |
+| `REMOTE_API_TOKEN` | API authentication token, pre-filled in the Streamlit sidebar. |
+| `REMOTE_API_SOCKS_PORT` | Local port for the SOCKS5 proxy tunnel (default: `1080`). |
+| `GCP_IAP_BASTION_INSTANCE_NAME` | Bastion VM name if different from the one in `.env`. |
+| `GCP_BASTION_PROJECT` | Bastion GCP project if different from the one in `.env`. |
+| `GCP_SECRET_PROJECT` | GCP project where the API token secret is stored (used by `get-api-token`). |
+| `API_RECO_TOKEN_SECRET_NAME` | Name of the secret in GCP Secret Manager containing the API token (used by `get-api-token`). |

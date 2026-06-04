@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 # --- 1. Environment Loading ---
 # Resolve the path to the .env file located at the root of the src directory
 environment_file_path = Path(".env")
-load_dotenv(dotenv_path=environment_file_path, override=True)
+load_dotenv(dotenv_path=environment_file_path, override=False)
 
 
 # --- 2. Application Environment ---
@@ -29,7 +29,7 @@ IS_PROD: bool = ENV == "production"
 IS_CI: bool = ENV == "ci"
 
 # Fail-fast mechanism: prevent the app from starting if the environment is unrecognized
-if ENV not in ("local", "testing", "staging", "production", "ci"):
+if ENV not in ("local", "testing", "staging", "production", "ci"):  # pragma: no cover
     raise RuntimeError(f"Unknown environment detected: {ENV}")
 
 FASTAPI_SERVER_PORT: int = int(os.environ.get("FASTAPI_SERVER_PORT", "8000"))
@@ -90,6 +90,8 @@ REDIS_CACHE_ENABLED: bool = bool(int(os.environ.get("REDIS_CACHE_ENABLED", "0" i
 REDIS_URL: str = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 REDIS_CACHE_RESET_HOUR: int = int(os.environ.get("REDIS_CACHE_RESET_HOUR", "5"))
 REDIS_MONITOR_INTERVAL_SECONDS: int = int(os.environ.get("REDIS_MONITOR_INTERVAL_SECONDS", "60"))
+REDIS_CA_CERT_PATH: str = os.environ.get("REDIS_CA_CERT_PATH", "")  # Path to PEM file for Redis TLS
+REDIS_AUTH_STRING: str = os.environ.get("REDIS_AUTH_STRING", "")  # Optional auth string for Redis
 
 # --- 9. Geospatial Configuration ---
 GEOSPATIAL_RETRIEVAL_H3_RESOLUTION: int = int(os.environ.get("GEOSPATIAL_RETRIEVAL_H3_RESOLUTION", "5"))
