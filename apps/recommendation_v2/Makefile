@@ -132,6 +132,7 @@ streamlit-remote: check-gcloud-auth ## Start Streamlit UI against a remote API v
 	trap 'echo -e "\n🛑 Closing SOCKS tunnel (PID: $$TUNNEL_PID)..."; kill $$TUNNEL_PID 2>/dev/null || true' EXIT INT TERM ; \
 	echo "✅ Tunnel SOCKS ouvert sur le port $$SOCKS_PORT" ; \
 	echo "👉 Dans le Streamlit, configurez le proxy : socks5://localhost:$$SOCKS_PORT" ; \
+	DOTENV_OVERRIDE=0 \
 	REMOTE_API_URL="$$REMOTE_API_URL" \
 	REMOTE_API_V1_URL="$$REMOTE_API_V1_URL" \
 	REMOTE_API_TOKEN="$$REMOTE_API_TOKEN" \

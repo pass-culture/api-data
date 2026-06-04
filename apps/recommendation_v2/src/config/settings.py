@@ -16,7 +16,15 @@ from dotenv import load_dotenv
 # --- 1. Environment Loading ---
 # Resolve the path to the .env file located at the root of the src directory
 environment_file_path = Path(".env")
-load_dotenv(dotenv_path=environment_file_path, override=False)
+
+# override=True (default) allows uvicorn's hot-reload to pick up .env changes at runtime
+# (uvicorn is configured with reload_includes=[".env"], which triggers a module reimport).
+# When running remote commands (streamlit-remote), the shell pre-loads
+# the environment from .env.<DEPLOY_ENV> BEFORE the Python process starts. In that case,
+# the Makefile injects DOTENV_OVERRIDE=0 so that load_dotenv does NOT override the env vars
+# already set in the process environment, letting .env.<DEPLOY_ENV> values take precedence.
+_dotenv_override: bool = bool(int(os.environ.get("DOTENV_OVERRIDE", "1")))
+load_dotenv(dotenv_path=environment_file_path, override=_dotenv_override)
 
 
 # --- 2. Application Environment ---
