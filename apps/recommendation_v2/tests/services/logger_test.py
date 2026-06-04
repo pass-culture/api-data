@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 import pytest
 
@@ -49,10 +50,13 @@ async def test_structured_logger_tags_each_concurrent_log_with_its_own_call_id(m
 
     captured_payloads: list[dict] = []
 
-    class _RecordingBaseLogger:
+    class _RecordingBaseLogger(logging.Logger):
         """Stand-in for the stdlib logger that just records what it was handed."""
 
-        def info(self, payload: dict) -> None:
+        def __init__(self) -> None:
+            super().__init__(name="recording")
+
+        def info(self, payload: dict, *args, **kwargs) -> None:  # type: ignore[override]
             captured_payloads.append(payload)
 
     structured_logger = StructuredLogger(_RecordingBaseLogger())
