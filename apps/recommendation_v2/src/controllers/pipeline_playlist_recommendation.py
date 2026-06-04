@@ -15,6 +15,7 @@ from models.user import EnrichedUser
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.playlist_recommendation import RecommendationResponse
+from services.logger import call_id_context
 from services.logger import logger
 
 
@@ -52,6 +53,7 @@ async def generate_playlist_recommendations(
 
     # --- 1. Initialization & Context Building ---
     call_id = str(uuid.uuid4())
+    call_id_context.set(call_id)
 
     db_user = await db.get(EnrichedUser, user_id)
     iris_id = await get_iris_id_from_coordinates(db, latitude, longitude)
