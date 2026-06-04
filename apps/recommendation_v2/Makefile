@@ -215,7 +215,7 @@ integration-test: ## Run integration tests only (requires Docker)
 	@echo "🧪 Running integration tests..."
 	uv run pytest tests -m integration
 
-test-with-markers: ## Verify that every test has a unit or integration marker
+all-tests-marked: ## Verify that every test has a unit or integration marker
 	@echo "🧪 Verifying all tests are marked..."
 	@TOTAL=$$(uv run pytest --collect-only -q | grep -c "test_"); \
 	MARKED=$$(uv run pytest --collect-only -m "unit or integration" -q | grep -c "test_"); \
