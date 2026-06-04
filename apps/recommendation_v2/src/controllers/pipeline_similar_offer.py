@@ -22,6 +22,7 @@ from schemas.categories import SubcategoryEnum
 from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.similar_offer import SimilarOfferModelChoices
 from schemas.similar_offer import SimilarOfferResponse
+from services.logger import call_id_context
 from services.logger import logger
 
 
@@ -73,6 +74,7 @@ async def generate_similar_offers(  # noqa: PLR0913
 
     # --- 1. Initialization & Context Building ---
     call_id = str(uuid.uuid4())
+    call_id_context.set(call_id)
 
     # 1.1. Fetch the reference offer from the database
     offer_query_result = await db.execute(select(RecommendableOffers).where(RecommendableOffers.offer_id == offer_id))
