@@ -4,6 +4,7 @@ Sidebar component for the Streamlit Application.
 Presents form inputs to construct parameters and payload for the recommendation API.
 """
 
+import os
 from datetime import datetime
 from datetime import time
 
@@ -14,6 +15,7 @@ from services.database_service import get_random_user
 from streamlit_folium import st_folium
 
 import streamlit as st
+from config.settings import FASTAPI_SERVER_PORT
 from config.settings import SWAGGER_UI_EXAMPLE_OFFER_ID
 from config.settings import SWAGGER_UI_EXAMPLE_USER_ID
 from schemas.playlist_recommendation import CategoryEnum
@@ -23,15 +25,121 @@ from schemas.similar_offer import SimilarOfferModelChoices
 from utils.location_presets import PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING
 
 
+_LOCAL_HOST_PATTERNS = ("localhost", "127.0.0.", "0.0.0.0")
+
+V1_LABEL = "v1 (legacy)"
+V2_LABEL = "v2 (default)"
+
+
+def _render_api_url_input(default_url: str | None = None) -> tuple[str, dict | None, str | None]:
+    """Render the API connection block in the sidebar.
+
+    Displays:
+    - API base URL input (always visible, pre-filled from REMOTE_API_URL env var if set)
+    - API version radio selector (only if URL is remote AND REMOTE_API_V1_URL is set)
+    - API token input (only if URL is remote)
+    - SOCKS5 proxy input (only if URL is remote)
+
+    The version selector pre-selects v1 or v2 based on the STREAMLIT_DEFAULT_API_VERSION
+    environment variable set by the Makefile (e.g. VERSION=1 → pre-select v1).
+
+    Returns:
+        tuple: (api_url, proxies dict or None, api_token or None)
+    """
+    if default_url is None:
+        default_url = f"http://localhost:{FASTAPI_SERVER_PORT}"
+
+    remote_v1_url = os.environ.get("REMOTE_API_V1_URL", "")
+    remote_v2_url = os.environ.get("REMOTE_API_URL", "") or default_url
+
+    # Version selector is rendered first so it updates api_base_url
+    # in session_state before the URL text_input reads it.
+    if remote_v1_url:
+        _render_api_version_selector(remote_v1_url, remote_v2_url)
+
+    # --- API URL ---
+    st.markdown("**URL de l'API**")
+    api_url = st.text_input(
+        "URL de base de l'API FastAPI",
+        value=st.session_state.get("api_base_url", remote_v2_url),
+        help="Ex: http://localhost:8080 ou https://mon-api.example.com",
+        label_visibility="collapsed",
+        placeholder="http://localhost:8080",
+    )
+    st.session_state.api_base_url = api_url
+
+    is_local_url = any(pattern in api_url for pattern in _LOCAL_HOST_PATTERNS)
+
+    if is_local_url:
+        st.session_state.api_token = ""
+        return api_url, None, None
+
+    # --- Remote-only fields ---
+
+    # Token
+    st.markdown("**Token API**")
+    api_token = st.text_input(
+        "Token API",
+        value=st.session_state.get("api_token", os.environ.get("REMOTE_API_TOKEN", "")),
+        help="Requis pour les APIs distantes. Passé en query param `?token=`.",
+        label_visibility="collapsed",
+        placeholder="mon-token-secret",
+        type="password",
+    )
+    st.session_state.api_token = api_token
+
+    # SOCKS5 proxy
+    st.markdown("**Proxy SOCKS5 (optionnel)**")
+    socks_proxy = st.text_input(
+        "Proxy SOCKS5",
+        value=st.session_state.get("socks_proxy", "socks5h://localhost:1080"),
+        help="Laissez vide si inutile. Ex: socks5h://localhost:1080 (tunnel SSH via gcloud).",
+        label_visibility="collapsed",
+        placeholder="socks5h://localhost:1080",
+    )
+    st.session_state.socks_proxy = socks_proxy
+
+    proxies = None
+    if socks_proxy.strip():
+        proxies = {"http": socks_proxy.strip(), "https": socks_proxy.strip()}
+
+    return st.session_state.api_base_url, proxies, api_token.strip() or None
+
+
+def _render_api_version_selector(remote_v1_url: str, remote_v2_url: str) -> None:
+    """Render the v1/v2 radio selector and update the API URL in session state.
+
+    Args:
+        remote_v1_url: The base URL of the v1 (legacy) API.
+        remote_v2_url: The base URL of the v2 (default) API.
+    """
+    st.markdown("**Version de l'API**")
+    selected_version = st.radio(
+        "Version de l'API",
+        [V2_LABEL, V1_LABEL],
+        horizontal=True,
+        label_visibility="collapsed",
+        key="api_version_selector",
+    )
+
+    # Always sync the URL with the currently selected version
+    st.session_state.api_base_url = remote_v1_url if selected_version == V1_LABEL else remote_v2_url
+
+
 def render_playlist_recommendation_sidebar() -> tuple:
     """
     Displays the sidebar and gathers inputs from the user for the playlist recommendation.
 
     Returns:
-    - tuple: (user_id, params dict, payload dict, max_offers_to_fetch, run_fetch_boolean)
+    - tuple: (user_id, params dict, payload dict, max_offers_to_fetch,
+              run_fetch_boolean, api_base_url, proxies, api_token)
     """
     with st.sidebar:
         st.header("1. Paramètres de la Requête")
+
+        api_base_url, proxies, api_token = _render_api_url_input()
+
+        st.divider()
 
         # User identification
         st.markdown("**Sélection de l'utilisateur**")
@@ -70,7 +178,7 @@ def render_playlist_recommendation_sidebar() -> tuple:
             params["latitude"] = latitude
             params["longitude"] = longitude
 
-        return user_id, params, payload, max_offers_to_fetch, run_btn
+        return user_id, params, payload, max_offers_to_fetch, run_btn, api_base_url, proxies, api_token
 
 
 def render_similar_offer_sidebar() -> tuple:
@@ -78,10 +186,15 @@ def render_similar_offer_sidebar() -> tuple:
     Displays the sidebar and gathers inputs from the user for similar offers.
 
     Returns:
-    - tuple: (offer_id, retrieval_model, user_id, params dict, payload dict, max_offers_to_fetch, run_fetch_boolean)
+    - tuple: (offer_id, retrieval_model, user_id, params dict, payload dict, max_offers_to_fetch,
+              run_fetch_boolean, api_base_url, proxies, api_token)
     """
     with st.sidebar:
         st.header("1. Paramètres de la Requête")
+
+        api_base_url, proxies, api_token = _render_api_url_input()
+
+        st.divider()
 
         # Offer identification
         st.markdown("**Sélection de l'offre**")
@@ -145,7 +258,18 @@ def render_similar_offer_sidebar() -> tuple:
             params["latitude"] = latitude
             params["longitude"] = longitude
 
-        return offer_id, retrieval_model, user_id, params, payload, max_offers_to_fetch, run_btn
+        return (
+            offer_id,
+            retrieval_model,
+            user_id,
+            params,
+            payload,
+            max_offers_to_fetch,
+            run_btn,
+            api_base_url,
+            proxies,
+            api_token,
+        )
 
 
 def _render_random_user_buttons(session_key: str = "user_id"):
