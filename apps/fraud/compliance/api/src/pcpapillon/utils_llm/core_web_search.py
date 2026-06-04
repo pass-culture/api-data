@@ -7,7 +7,6 @@ from tqdm import tqdm
 from pcpapillon.utils_llm.config_manager import config_manager
 from pcpapillon.utils_llm.parser import create_output_parser
 from pcpapillon.utils_llm.prompt_manager import get_prompt_template
-from pcpapillon.utils_llm.tools.logging_utils import log_llm_prompt
 from pcpapillon.utils_llm.web_search_utils import (
     get_web_search_chain,
     should_perform_web_search,
@@ -114,21 +113,6 @@ def run_web_search_validation(
                     )
                 else:
                     search_params["context_enhanced"] = False
-
-                # Log de la recherche web
-                log_llm_prompt(
-                    prompt=f"Web search for: {search_params['offer_name']}",
-                    config=config.dict() if hasattr(config, "dict") else vars(config),
-                    offer_id=offre_commerciale.get("offer_id"),
-                    metadata={
-                        "reference_sites": search_params.get("reference_sites"),
-                        "comparison_price": search_params.get("comparison_price"),
-                        "has_llm_context": bool(llm_context),
-                        "llm_context_fields": list(llm_context.keys())
-                        if llm_context
-                        else [],
-                    },
-                )
 
                 # Exécuter la recherche web
                 result = web_search_chain.invoke(search_params)
