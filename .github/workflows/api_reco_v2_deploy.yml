@@ -64,154 +64,42 @@ jobs:
   build-and-push-docker-image:
     name: "Build image job"
     needs: [setup-job]
-    environment: ${{ needs.setup-job.outputs.env_name }}
-    runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
-    env:
-      DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
-      ENV_SHORT_NAME: ${{ vars.ENV_SHORT_NAME }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Connect to Secret Manager"
-        uses: 'google-github-actions/auth@v2'
-        with:
-          workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
-      - name: "Get secrets for Artifact Registry"
-        id: 'secrets'
-        uses: 'google-github-actions/get-secretmanager-secrets@v2'
-        with:
-          secrets: |-
-            ARTIFACT_REGISTRY_SERVICE_ACCOUNT:passculture-metier-ehp/passculture-main-artifact-registry-service-account
-            ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER:passculture-metier-ehp/infra-prod-gcp-workload-identity-provider
-      - name: "Output variables"
-        id: "vars"
-        run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" >> "$GITHUB_OUTPUT"
-      - name: "Get short SHA"
-        id: "sha"
-        run: echo "short_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
-
-      - name: "Set up Docker Buildx"
-        uses: docker/setup-buildx-action@v3
-
-      - id: "openid-auth"
-        name: "Authenticate with Google Cloud"
-        uses: "google-github-actions/auth@v2"
-        with:
-          create_credentials_file: false
-          token_format: "access_token"
-          workload_identity_provider: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
-
-      - name: "Docker login"
-        uses: docker/login-action@v3
-        with:
-          registry: "${{ env.DOCKER_REGISTRY_REGION }}-docker.pkg.dev"
-          username: "oauth2accesstoken"
-          password: "${{ steps.openid-auth.outputs.access_token }}"
-
-      - name: "Build and push docker image"
-        uses: docker/build-push-action@v5
-        with:
-          context: apps/recommendation_v2
-          push: true
-          tags: |
-            ${{ steps.vars.outputs.DOCKER_REPO }}/api-data/recommendation_v2:${{ steps.sha.outputs.short_sha }}
-            ${{ steps.vars.outputs.DOCKER_REPO }}/api-data/recommendation_v2:latest
+    uses: ./.github/workflows/reusable_build_reco_image.yml
+    with:
+      app_path: apps/recommendation_v2
+      image_name: recommendation_v2
+      push_latest: true
+      TARGET_ENV: ${{ needs.setup-job.outputs.env_name }}
+    secrets:
+      GCP_EHP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_EHP_SERVICE_ACCOUNT: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
 
   deploy-api:
-    runs-on: ubuntu-latest
     needs: [setup-job, build-and-push-docker-image]
-    environment: ${{ needs.setup-job.outputs.env_name }}
     permissions:
-      contents: 'read'
-      id-token: 'write'
-    env:
-      DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
-      ENV_SHORT_NAME: ${{ vars.ENV_SHORT_NAME }}
-    steps:
-    - uses: actions/checkout@v4
-    - name: "Connect to Secret Manager"
-      uses: 'google-github-actions/auth@v2'
-      with:
-        workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
-        service_account: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
-    - name: "Get secrets for Cloud Run"
-      id: 'secrets'
-      uses: 'google-github-actions/get-secretmanager-secrets@v2'
-      with:
-        secrets: |-
-          ARTIFACT_REGISTRY_SERVICE_ACCOUNT:passculture-metier-ehp/passculture-main-artifact-registry-service-account
-          ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER:passculture-metier-ehp/infra-prod-gcp-workload-identity-provider
-    - name: "Output variables"
-      id: "vars"
-      run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" >> "$GITHUB_OUTPUT"
-    - name: "Get short SHA"
-      id: "sha"
-      run: |
-        echo "short_sha=${GITHUB_SHA}" | tee -a "$GITHUB_OUTPUT"
-        echo "very_short_sha=$(echo "$GITHUB_SHA" | cut -c1-7)" | tee -a "$GITHUB_OUTPUT"
-        echo "rand=$(tr -dc 'a-z0-9' < /dev/urandom | head -c 3)" | tee -a "$GITHUB_OUTPUT"
-
-        if [ "${{ env.ENV_SHORT_NAME }}" = "prod" ]; then
-          echo "env_long_name=production" >> "$GITHUB_OUTPUT"
-          echo "secret_env_name=production" >> "$GITHUB_OUTPUT"
-        elif [ "${{ env.ENV_SHORT_NAME }}" = "stg" ]; then
-          echo "env_long_name=staging" >> "$GITHUB_OUTPUT"
-          echo "secret_env_name=${{ env.ENV_SHORT_NAME }}" >> "$GITHUB_OUTPUT"
-        elif [ "${{ env.ENV_SHORT_NAME }}" = "dev" ]; then
-          echo "env_long_name=testing" >> "$GITHUB_OUTPUT"
-          echo "secret_env_name=${{ env.ENV_SHORT_NAME }}" >> "$GITHUB_OUTPUT"
-        else
-          echo "env_long_name=${{ env.ENV_SHORT_NAME }}" >> "$GITHUB_OUTPUT"
-          echo "secret_env_name=${{ env.ENV_SHORT_NAME }}" >> "$GITHUB_OUTPUT"
-        fi
-
-    - uses: 'google-github-actions/auth@v2'
-      name: "Authenticate with Google Cloud for deploy"
-      with:
-        workload_identity_provider: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER }}
-        service_account: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
-
-    - id: 'deploy'
-      name: 'Deploy to Cloud Run'
-      uses: 'google-github-actions/deploy-cloudrun@v2'
-      with:
-        service: "apireco-${{ env.ENV_SHORT_NAME }}"
-        suffix: "v2-${{ steps.sha.outputs.very_short_sha }}-${{ steps.sha.outputs.rand }}"
-        image: "${{ steps.vars.outputs.DOCKER_REPO }}/api-data/recommendation_v2:${{ steps.sha.outputs.short_sha }}"
-        region: "${{ env.DOCKER_REGISTRY_REGION }}"
-        project_id: ${{ env.DATA_GCP_PROJECT }}
-        no_traffic: ${{ needs.setup-job.outputs.no_traffic }}
-        tag: "test"
-        env_vars_update_strategy: overwrite
-        secrets_update_strategy: overwrite
-        env_vars: |-
-          ENV=${{ steps.sha.outputs.env_long_name }}
-          GCP_PROJECT=${{ env.DATA_GCP_PROJECT }}
-          SQL_PORT=5432
-          VERTEX_RETRIEVAL_ENDPOINT_NAME=recommendation_user_retrieval_${{ env.ENV_SHORT_NAME }}
-          VERTEX_RANKING_ENDPOINT_NAME=recommendation_user_ranking_${{ env.ENV_SHORT_NAME }}
-          VERTEX_GRAPH_ENDPOINT_NAME=recommendation_graph_retrieval_${{ env.ENV_SHORT_NAME }}
-          REDIS_CA_CERT_PATH=/secrets/redis-ca-cert
-          SIMILAR_OFFER_MODEL_CONTEXT=default
-          RECO_MODEL_CONTEXT=default
-        secrets: |-
-          API_TOKEN=api-reco-token-${{ env.ENV_SHORT_NAME }}:latest
-          REDIS_AUTH_STRING=apireco-${{ env.ENV_SHORT_NAME }}_redis_auth_string:latest
-          REDIS_URL=apireco-${{ env.ENV_SHORT_NAME }}_redis_url:latest
-          /secrets/redis-ca-cert=apireco-${{ env.ENV_SHORT_NAME }}_redis_ca:latest
-          SQL_BASE=cloudsql-recommendation-${{ steps.sha.outputs.secret_env_name }}-ew1_database_credentials_username:latest
-          SQL_BASE_PASSWORD=cloudsql-recommendation-${{ steps.sha.outputs.secret_env_name }}-ew1_database_credentials_password:latest
-          SQL_BASE_USER=cloudsql-recommendation-${{ steps.sha.outputs.secret_env_name }}-ew1_database_credentials_username:latest
-          SQL_HOST=cloudsql-recommendation-${{ steps.sha.outputs.secret_env_name }}-ew1_private_ip:latest
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/reusable_deploy_reco_v2_cloudrun.yml
+    with:
+      image: "${{ needs.build-and-push-docker-image.outputs.docker_repo }}/api-data/recommendation_v2:${{ needs.build-and-push-docker-image.outputs.short_sha }}"
+      suffix: "v2-${{ needs.build-and-push-docker-image.outputs.very_short_sha }}-${{ needs.build-and-push-docker-image.outputs.rand }}"
+      tag: "reco-v2"
+      no_traffic: ${{ needs.setup-job.outputs.no_traffic }}
+      env_long_name: ${{ needs.build-and-push-docker-image.outputs.env_long_name }}
+      secret_env_name: ${{ needs.build-and-push-docker-image.outputs.secret_env_name }}
+      TARGET_ENV: ${{ needs.setup-job.outputs.env_name }}
+    secrets:
+      GCP_EHP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_EHP_SERVICE_ACCOUNT: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
 
   slack-notification:
     runs-on: ubuntu-latest
     environment: ${{ needs.setup-job.outputs.env_name }}
     needs: [setup-job, deploy-api]
+
     permissions:
       id-token: write
     if: always()

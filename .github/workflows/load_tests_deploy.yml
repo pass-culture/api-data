@@ -1,0 +1,279 @@
+name: "Deploy Load Test Instances"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Deploys up to 3 dedicated Cloud Run revisions for load testing
+# (0% traffic, max 1 instance each) to compare:
+#   • tag "load-test-v1"          → API Reco v1
+#   • tag "load-test-v2"          → API Reco v2 with Redis enabled
+#   • tag "load-test-v2-no-redis" → API Reco v2 with Redis disabled
+#
+# v2 uses a single shared Docker image for both Redis variants.
+# Redis is toggled exclusively via the REDIS_CACHE_ENABLED env var at deploy time.
+#
+# The "reco-v2" tagged revision (continuous deployment) is NOT affected
+# and retains its full scaling capability.
+# ──────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - staging
+      deploy_v1:
+        description: "Deploy v1 load test instance (no traffic, max 1 pod)"
+        required: true
+        default: true
+        type: boolean
+      deploy_v2_redis:
+        description: "Deploy v2 with Redis load test instance (no traffic, max 1 pod)"
+        required: true
+        default: true
+        type: boolean
+      deploy_v2_no_redis:
+        description: "Deploy v2 without Redis load test instance (no traffic, max 1 pod)"
+        required: true
+        default: true
+        type: boolean
+
+env:
+  DOCKER_REGISTRY_PROJECT_ID: "passculture-infra-prod"
+  DOCKER_REGISTRY_REGION: "europe-west1"
+  DOCKER_REGISTRY_REPOSITORY: "pass-culture-artifact-registry"
+  LOAD_TEST_MAX_INSTANCES: "1"
+
+# ══════════════════════════════════════════════════════════════════════════════
+jobs:
+# ══════════════════════════════════════════════════════════════════════════════
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # SETUP
+  # ──────────────────────────────────────────────────────────────────────────
+  setup-job:
+    name: "Setup"
+    runs-on: ubuntu-latest
+    outputs:
+      env_name: ${{ steps.set-variable.outputs.env_name }}
+    steps:
+      - name: "Set environment name"
+        id: set-variable
+        run: echo "env_name=${{ inputs.environment }}" | tee -a "$GITHUB_OUTPUT"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # V1 LOAD TEST — build
+  # ──────────────────────────────────────────────────────────────────────────
+  build-v1-load-test:
+    name: "Build v1 image (load test)"
+    needs: [setup-job]
+    if: ${{ inputs.deploy_v1 == true }}
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/reusable_build_reco_image.yml
+    with:
+      app_path: apps/recommendation/api
+      image_name: recommendation
+      image_tag_suffix: "-load-test"
+      push_latest: false
+      TARGET_ENV: ${{ needs.setup-job.outputs.env_name }}
+    secrets:
+      GCP_EHP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_EHP_SERVICE_ACCOUNT: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # V1 LOAD TEST — deploy
+  # Kept inline: v1 does not use the v2 env vars / secrets pattern.
+  # ──────────────────────────────────────────────────────────────────────────
+  deploy-v1-load-test:
+    name: "Deploy v1 (load test) → tag: load-test-v1"
+    runs-on: ubuntu-latest
+    needs: [setup-job, build-v1-load-test]
+    environment: ${{ needs.setup-job.outputs.env_name }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
+      ENV_SHORT_NAME: ${{ vars.ENV_SHORT_NAME }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Authenticate with GCP (Secret Manager)"
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
+
+      - name: "Get Cloud Run secrets"
+        id: secrets
+        uses: google-github-actions/get-secretmanager-secrets@v2
+        with:
+          secrets: |-
+            ARTIFACT_REGISTRY_SERVICE_ACCOUNT:passculture-metier-ehp/passculture-main-artifact-registry-service-account
+            ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER:passculture-metier-ehp/infra-prod-gcp-workload-identity-provider
+
+      - name: "Authenticate with Google Cloud (Cloud Run)"
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
+
+      - name: "Deploy v1 load test revision"
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: "apireco-${{ env.ENV_SHORT_NAME }}"
+          suffix: "v1-lt-${{ needs.build-v1-load-test.outputs.very_short_sha }}-${{ needs.build-v1-load-test.outputs.rand }}"
+          image: "${{ needs.build-v1-load-test.outputs.docker_repo }}/api-data/recommendation:${{ needs.build-v1-load-test.outputs.short_sha }}-load-test"
+          region: "${{ env.DOCKER_REGISTRY_REGION }}"
+          project_id: ${{ env.DATA_GCP_PROJECT }}
+          no_traffic: true
+          tag: "load-test-v1"
+          flags: "--max-instances=${{ env.LOAD_TEST_MAX_INSTANCES }}"
+
+      - name: "Print v1 load test URL"
+        run: |
+          echo "Deployed v1 load test revision"
+          echo "  Tag URL  : https://load-test-v1---${{ steps.deploy.outputs.url }}"
+          echo "  Revision : ${{ steps.deploy.outputs.revision }}"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # V2 LOAD TEST — build (single image shared by both Redis variants)
+  #
+  # Redis is toggled at deploy time via REDIS_CACHE_ENABLED, not in code,
+  # so there is no need to build two separate images.
+  # ──────────────────────────────────────────────────────────────────────────
+  build-v2-load-test:
+    name: "Build v2 image (load test, shared)"
+    needs: [setup-job]
+    if: ${{ inputs.deploy_v2_redis == true || inputs.deploy_v2_no_redis == true }}
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/reusable_build_reco_image.yml
+    with:
+      app_path: apps/recommendation_v2
+      image_name: recommendation_v2
+      image_tag_suffix: "-load-test"
+      push_latest: false
+      TARGET_ENV: ${{ needs.setup-job.outputs.env_name }}
+    secrets:
+      GCP_EHP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_EHP_SERVICE_ACCOUNT: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # V2 WITH REDIS — deploy
+  # ──────────────────────────────────────────────────────────────────────────
+  deploy-v2-redis-load-test:
+    name: "Deploy v2 Redis enabled (load test) → tag: load-test-v2"
+    needs: [setup-job, build-v2-load-test]
+    if: ${{ inputs.deploy_v2_redis == true }}
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/reusable_deploy_reco_v2_cloudrun.yml
+    with:
+      image: "${{ needs.build-v2-load-test.outputs.docker_repo }}/api-data/recommendation_v2:${{ needs.build-v2-load-test.outputs.short_sha }}-load-test"
+      suffix: "v2-lt-${{ needs.build-v2-load-test.outputs.very_short_sha }}-${{ needs.build-v2-load-test.outputs.rand }}"
+      tag: "load-test-v2"
+      no_traffic: "true"
+      flags: "--max-instances=1"
+      env_long_name: ${{ needs.build-v2-load-test.outputs.env_long_name }}
+      secret_env_name: ${{ needs.build-v2-load-test.outputs.secret_env_name }}
+      redis_cache_enabled: "1"
+      TARGET_ENV: ${{ needs.setup-job.outputs.env_name }}
+    secrets:
+      GCP_EHP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_EHP_SERVICE_ACCOUNT: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # V2 WITHOUT REDIS — deploy
+  #
+  # Uses the same Docker image as the Redis variant (built above).
+  # Redis is disabled by setting REDIS_CACHE_ENABLED=0 at deploy time,
+  # which overrides the default value read by settings.py via os.environ.get().
+  # ──────────────────────────────────────────────────────────────────────────
+  deploy-v2-no-redis-load-test:
+    name: "Deploy v2 Redis disabled (load test) → tag: load-test-v2-no-redis"
+    needs: [setup-job, build-v2-load-test]
+    if: ${{ inputs.deploy_v2_no_redis == true }}
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/reusable_deploy_reco_v2_cloudrun.yml
+    with:
+      image: "${{ needs.build-v2-load-test.outputs.docker_repo }}/api-data/recommendation_v2:${{ needs.build-v2-load-test.outputs.short_sha }}-load-test"
+      # Different prefix (v2-nr-lt vs v2-lt) ensures a unique revision name even
+      # when both v2 variants are deployed within the same workflow run.
+      suffix: "v2-nr-lt-${{ needs.build-v2-load-test.outputs.very_short_sha }}-${{ needs.build-v2-load-test.outputs.rand }}"
+      tag: "load-test-v2-no-redis"
+      no_traffic: "true"
+      flags: "--max-instances=1"
+      env_long_name: ${{ needs.build-v2-load-test.outputs.env_long_name }}
+      secret_env_name: ${{ needs.build-v2-load-test.outputs.secret_env_name }}
+      redis_cache_enabled: "0"
+      TARGET_ENV: ${{ needs.setup-job.outputs.env_name }}
+    secrets:
+      GCP_EHP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_EHP_SERVICE_ACCOUNT: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # SLACK NOTIFICATION
+  # ──────────────────────────────────────────────────────────────────────────
+  slack-notification:
+    name: "Slack notification"
+    runs-on: ubuntu-latest
+    needs:
+      - setup-job
+      - deploy-v1-load-test
+      - deploy-v2-redis-load-test
+      - deploy-v2-no-redis-load-test
+    environment: ${{ needs.setup-job.outputs.env_name }}
+    permissions:
+      id-token: write
+    if: always()
+    steps:
+      - name: "Authenticate with GCP (Secret Manager)"
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
+
+      - name: "Get Slack token"
+        id: secrets
+        uses: google-github-actions/get-secretmanager-secrets@v2
+        with:
+          secrets: |-
+            SLACK_BOT_TOKEN:passculture-metier-ehp/passculture-ci-slack-bot-token
+
+      - uses: technote-space/workflow-conclusion-action@v3
+
+      - name: "Post to Slack"
+        if: always()
+        uses: slackapi/slack-github-action@v1.23.0
+        env:
+          SLACK_BOT_TOKEN: ${{ steps.secrets.outputs.SLACK_BOT_TOKEN }}
+        with:
+          channel-id: "C01GVAXM02W" # alerts_data
+          payload: |
+            {
+              "attachments": [
+                {
+                  "mrkdwn_in": ["text"],
+                  "color": "${{ env.WORKFLOW_CONCLUSION == 'failure' && '#A30002' || '#36a64f' }}",
+                  "author_name": "${{ github.actor }}",
+                  "author_link": "https://github.com/${{ github.actor }}",
+                  "author_icon": "https://github.com/${{ github.actor }}.png",
+                  "title": "Load Test Instances Deployment (${{ needs.setup-job.outputs.env_name }})",
+                  "title_link": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                  "text": "Déploiement des instances de test de charge sur `${{ needs.setup-job.outputs.env_name }}` : ${{ env.WORKFLOW_CONCLUSION == 'failure' && 'échoué :boom:' || 'réussi :muscle:' }}\n• *v1* (load-test-v1) : max 1 pod, 0% traffic\n• *v2 + Redis* (load-test-v2) : max 1 pod, 0% traffic\n• *v2 no-Redis* (load-test-v2-no-redis) : max 1 pod, 0% traffic"
+                }
+              ],
+              "unfurl_links": false,
+              "unfurl_media": false
+            }
