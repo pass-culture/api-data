@@ -150,7 +150,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: "apireco-${{ env.ENV_SHORT_NAME }}"
-          suffix: "v1-lt-${{ needs.build-v1-load-test.outputs.very_short_sha }}-${{ needs.build-v1-load-test.outputs.rand }}"
+          suffix: "v1-load-test-${{ needs.build-v1-load-test.outputs.very_short_sha }}-${{ needs.build-v1-load-test.outputs.rand }}"
           image: "${{ needs.build-v1-load-test.outputs.docker_repo }}/api-data/recommendation:${{ needs.build-v1-load-test.outputs.short_sha }}-load-test"
           region: "${{ env.DOCKER_REGISTRY_REGION }}"
           project_id: ${{ env.DATA_GCP_PROJECT }}
@@ -201,7 +201,7 @@ jobs:
     uses: ./.github/workflows/reusable_deploy_reco_v2_cloudrun.yml
     with:
       image: "${{ needs.build-v2-load-test.outputs.docker_repo }}/api-data/recommendation_v2:${{ needs.build-v2-load-test.outputs.short_sha }}-load-test"
-      suffix: "v2-lt-${{ needs.build-v2-load-test.outputs.very_short_sha }}-${{ needs.build-v2-load-test.outputs.rand }}"
+      suffix: "v2-load-test-${{ needs.build-v2-load-test.outputs.very_short_sha }}-${{ needs.build-v2-load-test.outputs.rand }}"
       tag: "load-test-v2"
       no_traffic: "true"
       flags: "--max-instances=1"
@@ -230,9 +230,9 @@ jobs:
     uses: ./.github/workflows/reusable_deploy_reco_v2_cloudrun.yml
     with:
       image: "${{ needs.build-v2-load-test.outputs.docker_repo }}/api-data/recommendation_v2:${{ needs.build-v2-load-test.outputs.short_sha }}-load-test"
-      # Different prefix (v2-nr-lt vs v2-lt) ensures a unique revision name even
-      # when both v2 variants are deployed within the same workflow run.
-      suffix: "v2-nr-lt-${{ needs.build-v2-load-test.outputs.very_short_sha }}-${{ needs.build-v2-load-test.outputs.rand }}"
+      # Different suffix ensures a unique revision name even when both v2 variants
+      # are deployed within the same workflow run.
+      suffix: "v2-no-redis-load-test-${{ needs.build-v2-load-test.outputs.very_short_sha }}-${{ needs.build-v2-load-test.outputs.rand }}"
       tag: "load-test-v2-no-redis"
       no_traffic: "true"
       flags: "--max-instances=1"
