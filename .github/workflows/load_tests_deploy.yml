@@ -157,6 +157,15 @@ jobs:
           no_traffic: true
           tag: "load-test-v1"
           flags: "--max-instances=${{ env.LOAD_TEST_MAX_INSTANCES }}"
+          env_vars_update_strategy: merge
+          env_vars: |-
+            GCP_PROJECT=${{ env.DATA_GCP_PROJECT }}
+            ENV_SHORT_NAME=${{ env.ENV_SHORT_NAME }}
+            SQL_BASE_SECRET_ID=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1_database_credentials_password
+            SQL_HOST_SECRET_ID=cloudsql-recommendation-${{ env.ENV_SHORT_NAME }}-ew1_private_ip
+            API_TOKEN_SECRET_ID=api-reco-token-${{ env.ENV_SHORT_NAME }}
+            SIMILAR_OFFER_MODEL_CONTEXT=default
+            RECO_MODEL_CONTEXT=default
 
       - name: "Print v1 load test URL"
         run: |
