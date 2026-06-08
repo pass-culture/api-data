@@ -15,8 +15,8 @@ name: "Deploy Load Test Instances"
 # ──────────────────────────────────────────────────────────────────────────────
 
 on:
-  # Temporary push trigger to make this workflow visible in the GitHub Actions UI
-  # while the branch has not been merged to main yet. Remove before merging.
+  # Temporary push trigger — makes this workflow visible in the GitHub Actions UI
+  # before the branch is merged to main. REMOVE THIS BLOCK BEFORE MERGING.
   push:
     branches:
       - jmontagnat/workflow/api-reco-v2-reco-load-tests
@@ -65,11 +65,27 @@ jobs:
     name: "Setup"
     runs-on: ubuntu-latest
     outputs:
-      env_name: ${{ steps.set-variable.outputs.env_name }}
+      env_name:          ${{ steps.set-variable.outputs.env_name }}
+      deploy_v1:         ${{ steps.set-variable.outputs.deploy_v1 }}
+      deploy_v2_redis:   ${{ steps.set-variable.outputs.deploy_v2_redis }}
+      deploy_v2_no_redis: ${{ steps.set-variable.outputs.deploy_v2_no_redis }}
     steps:
       - name: "Set environment name"
         id: set-variable
-        run: echo "env_name=${{ inputs.environment }}" | tee -a "$GITHUB_OUTPUT"
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "env_name=${{ inputs.environment }}"                    | tee -a "$GITHUB_OUTPUT"
+            echo "deploy_v1=${{ inputs.deploy_v1 }}"                    | tee -a "$GITHUB_OUTPUT"
+            echo "deploy_v2_redis=${{ inputs.deploy_v2_redis }}"        | tee -a "$GITHUB_OUTPUT"
+            echo "deploy_v2_no_redis=${{ inputs.deploy_v2_no_redis }}"  | tee -a "$GITHUB_OUTPUT"
+          else
+            # TEMPORARY: push trigger defaults — no actual deployments, just makes
+            # the workflow visible in the UI. Remove with the push trigger above.
+            echo "env_name=dev"            | tee -a "$GITHUB_OUTPUT"
+            echo "deploy_v1=false"         | tee -a "$GITHUB_OUTPUT"
+            echo "deploy_v2_redis=false"   | tee -a "$GITHUB_OUTPUT"
+            echo "deploy_v2_no_redis=false" | tee -a "$GITHUB_OUTPUT"
+          fi
 
   # ──────────────────────────────────────────────────────────────────────────
   # V1 LOAD TEST — build
@@ -77,7 +93,7 @@ jobs:
   build-v1-load-test:
     name: "Build v1 image (load test)"
     needs: [setup-job]
-    if: ${{ inputs.deploy_v1 == true }}
+    if: ${{ needs.setup-job.outputs.deploy_v1 == 'true' }}
     permissions:
       id-token: write
       contents: read
@@ -158,7 +174,7 @@ jobs:
   build-v2-load-test:
     name: "Build v2 image (load test, shared)"
     needs: [setup-job]
-    if: ${{ inputs.deploy_v2_redis == true || inputs.deploy_v2_no_redis == true }}
+    if: ${{ needs.setup-job.outputs.deploy_v2_redis == 'true' || needs.setup-job.outputs.deploy_v2_no_redis == 'true' }}
     permissions:
       id-token: write
       contents: read
@@ -179,7 +195,7 @@ jobs:
   deploy-v2-redis-load-test:
     name: "Deploy v2 Redis enabled (load test) → tag: load-test-v2"
     needs: [setup-job, build-v2-load-test]
-    if: ${{ inputs.deploy_v2_redis == true }}
+    if: ${{ needs.setup-job.outputs.deploy_v2_redis == 'true' }}
     permissions:
       id-token: write
       contents: read
@@ -208,7 +224,7 @@ jobs:
   deploy-v2-no-redis-load-test:
     name: "Deploy v2 Redis disabled (load test) → tag: load-test-v2-no-redis"
     needs: [setup-job, build-v2-load-test]
-    if: ${{ inputs.deploy_v2_no_redis == true }}
+    if: ${{ needs.setup-job.outputs.deploy_v2_no_redis == 'true' }}
     permissions:
       id-token: write
       contents: read
