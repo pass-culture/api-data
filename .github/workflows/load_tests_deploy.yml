@@ -15,6 +15,13 @@ name: "Deploy Load Test Instances"
 # ──────────────────────────────────────────────────────────────────────────────
 
 on:
+  # Temporary push trigger to make this workflow visible in the GitHub Actions UI
+  # while the branch has not been merged to main yet. Remove before merging.
+  push:
+    branches:
+      - jmontagnat/workflow/api-reco-v2-reco-load-tests
+    paths:
+      - ".github/workflows/load_tests_deploy.yml"
   workflow_dispatch:
     inputs:
       environment:
