@@ -80,7 +80,7 @@ jobs:
             echo "deploy_v2_no_redis=${{ inputs.deploy_v2_no_redis }}"  | tee -a "$GITHUB_OUTPUT"
           else
             # TEMPORARY: push trigger defaults — remove with the push trigger above.
-            echo "env_name=dev"           | tee -a "$GITHUB_OUTPUT"
+            echo "env_name=staging"       | tee -a "$GITHUB_OUTPUT"
             echo "deploy_v1=true"         | tee -a "$GITHUB_OUTPUT"
             echo "deploy_v2_redis=true"   | tee -a "$GITHUB_OUTPUT"
             echo "deploy_v2_no_redis=true" | tee -a "$GITHUB_OUTPUT"
