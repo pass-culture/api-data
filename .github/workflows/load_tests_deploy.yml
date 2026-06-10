@@ -65,12 +65,17 @@ jobs:
     steps:
       - name: "Set environment name"
         id: set-variable
+        env:
+          INPUT_ENVIRONMENT: ${{ inputs.environment }}
+          INPUT_DEPLOY_V1: ${{ inputs.deploy_v1 }}
+          INPUT_DEPLOY_V2_REDIS: ${{ inputs.deploy_v2_redis }}
+          INPUT_DEPLOY_V2_NO_REDIS: ${{ inputs.deploy_v2_no_redis }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "env_name=${{ inputs.environment }}"                    | tee -a "$GITHUB_OUTPUT"
-            echo "deploy_v1=${{ inputs.deploy_v1 }}"                    | tee -a "$GITHUB_OUTPUT"
-            echo "deploy_v2_redis=${{ inputs.deploy_v2_redis }}"        | tee -a "$GITHUB_OUTPUT"
-            echo "deploy_v2_no_redis=${{ inputs.deploy_v2_no_redis }}"  | tee -a "$GITHUB_OUTPUT"
+            echo "env_name=${INPUT_ENVIRONMENT}"                   | tee -a "$GITHUB_OUTPUT"
+            echo "deploy_v1=${INPUT_DEPLOY_V1}"                    | tee -a "$GITHUB_OUTPUT"
+            echo "deploy_v2_redis=${INPUT_DEPLOY_V2_REDIS}"        | tee -a "$GITHUB_OUTPUT"
+            echo "deploy_v2_no_redis=${INPUT_DEPLOY_V2_NO_REDIS}"  | tee -a "$GITHUB_OUTPUT"
           else
             # TEMPORARY: push trigger defaults — remove with the push trigger above.
             echo "env_name=staging"       | tee -a "$GITHUB_OUTPUT"
@@ -205,7 +210,7 @@ jobs:
       image: "${{ needs.build-v2-load-test.outputs.docker_repo }}/api-data/recommendation_v2:${{ needs.build-v2-load-test.outputs.short_sha }}-load-test"
       suffix: "v2-load-test-${{ needs.build-v2-load-test.outputs.very_short_sha }}-${{ needs.build-v2-load-test.outputs.rand }}"
       tag: "load-test-v2"
-      no_traffic: "true"
+      no_traffic: true
       flags: "--max-instances=1"
       env_long_name: ${{ needs.build-v2-load-test.outputs.env_long_name }}
       secret_env_name: ${{ needs.build-v2-load-test.outputs.secret_env_name }}
@@ -236,7 +241,7 @@ jobs:
       # are deployed within the same workflow run.
       suffix: "v2-no-redis-load-test-${{ needs.build-v2-load-test.outputs.very_short_sha }}-${{ needs.build-v2-load-test.outputs.rand }}"
       tag: "load-test-v2-no-redis"
-      no_traffic: "true"
+      no_traffic: true
       flags: "--max-instances=1"
       env_long_name: ${{ needs.build-v2-load-test.outputs.env_long_name }}
       secret_env_name: ${{ needs.build-v2-load-test.outputs.secret_env_name }}

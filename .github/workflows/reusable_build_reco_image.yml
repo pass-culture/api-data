@@ -101,30 +101,38 @@ jobs:
       - name: "Get commit SHA and environment names"
         id: sha
         run: |
-          echo "short_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
-          echo "very_short_sha=$(echo "$GITHUB_SHA" | cut -c1-7)" >> "$GITHUB_OUTPUT"
-          echo "rand=$(tr -dc 'a-z0-9' < /dev/urandom | head -c 3)" >> "$GITHUB_OUTPUT"
-          if [ "${{ env.ENV_SHORT_NAME }}" = "prod" ]; then
-            echo "env_long_name=production" >> "$GITHUB_OUTPUT"
-            echo "secret_env_name=production" >> "$GITHUB_OUTPUT"
-          elif [ "${{ env.ENV_SHORT_NAME }}" = "stg" ]; then
-            echo "env_long_name=staging" >> "$GITHUB_OUTPUT"
-            echo "secret_env_name=${{ env.ENV_SHORT_NAME }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "env_long_name=testing" >> "$GITHUB_OUTPUT"
-            echo "secret_env_name=${{ env.ENV_SHORT_NAME }}" >> "$GITHUB_OUTPUT"
-          fi
+          {
+            echo "short_sha=${GITHUB_SHA}"
+            echo "very_short_sha=$(echo "$GITHUB_SHA" | cut -c1-7)"
+            echo "rand=$(tr -dc 'a-z0-9' < /dev/urandom | head -c 3)"
+            if [ "${{ env.ENV_SHORT_NAME }}" = "prod" ]; then
+              echo "env_long_name=production"
+              echo "secret_env_name=production"
+            elif [ "${{ env.ENV_SHORT_NAME }}" = "stg" ]; then
+              echo "env_long_name=staging"
+              echo "secret_env_name=${{ env.ENV_SHORT_NAME }}"
+            else
+              echo "env_long_name=testing"
+              echo "secret_env_name=${{ env.ENV_SHORT_NAME }}"
+            fi
+          } >> "$GITHUB_OUTPUT"
 
       - name: "Compute image tags"
         id: tags
+        env:
+          IMAGE_NAME: ${{ inputs.image_name }}
+          IMAGE_TAG_SUFFIX: ${{ inputs.image_tag_suffix }}
+          PUSH_LATEST: ${{ inputs.push_latest }}
+          DOCKER_REPO: ${{ steps.vars.outputs.DOCKER_REPO }}
+          SHORT_SHA: ${{ steps.sha.outputs.short_sha }}
         run: |
-          REPO="${{ steps.vars.outputs.DOCKER_REPO }}/api-data/${{ inputs.image_name }}"
-          SHA="${{ steps.sha.outputs.short_sha }}"
-          SUFFIX="${{ inputs.image_tag_suffix }}"
+          REPO="${DOCKER_REPO}/api-data/${IMAGE_NAME}"
+          SHA="${SHORT_SHA}"
+          SUFFIX="${IMAGE_TAG_SUFFIX}"
           {
             echo "value<<EOF"
             echo "${REPO}:${SHA}${SUFFIX}"
-            if [[ "${{ inputs.push_latest }}" == "true" ]]; then
+            if [[ "${PUSH_LATEST}" == "true" ]]; then
               echo "${REPO}:latest"
             fi
             echo "EOF"

@@ -28,10 +28,10 @@ on:
         type: string
         required: true
       no_traffic:
-        description: "Deploy without routing traffic to this revision (true/false)"
-        type: string
+        description: "Deploy without routing traffic to this revision"
+        type: boolean
         required: false
-        default: "true"
+        default: true
       flags:
         description: "Additional gcloud flags (e.g. --max-instances=1)"
         type: string
@@ -143,7 +143,11 @@ jobs:
             SQL_HOST=cloudsql-recommendation-${{ inputs.secret_env_name }}-ew1_private_ip:latest
 
       - name: "Print deployed revision URL"
+        env:
+          TAG: ${{ inputs.tag }}
+          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
+          DEPLOY_REVISION: ${{ steps.deploy.outputs.revision }}
         run: |
           echo "Deployed Cloud Run revision"
-          echo "  Tag URL  : https://${{ inputs.tag }}---${{ steps.deploy.outputs.url }}"
-          echo "  Revision : ${{ steps.deploy.outputs.revision }}"
+          echo "  Tag URL  : https://${TAG}---${DEPLOY_URL}"
+          echo "  Revision : ${DEPLOY_REVISION}"
