@@ -1,6 +1,6 @@
 SHELL:=/bin/bash
 
-.PHONY: install start tunnel start-with-remote-db streamlit streamlit-remote dev-with-streamlit test unit-test integration-test test-with-markers access-remote-swagger get-api-token show-config help
+.PHONY: install start tunnel start-with-remote-db streamlit streamlit-remote dev-with-streamlit test unit-test integration-test test-with-markers access-remote-swagger get-api-token show-config load-test load-test-headless load-test-remote load-test-remote-headless load-test-benchmark locust-seed-data help
 
 
 # ===========================================
@@ -145,7 +145,6 @@ streamlit-remote: check-gcloud-auth ## Start Streamlit UI against a remote API v
 
 # Resolve TARGET_URL based on VERSION (v1 → REMOTE_API_V1_URL, else → REMOTE_API_URL)
 # Usage: call inside a shell block after load_env_cmd
-VERSION ?= v2
 define resolve_api_url
 	if [ "$(VERSION)" = "v1" ] || [ "$(VERSION)" = "V1" ] || [ "$(VERSION)" = "1" ]; then \
 		TARGET_URL="$$REMOTE_API_V1_URL" ; \
@@ -154,6 +153,23 @@ define resolve_api_url
 		TARGET_URL="$$REMOTE_API_URL" ; \
 	fi ; \
 	export STREAMLIT_DEFAULT_API_VERSION="$(VERSION)"
+endef
+
+# Resolve LOAD_TEST_TARGET_URL for load tests using dedicated Cloud Run instances.
+#   v1          → LOAD_TEST_V1_URL
+#   v2-no-redis → LOAD_TEST_V2_NO_REDIS_URL
+#   v2 (default)→ LOAD_TEST_V2_REDIS_URL
+define resolve_load_test_url
+	if [ "$(VERSION)" = "v1" ] || [ "$(VERSION)" = "V1" ] || [ "$(VERSION)" = "1" ]; then \
+		LOAD_TEST_TARGET_URL="$$LOAD_TEST_V1_URL" ; \
+		if [ -z "$$LOAD_TEST_TARGET_URL" ]; then echo "❌ Error: LOAD_TEST_V1_URL is missing in .env$(if $(DEPLOY_ENV),.$(DEPLOY_ENV),)"; exit 1; fi ; \
+	elif [ "$(VERSION)" = "v2-no-redis" ]; then \
+		LOAD_TEST_TARGET_URL="$$LOAD_TEST_V2_NO_REDIS_URL" ; \
+		if [ -z "$$LOAD_TEST_TARGET_URL" ]; then echo "❌ Error: LOAD_TEST_V2_NO_REDIS_URL is missing in .env$(if $(DEPLOY_ENV),.$(DEPLOY_ENV),)"; exit 1; fi ; \
+	else \
+		LOAD_TEST_TARGET_URL="$$LOAD_TEST_V2_REDIS_URL" ; \
+		if [ -z "$$LOAD_TEST_TARGET_URL" ]; then echo "❌ Error: LOAD_TEST_V2_REDIS_URL is missing in .env$(if $(DEPLOY_ENV),.$(DEPLOY_ENV),)"; exit 1; fi ; \
+	fi
 endef
 
 UNAME_S := $(shell uname -s)
@@ -196,6 +212,178 @@ get-api-token: check-gcloud-auth ## Fetch the API token from GCP Secret Manager.
 	fi; \
 	echo "🔐 Fetching API token for [$(DEPLOY_ENV)]..." && \
 	gcloud secrets versions access latest --secret "$$API_RECO_TOKEN_SECRET_NAME" --project "$$GCP_SECRET_PROJECT"
+
+
+# ===========================================
+# 🔥 Load tests (Locust)
+# ===========================================
+
+load-test: ## Start Locust UI against the local API (no proxy, no token required)
+	@echo "🔥 Starting Locust UI against local API..."
+	LOCUST_USE_SOCKS_PROXY=0 \
+	uv run locust -f locust/locustfile.py
+
+load-test-headless: ## Run Locust headless against the local API (shape-driven, ~5m30s, no proxy)
+	@echo "🔥 Running headless Locust load test against local API..."
+	LOCUST_USE_SOCKS_PROXY=0 \
+	uv run locust -f locust/locustfile.py \
+		--headless \
+		--users 20 \
+		--spawn-rate 2 \
+		--html locust/reports/report_local_$$(date +%Y%m%d_%H%M%S).html
+
+load-test-remote: check-gcloud-auth ## Start Locust UI against a remote load-test API via SOCKS tunnel. Requires DEPLOY_ENV=dev|stg|prod. Optional: VERSION=v1|v2|v2-no-redis TARGET_ENDPOINT=all|offers|playlist|artists
+	@[ -n "$(DEPLOY_ENV)" ] || (echo "❌ Error: DEPLOY_ENV is required. Usage: make load-test-remote DEPLOY_ENV=dev|stg|prod"; exit 1)
+	$(PREPARE_SWAGGER_TUNNEL)
+	@echo "🔌 Opening SOCKS tunnel for Locust [env: $(DEPLOY_ENV)] [$(VERSION)] [endpoint: $(TARGET_ENDPOINT)]..."
+	@$(load_env_cmd) && \
+	SOCKS_PORT="$${REMOTE_API_SOCKS_PORT:-1080}" ; \
+	$(resolve_load_test_url) ; \
+	$(SSH_BASE) -N -q -D "$$SOCKS_PORT" & \
+	TUNNEL_PID=$$! ; \
+	sleep 2 ; \
+	trap 'echo -e "\n🛑 Closing SOCKS tunnel (PID: $$TUNNEL_PID)..."; kill $$TUNNEL_PID 2>/dev/null || true' EXIT INT TERM ; \
+	echo "✅ Tunnel SOCKS ouvert sur le port $$SOCKS_PORT" ; \
+	echo "🔥 Starting Locust UI → http://localhost:8089  (target: $$LOAD_TEST_TARGET_URL, endpoint: $(TARGET_ENDPOINT))" ; \
+	REMOTE_API_URL="$$LOAD_TEST_TARGET_URL" \
+	REMOTE_API_TOKEN="$$REMOTE_API_TOKEN" \
+	REMOTE_API_SOCKS_PORT="$$SOCKS_PORT" \
+	LOCUST_USE_SOCKS_PROXY=1 \
+	TARGET_ENDPOINT="$(TARGET_ENDPOINT)" \
+	uv run locust -f locust/locustfile.py --host "$$LOAD_TEST_TARGET_URL"
+
+load-test-remote-headless: check-gcloud-auth ## Run Locust headless against a remote load-test API via SOCKS tunnel (shape-driven, ~5m30s). Requires DEPLOY_ENV=dev|stg|prod. Optional: VERSION=v1|v2|v2-no-redis TARGET_ENDPOINT=all|offers|playlist|artists
+	@[ -n "$(DEPLOY_ENV)" ] || (echo "❌ Error: DEPLOY_ENV is required. Usage: make load-test-remote-headless DEPLOY_ENV=dev|stg|prod"; exit 1)
+	$(PREPARE_SWAGGER_TUNNEL)
+	@echo "🔌 Opening SOCKS tunnel for headless Locust [env: $(DEPLOY_ENV)] [$(VERSION)] [endpoint: $(TARGET_ENDPOINT)]..."
+	@$(load_env_cmd) && \
+	SOCKS_PORT="$${REMOTE_API_SOCKS_PORT:-1080}" ; \
+	$(resolve_load_test_url) ; \
+	$(SSH_BASE) -N -q -D "$$SOCKS_PORT" & \
+	TUNNEL_PID=$$! ; \
+	sleep 2 ; \
+	trap 'echo -e "\n🛑 Closing SOCKS tunnel (PID: $$TUNNEL_PID)..."; kill $$TUNNEL_PID 2>/dev/null || true' EXIT INT TERM ; \
+	echo "🔥 Running headless Locust load test (shape-driven, ~5m30s)  (target: $$LOAD_TEST_TARGET_URL, endpoint: $(TARGET_ENDPOINT))" ; \
+	REMOTE_API_URL="$$LOAD_TEST_TARGET_URL" \
+	REMOTE_API_TOKEN="$$REMOTE_API_TOKEN" \
+	REMOTE_API_SOCKS_PORT="$$SOCKS_PORT" \
+	LOCUST_USE_SOCKS_PROXY=1 \
+	TARGET_ENDPOINT="$(TARGET_ENDPOINT)" \
+	uv run locust -f locust/locustfile.py \
+		--host "$$LOAD_TEST_TARGET_URL" \
+		--headless \
+		--users 20 \
+		--spawn-rate 2 \
+		--html locust/reports/report_$(DEPLOY_ENV)_$(VERSION)_$$(date +%Y%m%d_%H%M%S).html ; \
+	wait $$TUNNEL_PID
+
+load-test-benchmark: check-gcloud-auth ## Run headless Locust benchmark (~5m30s) against v1, v2-redis and v2-no-redis in parallel. Requires DEPLOY_ENV=dev|stg|prod. Optional: TARGET_ENDPOINT=all(default)|offers|playlist|artists|"offers,playlist" (comma-separated → one sequential run per endpoint, ~5m30s each)
+	@[ -n "$(DEPLOY_ENV)" ] || (echo "❌ Error: DEPLOY_ENV is required. Usage: make load-test-benchmark DEPLOY_ENV=dev|stg|prod"; exit 1)
+	$(PREPARE_SWAGGER_TUNNEL)
+	@echo "🔌 Opening SOCKS tunnel for benchmark [env: $(DEPLOY_ENV)] [endpoint: $(or $(TARGET_ENDPOINT),all)]..."
+	@$(load_env_cmd) && \
+	SOCKS_PORT="$${REMOTE_API_SOCKS_PORT:-1080}" ; \
+	$(SSH_BASE) -N -q -D "$$SOCKS_PORT" & \
+	TUNNEL_PID=$$! ; \
+	sleep 2 ; \
+	trap 'echo -e "\n🛑 Closing SOCKS tunnel (PID: $$TUNNEL_PID)..."; kill $$TUNNEL_PID 2>/dev/null || true' EXIT INT TERM ; \
+	TIMESTAMP=$$(date +%Y%m%d_%H%M%S) ; \
+	TARGET="$(TARGET_ENDPOINT)" ; \
+	if [ -z "$$TARGET" ] || [ "$$TARGET" = "all" ]; then \
+		RUN_MODE="benchmark" ; \
+		REPORT_DIR="locust/reports/benchmark_$(DEPLOY_ENV)_$$TIMESTAMP" ; \
+		echo "📊 Mode: benchmark complet (shape ~5m30s)" ; \
+	else \
+		RUN_MODE="isolated" ; \
+		REPORT_DIR="locust/reports/isolated_$(DEPLOY_ENV)_$$TIMESTAMP" ; \
+		echo "📊 Mode: isolated — endpoints: $$TARGET (2 min chacun)" ; \
+	fi ; \
+	mkdir -p "$$REPORT_DIR" ; \
+	echo "📁 Reports will be saved in $$REPORT_DIR" ; \
+	echo "" ; \
+	PIDS="" ; \
+	\
+	run_version() { \
+		local VER_LABEL=$$1 ; \
+		local API_URL=$$2 ; \
+		if [ "$$RUN_MODE" = "benchmark" ]; then \
+			echo "🔥 Starting [$$VER_LABEL] → $$API_URL" ; \
+			REMOTE_API_URL="$$API_URL" \
+			REMOTE_API_TOKEN="$$REMOTE_API_TOKEN" \
+			REMOTE_API_SOCKS_PORT="$$SOCKS_PORT" \
+			LOCUST_USE_SOCKS_PROXY=1 \
+			uv run locust -f locust/locustfile.py \
+				--host "$$API_URL" \
+				--headless \
+				--users 20 \
+				--spawn-rate 2 \
+				--html "$$REPORT_DIR/report_$${VER_LABEL}.html" \
+				> "$$REPORT_DIR/locust_$${VER_LABEL}.log" 2>&1 \
+			&& echo "  ✅ [$$VER_LABEL] done" \
+			|| echo "  ❌ [$$VER_LABEL] failed — check $$REPORT_DIR/locust_$${VER_LABEL}.log" ; \
+		else \
+			echo "🔥 [$$VER_LABEL] Starting isolated runs ($$TARGET) → $$API_URL" ; \
+			IFS=',' read -ra ENDPOINT_LIST <<< "$$TARGET" ; \
+			for ENDPOINT in "$${ENDPOINT_LIST[@]}"; do \
+				ENDPOINT=$$(echo "$$ENDPOINT" | xargs) ; \
+				REMOTE_API_URL="$$API_URL" \
+				REMOTE_API_TOKEN="$$REMOTE_API_TOKEN" \
+				REMOTE_API_SOCKS_PORT="$$SOCKS_PORT" \
+				LOCUST_USE_SOCKS_PROXY=1 \
+				TARGET_ENDPOINT="$$ENDPOINT" \
+				uv run locust -f locust/locustfile.py \
+					--host "$$API_URL" \
+					--headless \
+					--users 20 \
+					--spawn-rate 2 \
+					--html "$$REPORT_DIR/report_$${VER_LABEL}_$${ENDPOINT}.html" \
+					>> "$$REPORT_DIR/locust_$${VER_LABEL}.log" 2>&1 \
+				&& echo "  ✅ [$$VER_LABEL] $$ENDPOINT done" \
+				|| echo "  ❌ [$$VER_LABEL] $$ENDPOINT failed — check $$REPORT_DIR/locust_$${VER_LABEL}.log" ; \
+			done ; \
+		fi ; \
+	} ; \
+	export -f run_version ; \
+	export REMOTE_API_TOKEN SOCKS_PORT REPORT_DIR RUN_MODE TARGET ; \
+	\
+	if [ -n "$$LOAD_TEST_V1_URL" ]; then \
+		( run_version "v1" "$$LOAD_TEST_V1_URL" ) & \
+		PIDS="$$PIDS $$!" ; \
+	else \
+		echo "⚠️  Skipping v1 : LOAD_TEST_V1_URL not defined in .env.$(DEPLOY_ENV)" ; \
+	fi ; \
+	\
+	if [ -n "$$LOAD_TEST_V2_REDIS_URL" ]; then \
+		( run_version "v2-redis" "$$LOAD_TEST_V2_REDIS_URL" ) & \
+		PIDS="$$PIDS $$!" ; \
+	else \
+		echo "⚠️  Skipping v2-redis : LOAD_TEST_V2_REDIS_URL not defined in .env.$(DEPLOY_ENV)" ; \
+	fi ; \
+	\
+	if [ -n "$$LOAD_TEST_V2_NO_REDIS_URL" ]; then \
+		( run_version "v2-no-redis" "$$LOAD_TEST_V2_NO_REDIS_URL" ) & \
+		PIDS="$$PIDS $$!" ; \
+	else \
+		echo "⚠️  Skipping v2-no-redis : LOAD_TEST_V2_NO_REDIS_URL not defined in .env.$(DEPLOY_ENV)" ; \
+	fi ; \
+	\
+	if [ -z "$$PIDS" ]; then \
+		echo "❌ No load-test URLs defined — nothing to run." ; \
+		kill $$TUNNEL_PID 2>/dev/null || true ; \
+		exit 1 ; \
+	fi ; \
+	echo "⏳ All versions running in parallel, waiting for completion…" ; \
+	FAILED=0 ; \
+	for PID in $$PIDS; do \
+		wait $$PID || FAILED=$$((FAILED + 1)) ; \
+	done ; \
+	echo "" ; \
+	echo "🏁 Benchmark complete! Reports:" ; \
+	ls -1 "$$REPORT_DIR"/*.html 2>/dev/null | sed 's/^/  📄 /' ; \
+	echo "📋 Logs:" ; \
+	ls -1 "$$REPORT_DIR"/*.log 2>/dev/null | sed 's/^/  📝 /' ; \
+	[ "$$FAILED" -eq 0 ] || echo "⚠️  $$FAILED version(s) had errors — check the logs above." ; \
+	kill $$TUNNEL_PID 2>/dev/null || true
 
 
 # ===========================================

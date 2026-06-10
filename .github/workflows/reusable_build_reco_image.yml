@@ -1,0 +1,157 @@
+name: "Build and Push Reco Docker Image"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Reusable workflow: builds a Docker image from a given app path, pushes it to
+# Artifact Registry, and exposes commit metadata as outputs for downstream jobs.
+# ──────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_call:
+    inputs:
+      app_path:
+        description: "Docker build context path (e.g. apps/recommendation_v2)"
+        type: string
+        required: true
+      image_name:
+        description: "Image name in Artifact Registry (e.g. recommendation_v2)"
+        type: string
+        required: true
+      image_tag_suffix:
+        description: "Optional suffix appended to the SHA image tag (e.g. -load-test)"
+        type: string
+        required: false
+        default: ""
+      push_latest:
+        description: "Also push a :latest tag alongside the SHA tag"
+        type: boolean
+        required: false
+        default: false
+      TARGET_ENV:
+        description: "GitHub environment used for variable resolution (dev / staging / production)"
+        type: string
+        required: true
+    secrets:
+      GCP_EHP_WORKLOAD_IDENTITY_PROVIDER:
+        required: true
+      GCP_EHP_SERVICE_ACCOUNT:
+        required: true
+    outputs:
+      short_sha:
+        description: "Full Git SHA of the built commit"
+        value: ${{ jobs.build.outputs.short_sha }}
+      very_short_sha:
+        description: "First 7 characters of the Git SHA"
+        value: ${{ jobs.build.outputs.very_short_sha }}
+      rand:
+        description: "3-character random suffix for unique Cloud Run revision names"
+        value: ${{ jobs.build.outputs.rand }}
+      docker_repo:
+        description: "Full Artifact Registry repository URL"
+        value: ${{ jobs.build.outputs.docker_repo }}
+      env_long_name:
+        description: "Long environment name (testing / staging / production)"
+        value: ${{ jobs.build.outputs.env_long_name }}
+      secret_env_name:
+        description: "Environment key used in GCP secret names (dev / stg / production)"
+        value: ${{ jobs.build.outputs.secret_env_name }}
+
+env:
+  DOCKER_REGISTRY_PROJECT_ID: "passculture-infra-prod"
+  DOCKER_REGISTRY_REGION: "europe-west1"
+  DOCKER_REGISTRY_REPOSITORY: "pass-culture-artifact-registry"
+
+jobs:
+  build:
+    name: "Build ${{ inputs.image_name }}${{ inputs.image_tag_suffix }}"
+    environment: ${{ inputs.TARGET_ENV }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      ENV_SHORT_NAME: ${{ vars.ENV_SHORT_NAME }}
+    outputs:
+      short_sha:       ${{ steps.sha.outputs.short_sha }}
+      very_short_sha:  ${{ steps.sha.outputs.very_short_sha }}
+      rand:            ${{ steps.sha.outputs.rand }}
+      docker_repo:     ${{ steps.vars.outputs.DOCKER_REPO }}
+      env_long_name:   ${{ steps.sha.outputs.env_long_name }}
+      secret_env_name: ${{ steps.sha.outputs.secret_env_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Authenticate with GCP (Secret Manager)"
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
+
+      - name: "Get Artifact Registry secrets"
+        id: secrets
+        uses: google-github-actions/get-secretmanager-secrets@v2
+        with:
+          secrets: |-
+            ARTIFACT_REGISTRY_SERVICE_ACCOUNT:passculture-metier-ehp/passculture-main-artifact-registry-service-account
+            ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER:passculture-metier-ehp/infra-prod-gcp-workload-identity-provider
+
+      - name: "Set Docker repo URL"
+        id: vars
+        run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" >> "$GITHUB_OUTPUT"
+
+      - name: "Get commit SHA and environment names"
+        id: sha
+        run: |
+          echo "short_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          echo "very_short_sha=$(echo "$GITHUB_SHA" | cut -c1-7)" >> "$GITHUB_OUTPUT"
+          echo "rand=$(tr -dc 'a-z0-9' < /dev/urandom | head -c 3)" >> "$GITHUB_OUTPUT"
+          if [ "${{ env.ENV_SHORT_NAME }}" = "prod" ]; then
+            echo "env_long_name=production" >> "$GITHUB_OUTPUT"
+            echo "secret_env_name=production" >> "$GITHUB_OUTPUT"
+          elif [ "${{ env.ENV_SHORT_NAME }}" = "stg" ]; then
+            echo "env_long_name=staging" >> "$GITHUB_OUTPUT"
+            echo "secret_env_name=${{ env.ENV_SHORT_NAME }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "env_long_name=testing" >> "$GITHUB_OUTPUT"
+            echo "secret_env_name=${{ env.ENV_SHORT_NAME }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "Compute image tags"
+        id: tags
+        run: |
+          REPO="${{ steps.vars.outputs.DOCKER_REPO }}/api-data/${{ inputs.image_name }}"
+          SHA="${{ steps.sha.outputs.short_sha }}"
+          SUFFIX="${{ inputs.image_tag_suffix }}"
+          {
+            echo "value<<EOF"
+            echo "${REPO}:${SHA}${SUFFIX}"
+            if [[ "${{ inputs.push_latest }}" == "true" ]]; then
+              echo "${REPO}:latest"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: "Set up Docker Buildx"
+        uses: docker/setup-buildx-action@v3
+
+      - name: "Authenticate with Google Cloud (Artifact Registry)"
+        id: openid-auth
+        uses: google-github-actions/auth@v2
+        with:
+          create_credentials_file: false
+          token_format: "access_token"
+          workload_identity_provider: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
+
+      - name: "Docker login"
+        uses: docker/login-action@v3
+        with:
+          registry: "${{ env.DOCKER_REGISTRY_REGION }}-docker.pkg.dev"
+          username: "oauth2accesstoken"
+          password: "${{ steps.openid-auth.outputs.access_token }}"
+
+      - name: "Build and push Docker image"
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ inputs.app_path }}
+          push: true
+          tags: ${{ steps.tags.outputs.value }}
