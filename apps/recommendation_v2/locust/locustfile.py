@@ -135,28 +135,28 @@ def on_test_start(environment, **_kwargs):
             "label": "similar_offers (Vertex warm-up)",
             "method": "GET",
             "url": f"{API_BASE_URL}/similar_offers/{random.choice(OFFER_IDS)}",
-            "params": token_params,
             "json": None,
         },
         {
             "label": "playlist_recommendation (Vertex warm-up)",
             "method": "POST",
             "url": f"{API_BASE_URL}/playlist_recommendation/{random.choice(USER_IDS)}",
-            "params": token_params,
             "json": {"isRestrained": True},
         },
     ]
 
     for call in warmup_calls:
+        label: str = call["label"]
+        url: str = call["url"]
         deadline = time.monotonic() + timeout_s
-        print(f"[locust] ⏳ Warm-up: {call['label']} → {call['url']}")
+        print(f"[locust] ⏳ Warm-up: {label} → {url}")
         while time.monotonic() < deadline:
             try:
                 t0 = time.monotonic()
                 resp = _requests.request(
                     method=str(call["method"]),
-                    url=str(call["url"]),
-                    params=call["params"],
+                    url=url,
+                    params=token_params,
                     json=call["json"],
                     proxies=proxies,
                     timeout=timeout_s,
@@ -164,17 +164,17 @@ def on_test_start(environment, **_kwargs):
                 elapsed = time.monotonic() - t0
                 if resp.status_code in (200, 404):
                     # 404 can happen with stale IDs; still means the pipeline ran
-                    print(f"[locust] ✅ {call['label']} - HTTP {resp.status_code} in {elapsed:.1f}s")
+                    print(f"[locust] ✅ {label} - HTTP {resp.status_code} in {elapsed:.1f}s")
                     break
                 print(
-                    f"[locust] ⚠️  {call['label']} - HTTP {resp.status_code} after {elapsed:.1f}s, "
+                    f"[locust] ⚠️  {label} - HTTP {resp.status_code} after {elapsed:.1f}s, "
                     f"retrying in {retry_interval_s}s …"
                 )
             except Exception as exc:
-                print(f"[locust] ⚠️  {call['label']} - request failed ({exc}), retrying in {retry_interval_s}s …")
+                print(f"[locust] ⚠️  {label} - request failed ({exc}), retrying in {retry_interval_s}s …")
             time.sleep(retry_interval_s)
         else:
-            print(f"[locust] ❌ {call['label']} did not succeed within {timeout_s}s - proceeding anyway.")
+            print(f"[locust] ❌ {label} did not succeed within {timeout_s}s - proceeding anyway.")
 
     print("[locust] 🚀 Warm-up complete - starting load test.")
 
