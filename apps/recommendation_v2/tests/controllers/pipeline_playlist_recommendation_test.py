@@ -165,6 +165,7 @@ async def test_pipeline_generates_successful_playlist_without_gps(
     assert "offer-physical" not in response.playlist_recommended_offers, (
         "A geolocated offer must not appear in the playlist when the user has no GPS coordinates."
     )
+    response.params.reco_origin = "algo"
 
 
 @pytest.mark.asyncio
@@ -536,3 +537,4 @@ async def test_pipeline_skips_tracking_for_unauthenticated_user(
             "with non-personalised engagement signals."
         ),
     )
+    response.params.reco_origin = "unknown"

@@ -7,6 +7,7 @@ import huggy.schemas.offer as o
 from huggy.core.model_engine import ModelEngine
 from huggy.core.model_engine.recommendation import Recommendation
 from huggy.core.model_engine.similar_offer import SimilarOffer
+from huggy.schemas.model_selection.model_configuration import RetrievalModelChoices
 from huggy.schemas.playlist_params import PlaylistParams
 from huggy.schemas.user import UserContext
 
@@ -38,6 +39,19 @@ class ModelEngineFactory:
         Fallback to default recommendation if no results are found or specific conditions apply.
         """
         input_offers = input_offers or []
+
+        if (
+            params_in.retrieval_model == RetrievalModelChoices.GRAPH
+            and not input_offers
+        ):
+            model_engine = SimilarOffer(
+                user=user,
+                params_in=params_in,
+                call_id=call_id,
+                context=context,
+                input_offers=input_offers,
+            )
+            return ModelEngineOut(model=model_engine, results=[])
 
         model_engine = ModelEngineFactory._determine_model_engine(
             user, params_in, call_id, context, input_offers
