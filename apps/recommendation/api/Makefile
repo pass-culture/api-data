@@ -46,7 +46,7 @@ start-with-remote-db:
 
 test:
 	@$(MAKE) prepare_db
-	API_LOCAL=1 pytest
+	API_LOCAL=1 SQL_PORT=3307 SQL_BASE=postgres uv run pytest
 	docker compose down -v
 
 
