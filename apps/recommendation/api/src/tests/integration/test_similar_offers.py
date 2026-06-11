@@ -9,7 +9,7 @@ async def test_similar_offers_with_known_id_default(async_client):
     assert "results" in body
     assert "params" in body
     # Since it is a known offer, it should not fall back to recommendation fallback by default
-    assert body["params"]["model_origin"] != "recommendation_fallback"
+    assert body["params"]["model_origin"] == "default"
 
 
 async def test_similar_offers_with_unknown_id_default(async_client):
