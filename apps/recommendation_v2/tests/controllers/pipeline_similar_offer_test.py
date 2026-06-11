@@ -110,6 +110,7 @@ async def test_similar_offer_handles_unknown_offer_id(
         offer_id="non-existent-offer-id",
     )
 
+    assert response.params.reco_origin == "similar_offer"
     assert isinstance(response, SimilarOfferResponse)
 
 
@@ -171,6 +172,7 @@ async def test_similar_offer_filters_out_already_booked_items(
 
     assert "offer-B" in response.results
     assert "offer-C" in response.results
+    assert response.params.reco_origin == "similar_offer"
 
 
 @pytest.mark.asyncio
@@ -279,6 +281,7 @@ async def test_similar_offer_handles_empty_retrieval_from_vertex(
     )
 
     assert isinstance(response, SimilarOfferResponse)
+    assert response.params.reco_origin == "similar_offer"
     assert response.results == []
     mock_vertex_ranking[1].assert_called_once()
     assert mock_vertex_ranking[1].call_args[0][0] == []
@@ -312,6 +315,7 @@ async def test_similar_offer_caps_results_at_maximum_size(
         offer_id=reference_offer.offer_id,
     )
 
+    assert response.params.reco_origin == "similar_offer"
     assert len(response.results) <= SIMILAR_OFFERS_LIST_MAXIMUM_SIZE
 
 
@@ -337,11 +341,12 @@ async def test_similar_offer_uses_graph_retrieval_when_model_is_graph(
     mock_vertex_ranking[1].side_effect = lambda offers, _ctx: offers
     mocker.patch("controllers.pipeline_similar_offer.log_past_offer_context_to_sink")
 
-    await generate_similar_offers(
+    response = await generate_similar_offers(
         db=db_session,
         offer_id=reference_offer.offer_id,
         retrieval_model=SimilarOfferModelChoices.graph,
     )
 
+    assert response.params.reco_origin == "graph"
     mock_graph_fetch.assert_called_once()
     mock_standard_fetch.assert_not_called()

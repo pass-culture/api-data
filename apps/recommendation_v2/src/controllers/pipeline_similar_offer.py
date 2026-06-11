@@ -3,6 +3,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import settings
 from core.diversification import apply_offer_diversification
 from core.geo import get_iris_id_from_coordinates
 from core.ranking import rank_and_sort_offers_with_vertex
@@ -22,6 +23,7 @@ from schemas.categories import SubcategoryEnum
 from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.similar_offer import SimilarOfferModelChoices
 from schemas.similar_offer import SimilarOfferResponse
+from services.logger import call_id_context
 from services.logger import logger
 
 
@@ -73,6 +75,7 @@ async def generate_similar_offers(  # noqa: PLR0913
 
     # --- 1. Initialization & Context Building ---
     call_id = str(uuid.uuid4())
+    call_id_context.set(call_id)
 
     # 1.1. Fetch the reference offer from the database
     offer_query_result = await db.execute(select(RecommendableOffers).where(RecommendableOffers.offer_id == offer_id))
@@ -159,7 +162,7 @@ async def generate_similar_offers(  # noqa: PLR0913
     final_similar_offers = diversified_offers[:SIMILAR_OFFERS_LIST_MAXIMUM_SIZE]
 
     # --- 7. Logging Phase ---
-    recommendation_origin = "similar_offer"
+    recommendation_origin = "similar_offer" if retrieval_model == SimilarOfferModelChoices.coreservation else "graph"
 
     log_past_offer_context_to_sink(
         user_context=user_context,
@@ -172,5 +175,7 @@ async def generate_similar_offers(  # noqa: PLR0913
 
     return SimilarOfferResponse(
         results=[offer.offer_id for offer in final_similar_offers],
-        params=RecommendationMetadata(reco_origin=recommendation_origin, model_origin=retrieval_model, call_id=call_id),
+        params=RecommendationMetadata(
+            reco_origin=recommendation_origin, model_origin=settings.SIMILAR_OFFER_MODEL_CONTEXT, call_id=call_id
+        ),
     )

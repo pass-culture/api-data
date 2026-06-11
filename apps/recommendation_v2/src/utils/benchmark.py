@@ -24,14 +24,24 @@ def log_execution_time(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
         start_time = time.perf_counter()
-        try:
-            return await func(*args, **kwargs)
-        finally:
-            end_time = time.perf_counter()
-            execution_time = end_time - start_time
-            logger.debug(
-                f"⏱️ [BENCHMARK] Function '{func.__name__}' executed in {execution_time:.4f} seconds.",
-                extra={"function": func.__name__, "execution_time_seconds": execution_time},
-            )
+        result = await func(*args, **kwargs)
+        end_time = time.perf_counter()
+        execution_time = end_time - start_time
+
+        from_cache = getattr(result, "from_cache", None)
+        cache_info = ""
+        extra: dict = {"function": func.__name__, "execution_time_seconds": execution_time}
+
+        if from_cache is not None:
+            cache_label = "CACHE HIT 🟢" if from_cache else "CACHE MISS 🔴"
+            cache_info = f" | {cache_label}"
+            extra["from_cache"] = from_cache
+
+        logger.debug(
+            f"⏱️ [BENCHMARK] Function '{func.__name__}' executed in {execution_time:.4f} seconds{cache_info}.",
+            extra=extra,
+        )
+
+        return result
 
     return wrapper

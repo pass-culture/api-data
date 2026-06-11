@@ -93,10 +93,14 @@ class VertexService:
             # Convert standard Python dictionaries into Protobuf 'Value' objects required by gRPC
             protobuf_instances = [json_format.ParseDict(payload, Value()) for payload in feature_payloads]
 
-            logger.debug(
-                "Information sent to Vertex AI Prediction API",
-                extra={"endpoint_name": self.endpoint_name, "payload": {"instances": feature_payloads}},
-            )
+            # The payload is only logged for retrieval endpoints (not ranking),
+            # because the ranking payload is very large: up to 24 fields per offer,
+            # for up to ~600 offers returned by the retrieval step.
+            if self.endpoint_name in (settings.VERTEX_RETRIEVAL_ENDPOINT_NAME, settings.VERTEX_GRAPH_ENDPOINT_NAME):
+                logger.debug(
+                    "Information sent to Vertex AI Prediction API",
+                    extra={"endpoint_name": self.endpoint_name, "payload": {"instances": feature_payloads}},
+                )
 
             return await client.predict(
                 endpoint=endpoint_resource_path,
