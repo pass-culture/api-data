@@ -1,0 +1,4 @@
+# Real staging IDs – never commit these files
+sample_offer_ids.txt
+sample_user_ids.txt
+sample_artist_ids.txt

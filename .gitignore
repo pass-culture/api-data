@@ -169,7 +169,7 @@ cython_debug/
 .python-version
 
 #Locust
-*locustfile.py
+# *locustfile.py
 
 # ggshield
 .cache_ggshield

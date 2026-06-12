@@ -221,7 +221,150 @@ make get-api-token DEPLOY_ENV=prod
 
 ---
 
-## ⚙️ Configuration Reference
+## 🔥 Load Tests (Locust)
+
+Load tests are located in the `locust/` directory and use [Locust](https://locust.io/) to simulate realistic API traffic.
+
+### Load shape
+
+All test modes use the same `StagingLoadShape`, which simulates a realistic intra-day traffic profile:
+
+```
+Users
+ 20 |          ┌──────────┐
+    |         /            \
+  6 |────────/              \────────┐
+    |  ramp  |  steady      |  ramp  |  steady  |  drain
+    └──────────────────────────────────────────────────→ time
+       30s      120s    150s  210s  240s   300s    330s
+```
+
+| Phase | Duration | Users | Throughput |
+|---|---|---|---|
+| 0 - Warm-up | 0 → 30s | 0 → 6 | ramp to ~6 req/s |
+| 1 - Steady | 30s → 2min | 6 | ~6 req/s |
+| 2 - Ramp to peak | 2min → 2min30 | 6 → 20 | ramp to ~20 req/s |
+| 3 - Peak hold | 2min30 → 3min30 | 20 | ~20 req/s |
+| 4 - Cool-down | 3min30 → 4min | 20 → 6 | ramp down |
+| 5 - Steady | 4min → 5min | 6 | ~6 req/s |
+| 6 - Drain | 5min → 5min30 | 6 → 0 | drain |
+
+**Total duration ≈ 5 min 30 s.**
+
+---
+
+### Prerequisites: seed the test data
+
+Before running any test, populate the `locust/data/` files with real IDs from the staging database. This requires the DB tunnel to be open first:
+
+```bash
+make tunnel DEPLOY_ENV=stg        # open the DB tunnel in a separate terminal
+make locust-seed-data             # populate locust/data/ with real offer/user/artist IDs
+```
+
+The seed files (`sample_offer_ids.txt`, `sample_user_ids.txt`, `sample_artist_ids.txt`) are git-ignored.
+
+---
+
+### Deploy the load test Cloud Run instances
+
+Remote load tests target **dedicated Cloud Run revisions** that are completely isolated from production traffic (0 % routing, max 1 instance). They are deployed via the **"Deploy Load Test Instances"** GitHub Actions workflow (manual trigger only).
+
+#### Instances deployed
+
+| Cloud Run tag | API version | Redis |
+|---|---|---|
+| `load-test-v1` | Reco v1 | N/A |
+| `load-test-v2` | Reco v2 | ✅ enabled (`REDIS_CACHE_ENABLED=1`) |
+| `load-test-v2-no-redis` | Reco v2 | ❌ disabled (`REDIS_CACHE_ENABLED=0`) |
+
+> Both v2 variants share the same Docker image. Redis is toggled exclusively via the `REDIS_CACHE_ENABLED` environment variable at deploy time — no separate build is needed.
+
+#### How to deploy
+
+1. Go to **Actions → Deploy Load Test Instances** in GitHub.
+2. Click **Run workflow** and fill in the inputs:
+   - **environment**: `dev` or `staging`
+   - Three checkboxes to select which instances to (re)deploy
+3. Wait for the workflow to complete. The printed URL for each revision follows the pattern:
+   ```
+   https://load-test-v1---<base-service-url>
+   https://load-test-v2---<base-service-url>
+   https://load-test-v2-no-redis---<base-service-url>
+   ```
+
+#### Configure the URLs locally
+
+Once deployed, copy the three tagged URLs into your `.env.<env>` file:
+
+```bash
+LOAD_TEST_V1_URL=https://load-test-v1---<base-service-url>
+LOAD_TEST_V2_REDIS_URL=https://load-test-v2---<base-service-url>
+LOAD_TEST_V2_NO_REDIS_URL=https://load-test-v2-no-redis---<base-service-url>
+```
+
+These variables are read by `make load-test-benchmark` and `make load-test-remote`.
+
+---
+
+### Local load tests
+
+Run against a local API instance (no proxy, no token required).
+
+```bash
+make load-test            # interactive Locust UI at http://localhost:8089
+make load-test-headless   # headless run (~5m30s), saves an HTML report in locust/reports/
+```
+
+---
+
+### Remote load tests (single version)
+
+Run against a dedicated load-test Cloud Run instance via a SOCKS5 IAP tunnel. Requires:
+- `DEPLOY_ENV=dev|stg`
+- A `.env.<env>` file with `LOAD_TEST_V1_URL` / `LOAD_TEST_V2_REDIS_URL` / `LOAD_TEST_V2_NO_REDIS_URL`, `REMOTE_API_TOKEN`, `REMOTE_API_SOCKS_PORT`
+- The load-test instances deployed (see section above)
+
+```bash
+# Interactive UI — pick the version and endpoint to test
+make load-test-remote DEPLOY_ENV=stg
+make load-test-remote DEPLOY_ENV=stg VERSION=v1
+make load-test-remote DEPLOY_ENV=stg TARGET_ENDPOINT=playlist
+
+# Headless run (~5m30s) — saves an HTML report in locust/reports/
+make load-test-remote-headless DEPLOY_ENV=stg
+make load-test-remote-headless DEPLOY_ENV=stg VERSION=v2-no-redis TARGET_ENDPOINT=offers
+```
+
+**Optional parameters:**
+
+| Parameter | Values | Default | Description |
+|---|---|---|---|
+| `VERSION` | `v1`, `v2`, `v2-no-redis` | `v2` | Selects the dedicated load-test Cloud Run instance |
+| `TARGET_ENDPOINT` | `all`, `offers`, `playlist`, `artists` | `all` | Restricts load to a single endpoint |
+
+---
+
+### Benchmark (all versions in parallel)
+
+Runs the full load shape against **v1, v2-redis, and v2-no-redis simultaneously** and saves one HTML report per version. Requires the load-test Cloud Run URLs (`LOAD_TEST_V1_URL`, `LOAD_TEST_V2_REDIS_URL`, `LOAD_TEST_V2_NO_REDIS_URL`) to be set in the `.env.<env>` file.
+
+```bash
+# Full benchmark — one report per version
+make load-test-benchmark DEPLOY_ENV=stg
+
+# Isolated mode — one report per version × per endpoint (runs sequentially per version)
+make load-test-benchmark DEPLOY_ENV=stg TARGET_ENDPOINT=offers
+make load-test-benchmark DEPLOY_ENV=stg TARGET_ENDPOINT=offers,playlist,artists
+```
+
+Reports are saved in `locust/reports/`:
+- `benchmark_<env>_<timestamp>/` for full runs
+- `isolated_<env>_<timestamp>/` for isolated endpoint runs
+
+Each directory contains one `.html` report and one `.log` file per version.
+
+---
 
 ### Base configuration (`.env`)
 
@@ -296,3 +439,6 @@ These variables override the base `.env` when `DEPLOY_ENV=<env>` is passed to a 
 | `GCP_BASTION_PROJECT` | Bastion GCP project if different from the one in `.env`. |
 | `GCP_SECRET_PROJECT` | GCP project where the API token secret is stored (used by `get-api-token`). |
 | `API_RECO_TOKEN_SECRET_NAME` | Name of the secret in GCP Secret Manager containing the API token (used by `get-api-token`). |
+| `LOAD_TEST_V1_URL` | URL of the dedicated load-test Cloud Run instance for API v1 (used by `load-test-benchmark`). |
+| `LOAD_TEST_V2_REDIS_URL` | URL of the dedicated load-test Cloud Run instance for API v2 with Redis (used by `load-test-benchmark`). |
+| `LOAD_TEST_V2_NO_REDIS_URL` | URL of the dedicated load-test Cloud Run instance for API v2 without Redis (used by `load-test-benchmark`). |

@@ -1,0 +1,153 @@
+name: "Deploy Reco v2 API to Cloud Run"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Reusable workflow: deploys a Reco v2 Docker image as a new Cloud Run revision
+# with the full standard env vars and secrets configuration.
+#
+# Callers control:
+#   - which image to deploy
+#   - the Cloud Run traffic tag  (e.g. reco-v2 / load-test-v2 / load-test-v2-no-redis)
+#   - whether to receive traffic (no_traffic)
+#   - scaling flags             (e.g. --max-instances=1 for load test instances)
+#   - Redis toggle              (REDIS_CACHE_ENABLED=0|1)
+# ──────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        description: "Full Docker image URL to deploy"
+        type: string
+        required: true
+      suffix:
+        description: "Cloud Run revision name suffix"
+        type: string
+        required: true
+      tag:
+        description: "Cloud Run traffic tag (e.g. reco-v2, load-test-v2)"
+        type: string
+        required: true
+      no_traffic:
+        description: "Deploy without routing traffic to this revision"
+        type: boolean
+        required: false
+        default: true
+      flags:
+        description: "Additional gcloud flags (e.g. --max-instances=1)"
+        type: string
+        required: false
+        default: ""
+      env_long_name:
+        description: "Long environment name passed as ENV (testing / staging / production)"
+        type: string
+        required: true
+      secret_env_name:
+        description: "Environment key used in GCP secret names (dev / stg / production)"
+        type: string
+        required: true
+      redis_cache_enabled:
+        description: "Value of REDIS_CACHE_ENABLED env var (0 = disabled, 1 = enabled)"
+        type: string
+        required: false
+        default: "1"
+      TARGET_ENV:
+        description: "GitHub environment used for variable resolution (dev / staging / production)"
+        type: string
+        required: true
+    secrets:
+      GCP_EHP_WORKLOAD_IDENTITY_PROVIDER:
+        required: true
+      GCP_EHP_SERVICE_ACCOUNT:
+        required: true
+    outputs:
+      url:
+        description: "URL of the deployed Cloud Run service"
+        value: ${{ jobs.deploy.outputs.url }}
+      revision:
+        description: "Name of the deployed Cloud Run revision"
+        value: ${{ jobs.deploy.outputs.revision }}
+
+env:
+  DOCKER_REGISTRY_REGION: "europe-west1"
+
+jobs:
+  deploy:
+    name: "Deploy → tag: ${{ inputs.tag }}"
+    environment: ${{ inputs.TARGET_ENV }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
+      ENV_SHORT_NAME: ${{ vars.ENV_SHORT_NAME }}
+    outputs:
+      url:      ${{ steps.deploy.outputs.url }}
+      revision: ${{ steps.deploy.outputs.revision }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Authenticate with GCP (Secret Manager)"
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
+
+      - name: "Get Cloud Run secrets"
+        id: secrets
+        uses: google-github-actions/get-secretmanager-secrets@v2
+        with:
+          secrets: |-
+            ARTIFACT_REGISTRY_SERVICE_ACCOUNT:passculture-metier-ehp/passculture-main-artifact-registry-service-account
+            ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER:passculture-metier-ehp/infra-prod-gcp-workload-identity-provider
+
+      - name: "Authenticate with Google Cloud (Cloud Run)"
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
+
+      - name: "Deploy to Cloud Run"
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: "apireco-${{ env.ENV_SHORT_NAME }}"
+          suffix: ${{ inputs.suffix }}
+          image: ${{ inputs.image }}
+          region: "${{ env.DOCKER_REGISTRY_REGION }}"
+          project_id: ${{ env.DATA_GCP_PROJECT }}
+          no_traffic: ${{ inputs.no_traffic }}
+          tag: ${{ inputs.tag }}
+          flags: ${{ inputs.flags }}
+          env_vars_update_strategy: overwrite
+          secrets_update_strategy: overwrite
+          env_vars: |-
+            ENV=${{ inputs.env_long_name }}
+            GCP_PROJECT=${{ env.DATA_GCP_PROJECT }}
+            SQL_PORT=5432
+            VERTEX_RETRIEVAL_ENDPOINT_NAME=recommendation_user_retrieval_${{ env.ENV_SHORT_NAME }}
+            VERTEX_RANKING_ENDPOINT_NAME=recommendation_user_ranking_${{ env.ENV_SHORT_NAME }}
+            VERTEX_GRAPH_ENDPOINT_NAME=recommendation_graph_retrieval_${{ env.ENV_SHORT_NAME }}
+            REDIS_CA_CERT_PATH=/secrets/redis-ca-cert
+            REDIS_CACHE_ENABLED=${{ inputs.redis_cache_enabled }}
+            SIMILAR_OFFER_MODEL_CONTEXT=default
+            RECO_MODEL_CONTEXT=default
+          secrets: |-
+            API_TOKEN=api-reco-token-${{ env.ENV_SHORT_NAME }}:latest
+            REDIS_AUTH_STRING=apireco-${{ env.ENV_SHORT_NAME }}_redis_auth_string:latest
+            REDIS_URL=apireco-${{ env.ENV_SHORT_NAME }}_redis_url:latest
+            /secrets/redis-ca-cert=apireco-${{ env.ENV_SHORT_NAME }}_redis_ca:latest
+            SQL_BASE=cloudsql-recommendation-${{ inputs.secret_env_name }}-ew1_database_credentials_username:latest
+            SQL_BASE_PASSWORD=cloudsql-recommendation-${{ inputs.secret_env_name }}-ew1_database_credentials_password:latest
+            SQL_BASE_USER=cloudsql-recommendation-${{ inputs.secret_env_name }}-ew1_database_credentials_username:latest
+            SQL_HOST=cloudsql-recommendation-${{ inputs.secret_env_name }}-ew1_private_ip:latest
+
+      - name: "Print deployed revision URL"
+        env:
+          TAG: ${{ inputs.tag }}
+          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
+          DEPLOY_REVISION: ${{ steps.deploy.outputs.revision }}
+        run: |
+          echo "Deployed Cloud Run revision"
+          echo "  Tag URL  : https://${TAG}---${DEPLOY_URL}"
+          echo "  Revision : ${DEPLOY_REVISION}"
