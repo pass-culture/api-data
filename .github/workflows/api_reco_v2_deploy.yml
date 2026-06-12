@@ -240,6 +240,7 @@ jobs:
       TARGET_URL: ${{ needs.deploy-api.outputs.url }}
     secrets:
       GCP_EHP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_EHP_SERVICE_ACCOUNT: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
 
   slack-notification:
     runs-on: ubuntu-latest
