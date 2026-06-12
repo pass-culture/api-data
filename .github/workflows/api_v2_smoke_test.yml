@@ -1,0 +1,90 @@
+name: "API Reco V2 - Smoke Test"
+
+on:
+  workflow_call:
+    inputs:
+      TARGET_ENV:
+        description: "Environment name (dev|staging|production). Sets the GitHub environment so env vars/secrets resolve."
+        type: string
+        required: true
+      TARGET_URL:
+        description: "Base URL of the freshly deployed (tagged) Cloud Run revision to smoke-test."
+        type: string
+        required: true
+    secrets:
+      GCP_EHP_WORKLOAD_IDENTITY_PROVIDER:
+        required: true
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.TARGET_ENV }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      ENV_SHORT_NAME:   ${{ vars.ENV_SHORT_NAME }}
+      DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
+      GCP_ZONE:         europe-west1-b
+      BASTION:          ${{ vars.ENV_SHORT_NAME == 'prod' && 'tinyproxy-prod' || 'tinyproxy-staging' }}
+      CD_SERVICE_ACCOUNT: api-data-cd-${{ vars.ENV_SHORT_NAME }}@${{ vars.DATA_GCP_PROJECT }}.iam.gserviceaccount.com
+      PROXY_PORT:       "8888"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "Authenticate to GCP with the CD service account"
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.CD_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: "Fetch API token from Secret Manager"
+        id: secrets
+        uses: google-github-actions/get-secretmanager-secrets@v2
+        with:
+          secrets: |-
+            API_TOKEN:${{ env.DATA_GCP_PROJECT }}/api-reco-token-${{ env.ENV_SHORT_NAME }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: "Install newman"
+        run: npm install -g newman@6.2.1
+
+      - name: "Open IAP tunnel to the bastion HTTP proxy"
+        run: |
+          gcloud compute start-iap-tunnel "$BASTION" "$PROXY_PORT" \
+            --local-host-port="localhost:$PROXY_PORT" \
+            --zone="$GCP_ZONE" --project="$DATA_GCP_PROJECT" &
+          echo "TUNNEL_PID=$!" >> "$GITHUB_ENV"
+
+      - name: "Wait for the tunnel to accept connections"
+        run: |
+          for i in $(seq 1 30); do
+            if nc -z localhost "$PROXY_PORT" 2>/dev/null; then
+              echo "✅ Tunnel listening on localhost:$PROXY_PORT after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "❌ Tunnel never came up on localhost:$PROXY_PORT"
+          exit 1
+
+      - name: "Run Newman through the proxy"
+        working-directory: apps/recommendation_v2
+        env:
+          HTTP_PROXY:  http://localhost:${{ env.PROXY_PORT }}
+          HTTPS_PROXY: http://localhost:${{ env.PROXY_PORT }}
+          API_TOKEN:   ${{ steps.secrets.outputs.API_TOKEN }}
+          TARGET_URL:  ${{ inputs.TARGET_URL }}
+        run: |
+          newman run postman/api_reco_v2.postman_collection.json \
+            --environment postman/api_reco_v2.postman_environment.json \
+            --env-var "token=$API_TOKEN" \
+            --env-var "base_url=$TARGET_URL"
+
+      - name: "Close the IAP tunnel"
+        if: always()
+        run: kill "$TUNNEL_PID" 2>/dev/null || true
