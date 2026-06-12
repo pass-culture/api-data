@@ -45,7 +45,7 @@ jobs:
         uses: google-github-actions/get-secretmanager-secrets@v2
         with:
           secrets: |-
-            API_TOKEN:${{ env.DATA_GCP_PROJECT }}/api-reco-token-${{ env.ENV_SHORT_NAME }}
+            API_TOKEN:${{ env.DATA_GCP_PROJECT }}/${{ vars.API_RECO_SECRET_NAME }}
 
       - uses: actions/setup-node@v4
         with:
