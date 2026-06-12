@@ -194,8 +194,41 @@ get-api-token: check-gcloud-auth ## Fetch the API token from GCP Secret Manager.
 		echo "❌ Error: GCP_SECRET_PROJECT or API_RECO_TOKEN_SECRET_NAME is missing from .env.$(DEPLOY_ENV)"; \
 		exit 1; \
 	fi; \
-	echo "🔐 Fetching API token for [$(DEPLOY_ENV)]..." && \
+	echo "🔐 Fetching API token for [$(DEPLOY_ENV)]..." >&2 && \
 	gcloud secrets versions access latest --secret "$$API_RECO_TOKEN_SECRET_NAME" --project "$$GCP_SECRET_PROJECT"
+
+
+http-proxy-tunnel: check-gcloud-auth ## Open an HTTP proxy to the remote API via IAP bastion. Requires DEPLOY_ENV
+	@[ -n "$(DEPLOY_ENV)" ] || (echo "❌ DEPLOY_ENV required (dev|stg|prod)"; exit 1)
+	$(PREPARE_SWAGGER_TUNNEL)
+	@$(load_env_cmd) && LOCAL_PORT="$${REMOTE_API_SOCKS_PORT:-1080}" && REMOTE_PROXY_PORT="$${BASTION_HTTP_PROXY_PORT:-8888}" ; \
+	echo "✅ HTTP proxy on http://localhost:$$LOCAL_PORT — export HTTP_PROXY/HTTPS_PROXY to this, or set it in Postman → Settings → Proxy" ; \
+	$(SSH_BASE) -N -L "$$LOCAL_PORT:localhost:$$REMOTE_PROXY_PORT"
+
+postman-run: check-gcloud-auth ## Run the Postman collection against a remote API (auto HTTP tunnel + token). Requires DEPLOY_ENV
+	@[ -n "$(DEPLOY_ENV)" ] || (echo "❌ DEPLOY_ENV required (dev|stg|prod)"; exit 1)
+	$(PREPARE_SWAGGER_TUNNEL)
+	@$(load_env_cmd) && \
+	LOCAL_PORT="$${REMOTE_API_SOCKS_PORT:-1080}" && REMOTE_PROXY_PORT="$${BASTION_HTTP_PROXY_PORT:-8888}" ; \
+	if [ -z "$$GCP_SECRET_PROJECT" ] || [ -z "$$API_RECO_TOKEN_SECRET_NAME" ]; then \
+		echo "❌ Error: GCP_SECRET_PROJECT or API_RECO_TOKEN_SECRET_NAME is missing in .env.$(DEPLOY_ENV)"; exit 1; \
+	fi; \
+	echo "🔐 Fetching API token for [$(DEPLOY_ENV)]..." ; \
+	TOKEN="$$REMOTE_API_TOKEN" ; \
+	echo "🔌 Opening HTTP proxy tunnel on localhost:$$LOCAL_PORT..." ; \
+	$(SSH_BASE) -N -q -L "$$LOCAL_PORT:localhost:$$REMOTE_PROXY_PORT" & \
+	TUNNEL_PID=$$! ; \
+	trap 'echo "🛑 Closing tunnel (PID: $$TUNNEL_PID)..."; kill $$TUNNEL_PID 2>/dev/null || true' EXIT INT TERM ; \
+	echo "⏳ Waiting for tunnel to listen on localhost:$$LOCAL_PORT (IAP can take ~10s)..." ; \
+	for i in $$(seq 1 30); do lsof -nP -iTCP:$$LOCAL_PORT -sTCP:LISTEN >/dev/null 2>&1 && break; sleep 1; done ; \
+	lsof -nP -iTCP:$$LOCAL_PORT -sTCP:LISTEN >/dev/null 2>&1 || { echo "❌ Tunnel failed to open on port $$LOCAL_PORT"; exit 1; } ; \
+	sleep 3 ; \
+	echo "🚀 Running Newman against $$REMOTE_API_URL..." ; \
+	HTTP_PROXY="http://localhost:$$LOCAL_PORT" HTTPS_PROXY="http://localhost:$$LOCAL_PORT" \
+	newman run postman/api_reco_v2.postman_collection.json \
+	--environment postman/api_reco_v2.postman_environment.json \
+	--env-var "base_url=$$REMOTE_API_URL" \
+	--env-var "token=$$TOKEN"
 
 
 # ===========================================

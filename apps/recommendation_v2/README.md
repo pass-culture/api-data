@@ -219,6 +219,12 @@ make get-api-token DEPLOY_ENV=prod
 
 *Requires `GCP_SECRET_PROJECT` and `API_RECO_TOKEN_SECRET_NAME` to be set in the corresponding `.env.<env>` file.*
 
+### Run the Postman collection
+
+A Postman collection to exercise the API (locally or against `dev` / `stg` / `prod`) is available in [`postman/`](postman/), along with a `make postman-run DEPLOY_ENV=<env>` helper that opens the proxy tunnel and runs it via Newman.
+
+👉 See **[`postman/README.md`](postman/README.md)** for full usage (Newman, the Postman app, local runs, and troubleshooting).
+
 ---
 
 ## ⚙️ Configuration Reference
@@ -291,7 +297,8 @@ These variables override the base `.env` when `DEPLOY_ENV=<env>` is passed to a 
 | `REMOTE_API_URL` | URL of the remote v2 API (used by `streamlit-remote` and `access-remote-swagger`). |
 | `REMOTE_API_V1_URL` | URL of the remote v1 API (optional, enables the v1/v2 version selector in Streamlit). |
 | `REMOTE_API_TOKEN` | API authentication token, pre-filled in the Streamlit sidebar. |
-| `REMOTE_API_SOCKS_PORT` | Local port for the SOCKS5 proxy tunnel (default: `1080`). |
+| `REMOTE_API_SOCKS_PORT` | Local port for the SOCKS5/HTTP proxy tunnel (default: `1080`). |
+| `BASTION_HTTP_PROXY_PORT` | Remote port tinyproxy listens on, on the IAP bastion — used by `http-proxy-tunnel` (default: `8888`). |
 | `GCP_IAP_BASTION_INSTANCE_NAME` | Bastion VM name if different from the one in `.env`. |
 | `GCP_BASTION_PROJECT` | Bastion GCP project if different from the one in `.env`. |
 | `GCP_SECRET_PROJECT` | GCP project where the API token secret is stored (used by `get-api-token`). |
