@@ -57,6 +57,22 @@ tunnel: check-gcloud-auth ## Open a standalone SSH tunnel to the remote DB (fore
 	@echo "🔌 Opening standalone SSH tunnel..."
 	@source .env && $(SSH_BASE) -L "$$SQL_PORT":"$$REMOTE_SQL_HOST":"$$REMOTE_SQL_PORT"
 
+postman-run: ## Launch the local API (start-with-remote-db), run the Postman collection, then tear it all down
+	@source .env && PORT="$${FASTAPI_SERVER_PORT:-8801}" ; \
+	set -m ; \
+	echo "🚀 Launching local API via start-with-remote-db..." ; \
+	$(MAKE) start-with-remote-db & \
+	API_PGID=$$! ; \
+	trap 'echo -e "\n🛑 Tearing down local API (pgid: $$API_PGID)..."; kill -TERM -$$API_PGID 2>/dev/null || true' EXIT INT TERM ; \
+	echo "⏳ Waiting for API to listen on 127.0.0.1:$$PORT (up to 60s)..." ; \
+	for i in $$(seq 1 60); do lsof -nP -iTCP:$$PORT -sTCP:LISTEN >/dev/null 2>&1 && break; sleep 1; done ; \
+	lsof -nP -iTCP:$$PORT -sTCP:LISTEN >/dev/null 2>&1 || { echo "❌ API failed to start on port $$PORT"; exit 1; } ; \
+	echo "🚀 Running Newman against local API..." ; \
+	newman run postman/api_reco_v2.postman_collection.json \
+	--environment postman/api_reco_v2.postman_environment.json \
+	--env-var "base_url=http://127.0.0.1:$$PORT" ; \
+	exit $$?
+
 
 # ===========================================
 # 🗄️ Redis
@@ -205,7 +221,7 @@ http-proxy-tunnel: check-gcloud-auth ## Open an HTTP proxy to the remote API via
 	echo "✅ HTTP proxy on http://localhost:$$LOCAL_PORT — export HTTP_PROXY/HTTPS_PROXY to this, or set it in Postman → Settings → Proxy" ; \
 	$(SSH_BASE) -N -L "$$LOCAL_PORT:localhost:$$REMOTE_PROXY_PORT"
 
-postman-run: check-gcloud-auth ## Run the Postman collection against a remote API (auto HTTP tunnel + token). Requires DEPLOY_ENV
+postman-run-remote: check-gcloud-auth ## Run the Postman collection against a remote API (auto HTTP tunnel + token). Requires DEPLOY_ENV
 	@[ -n "$(DEPLOY_ENV)" ] || (echo "❌ DEPLOY_ENV required (dev|stg|prod)"; exit 1)
 	$(PREPARE_SWAGGER_TUNNEL)
 	@$(load_env_cmd) && \
