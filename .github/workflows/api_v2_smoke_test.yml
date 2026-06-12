@@ -14,10 +14,6 @@ on:
     secrets:
       GCP_EHP_WORKLOAD_IDENTITY_PROVIDER:
         required: true
-      # Existing privileged SA, used only to read the API token from Secret Manager so the
-      # CD SA does not need secretmanager.secretAccessor.
-      GCP_EHP_SERVICE_ACCOUNT:
-        required: true
 
 jobs:
   smoke-test:
@@ -36,12 +32,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Auth #1: the existing EHP SA (already has Secret Manager access) reads the API token.
-      - name: "Authenticate to GCP (EHP SA) to read the API token"
+      - name: "Authenticate to GCP with the CD service account"
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
+          service_account: ${{ env.CD_SERVICE_ACCOUNT }}
 
       - uses: google-github-actions/setup-gcloud@v2
 
@@ -50,15 +45,7 @@ jobs:
         uses: google-github-actions/get-secretmanager-secrets@v2
         with:
           secrets: |-
-            API_TOKEN:${{ env.DATA_GCP_PROJECT }}/${{ vars.API_RECO_SECRET_NAME }}
-
-      # Auth #2: re-authenticate as the CD SA, which only needs IAP tunnel access (no
-      # Secret Manager). This overwrites the active credentials for the tunnel below.
-      - name: "Re-authenticate to GCP with the CD service account (for the tunnel)"
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ env.CD_SERVICE_ACCOUNT }}
+            API_TOKEN:${{ env.DATA_GCP_PROJECT }}/api-reco-token-${{ env.ENV_SHORT_NAME }}
 
       - uses: actions/setup-node@v4
         with:
