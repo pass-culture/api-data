@@ -27,7 +27,7 @@ jobs:
       DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
       GCP_ZONE:         europe-west1-b
       BASTION:          ${{ vars.ENV_SHORT_NAME == 'prod' && 'tinyproxy-prod' || 'tinyproxy-staging' }}
-      CD_SERVICE_ACCOUNT: api-data-cd-${{ vars.ENV_SHORT_NAME }}@${{ vars.DATA_GCP_PROJECT }}.iam.gserviceaccount.com
+      CD_SERVICE_ACCOUNT: ${{ vars.API_DATA_CD_SERVICE_ACCOUNT }}
       PROXY_PORT:       "8888"
     steps:
       - uses: actions/checkout@v4
