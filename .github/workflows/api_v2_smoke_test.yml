@@ -56,27 +56,30 @@ jobs:
       - name: "Open IAP tunnel to the bastion HTTP proxy"
         run: |
           gcloud compute start-iap-tunnel "$BASTION" "$PROXY_PORT" \
-            --local-host-port="localhost:$PROXY_PORT" \
-            --zone="$GCP_ZONE" --project="$DATA_GCP_PROJECT" &
+            --local-host-port="127.0.0.1:$PROXY_PORT" \
+            --zone="$GCP_ZONE" --project="$DATA_GCP_PROJECT" \
+            > /tmp/iap_tunnel.log 2>&1 &
           echo "TUNNEL_PID=$!" >> "$GITHUB_ENV"
 
       - name: "Wait for the tunnel to accept connections"
         run: |
           for i in $(seq 1 30); do
-            if nc -z localhost "$PROXY_PORT" 2>/dev/null; then
-              echo "✅ Tunnel listening on localhost:$PROXY_PORT after ${i}s"
+            if nc -z 127.0.0.1 "$PROXY_PORT" 2>/dev/null; then
+              echo "✅ Tunnel listening on 127.0.0.1:$PROXY_PORT after ${i}s"
               exit 0
             fi
             sleep 1
           done
-          echo "❌ Tunnel never came up on localhost:$PROXY_PORT"
+          echo "❌ Tunnel never came up on 127.0.0.1:$PROXY_PORT"
+          echo "----- gcloud tunnel log -----"
+          cat /tmp/iap_tunnel.log || true
           exit 1
 
       - name: "Run Newman through the proxy"
         working-directory: apps/recommendation_v2
         env:
-          HTTP_PROXY:  http://localhost:${{ env.PROXY_PORT }}
-          HTTPS_PROXY: http://localhost:${{ env.PROXY_PORT }}
+          HTTP_PROXY:  http://127.0.0.1:${{ env.PROXY_PORT }}
+          HTTPS_PROXY: http://127.0.0.1:${{ env.PROXY_PORT }}
           API_TOKEN:   ${{ steps.secrets.outputs.API_TOKEN }}
           TARGET_URL:  ${{ inputs.TARGET_URL }}
         run: |
