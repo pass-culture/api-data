@@ -239,7 +239,7 @@ jobs:
       TARGET_ENV: ${{ needs.setup-job.outputs.env_name }}
       TARGET_URL: ${{ needs.deploy-api.outputs.url }}
     secrets:
-      GCP_EHP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
+      WORKLOAD_IDENTITY_PRD: ${{ secrets.WORKLOAD_IDENTITY_PRD }}
 
   slack-notification:
     runs-on: ubuntu-latest

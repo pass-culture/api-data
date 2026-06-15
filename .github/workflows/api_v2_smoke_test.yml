@@ -12,7 +12,7 @@ on:
         type: string
         required: true
     secrets:
-      GCP_EHP_WORKLOAD_IDENTITY_PROVIDER:
+      WORKLOAD_IDENTITY_PRD:
         required: true
 
 jobs:
@@ -35,7 +35,7 @@ jobs:
       - name: "Authenticate to GCP with the CD service account"
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PRD }}
           service_account: ${{ env.CD_SERVICE_ACCOUNT }}
 
       - uses: google-github-actions/setup-gcloud@v2
