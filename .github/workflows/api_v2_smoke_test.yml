@@ -53,11 +53,13 @@ jobs:
       - name: "Install newman"
         run: npm install -g newman@6.2.1
 
-      - name: "Open IAP tunnel to the bastion HTTP proxy"
+      - name: "Open IAP SSH tunnel to the bastion HTTP proxy"
         run: |
-          gcloud compute start-iap-tunnel "$BASTION" "$PROXY_PORT" \
-            --local-host-port="127.0.0.1:$PROXY_PORT" \
+          gcloud compute ssh "$BASTION" \
             --zone="$GCP_ZONE" --project="$DATA_GCP_PROJECT" \
+            --tunnel-through-iap \
+            -- -N -L "127.0.0.1:$PROXY_PORT:localhost:$PROXY_PORT" \
+               -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             > /tmp/iap_tunnel.log 2>&1 &
           echo "TUNNEL_PID=$!" >> "$GITHUB_ENV"
 
