@@ -17,4 +17,11 @@ class Venue(Base):
     longitude: sa_orm.Mapped[float] = sa_orm.mapped_column(Float)
     venue_geo = Column(Geography(geometry_type="POINT", srid=4326))
 
+    # H3 resolution columns available in the materialized view.
+    # Only resolutions 5-9 are materialised; using any other value in geo.py would
+    # produce an AttributeError at query time
     h3_res5: sa_orm.Mapped[str | None] = sa_orm.mapped_column(String, index=True)
+    h3_res6: sa_orm.Mapped[str | None] = sa_orm.mapped_column(String, index=True)
+    h3_res7: sa_orm.Mapped[str | None] = sa_orm.mapped_column(String, index=True)
+    h3_res8: sa_orm.Mapped[str | None] = sa_orm.mapped_column(String, index=True)
+    h3_res9: sa_orm.Mapped[str | None] = sa_orm.mapped_column(String, index=True)
