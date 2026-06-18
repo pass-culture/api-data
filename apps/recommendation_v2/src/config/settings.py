@@ -108,4 +108,13 @@ PLAYLIST_RECOMMENDATION_MODEL_CONTEXT: str = os.environ.get("RECO_MODEL_CONTEXT"
 # --- 10. Geospatial Configuration ---
 GEOSPATIAL_RETRIEVAL_H3_RESOLUTION: int = int(os.environ.get("GEOSPATIAL_RETRIEVAL_H3_RESOLUTION", "5"))
 
+# Fail-fast: only resolutions that are materialised as indexed columns on the
+# Venue model (venue_h3_mapping_mv) are valid.  See models/venue.py and H3Resolution in geo.py.
+_VALID_H3_RESOLUTIONS = (5, 6, 7, 8, 9)
+if GEOSPATIAL_RETRIEVAL_H3_RESOLUTION not in _VALID_H3_RESOLUTIONS:  # pragma: no cover
+    raise RuntimeError(
+        f"Invalid GEOSPATIAL_RETRIEVAL_H3_RESOLUTION={GEOSPATIAL_RETRIEVAL_H3_RESOLUTION!r}. "
+        f"Must be one of {_VALID_H3_RESOLUTIONS}."
+    )
+
 CACHE_H3_RESOLUTION: int = int(os.environ.get("CACHE_H3_RESOLUTION", "8"))

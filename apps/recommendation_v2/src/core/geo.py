@@ -1,5 +1,6 @@
 import math
 from typing import TYPE_CHECKING
+from typing import Literal
 
 import h3
 from sqlalchemy import func
@@ -21,6 +22,11 @@ if TYPE_CHECKING:
 H3_SEARCH_RADIUS_IN_KM = 50.0
 EARTH_RADIUS_METERS = 6371000
 MAX_DISTANCE_METERS_FOR_OFFER_RETRIEVAL = H3_SEARCH_RADIUS_IN_KM * 1000.0
+
+# Only the H3 resolutions that are materialised as indexed columns in the
+# `venue_h3_mapping_mv` view (see models/venue.py).  Using any other value
+# would produce an AttributeError at query time.
+H3Resolution = Literal[5, 6, 7, 8, 9]
 
 
 async def get_iris_id_from_coordinates(db: AsyncSession, latitude: float | None, longitude: float | None) -> str | None:
@@ -104,7 +110,7 @@ async def find_closest_offers_with_h3_index(
     item_ids: list[str],
     user_context: "UserContext",
     *,
-    resolution: int,
+    resolution: H3Resolution,
 ):
     """
     Retrieves the closest offer for each item using H3 geospatial indexing.
@@ -131,6 +137,15 @@ async def find_closest_offers_with_h3_index(
     if not user_context.is_geolocated or user_context.latitude is None or user_context.longitude is None:
         return []
 
+    h3_column_name = f"h3_res{resolution}"
+    if not hasattr(Venue, h3_column_name):
+        valid = list(H3Resolution.__args__)
+        raise ValueError(
+            f"H3 resolution {resolution!r} is not mapped on the Venue model. "
+            f"Valid resolutions are: {valid}. "
+            "Check GEOSPATIAL_RETRIEVAL_H3_RESOLUTION in your environment."
+        )
+
     user_lat: float = user_context.latitude
     user_lng: float = user_context.longitude
 
@@ -147,7 +162,7 @@ async def find_closest_offers_with_h3_index(
 
     # Build SQL components
     distance_expr = build_haversine_distance_expression(user_lat, user_lng, Venue).label("calc_distance")
-    h3_index_column = getattr(Venue, f"h3_res{resolution}")
+    h3_index_column = getattr(Venue, h3_column_name)
 
     # Construct the query
     stmt = (
