@@ -19,7 +19,7 @@ class Venue(Base):
 
     # H3 resolution columns available in the materialized view.
     # Only resolutions 5-9 are materialised; using any other value in geo.py would
-    # produce an AttributeError at query time (see H3Resolution in geo.py).
+    # produce an AttributeError at query time
     h3_res5: sa_orm.Mapped[str | None] = sa_orm.mapped_column(String, index=True)
     h3_res6: sa_orm.Mapped[str | None] = sa_orm.mapped_column(String, index=True)
     h3_res7: sa_orm.Mapped[str | None] = sa_orm.mapped_column(String, index=True)
