@@ -348,6 +348,8 @@ async def redis_service(redis_container):
     settings.REDIS_URL = f"redis://{host}:{port}"
     settings.REDIS_CACHE_ENABLED = True
     await redis_cache_service.connect()
+    await redis_cache_service._monitor_ready.wait()
+    await redis_cache_service.redis_client.flushall()
     yield redis_cache_service
     await redis_cache_service.disconnect()
     settings.REDIS_URL = original_url
