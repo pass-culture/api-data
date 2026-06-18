@@ -191,6 +191,10 @@ async def test_monitor_connections_logs_connected_clients_count(redis_service):
     # Let the fixture's background task complete its first iteration before we apply the mock.
     await asyncio.sleep(0.1)
 
+    # The fixture's background task has acquired the distributed lock. Delete it so the
+    # service under test can acquire it and actually log the metrics.
+    await redis_service.redis_client.delete("redis_monitor_leader_lock")
+
     with patch("services.redis.logger") as mock_logger, pytest.raises(asyncio.TimeoutError):
         await asyncio.wait_for(service._monitor_connections(), timeout=0.5)
 
@@ -213,6 +217,10 @@ async def test_monitor_connections_logs_debug_and_does_not_crash_on_info_error(r
 
     # yield to the event loop so the fixture's background task runs its info+log cycle and suspends on asyncio.sleep(60)
     await asyncio.sleep(0.1)
+
+    # The fixture's background task has acquired the distributed lock. Delete it so the
+    # service under test can acquire it and trigger the info() call (which will raise).
+    await redis_service.redis_client.delete("redis_monitor_leader_lock")
 
     with (
         patch.object(service.redis_client, "info", side_effect=Exception("Redis unavailable")),
