@@ -135,6 +135,7 @@ jobs:
     env:
       DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
       ENV_SHORT_NAME: ${{ vars.ENV_SHORT_NAME }}
+      TAG_NAME: "test"
     steps:
     - uses: actions/checkout@v4
     - name: "Connect to Secret Manager"
@@ -189,7 +190,7 @@ jobs:
         region: "${{ env.DOCKER_REGISTRY_REGION }}"
         project_id: ${{ env.DATA_GCP_PROJECT }}
         no_traffic: ${{ needs.setup-job.outputs.no_traffic }}
-        tag: "test"
+        tag: ${{ env.TAG_NAME }}
         env_vars_update_strategy: overwrite
         secrets_update_strategy: overwrite
         env_vars: |-
@@ -213,16 +214,16 @@ jobs:
           SQL_HOST=cloudsql-recommendation-${{ steps.sha.outputs.secret_env_name }}-ew1_private_ip:latest
 
     - uses: 'google-github-actions/setup-gcloud@v2'
-    - id: tagged_url
-      name: "Resolve tagged (test) revision URL"
+    - id: resolve_tag_url
+      name:  "Resolve test-tagged revision URL for smoke testing"
       run: |
         URL=$(gcloud run services describe "apireco-${ENV_SHORT_NAME}" \
           --region "${DOCKER_REGISTRY_REGION}" \
           --project "${DATA_GCP_PROJECT}" \
           --format='json(status.traffic)' \
-          | jq -r '.status.traffic[] | select(.tag=="test") | .url')
+          | jq -r --arg tag "$TAG_NAME" '.status.traffic[] | select(.tag==$tag) | .url')
         if [ -z "$URL" ] || [ "$URL" = "null" ]; then
-          echo "❌ Could not resolve the 'test'-tagged URL for apireco-${ENV_SHORT_NAME}"
+          echo "❌ Could not resolve the '${TAG_NAME}'-tagged URL for apireco-${ENV_SHORT_NAME}"
           exit 1
         fi
         echo "Resolved tagged URL: $URL"
