@@ -131,7 +131,7 @@ jobs:
     outputs:
       # URL of the freshly deployed revision, reachable via its "test" tag even when
       # no_traffic=true. Consumed by the smoke-test job.
-      url: ${{ steps.tagged_url.outputs.url }}
+      url: ${{ steps.resolve_tag_url.outputs.url }}
     env:
       DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
       ENV_SHORT_NAME: ${{ vars.ENV_SHORT_NAME }}
