@@ -97,7 +97,7 @@ ENABLE_TRACKING_LOGS: bool = bool(int(os.environ.get("ENABLE_TRACKING_LOGS", "1"
 REDIS_CACHE_ENABLED: bool = bool(int(os.environ.get("REDIS_CACHE_ENABLED", "0" if IS_LOCAL else "1")))
 REDIS_URL: str = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 REDIS_CACHE_RESET_HOUR: int = int(os.environ.get("REDIS_CACHE_RESET_HOUR", "5"))
-REDIS_MONITOR_INTERVAL_SECONDS: int = int(os.environ.get("REDIS_MONITOR_INTERVAL_SECONDS", "60"))
+REDIS_MONITOR_INTERVAL_SECONDS: int = int(os.environ.get("REDIS_MONITOR_INTERVAL_SECONDS", "600"))
 REDIS_CA_CERT_PATH: str = os.environ.get("REDIS_CA_CERT_PATH", "")  # Path to PEM file for Redis TLS
 REDIS_AUTH_STRING: str = os.environ.get("REDIS_AUTH_STRING", "")  # Optional auth string for Redis
 

@@ -34,17 +34,36 @@ class RedisCacheService:
         """
         Background task that periodically logs the number of active clients
         connected to the Redis server.
+
+        Uses a distributed Redis lock (SET NX) to ensure that only one worker
+        across all instances logs the metrics at any given interval, preventing
+        log flooding in multi-worker / multi-instance deployments.
         """
+        _MONITOR_LOCK_KEY = "redis_monitor_leader_lock"
+
         while True:
             try:
                 if self.redis_client is not None:
-                    # Query Redis server for client metrics
-                    info = await self.redis_client.info(section="clients")
-                    connected_clients = info.get("connected_clients", "unknown")
-
-                    logger.info(
-                        "📊 Redis Monitor: active global connections", extra={"connected_clients": connected_clients}
+                    # Try to acquire the distributed leader lock.
+                    # NX = only set if key does not exist (atomic).
+                    # EX = TTL slightly shorter than the interval so it expires
+                    #      before the next cycle, allowing leader rotation.
+                    ttl = max(1, settings.REDIS_MONITOR_INTERVAL_SECONDS - 1)
+                    acquired = await self.redis_client.set(
+                        name=_MONITOR_LOCK_KEY,
+                        value=1,
+                        nx=True,
+                        ex=ttl,
                     )
+
+                    if acquired:
+                        # Only the leader logs the metrics
+                        info = await self.redis_client.info(section="clients")
+                        connected_clients = info.get("connected_clients", "unknown")
+                        logger.info(
+                            "📊 Redis Monitor: active global connections",
+                            extra={"connected_clients": connected_clients},
+                        )
             except Exception as e:
                 logger.debug("Could not retrieve Redis connection info", extra={"error": str(e)})
 
