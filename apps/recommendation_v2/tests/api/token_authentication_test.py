@@ -21,6 +21,7 @@ Expected behaviour
 from unittest.mock import patch
 
 import pytest
+from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import FastAPI
 from fastapi import status
@@ -104,17 +105,17 @@ TOKEN_SCENARIO_PARAMS = [
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(("router", "method", "url", "body"), ENDPOINT_PARAMS)  # type: ignore[arg-type]
+@pytest.mark.parametrize(("router", "method", "url", "body"), ENDPOINT_PARAMS)
 @pytest.mark.parametrize(("token_query", "token_header", "expected_status"), TOKEN_SCENARIO_PARAMS)
 async def test_token_authentication_on_all_endpoints(  # noqa: PLR0913
     db_session,
-    router,
-    method,
-    url,
-    body,
-    token_query,
-    token_header,
-    expected_status,
+    router: APIRouter,
+    method: str,
+    url: str,
+    body: dict | None,
+    token_query: str | None,
+    token_header: str | None,
+    expected_status: int,
 ):
     """
     Verifies that every protected endpoint enforces API-token authentication
@@ -137,10 +138,12 @@ async def test_token_authentication_on_all_endpoints(  # noqa: PLR0913
 
     with patch.object(settings, "API_TOKEN", VALID_TOKEN):
         async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as client:
-            request_kwargs = {"params": query_params, "headers": headers}
-            if body is not None:
-                request_kwargs["json"] = body
-
-            response = await client.request(method, url, **request_kwargs)
+            response = await client.request(
+                method,
+                url,
+                params=query_params,
+                headers=headers,
+                json=body,
+            )
 
     assert response.status_code == expected_status
