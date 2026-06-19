@@ -1,4 +1,5 @@
 import logging
+import secrets
 import tomllib
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -9,6 +10,7 @@ from fastapi import FastAPI
 from fastapi import HTTPException
 from fastapi import Security
 from fastapi import status
+from fastapi.security import APIKeyHeader
 from fastapi.security import APIKeyQuery
 
 from api.health_check import router as health_check_router
@@ -20,32 +22,52 @@ from services.logger import logger
 from services.redis import redis_cache_service
 
 
-api_key_query = APIKeyQuery(name="token", auto_error=True)
+api_key_query = APIKeyQuery(name="token", auto_error=False)
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
-def verify_api_token(token: str = Security(api_key_query)) -> None:
+def verify_api_token(
+    token_query: str | None = Security(api_key_query),
+    token_header: str | None = Security(api_key_header),
+) -> None:
     """
-    Verifies the API token provided in the application's query parameters.
+    Verifies the API token provided either as a query parameter or as an HTTP header.
 
-    This function strictly compares the provided token against the expected
-    API token defined in the application settings. If they do not match,
-    it prevents access by raising an HTTP 401 Unauthorized error.
+    The token is accepted from two sources (checked in order):
+    - Query parameter  ``?token=<token>``
+    - HTTP header  ``X-API-Key: <token>``
+
+    If the token is present in at least one source and matches the configured value,
+    the request is accepted. If neither source provides a valid token, an HTTP 401
+    Unauthorized error is raised.
 
     Args:
-        token (str): The token passed in the query parameters of the HTTP request.
+        token_query (str | None): Token passed via the ``token`` query parameter.
+        token_header (str | None): Token passed via the ``X-API-Key`` HTTP header.
 
     Raises:
-        HTTPException: Raised with status 401 if the token does not match.
+        HTTPException: Raised with status 401 if no valid token is found.
 
-    Example:
-        A request to an endpoint protected by this dependency would look like:
+    Examples:
+        Via query parameter (legacy):
         > GET /playlist/recommendations?token=my_secret_token
 
-        If `settings.API_TOKEN` is "my_secret_token", access is granted.
-        Otherwise, a 401 error is returned.
+        Via HTTP header (preferred):
+        > GET /playlist/recommendations
+        > X-API-Key: my_secret_token
     """
-    # Reject request if the provided token does not match the configured one
-    if token != settings.API_TOKEN:
+    token = token_query or token_header
+
+    # TODO (jmontagnat - 2026-06-19): This manual check is required
+    #   during the migration phase from query parameters to headers.
+    #   Once the transition is complete and all consumers use the header, perform the following cleanup:
+    #   1. Remove this manual 'if token is None' check.
+    #   2. Set 'auto_error=True' in the 'APIKeyHeader' definition above.
+    #   3. Remove the 'APIKeyQuery' dependency entirely.
+    if token is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+    if not secrets.compare_digest(token, settings.API_TOKEN):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 
