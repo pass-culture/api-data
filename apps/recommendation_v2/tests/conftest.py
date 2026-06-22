@@ -349,6 +349,7 @@ async def redis_service(redis_container):
     settings.REDIS_CACHE_ENABLED = True
     await redis_cache_service.connect()
     await redis_cache_service._monitor_ready.wait()
+    assert redis_cache_service.redis_client is not None
     await redis_cache_service.redis_client.flushall()
     yield redis_cache_service
     await redis_cache_service.disconnect()

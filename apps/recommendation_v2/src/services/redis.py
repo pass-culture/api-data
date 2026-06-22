@@ -29,7 +29,7 @@ class RedisCacheService:
         """
         self.redis_client: redis.Redis | None = None
         self._monitor_task: asyncio.Task | None = None
-        self._monitor_ready: asyncio.Event | None = None
+        self._monitor_ready: asyncio.Event = asyncio.Event()
 
     async def _monitor_connections(self) -> None:
         """
@@ -68,8 +68,7 @@ class RedisCacheService:
             except Exception as e:
                 logger.debug("Could not retrieve Redis connection info", extra={"error": str(e)})
 
-            if self._monitor_ready is not None:
-                self._monitor_ready.set()  # signal that the first iteration has completed
+            self._monitor_ready.set()  # signal that the first iteration has completed
             await asyncio.sleep(settings.REDIS_MONITOR_INTERVAL_SECONDS)
 
     async def connect(self) -> None:
@@ -98,7 +97,6 @@ class RedisCacheService:
 
                 logger.info("Redis cache enabled and successfully connected.")
 
-                self._monitor_ready = asyncio.Event()
                 self._monitor_task = asyncio.create_task(self._monitor_connections())
 
             except Exception as connection_error:
