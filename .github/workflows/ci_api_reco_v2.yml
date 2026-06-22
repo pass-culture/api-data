@@ -93,7 +93,7 @@ jobs:
       - name: "Verify all tests are marked"
         env:
           ENV: "ci"
-        run: make test-with-markers
+        run: make all-tests-marked
 
   unit-tests:
     name: "Unit Tests"
