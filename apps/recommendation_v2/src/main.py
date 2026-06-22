@@ -22,6 +22,7 @@ from api.playlist_recommendation import router as playlist_router
 from api.similar_artists import router as similar_artists_router
 from api.similar_offer import router as similar_offer_router
 from config import settings
+from middleware.gcp_trace import GCPTraceMiddleware
 from services.db import async_db_engine
 from services.logger import logger
 from services.redis import redis_cache_service
@@ -146,6 +147,8 @@ app = FastAPI(
     version=get_version(),
     lifespan=lifespan,
 )
+
+app.add_middleware(GCPTraceMiddleware)  # ty: ignore[invalid-argument-type]
 
 
 @app.exception_handler(SQLAlchemyError)

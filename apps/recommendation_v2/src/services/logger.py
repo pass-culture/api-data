@@ -14,9 +14,9 @@ from config import settings
 # In an asynchronous framework like FastAPI, multiple requests run concurrently in the same process.
 # Global variables would bleed data between requests. `contextvars` ensures that these
 # variables are strictly isolated to the current asynchronous execution context (the current HTTP request).
-call_id_context = contextvars.ContextVar("call_id_context", default="unknown")
-cloud_trace_context = contextvars.ContextVar("cloud_trace_context", default="")
-http_request_context = contextvars.ContextVar("http_request_context", default=None)
+call_id_context: contextvars.ContextVar[str] = contextvars.ContextVar("call_id_context", default="unknown")
+cloud_trace_context: contextvars.ContextVar[str] = contextvars.ContextVar("cloud_trace_context", default="")
+http_request_context: contextvars.ContextVar[dict[str, Any] | None] = contextvars.ContextVar("http_request_context")
 
 
 class StructuredLogger:
@@ -70,7 +70,7 @@ class GoogleCloudLogFilter(CloudLoggingFilter):
 
     def filter(self, record: logging.LogRecord) -> bool:
         # Inject HTTP request metadata (URL, method, user-agent, etc.)
-        record.http_request = http_request_context.get() or {}
+        record.http_request = http_request_context.get(None) or {}
 
         # Inject GCP Trace ID for cross-service observability
         trace_id = cloud_trace_context.get()
