@@ -71,11 +71,12 @@ async def get_similar_offers(  # noqa: PLR0913
 
     - `user_id` *(optional)*: User ID for personalized filtering (e.g., excludes already-booked items).
       If not provided, uses a generic unauthenticated user context.
-    - `latitude` *(optional)*: The user's GPS latitude, as provided by the mobile app.
-    - `longitude` *(optional)*: The user's GPS longitude, as provided by the mobile app.
-      Both `latitude` and `longitude` must be provided together or not at all.
-      If neither is provided, the offer's venue location is used as a fallback.
-    - `preset_location` *(optional, DEV/TEST)*: Overrides `latitude`/`longitude` with a preset city.
+    - **Location Context** *(optional, model in `src/schemas/location.py`)*:
+      - `latitude`: The user's GPS latitude, as provided by the mobile app.
+      - `longitude`: The user's GPS longitude, as provided by the mobile app.
+        Both `latitude` and `longitude` must be provided together or not at all.
+        If neither is provided, the offer's venue location is used as a fallback.
+      - `preset_location` *(DEV/TEST)*: Overrides `latitude`/`longitude` with a preset city.
     - `categories` *(optional)*: Filter results by category.
     - `subcategories` *(optional)*: Filter results by subcategory.
     - `search_group_names` *(optional)*: Filter results by search group name.

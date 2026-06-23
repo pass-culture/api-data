@@ -51,10 +51,11 @@ async def get_playlist(
 
     **Query parameters**
 
-    - `latitude` *(optional)*: The user's GPS latitude, as provided by the mobile app.
-    - `longitude` *(optional)*: The user's GPS longitude, as provided by the mobile app.
-      Both `latitude` and `longitude` must be provided together or not at all.
-    - `preset_location` *(optional, DEV/TEST)*: Overrides `latitude`/`longitude` with a preset city.
+    - **Location Context** *(optional, model in `src/schemas/location.py`)*:
+      - `latitude`: The user's GPS latitude, as provided by the mobile app.
+      - `longitude`: The user's GPS longitude, as provided by the mobile app.
+        Both `latitude` and `longitude` must be provided together or not at all.
+      - `preset_location` *(DEV/TEST)*: Overrides `latitude`/`longitude` with a preset city.
 
     **Body**
 
