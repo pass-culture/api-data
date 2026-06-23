@@ -167,6 +167,18 @@ def test_playlist_filters_adds_is_duo_condition():
     assert {"offer_is_duo": {"$eq": 1.0}} in conditions
 
 
+def test_playlist_filters_clamps_negative_remaining_credit_to_zero():
+    """
+    When a user has a negative remaining_credit (due to corrupted DB data), the effective
+    price cap must be clamped to 0 instead of producing a nonsensical negative filter
+    (e.g. stock_price <= -5) that would return zero results.
+    """
+    conditions = _build_playlist_recommendation_search_filters(_user(remaining_credit=-50.0), PlaylistRequestParams())[
+        "$and"
+    ]
+    assert {"stock_price": {"$lte": 0.0}} in conditions
+
+
 def test_playlist_filters_adds_non_empty_list_as_in_condition():
     params = PlaylistRequestParams(categories=[CategoryEnum.LIVRE])
     conditions = _build_playlist_recommendation_search_filters(_user(), params)["$and"]

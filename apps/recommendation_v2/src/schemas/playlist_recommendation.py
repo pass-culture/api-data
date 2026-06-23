@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
+from pydantic import Field
 from pydantic.alias_generators import to_camel
 
 from schemas.categories import CategoryEnum
@@ -32,8 +33,8 @@ class PlaylistRequestParams(BaseModel):
     is_digital: bool | None = None
 
     # --- Financial Constraints ---
-    price_max: float | None = None
-    price_min: float | None = None
+    price_max: float | None = Field(default=None, ge=0, le=300)
+    price_min: float | None = Field(default=None, ge=0)
 
     # --- Categorization Filters ---
     categories: list[CategoryEnum] | None = None
