@@ -1,14 +1,14 @@
 import h3
 import pytest
 
-from api.playlist_recommendation import PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING
-from api.playlist_recommendation import PresetLocation
 from config import settings
 from controllers.pipeline_playlist_recommendation import PLAYLIST_RECOMMENDATION_MAXIMUM_SIZE
 from controllers.pipeline_playlist_recommendation import generate_playlist_recommendations
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.playlist_recommendation import RecommendationResponse
+from utils.location_presets import PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING
+from utils.location_presets import PresetLocation
 
 from tests.factories.models import EnrichedUserFactory
 from tests.factories.models import NonRecommendableItemsFactory
