@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
+from controllers.pipeline_playlist_recommendation import generate_playlist_recommendations
 from core.diversification import apply_offer_diversification
 from core.geo import get_iris_id_from_coordinates
 from core.ranking import rank_and_sort_offers_with_vertex
@@ -20,6 +21,7 @@ from models.user import EnrichedUser
 from schemas.categories import CategoryEnum
 from schemas.categories import SearchGroupNameEnum
 from schemas.categories import SubcategoryEnum
+from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.similar_offer import SimilarOfferModelChoices
 from schemas.similar_offer import SimilarOfferResponse
@@ -54,8 +56,11 @@ async def generate_similar_offers(  # noqa: PLR0913
      applying any provided filters.
     3. Filtering: Removes already-booked items if a user_id is provided.
     4. Resolution: Maps ML items to actual offers, resolving spatial proximity if location data is provided.
-    5. Ranking & Diversification: Ranks and diversifies the results for better user experience.
-    6. Logging: Pushes the context and results to storage for future analysis.
+    5. Ranking: Re-orders the resolved offers using a dedicated Vertex AI scoring model.
+    6. Diversification & Truncation: Shuffles and interleaves categories, then caps the list to a maximum size.
+    7. Fallback (coreservation only): If the pipeline produces zero results, delegates entirely to
+     generate_playlist_recommendations, preserving the original category filters.
+    8. Logging: Pushes the context and results to storage for future analysis.
 
     Args:
         db (AsyncSession): The active asynchronous database session.
@@ -161,7 +166,46 @@ async def generate_similar_offers(  # noqa: PLR0913
     # Cap the final list to a strict maximum
     final_similar_offers = diversified_offers[:SIMILAR_OFFERS_LIST_MAXIMUM_SIZE]
 
-    # --- 7. Logging Phase ---
+    # --- 7. Fallback Phase (coreservation only) ---
+    # If the full pipeline produced zero results, delegate entirely to generate_playlist_recommendations.
+    # That function handles its own retrieval, ranking, diversification, and logging — no duplication needed.
+    is_coreservation_model = retrieval_model == SimilarOfferModelChoices.coreservation
+    if is_coreservation_model and len(final_similar_offers) == 0:
+        logger.warning(
+            "No similar offers found with coreservation model. Falling back to standard recommendation pipeline.",
+            extra={
+                "offer_id": offer_id,
+                "call_id": call_id,
+                "latitude": latitude,
+                "longitude": longitude,
+                "categories": categories,
+                "subcategories": subcategories,
+                "search_group_names": search_group_names,
+            },
+        )
+        fallback_params = PlaylistRequestParams(
+            categories=categories,
+            subcategories=subcategories,
+            search_group_names=search_group_names,
+        )
+        fallback_response = await generate_playlist_recommendations(
+            db=db,
+            user_id=user_context.user_id,
+            latitude=user_context.latitude,
+            longitude=user_context.longitude,
+            params=fallback_params,
+        )
+
+        return SimilarOfferResponse(
+            results=fallback_response.playlist_recommended_offers[:SIMILAR_OFFERS_LIST_MAXIMUM_SIZE],
+            params=RecommendationMetadata(
+                reco_origin="recommendation_fallback",
+                model_origin=fallback_response.params.model_origin,
+                call_id=call_id,
+            ),
+        )
+
+    # --- 8. Logging Phase ---
     recommendation_origin = "similar_offer" if retrieval_model == SimilarOfferModelChoices.coreservation else "graph"
 
     log_past_offer_context_to_sink(
