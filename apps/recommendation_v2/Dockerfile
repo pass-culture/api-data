@@ -27,5 +27,7 @@ ENV PYTHONUNBUFFERED=True
 # Switch to non-root user for security
 USER appuser
 
+ENV GUNICORN_TIMEOUT=30
+
 # Start server
-CMD ["uv", "run", "--no-dev", "gunicorn", "-k", "uvicorn.workers.UvicornWorker", "--bind", ":8080", "--workers", "8", "--preload", "--timeout", "0", "--control-socket", "/tmp/gunicorn.ctl", "main:app"]
+CMD ["sh", "-c", "uv run --no-dev gunicorn -k uvicorn.workers.UvicornWorker --bind :8080 --workers 8 --preload --timeout ${GUNICORN_TIMEOUT} --control-socket /tmp/gunicorn.ctl main:app"]
