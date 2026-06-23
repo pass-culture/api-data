@@ -91,11 +91,6 @@ def _build_playlist_recommendation_search_filters(
         "categories": "category",
         "subcategories": "subcategory_id",
         "search_group_names": "search_group_name",
-        "gtl_ids": "gtl_id",
-        "gtl_l1": "gtl_l1",
-        "gtl_l2": "gtl_l2",
-        "gtl_l3": "gtl_l3",
-        "gtl_l4": "gtl_l4",
     }
 
     for param_field, vertex_field in list_mappings.items():

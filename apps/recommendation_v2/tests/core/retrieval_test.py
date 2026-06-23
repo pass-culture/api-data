@@ -144,10 +144,9 @@ def test_playlist_filters_is_digital_false_maps_to_geolocated_only():
 
 def test_playlist_filters_empty_list_fields_are_not_added():
     """Empty lists must not produce a $in [] condition that would match nothing."""
-    params = PlaylistRequestParams(categories=[], gtl_ids=[])
+    params = PlaylistRequestParams(categories=[])
     conditions = _build_playlist_recommendation_search_filters(_user(), params)["$and"]
     assert not any("category" in c for c in conditions)
-    assert not any("gtl_id" in c for c in conditions)
 
 
 def test_playlist_filters_adds_end_date_condition():

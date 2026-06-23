@@ -40,17 +40,6 @@ class PlaylistRequestParams(BaseModel):
     subcategories: list[SubcategoryEnum] | None = None
     search_group_names: list[SearchGroupNameEnum] | None = None
 
-    # --- Granular Classification (GTL) Filters ---
-    gtl_ids: list[str] | None = None
-    gtl_l1: list[str] | None = None
-    gtl_l2: list[str] | None = None
-    gtl_l3: list[str] | None = None
-    gtl_l4: list[str] | None = None
-
-    # --- Diversification & Orchestration Rules ---
-    is_reco_shuffled: bool | None = None
-    submixing_feature_dict: dict[str, str] | None = None
-
 
 class RecommendationMetadata(BaseModel):
     """
