@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 
 from pydantic import BaseModel
@@ -62,3 +63,4 @@ class RecommendationResponse(BaseModel):
     playlist_recommended_offers: list[str]
     params: RecommendationMetadata
     from_cache: bool = False
+    unique_call_id: str = Field(default_factory=lambda: str(uuid.uuid4()))

@@ -1,4 +1,3 @@
-import uuid
 from http import HTTPStatus
 from unittest.mock import AsyncMock
 
@@ -102,7 +101,7 @@ async def test_cache_hit_returns_from_cache_true(  # noqa: PLR0913
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(_PARAMS, CACHE_ENDPOINTS)
-async def test_cache_hit_injects_new_call_id(  # noqa: PLR0913
+async def test_cache_hit_preserves_original_call_id(  # noqa: PLR0913
     client: AsyncClient,
     mocker,
     method,
@@ -116,9 +115,10 @@ async def test_cache_hit_injects_new_call_id(  # noqa: PLR0913
     namespace,
 ):
     """
-    A cache hit must overwrite the original call_id with a newly generated UUID.
-    Re-using the original call_id would link every cache-hit impression back to
-    the same training event, which biases model retraining.
+    A cache hit must preserve the original call_id.
+    Cache hits are not tracked (no new BigQuery rows), but the client sends
+    click/booking events referencing this call_id, which links them back to
+    the original display rows.
     """
     mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
     mocker.patch(
@@ -130,8 +130,7 @@ async def test_cache_hit_injects_new_call_id(  # noqa: PLR0913
     response = await _request(client, method, url, body)
 
     returned_call_id = response.json()["params"]["call_id"]
-    assert returned_call_id != ORIGINAL_CALL_ID
-    uuid.UUID(returned_call_id)  # must be a valid UUID
+    assert returned_call_id == ORIGINAL_CALL_ID
 
 
 @pytest.mark.asyncio

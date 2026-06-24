@@ -112,10 +112,11 @@ async def get_similar_offers(  # noqa: PLR0913
         )
         if isinstance(cached_similar_offer_result, SimilarOfferResponse):
             cached_similar_offer_result.from_cache = True
-            # Overwrite the call_id with a newly generated UUID.
-            # This prevents massively linking multiple cache-hit offer displays
-            # to the same original call_id, which could otherwise bias model retraining.
-            cached_similar_offer_result.params.call_id = str(uuid.uuid4())
+            cached_similar_offer_result.unique_call_id = str(uuid.uuid4())
+            # The original call_id is intentionally preserved.
+            # Cache hits are not tracked (no new BigQuery rows), but the client
+            # sends click/booking events referencing this call_id, which links them
+            # back to the original display rows
             return cached_similar_offer_result
 
     # Delegate the heavy lifting to the core orchestration pipeline
