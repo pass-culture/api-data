@@ -72,6 +72,8 @@ DATABASE_URL: str = os.getenv(
     ),
 )
 
+DATABASE_STATEMENT_TIMEOUT_MS: int = int(os.environ.get("DB_STATEMENT_TIMEOUT_MS", "10000"))
+
 
 # --- 5. Google Cloud Platform & Vertex AI ---
 GCP_PROJECT: str = os.environ.get("GCP_PROJECT", "passculture-data-ehp")

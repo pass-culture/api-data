@@ -1,6 +1,7 @@
 import logging
 import secrets
 import tomllib
+import traceback
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -8,10 +9,13 @@ import uvicorn
 from fastapi import Depends
 from fastapi import FastAPI
 from fastapi import HTTPException
+from fastapi import Request
 from fastapi import Security
 from fastapi import status
+from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
 from fastapi.security import APIKeyQuery
+from sqlalchemy.exc import SQLAlchemyError
 
 from api.health_check import router as health_check_router
 from api.playlist_recommendation import router as playlist_router
@@ -142,6 +146,38 @@ app = FastAPI(
     version=get_version(),
     lifespan=lifespan,
 )
+
+
+@app.exception_handler(SQLAlchemyError)
+async def database_exception_handler(request: Request, exc: SQLAlchemyError):
+    underlying_error = getattr(exc, "orig", exc)
+    exact_error_name = type(underlying_error).__name__
+    route = request.scope.get("route")
+    route_template = route.path if route else request.url.path
+
+    body_content = None
+    if request.method != "GET":
+        body_content = await request.json()
+
+    logger.error(
+        f"🚨 Database error [{exact_error_name}] on {request.method} {route_template}",
+        extra={
+            "database_error_type": exact_error_name,
+            "database_error_detail": str(underlying_error),
+            "route_template": route_template,
+            "path": request.url.path,
+            "method": request.method,
+            "query_params": dict(request.query_params),
+            "body": body_content,
+            "traceback": traceback.format_exc(),
+        },
+    )
+
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={"detail": "Service temporarily unavailable. Please try again later."},
+    )
+
 
 # Determine the required dependencies based on the current environment
 # In local environments, authentication is bypassed to simplify development

@@ -16,6 +16,9 @@ async_db_engine = create_async_engine(
     pool_size=15,
     max_overflow=15,
     echo=False,
+    connect_args={
+        "server_settings": {"statement_timeout": str(settings.DATABASE_STATEMENT_TIMEOUT_MS)},
+    },
 )
 
 
