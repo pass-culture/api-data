@@ -3,6 +3,8 @@ import pytest
 from controllers.pipeline_similar_offer import SIMILAR_OFFERS_LIST_MAXIMUM_SIZE
 from controllers.pipeline_similar_offer import generate_similar_offers
 from schemas.enriched_offer import EnrichedRecommendableOffer
+from schemas.playlist_recommendation import RecommendationMetadata
+from schemas.playlist_recommendation import RecommendationResponse
 from schemas.similar_offer import SimilarOfferModelChoices
 from schemas.similar_offer import SimilarOfferResponse
 
@@ -256,38 +258,6 @@ async def test_similar_offer_falls_back_to_offer_location_when_user_has_no_gps(
 
 
 @pytest.mark.asyncio
-async def test_similar_offer_handles_empty_retrieval_from_vertex(
-    db_session,
-    mock_vertex_retrieval,
-    mock_vertex_ranking,
-    mocker,
-):
-    """
-    Verifies the pipeline handles an empty Vertex retrieval response without raising.
-
-    Expected behaviour:
-    - No exception is raised.
-    - The results list is empty.
-    - The ranking function is still called once, receiving an empty list.
-    """
-    reference_offer = await RecommendableOffersFactory.create_async(offer_id="offer-ref", item_id="item-ref")
-
-    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(predictions=[])
-    mocker.patch("controllers.pipeline_similar_offer.log_past_offer_context_to_sink")
-
-    response = await generate_similar_offers(
-        db=db_session,
-        offer_id=reference_offer.offer_id,
-    )
-
-    assert isinstance(response, SimilarOfferResponse)
-    assert response.params.reco_origin == "similar_offer"
-    assert response.results == []
-    mock_vertex_ranking[1].assert_called_once()
-    assert mock_vertex_ranking[1].call_args[0][0] == []
-
-
-@pytest.mark.asyncio
 async def test_similar_offer_caps_results_at_maximum_size(
     db_session,
     mock_vertex_retrieval,
@@ -350,3 +320,112 @@ async def test_similar_offer_uses_graph_retrieval_when_model_is_graph(
     assert response.params.reco_origin == "graph"
     mock_graph_fetch.assert_called_once()
     mock_standard_fetch.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_similar_offer_falls_back_to_playlist_recommendation_pipeline_when_coreservation_returns_no_results(
+    db_session,
+    mock_vertex_retrieval,
+    mock_vertex_ranking,
+    mocker,
+):
+    """
+    Verifies the coreservation fallback: when the full similar-offer pipeline produces
+    zero results, generate_playlist_recommendations is called and its output is returned
+    with reco_origin='recommendation_fallback' and the model_origin from the fallback response.
+
+    Setup:
+    - Vertex retrieval returns no predictions → the pipeline naturally produces zero results.
+    - generate_playlist_recommendations is mocked to return a predictable RecommendationResponse.
+
+    Expected behaviour:
+    - generate_playlist_recommendations is called exactly once.
+    - The response results match the fallback offer IDs.
+    - reco_origin is overridden to 'recommendation_fallback'.
+    - model_origin reflects the playlist recommendation model (not the similar-offer model).
+    """
+    reference_offer = await RecommendableOffersFactory.create_async(offer_id="offer-ref", item_id="item-ref")
+
+    # Force the similar-offer pipeline to produce zero results
+    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(predictions=[])
+
+    # Prepare a predictable fallback response
+    fallback_offer_ids = ["fallback-offer-1", "fallback-offer-2", "fallback-offer-3"]
+    fallback_model_origin = "playlist-recommendation-model"
+    mock_generate_playlist = mocker.patch(
+        "controllers.pipeline_similar_offer.generate_playlist_recommendations",
+        new_callable=mocker.AsyncMock,
+        return_value=RecommendationResponse(
+            playlist_recommended_offers=fallback_offer_ids,
+            params=RecommendationMetadata(
+                reco_origin="algo",
+                model_origin=fallback_model_origin,
+                call_id="fallback-call-id",
+            ),
+        ),
+    )
+
+    response = await generate_similar_offers(
+        db=db_session,
+        offer_id=reference_offer.offer_id,
+    )
+
+    mock_generate_playlist.assert_called_once()
+    assert response.params.reco_origin == "recommendation_fallback"
+    assert response.params.model_origin == fallback_model_origin
+    assert response.results == fallback_offer_ids
+
+
+@pytest.mark.asyncio
+async def test_similar_offer_does_not_fall_back_when_retrieval_model_is_graph(
+    db_session,
+    mock_vertex_ranking,
+    mocker,
+):
+    """
+    Verifies that the fallback is NOT triggered for the graph retrieval model,
+    even when offer resolution produces zero results.
+
+    The fallback is a coreservation-only safety net (mirroring v1 behaviour).
+    A graph request where resolution returns no offers must return an empty list
+    without delegating to generate_playlist_recommendations.
+
+    Setup:
+    - The graph retrieval returns candidate items.
+    - resolve_closest_venues_from_items returns an empty list (zero resolved offers).
+
+    Expected behaviour:
+    - generate_playlist_recommendations is never called.
+    - reco_origin remains 'graph'.
+    - results is an empty list.
+    """
+    reference_offer = await RecommendableOffersFactory.create_async(offer_id="offer-ref", item_id="item-ref")
+
+    graph_items = [RecommendableItemFactory.build(is_geolocated=False, total_offers=1) for _ in range(5)]
+    mocker.patch(
+        "controllers.pipeline_similar_offer.fetch_graph_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=VertexPredictionResultFactory.build(predictions=graph_items),
+    )
+    # Resolution returns nothing → final_similar_offers will be empty
+    mocker.patch(
+        "controllers.pipeline_similar_offer.resolve_closest_venues_from_items",
+        new_callable=mocker.AsyncMock,
+        return_value=[],
+    )
+    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: offers
+    mock_generate_playlist = mocker.patch(
+        "controllers.pipeline_similar_offer.generate_playlist_recommendations",
+        new_callable=mocker.AsyncMock,
+    )
+    mocker.patch("controllers.pipeline_similar_offer.log_past_offer_context_to_sink")
+
+    response = await generate_similar_offers(
+        db=db_session,
+        offer_id=reference_offer.offer_id,
+        retrieval_model=SimilarOfferModelChoices.graph,
+    )
+
+    mock_generate_playlist.assert_not_called()
+    assert response.params.reco_origin == "graph"
+    assert response.results == []
