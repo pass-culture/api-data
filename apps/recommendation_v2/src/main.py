@@ -18,6 +18,7 @@ from api.playlist_recommendation import router as playlist_router
 from api.similar_artists import router as similar_artists_router
 from api.similar_offer import router as similar_offer_router
 from config import settings
+from services.db import async_db_engine
 from services.logger import logger
 from services.redis import redis_cache_service
 
@@ -113,12 +114,11 @@ def show_api_config() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await async_db_engine.dispose()
     await redis_cache_service.connect()
 
     swagger_url = f"http://127.0.0.1:{settings.FASTAPI_SERVER_PORT}/docs"
-
     show_api_config()
-
     logger.info(
         "🚀 Recommendation API started successfully !"
         f" Redis Cache: {'ENABLED 🟢' if settings.REDIS_CACHE_ENABLED else 'DISABLED 🔴'}",
@@ -129,7 +129,10 @@ async def lifespan(app: FastAPI):
             "redis_enabled": settings.REDIS_CACHE_ENABLED,
         },
     )
+
     yield
+
+    await async_db_engine.dispose()
     await redis_cache_service.disconnect()
 
 
