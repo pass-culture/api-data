@@ -63,7 +63,11 @@ def _build_playlist_recommendation_search_filters(
         and_conditions.append({date_field: {"$lte": params.end_date.timestamp()}})
 
     # 2. Price constraints (bounded by user's remaining credit)
-    effective_price_max = round(user_context.remaining_credit)
+    # TODO: (jmontagnat - 2026-06-23)
+    #  Corrupted data in the database can cause remaining_credit to be negative for some users.
+    #  This max(0, ...) is a temporary fix to prevent an absurd price filter (e.g. stock_price <= -5).
+    #  Remove this fix once the investigation is complete and the user data has been cleaned up in the database.
+    effective_price_max = round(max(0, user_context.remaining_credit))
     if params.price_max is not None:
         effective_price_max = min(params.price_max, effective_price_max)
 
@@ -91,11 +95,6 @@ def _build_playlist_recommendation_search_filters(
         "categories": "category",
         "subcategories": "subcategory_id",
         "search_group_names": "search_group_name",
-        "gtl_ids": "gtl_id",
-        "gtl_l1": "gtl_l1",
-        "gtl_l2": "gtl_l2",
-        "gtl_l3": "gtl_l3",
-        "gtl_l4": "gtl_l4",
     }
 
     for param_field, vertex_field in list_mappings.items():

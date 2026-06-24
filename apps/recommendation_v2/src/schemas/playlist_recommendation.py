@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
+from pydantic import Field
 from pydantic.alias_generators import to_camel
 
 from schemas.categories import CategoryEnum
@@ -32,24 +33,13 @@ class PlaylistRequestParams(BaseModel):
     is_digital: bool | None = None
 
     # --- Financial Constraints ---
-    price_max: float | None = None
-    price_min: float | None = None
+    price_max: float | None = Field(default=None, ge=0, le=300)
+    price_min: float | None = Field(default=None, ge=0)
 
     # --- Categorization Filters ---
     categories: list[CategoryEnum] | None = None
     subcategories: list[SubcategoryEnum] | None = None
     search_group_names: list[SearchGroupNameEnum] | None = None
-
-    # --- Granular Classification (GTL) Filters ---
-    gtl_ids: list[str] | None = None
-    gtl_l1: list[str] | None = None
-    gtl_l2: list[str] | None = None
-    gtl_l3: list[str] | None = None
-    gtl_l4: list[str] | None = None
-
-    # --- Diversification & Orchestration Rules ---
-    is_reco_shuffled: bool | None = None
-    submixing_feature_dict: dict[str, str] | None = None
 
 
 class RecommendationMetadata(BaseModel):
