@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter
@@ -111,6 +112,7 @@ async def get_similar_offers(  # noqa: PLR0913
         )
         if isinstance(cached_similar_offer_result, SimilarOfferResponse):
             cached_similar_offer_result.from_cache = True
+            cached_similar_offer_result.unique_call_id = str(uuid.uuid4())
             # The original call_id is intentionally preserved.
             # Cache hits are not tracked (no new BigQuery rows), but the client
             # sends click/booking events referencing this call_id, which links them

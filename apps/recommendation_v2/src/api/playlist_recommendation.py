@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter
@@ -85,6 +86,7 @@ async def get_playlist(
         )
         if isinstance(cached_playlist_result, RecommendationResponse):
             cached_playlist_result.from_cache = True
+            cached_playlist_result.unique_call_id = str(uuid.uuid4())
             # The original call_id is intentionally preserved.
             # Cache hits are not tracked (no new BigQuery rows), but the client
             # sends click/booking events referencing this call_id, which links them

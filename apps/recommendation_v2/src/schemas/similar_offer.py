@@ -1,6 +1,8 @@
+import uuid
 from enum import StrEnum
 
 from pydantic import BaseModel
+from pydantic import Field
 
 from schemas.playlist_recommendation import RecommendationMetadata
 
@@ -22,3 +24,4 @@ class SimilarOfferResponse(BaseModel):
     results: list[str]
     params: RecommendationMetadata
     from_cache: bool = False
+    unique_call_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
