@@ -2281,6 +2281,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "redis" },
     { name = "sqlalchemy" },
+    { name = "starlette" },
     { name = "types-protobuf" },
     { name = "uvicorn" },
 ]
@@ -2323,6 +2324,7 @@ requires-dist = [
     { name = "pydantic", specifier = "~=2.12" },
     { name = "redis", specifier = "~=7.4" },
     { name = "sqlalchemy", specifier = "~=2.0" },
+    { name = "starlette", specifier = "~=0.50.0" },
     { name = "types-protobuf", specifier = "~=6.32" },
     { name = "uvicorn", specifier = "~=0.40" },
 ]
