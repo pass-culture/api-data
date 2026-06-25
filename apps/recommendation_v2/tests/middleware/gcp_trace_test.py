@@ -80,13 +80,17 @@ async def test_cloud_trace_is_empty_when_no_trace_header(test_client):
 
 @pytest.mark.asyncio
 async def test_http_request_metadata_is_populated(test_client):
-    """http_request_context contains the essential Cloud Logging httpRequest fields."""
+    """http_request_context contains all expected Cloud Logging httpRequest fields."""
     response = await test_client.get("/capture")
 
     http_req = response.json()["http_request"]
 
     assert http_req["requestMethod"] == "GET"
     assert "/capture" in http_req["requestUrl"]
+    assert http_req["protocol"].startswith("HTTP/")
+    assert "requestSize" in http_req
+    assert "userAgent" in http_req
+    assert "remoteIp" in http_req
 
 
 @pytest.mark.asyncio

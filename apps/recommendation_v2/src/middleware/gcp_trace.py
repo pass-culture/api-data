@@ -55,7 +55,14 @@ class GCPTraceMiddleware(BaseHTTPMiddleware):
         # ---------------------------------------------------------------------------
         # HTTP Request context
         # ---------------------------------------------------------------------------
-        http_request_payload: dict[str, str] = {"requestMethod": request.method, "requestUrl": str(request.url)}
+        http_request_payload: dict[str, str] = {
+            "requestMethod": request.method,
+            "requestUrl": str(request.url),
+            "userAgent": request.headers.get("user-agent", ""),
+            "remoteIp": request.client.host if request.client else "",
+            "protocol": f"HTTP/{request.scope.get('http_version', '1.1')}",
+            "requestSize": request.headers.get("content-length", "0"),
+        }
         token_http = http_request_context.set(http_request_payload)
 
         try:
