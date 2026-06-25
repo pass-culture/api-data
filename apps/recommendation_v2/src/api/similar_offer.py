@@ -18,6 +18,7 @@ from schemas.similar_offer import SimilarOfferModelChoices
 from schemas.similar_offer import SimilarOfferResponse
 from services.db import get_database_session
 from services.h3 import get_h3_index_from_coordinates
+from services.logger import logger
 from utils.benchmark import log_execution_time
 from utils.location_presets import PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING
 
@@ -89,6 +90,21 @@ async def get_similar_offers(  # noqa: PLR0913
     if location.preset_location:  # pragma: no cover
         latitude, longitude = PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING[location.preset_location]
 
+    logger.info(
+        "📥 Incoming similar_offers request.",
+        extra={
+            "offer_id": offer_id,
+            "user_id": user_id,
+            "retrieval_model": retrieval_model,
+            "latitude": latitude,
+            "longitude": longitude,
+            "has_filters": any([categories, subcategories, search_group_names]),
+            "categories": [c.value for c in categories] if categories else None,
+            "subcategories": [s.value for s in subcategories] if subcategories else None,
+            "search_group_names": [s.value for s in search_group_names] if search_group_names else None,
+        },
+    )
+
     # Use a finer resolution for cache to avoid reusing the same cache if a user moves within a large resolution cell.
     cache_h3_resolution = settings.CACHE_H3_RESOLUTION
     h3_index = get_h3_index_from_coordinates(latitude, longitude, resolution=cache_h3_resolution)
@@ -117,7 +133,16 @@ async def get_similar_offers(  # noqa: PLR0913
             # Cache hits are not tracked (no new BigQuery rows), but the client
             # sends click/booking events referencing this call_id, which links them
             # back to the original display rows
+            logger.info(
+                "✅ Cache HIT — returning cached similar_offers.",
+                extra={"offer_id": offer_id, "call_id": cached_similar_offer_result.params.call_id},
+            )
             return cached_similar_offer_result
+
+    logger.info(
+        "🔍 Cache MISS — running full similar_offers pipeline.",
+        extra={"offer_id": offer_id, "retrieval_model": retrieval_model},
+    )
 
     # Delegate the heavy lifting to the core orchestration pipeline
     result = await generate_similar_offers(
@@ -139,5 +164,15 @@ async def get_similar_offers(  # noqa: PLR0913
             request_signature_data=request_signature_data,
             response_model_instance=result,
         )
+
+    logger.info(
+        "✅ similar_offers pipeline completed.",
+        extra={
+            "offer_id": offer_id,
+            "call_id": result.params.call_id,
+            "reco_origin": result.params.reco_origin,
+            "results_count": len(result.results),
+        },
+    )
 
     return result

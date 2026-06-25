@@ -47,7 +47,7 @@ RECOMMENDATION_API_VERSION = 2
 
 # --- 3. Logging Configuration ---
 # Reduce log noise in production by defaulting to INFO level
-LOG_LEVEL: int = logging.INFO if IS_PROD else logging.DEBUG
+LOG_LEVEL: int = logging.DEBUG
 
 LOGS_PRETTY_PRINT: bool = bool(int(os.environ.get("LOGS_PRETTY_PRINT", "1")))
 
