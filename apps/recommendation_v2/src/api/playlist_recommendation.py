@@ -15,6 +15,7 @@ from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.playlist_recommendation import RecommendationResponse
 from services.db import get_database_session
 from services.h3 import get_h3_index_from_coordinates
+from services.logger import logger
 from utils.benchmark import log_execution_time
 from utils.location_presets import PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING
 
@@ -67,6 +68,17 @@ async def get_playlist(
     if location.preset_location:  # pragma: no cover
         latitude, longitude = PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING[location.preset_location]
 
+    logger.info(
+        "📥 Incoming playlist_recommendation request.",
+        extra={
+            "user_id": user_id,
+            "latitude": latitude,
+            "longitude": longitude,
+            "is_geolocated": latitude is not None and longitude is not None,
+            "params": params.model_dump(mode="json"),
+        },
+    )
+
     # Use a finer resolution for cache to avoid reusing the same cache if a user moves within a large resolution cell.
     cache_h3_resolution = settings.CACHE_H3_RESOLUTION
     h3_index = get_h3_index_from_coordinates(latitude, longitude, resolution=cache_h3_resolution)
@@ -91,7 +103,16 @@ async def get_playlist(
             # Cache hits are not tracked (no new BigQuery rows), but the client
             # sends click/booking events referencing this call_id, which links them
             # back to the original display rows.
+            logger.info(
+                "✅ Cache HIT — returning cached playlist_recommendation.",
+                extra={"user_id": user_id, "call_id": cached_playlist_result.params.call_id},
+            )
             return cached_playlist_result
+
+    logger.info(
+        "🔍 Cache MISS — running full playlist_recommendation pipeline.",
+        extra={"user_id": user_id},
+    )
 
     # Delegate the heavy lifting to the core orchestration pipeline
     result = await generate_playlist_recommendations(
@@ -105,5 +126,15 @@ async def get_playlist(
             request_signature_data=request_signature_data,
             response_model_instance=result,
         )
+
+    logger.info(
+        "✅ playlist_recommendation pipeline completed.",
+        extra={
+            "user_id": user_id,
+            "call_id": result.params.call_id,
+            "reco_origin": result.params.reco_origin,
+            "playlist_size": len(result.playlist_recommended_offers),
+        },
+    )
 
     return result

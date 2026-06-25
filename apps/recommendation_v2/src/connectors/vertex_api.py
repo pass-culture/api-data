@@ -139,6 +139,16 @@ class VertexAPI:
                 )
                 parsed_predictions.append(parsed_item)
 
+            logger.debug(
+                "✅ Vertex retrieval predictions fetched successfully.",
+                extra={
+                    "endpoint": self.endpoint_name,
+                    "model_type": feature_payloads[0].get("model_type"),
+                    "predictions_count": len(parsed_predictions),
+                    "model_version": response.deployed_model_id,
+                },
+            )
+
             return VertexPredictionResult(
                 status="success",
                 model_version=response.deployed_model_id,
@@ -185,6 +195,11 @@ class VertexAPI:
                         extra={"error": str(format_error)},
                     )
                     continue
+
+            logger.debug(
+                "✅ Vertex ranking predictions fetched successfully.",
+                extra={"endpoint": self.endpoint_name, "rankings_count": len(parsed_results)},
+            )
 
             return parsed_results
 

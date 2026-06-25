@@ -2,6 +2,7 @@ import random
 from collections import defaultdict
 
 from schemas.enriched_offer import EnrichedRecommendableOffer
+from services.logger import logger
 
 
 PRIMARY_MIXING_FEATURE = "search_group_name"
@@ -122,6 +123,15 @@ def apply_offer_diversification(
     # --- 2. Primary Grouping ---
     primary_offer_groups = _group_offers_by_attribute(offers, PRIMARY_MIXING_FEATURE)
 
+    logger.debug(
+        "🎨 Diversification: primary grouping done.",
+        extra={
+            "input_offers": len(offers),
+            "group_count": len(primary_offer_groups),
+            "groups": {k: len(v) for k, v in primary_offer_groups.items()},
+        },
+    )
+
     # --- 3. Sub-mixing Phase (Specific Categories) ---
     for category, sub_attribute in configuration.items():
         if category in primary_offer_groups:
@@ -139,5 +149,10 @@ def apply_offer_diversification(
 
     # --- 4. Final Global Interleaving ---
     final_diversified_playlist = _interleave_offer_groups_round_robin(primary_offer_groups)
+
+    logger.debug(
+        "✅ Diversification completed.",
+        extra={"input_offers": len(offers), "output_offers": len(final_diversified_playlist)},
+    )
 
     return final_diversified_playlist
