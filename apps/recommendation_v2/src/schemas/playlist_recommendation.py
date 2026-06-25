@@ -52,6 +52,7 @@ class RecommendationMetadata(BaseModel):
     reco_origin: str
     model_origin: str
     call_id: str
+    unique_call_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
 
 
 class RecommendationResponse(BaseModel):
@@ -63,4 +64,3 @@ class RecommendationResponse(BaseModel):
     playlist_recommended_offers: list[str]
     params: RecommendationMetadata
     from_cache: bool = False
-    unique_call_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
