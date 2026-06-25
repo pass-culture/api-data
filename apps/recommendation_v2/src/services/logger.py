@@ -117,7 +117,7 @@ def initialize_application_logger() -> StructuredLogger:
 
     else:
         # Initialize Google Cloud Logging client
-        gcp_logging_client = google_logging.Client()
+        gcp_logging_client = google_logging.Client(project=settings.GCP_PROJECT)
 
         # Retrieve the default handler which automatically formats logs for GCP
         gcp_log_handler = gcp_logging_client.get_default_handler()
