@@ -19,7 +19,7 @@ dependencies = [
     "pydantic~=2.12",
     "redis~=7.4",
     "sqlalchemy~=2.0",
-    "starlette~=0.50.0",
+    "starlette~=0.50",
     "types-protobuf~=6.32",
     "uvicorn~=0.40",
 ]
