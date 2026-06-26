@@ -58,19 +58,19 @@ jobs:
           elif [ "$REF" = "refs/heads/main" ]; then
             echo "env_name=dev" | tee -a "$GITHUB_OUTPUT"
             echo "no_traffic=true" | tee -a "$GITHUB_OUTPUT"
-            echo "traffic_percent=100" | tee -a "$GITHUB_OUTPUT"
+            echo "traffic_percent=$TRAFFIC_PERCENT" | tee -a "$GITHUB_OUTPUT"
           elif [ "$REF" = "refs/heads/staging" ]; then
             echo "env_name=staging" | tee -a "$GITHUB_OUTPUT"
             echo "no_traffic=true" | tee -a "$GITHUB_OUTPUT"
-            echo "traffic_percent=100" | tee -a "$GITHUB_OUTPUT"
+            echo "traffic_percent=$TRAFFIC_PERCENT" | tee -a "$GITHUB_OUTPUT"
           elif [ "$REF" = "refs/heads/production" ]; then
             echo "env_name=production" | tee -a "$GITHUB_OUTPUT"
             echo "no_traffic=true" | tee -a "$GITHUB_OUTPUT"
-            echo "traffic_percent=100" | tee -a "$GITHUB_OUTPUT"
+            echo "traffic_percent=$TRAFFIC_PERCENT" | tee -a "$GITHUB_OUTPUT"
           else
             echo "env_name=dev" | tee -a "$GITHUB_OUTPUT"
             echo "no_traffic=true" | tee -a "$GITHUB_OUTPUT"
-            echo "traffic_percent=100" | tee -a "$GITHUB_OUTPUT"
+            echo "traffic_percent=$TRAFFIC_PERCENT" | tee -a "$GITHUB_OUTPUT"
           fi
 
   build-and-push-docker-image:
@@ -296,7 +296,8 @@ jobs:
           gcloud run services update-traffic "apireco-${ENV_SHORT_NAME}" \
             --region "${DOCKER_REGISTRY_REGION}" \
             --project "${DATA_GCP_PROJECT}" \
-            --to-revisions "${{ needs.deploy-api.outputs.revision }}=${{ needs.setup-job.outputs.traffic_percent }}"
+            --to-revisions "${{ needs.deploy-api.outputs.revision }}=${{ needs.setup-job.outputs.traffic_percent }}" \
+            --update-tags live="${{ needs.deploy-api.outputs.revision }}"
 
   slack-notification:
     runs-on: ubuntu-latest
