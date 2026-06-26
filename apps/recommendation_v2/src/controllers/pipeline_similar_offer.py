@@ -180,6 +180,10 @@ async def generate_similar_offers(  # noqa: PLR0913
         )
     else:
         unbooked_candidate_items = vertex_raw_predictions.predictions
+        logger.info(
+            "⏭️ Skipping already-booked filter: user is not authenticated or not in database.",
+            extra={"call_id": call_id, "user_id": effective_user_id},
+        )
 
     # --- 4. Resolution Phase ---
     # Convert abstract items into actionable offers, keeping only the closest venues for physical items

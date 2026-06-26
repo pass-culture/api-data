@@ -107,19 +107,25 @@ async def generate_playlist_recommendations(
     )
 
     # --- 3. Filtering Phase & Resolution ---
-    unbooked_candidate_items = await filter_out_already_booked_items(
-        db=db, candidate_items=raw_candidate_items, user_id=user_context.user_id
-    )
-
-    logger.info(
-        "🚫 Already-booked items filtered out.",
-        extra={
-            "call_id": call_id,
-            "before_filter": len(raw_candidate_items),
-            "after_filter": len(unbooked_candidate_items),
-            "filtered_out": len(raw_candidate_items) - len(unbooked_candidate_items),
-        },
-    )
+    if user_context.is_authenticated and user_context.user_id:
+        unbooked_candidate_items = await filter_out_already_booked_items(
+            db=db, candidate_items=raw_candidate_items, user_id=user_context.user_id
+        )
+        logger.info(
+            "🚫 Already-booked items filtered out.",
+            extra={
+                "call_id": call_id,
+                "before_filter": len(raw_candidate_items),
+                "after_filter": len(unbooked_candidate_items),
+                "filtered_out": len(raw_candidate_items) - len(unbooked_candidate_items),
+            },
+        )
+    else:
+        unbooked_candidate_items = raw_candidate_items
+        logger.info(
+            "⏭️ Skipping already-booked filter: user is not authenticated or not in database.",
+            extra={"call_id": call_id, "user_id": user_id},
+        )
 
     # Convert abstract items into actionable offers, keeping only the closest venues for physical items
     resolved_offers = await resolve_closest_venues_from_items(
