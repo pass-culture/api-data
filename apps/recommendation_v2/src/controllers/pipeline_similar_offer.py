@@ -168,7 +168,7 @@ async def generate_similar_offers(  # noqa: PLR0913
 
     # --- 3. Filtering Phase ---
     # Remove already-booked items if the user is authenticated
-    if user_context.is_authenticated and user_context.user_id:
+    if user_context.is_authenticated:
         unbooked_candidate_items = await filter_out_already_booked_items(
             db=db, candidate_items=vertex_raw_predictions.predictions, user_id=user_context.user_id
         )
@@ -183,6 +183,10 @@ async def generate_similar_offers(  # noqa: PLR0913
         )
     else:
         unbooked_candidate_items = vertex_raw_predictions.predictions
+        logger.info(
+            "⏭️ Skipping already-booked filter: user is not authenticated or not in database.",
+            extra={"call_id": call_id, "user_id": effective_user_id},
+        )
 
     # --- 4. Resolution Phase ---
     # Convert abstract items into actionable offers, keeping only the closest venues for physical items
