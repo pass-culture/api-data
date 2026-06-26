@@ -132,6 +132,8 @@ jobs:
       # URL of the freshly deployed revision, reachable via its "test" tag even when
       # no_traffic=true. Consumed by the smoke-test job.
       url: ${{ steps.resolve_tag_url.outputs.url }}
+      # Full revision name (e.g. apireco-dev-v2-abc1234-xyz). Consumed by promote-traffic.
+      revision: ${{ steps.revision.outputs.name }}
     env:
       DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
       ENV_SHORT_NAME: ${{ vars.ENV_SHORT_NAME }}
@@ -212,6 +214,12 @@ jobs:
           SQL_BASE_PASSWORD=cloudsql-recommendation-${{ steps.sha.outputs.secret_env_name }}-ew1_database_credentials_password:latest
           SQL_BASE_USER=cloudsql-recommendation-${{ steps.sha.outputs.secret_env_name }}-ew1_database_credentials_username:latest
           SQL_HOST=cloudsql-recommendation-${{ steps.sha.outputs.secret_env_name }}-ew1_private_ip:latest
+
+    - name: "Compute revision name"
+      id: "revision"
+      run: |
+        echo "rev_name=apireco-${ENV_SHORT_NAME}-v2-${{ steps.sha.outputs.very_short_sha }}-${{ steps.sha.outputs.rand }}" \
+          | tee -a "$GITHUB_OUTPUT"
 
     - uses: 'google-github-actions/setup-gcloud@v2'
     - id: resolve_tag_url
