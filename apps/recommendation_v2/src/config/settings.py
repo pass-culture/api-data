@@ -16,7 +16,15 @@ from dotenv import load_dotenv
 # --- 1. Environment Loading ---
 # Resolve the path to the .env file located at the root of the src directory
 environment_file_path = Path(".env")
-load_dotenv(dotenv_path=environment_file_path, override=False)
+
+# override=True (default) allows uvicorn's hot-reload to pick up .env changes at runtime
+# (uvicorn is configured with reload_includes=[".env"], which triggers a module reimport).
+# When running remote commands (streamlit-remote), the shell pre-loads
+# the environment from .env.<DEPLOY_ENV> BEFORE the Python process starts. In that case,
+# the Makefile injects DOTENV_OVERRIDE=0 so that load_dotenv does NOT override the env vars
+# already set in the process environment, letting .env.<DEPLOY_ENV> values take precedence.
+_dotenv_override: bool = bool(int(os.environ.get("DOTENV_OVERRIDE", "1")))
+load_dotenv(dotenv_path=environment_file_path, override=_dotenv_override)
 
 
 # --- 2. Application Environment ---
@@ -39,7 +47,7 @@ RECOMMENDATION_API_VERSION = 2
 
 # --- 3. Logging Configuration ---
 # Reduce log noise in production by defaulting to INFO level
-LOG_LEVEL: int = logging.INFO if IS_PROD else logging.DEBUG
+LOG_LEVEL: int = logging.DEBUG
 
 LOGS_PRETTY_PRINT: bool = bool(int(os.environ.get("LOGS_PRETTY_PRINT", "1")))
 
@@ -63,6 +71,8 @@ DATABASE_URL: str = os.getenv(
         DB_NAME=SQL_BASE_DATABASE,
     ),
 )
+
+DATABASE_STATEMENT_TIMEOUT_MS: int = int(os.environ.get("DB_STATEMENT_TIMEOUT_MS", "10000"))
 
 
 # --- 5. Google Cloud Platform & Vertex AI ---
@@ -89,7 +99,7 @@ ENABLE_TRACKING_LOGS: bool = bool(int(os.environ.get("ENABLE_TRACKING_LOGS", "1"
 REDIS_CACHE_ENABLED: bool = bool(int(os.environ.get("REDIS_CACHE_ENABLED", "0" if IS_LOCAL else "1")))
 REDIS_URL: str = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 REDIS_CACHE_RESET_HOUR: int = int(os.environ.get("REDIS_CACHE_RESET_HOUR", "5"))
-REDIS_MONITOR_INTERVAL_SECONDS: int = int(os.environ.get("REDIS_MONITOR_INTERVAL_SECONDS", "60"))
+REDIS_MONITOR_INTERVAL_SECONDS: int = int(os.environ.get("REDIS_MONITOR_INTERVAL_SECONDS", "600"))
 REDIS_CA_CERT_PATH: str = os.environ.get("REDIS_CA_CERT_PATH", "")  # Path to PEM file for Redis TLS
 REDIS_AUTH_STRING: str = os.environ.get("REDIS_AUTH_STRING", "")  # Optional auth string for Redis
 
@@ -99,5 +109,14 @@ PLAYLIST_RECOMMENDATION_MODEL_CONTEXT: str = os.environ.get("RECO_MODEL_CONTEXT"
 
 # --- 10. Geospatial Configuration ---
 GEOSPATIAL_RETRIEVAL_H3_RESOLUTION: int = int(os.environ.get("GEOSPATIAL_RETRIEVAL_H3_RESOLUTION", "5"))
+
+# Fail-fast: only resolutions that are materialised as indexed
+# columns on the Venue model (venue_h3_mapping_mv) are valid.
+VALID_H3_RESOLUTIONS: tuple[int, ...] = (5, 6, 7, 8, 9)
+if GEOSPATIAL_RETRIEVAL_H3_RESOLUTION not in VALID_H3_RESOLUTIONS:  # pragma: no cover
+    raise RuntimeError(
+        f"Invalid GEOSPATIAL_RETRIEVAL_H3_RESOLUTION={GEOSPATIAL_RETRIEVAL_H3_RESOLUTION!r}. "
+        f"Must be one of {VALID_H3_RESOLUTIONS}."
+    )
 
 CACHE_H3_RESOLUTION: int = int(os.environ.get("CACHE_H3_RESOLUTION", "8"))

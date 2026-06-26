@@ -377,7 +377,7 @@ def _render_geolocation_inputs() -> tuple:
     return latitude, longitude
 
 
-def _render_playlist_recommendation_payload_filters() -> dict:  # noqa: PLR0912, PLR0915
+def _render_playlist_recommendation_payload_filters() -> dict:
     """Renders the expanders for filtering options and builds the json payload."""
     with st.expander("Contraintes Temporelles"):
         start_date_val = st.date_input("Date de début", value=None)
@@ -397,16 +397,6 @@ def _render_playlist_recommendation_payload_filters() -> dict:  # noqa: PLR0912,
         categories = st.multiselect("Catégories", [e.value for e in CategoryEnum])
         subcategories = st.multiselect("Sous-catégories", [e.value for e in SubcategoryEnum])
         search_group_names = st.multiselect("Groupes de recherche", [e.value for e in SearchGroupNameEnum])
-
-    with st.expander("Filtres GTL"):
-        gtl_ids = st.text_input("Identifiants GTL (séparés par virgule)")
-        gtl_l1 = st.text_input("GTL Niveau 1 (séparés par virgule)")
-        gtl_l2 = st.text_input("GTL Niveau 2 (séparés par virgule)")
-        gtl_l3 = st.text_input("GTL Niveau 3 (séparés par virgule)")
-        gtl_l4 = st.text_input("GTL Niveau 4 (séparés par virgule)")
-
-    with st.expander("Diversification & Pagination"):
-        is_reco_shuffled = st.selectbox("Recommandations aléatoires (Shuffled)", [None, True, False])
 
     # Assemble Payload Configuration Dictionary
     payload = {}
@@ -432,20 +422,6 @@ def _render_playlist_recommendation_payload_filters() -> dict:  # noqa: PLR0912,
         payload["subcategories"] = subcategories
     if search_group_names:
         payload["searchGroupNames"] = search_group_names
-
-    if gtl_ids:
-        payload["gtlIds"] = [x.strip() for x in gtl_ids.split(",") if x.strip()]
-    if gtl_l1:
-        payload["gtlL1"] = [x.strip() for x in gtl_l1.split(",") if x.strip()]
-    if gtl_l2:
-        payload["gtlL2"] = [x.strip() for x in gtl_l2.split(",") if x.strip()]
-    if gtl_l3:
-        payload["gtlL3"] = [x.strip() for x in gtl_l3.split(",") if x.strip()]
-    if gtl_l4:
-        payload["gtlL4"] = [x.strip() for x in gtl_l4.split(",") if x.strip()]
-
-    if is_reco_shuffled is not None:
-        payload["isRecoShuffled"] = is_reco_shuffled
 
     return payload
 

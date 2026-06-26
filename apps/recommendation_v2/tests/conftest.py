@@ -1,5 +1,7 @@
 import asyncio
+import socket as _socket_module
 import uuid
+from collections.abc import Generator
 from unittest.mock import AsyncMock
 from unittest.mock import patch
 
@@ -8,6 +10,8 @@ import pytest_asyncio
 import sqlalchemy as sa
 from httpx import ASGITransport
 from httpx import AsyncClient
+from pytest_socket import disable_socket
+from pytest_socket import enable_socket
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
@@ -49,6 +53,78 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Network blocking (all tests)
+# ---------------------------------------------------------------------------
+
+# Hosts reachable from integration tests (Docker containers bind to localhost).
+_LOCALHOST_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+
+@pytest.fixture(autouse=True)
+def block_network_calls_in_tests(request: pytest.FixtureRequest) -> Generator[None]:
+    """
+    Enforce strict network isolation depending on the test type.
+
+    **Unit tests** — all TCP/UDP socket creation is blocked via pytest-socket.
+    Any accidental call to an external service raises ``SocketBlockedError``
+    immediately. Unix-domain sockets are still allowed so the asyncio event
+    loop can create its internal ``socketpair()``.
+
+    **Integration tests** — socket creation is allowed (Docker containers need
+    it), but ``socket.getaddrinfo`` is patched so that DNS resolution for any
+    host outside ``localhost / 127.0.0.1 / ::1`` is both blocked *and* recorded.
+    Blocking alone is not enough: network libraries often swallow
+    ``ConnectionRefusedError`` internally, masking the violation.  The fixture
+    therefore collects every blocked attempt and calls ``pytest.fail()`` in
+    teardown, which is *never* swallowed by application code.
+
+    Parameters
+    ----------
+    request:
+        Pytest's built-in fixture providing access to the current test's markers
+        and metadata, used here to distinguish ``unit`` from ``integration`` tests.
+
+    Yields
+    ------
+    None
+        Control is yielded to the test body; cleanup runs after the test finishes.
+    """
+    if request.node.get_closest_marker("unit"):
+        disable_socket(allow_unix_socket=True)
+        yield
+        enable_socket()
+
+    elif request.node.get_closest_marker("integration"):
+        original_getaddrinfo = _socket_module.getaddrinfo
+        blocked_external_hosts: list[str] = []
+
+        def _guarded_getaddrinfo(host, port, *args, **kwargs):
+            if isinstance(host, str) and host not in _LOCALHOST_HOSTS:
+                blocked_external_hosts.append(host)
+                raise ConnectionRefusedError(
+                    f"[TEST GUARD] DNS resolution for external host '{host}' is blocked "
+                    "in integration tests. Only localhost connections (Docker containers) "
+                    "are allowed — use mocks for all other external services."
+                )
+            return original_getaddrinfo(host, port, *args, **kwargs)
+
+        _socket_module.getaddrinfo = _guarded_getaddrinfo  # ty: ignore[invalid-assignment]
+        yield
+        _socket_module.getaddrinfo = original_getaddrinfo
+
+        if blocked_external_hosts:
+            pytest.fail(
+                f"Test made unexpected network call(s) to external host(s): "
+                f"{blocked_external_hosts}. "
+                "Only localhost connections (Docker containers) are allowed. "
+                "Ensure all external services are properly mocked."
+            )
+
+    else:
+        yield
+
+
+# ---------------------------------------------------------------------------
 # Global autouse mocks (apply to every test)
 # ---------------------------------------------------------------------------
 
@@ -77,13 +153,17 @@ def mock_vertex_retrieval(mocker):
     """
     Replace the Vertex AI candidate-retrieval call with a pre-built factory result.
 
-    The mock is applied to both controllers so every test that exercises the pipeline
-    receives a consistent, offline response.
+    The mock is applied to all controllers so every test that exercises the pipeline
+    receives a consistent, offline response without touching the real Vertex AI service.
 
-    Note: the playlist pipeline uses ``fetch_all_playlist_recommendation_retrieval_predictions_from_vertex``
-    which returns a ``list[RecommendableItem]`` directly (already merged and deduplicated).
-    The similar-offer pipeline still uses ``fetch_retrieval_predictions_from_vertex``
-    which returns a ``VertexPredictionResult``.
+    Functions patched
+    -----------------
+    - ``fetch_all_playlist_recommendation_retrieval_predictions_from_vertex`` (playlist pipeline)
+      → returns a ``list[RecommendableItem]`` directly (already merged and deduplicated).
+    - ``fetch_retrieval_predictions_from_vertex`` (similar-offer pipeline, standard path)
+      → returns a ``VertexPredictionResult``.
+    - ``fetch_graph_predictions_from_vertex`` (similar-offer pipeline, ``retrieval_model=graph`` path)
+      → returns a ``VertexPredictionResult``.
     """
     mock_retrieval_playlist = mocker.patch(
         "controllers.pipeline_playlist_recommendation.fetch_all_playlist_recommendation_retrieval_predictions_from_vertex",
@@ -93,10 +173,15 @@ def mock_vertex_retrieval(mocker):
         "controllers.pipeline_similar_offer.fetch_retrieval_predictions_from_vertex",
         new_callable=mocker.AsyncMock,
     )
+    mock_retrieval_graph = mocker.patch(
+        "controllers.pipeline_similar_offer.fetch_graph_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+    )
     mock_retrieval_playlist.return_value = RecommendableItemFactory.batch(10)
     mock_retrieval_similar.return_value = VertexPredictionResultFactory.build()
+    mock_retrieval_graph.return_value = VertexPredictionResultFactory.build()
 
-    return mock_retrieval_playlist, mock_retrieval_similar
+    return mock_retrieval_playlist, mock_retrieval_similar, mock_retrieval_graph
 
 
 @pytest.fixture(autouse=True)
@@ -263,6 +348,9 @@ async def redis_service(redis_container):
     settings.REDIS_URL = f"redis://{host}:{port}"
     settings.REDIS_CACHE_ENABLED = True
     await redis_cache_service.connect()
+    await redis_cache_service._monitor_ready.wait()
+    assert redis_cache_service.redis_client is not None
+    await redis_cache_service.redis_client.flushall()
     yield redis_cache_service
     await redis_cache_service.disconnect()
     settings.REDIS_URL = original_url

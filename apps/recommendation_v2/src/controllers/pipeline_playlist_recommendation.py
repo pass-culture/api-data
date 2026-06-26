@@ -68,13 +68,42 @@ async def generate_playlist_recommendations(
         iris_id=iris_id,
     )
 
+    logger.info(
+        "🚀 Starting playlist_recommendation pipeline.",
+        extra={
+            "call_id": call_id,
+            "user_id": user_id,
+            "is_authenticated": user_context.is_authenticated,
+            "is_cold_start": user_context.is_cold_start,
+            "is_geolocated": user_context.is_geolocated,
+            "iris_id": iris_id,
+            "remaining_credit": user_context.remaining_credit,
+            "bookings_count": user_context.bookings_count,
+        },
+    )
+
     # --- 2. Retrieval Phase ---
     # Build all retrieval payloads (1 for cold start, 4 for warm start) and fetch them in parallel
     retrieval_payloads = build_all_playlist_recommendation_retrieval_payloads(
         user_context=user_context, call_id=call_id, params=params
     )
+
+    logger.info(
+        "📡 Sending retrieval payloads to Vertex AI.",
+        extra={
+            "call_id": call_id,
+            "payload_count": len(retrieval_payloads),
+            "is_cold_start": user_context.is_cold_start,
+        },
+    )
+
     raw_candidate_items = await fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
         retrieval_payloads=retrieval_payloads
+    )
+
+    logger.info(
+        "📦 Raw candidates retrieved from Vertex AI.",
+        extra={"call_id": call_id, "raw_candidate_count": len(raw_candidate_items)},
     )
 
     # --- 3. Filtering Phase & Resolution ---
@@ -82,14 +111,34 @@ async def generate_playlist_recommendations(
         db=db, candidate_items=raw_candidate_items, user_id=user_context.user_id
     )
 
+    logger.info(
+        "🚫 Already-booked items filtered out.",
+        extra={
+            "call_id": call_id,
+            "before_filter": len(raw_candidate_items),
+            "after_filter": len(unbooked_candidate_items),
+            "filtered_out": len(raw_candidate_items) - len(unbooked_candidate_items),
+        },
+    )
+
     # Convert abstract items into actionable offers, keeping only the closest venues for physical items
     resolved_offers = await resolve_closest_venues_from_items(
         db=db, candidate_items=unbooked_candidate_items, user_context=user_context
     )
 
+    logger.info(
+        "📍 Offers resolved from items (venue proximity applied).",
+        extra={"call_id": call_id, "resolved_offers_count": len(resolved_offers)},
+    )
+
     # --- 4. Ranking Phase ---
     # Re-order the filtered offers using a dedicated scoring model
     ranked_offers = await rank_and_sort_offers_with_vertex(resolved_offers, user_context)
+
+    logger.info(
+        "🏆 Offers ranked by Vertex AI scoring model.",
+        extra={"call_id": call_id, "ranked_offers_count": len(ranked_offers)},
+    )
 
     # --- 5. Diversification & Truncation Phase ---
     # Shuffle and interleave categories to ensure a diverse final playlist
@@ -97,6 +146,16 @@ async def generate_playlist_recommendations(
 
     # Cap the final playlist to a strict maximum
     final_playlist = diversified_offers[:PLAYLIST_RECOMMENDATION_MAXIMUM_SIZE]
+
+    logger.info(
+        "🎨 Diversification applied — final playlist ready.",
+        extra={
+            "call_id": call_id,
+            "after_diversification": len(diversified_offers),
+            "final_playlist_size": len(final_playlist),
+            "truncated": len(diversified_offers) > len(final_playlist),
+        },
+    )
 
     # --- 6. Logging & Formatting Phase ---
     if user_context.user_id == UNAUTHENTICATED_USER_ID:
