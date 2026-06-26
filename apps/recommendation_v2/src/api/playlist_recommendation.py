@@ -131,7 +131,6 @@ async def get_playlist(
         "✅ playlist_recommendation pipeline completed.",
         extra={
             "user_id": user_id,
-            "call_id": result.params.call_id,
             "reco_origin": result.params.reco_origin,
             "playlist_size": len(result.playlist_recommended_offers),
         },
