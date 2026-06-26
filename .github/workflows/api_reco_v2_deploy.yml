@@ -318,6 +318,23 @@ jobs:
           secrets: |-
             SLACK_BOT_TOKEN:passculture-metier-ehp/passculture-ci-slack-bot-token
       - uses: technote-space/workflow-conclusion-action@v3
+      - name: "Compute traffic promotion status"
+        id: "traffic"
+        if: always()
+        env:
+          SMOKE_RESULT: ${{ needs.smoke-test.result }}
+          PROMOTE_RESULT: ${{ needs.promote-traffic.result }}
+          TRAFFIC_PERCENT: ${{ needs.setup-job.outputs.traffic_percent }}
+        run: |
+          if [ "$PROMOTE_RESULT" = "success" ]; then
+            echo "status=:white_check_mark: ${TRAFFIC_PERCENT}% du trafic basculé vers la nouvelle révision" >> "$GITHUB_OUTPUT"
+          elif [ "$SMOKE_RESULT" = "failure" ]; then
+            echo "status=:no_entry: Trafic non basculé (smoke tests en échec)" >> "$GITHUB_OUTPUT"
+          elif [ "$PROMOTE_RESULT" = "failure" ]; then
+            echo "status=:warning: Trafic non basculé — validation manuelle refusée ou expirée" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=:no_entry: Trafic non basculé (déploiement en échec)" >> "$GITHUB_OUTPUT"
+          fi
       - name: "Post to a Slack channel"
         if: always()
         uses: slackapi/slack-github-action@v1.23.0
@@ -336,7 +353,14 @@ jobs:
                   "author_icon": "https://github.com/${{github.actor}}.png",
                   "title": "API Reco V2 Deployment",
                   "title_link": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}",
-                  "text": "Le déploiement de `l'API reco v2 sur ${{ needs.setup-job.outputs.env_name }}` est ${{ env.WORKFLOW_CONCLUSION == 'failure' && 'échoué :boom:' || 'réussi :muscle:' }}"
+                  "text": "Le déploiement de `l'API reco v2 sur ${{ needs.setup-job.outputs.env_name }}` est ${{ env.WORKFLOW_CONCLUSION == 'failure' && 'échoué :boom:' || 'réussi :muscle:' }}",
+                  "fields": [
+                    {
+                      "title": "Traffic",
+                      "value": "${{ steps.traffic.outputs.status }}",
+                      "short": false
+                    }
+                  ]
                 }
               ],
               "unfurl_links": false,
