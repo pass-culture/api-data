@@ -1,3 +1,4 @@
+import json
 import logging
 import secrets
 import tomllib
@@ -182,6 +183,21 @@ async def database_exception_handler(request: Request, exc: SQLAlchemyError):
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         content={"detail": "Service temporarily unavailable. Please try again later."},
     )
+
+
+@app.middleware("http")
+async def log_raw_body(request: Request, call_next):
+    if "/playlist_recommendation/" in request.url.path and request.method == "POST":
+        # On lit le body brut sans consommer le flux (pour que FastAPI puisse le lire après)
+        body_bytes = await request.body()
+        try:
+            body_json = json.loads(body_bytes)
+            logger.info(f"📥 [DEBUG V2] JSON BRUT REÇU : {body_json}")
+        except Exception:
+            logger.info(f"📥 [DEBUG V2] BODY NON-JSON : {body_bytes.decode()}")
+
+    response = await call_next(request)
+    return response
 
 
 # Determine the required dependencies based on the current environment
