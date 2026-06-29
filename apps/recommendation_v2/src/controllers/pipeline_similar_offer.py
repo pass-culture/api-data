@@ -82,8 +82,11 @@ async def generate_similar_offers(  # noqa: PLR0913
     call_id = str(uuid.uuid4())
     call_id_context.set(call_id)
 
-    # 1.1. Fetch the reference offer from the database
-    offer_query_result = await db.execute(select(RecommendableOffers).where(RecommendableOffers.offer_id == offer_id))
+    # 1.1. Fetch the reference offer from the database.
+    # We use .limit(1) because an offer_id can have multiple rows (e.g. different cinema screenings).
+    offer_query_result = await db.execute(
+        select(RecommendableOffers).where(RecommendableOffers.offer_id == offer_id).limit(1)
+    )
     reference_offer = offer_query_result.scalar_one_or_none()
 
     if not reference_offer:
