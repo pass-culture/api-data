@@ -160,7 +160,9 @@ async def database_exception_handler(request: Request, exc: SQLAlchemyError):
 
     body_content = None
     if request.method != "GET":
-        body_content = await request.json()
+        raw_body = await request.body()
+        if raw_body:
+            body_content = await request.json()
 
     logger.error(
         f"🚨 Database error [{exact_error_name}] on {request.method} {route_template}",

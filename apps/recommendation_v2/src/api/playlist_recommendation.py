@@ -30,7 +30,6 @@ router = APIRouter()
 )
 @log_execution_time
 async def get_playlist(
-    params: Annotated[PlaylistRequestParams, Body(...)],
     db: Annotated[AsyncSession, Depends(get_database_session)],
     location: Annotated[LocationParams, Depends()],
     user_id: Annotated[
@@ -40,6 +39,7 @@ async def get_playlist(
             json_schema_extra={"example": settings.SWAGGER_UI_EXAMPLE_USER_ID},
         ),
     ],
+    params: Annotated[PlaylistRequestParams | None, Body()] = None,
 ) -> RecommendationResponse:
     """
     Generates a diversified playlist of recommendable offers for a specific user.
@@ -62,6 +62,9 @@ async def get_playlist(
 
     - `params`: Filtering constraints and business rules (JSON payload, strictly validated).
     """
+    if params is None:
+        params = PlaylistRequestParams()
+
     latitude, longitude = location.latitude, location.longitude
 
     # Override coordinates if a test location is selected
