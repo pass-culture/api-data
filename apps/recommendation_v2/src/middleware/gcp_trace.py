@@ -1,9 +1,5 @@
-import json
-from typing import Any
-
 from starlette.requests import Request
 from starlette.types import ASGIApp
-from starlette.types import Message
 from starlette.types import Receive
 from starlette.types import Scope
 from starlette.types import Send
@@ -41,7 +37,7 @@ class GCPTraceMiddleware:
         # ---------------------------------------------------------------------------
         # HTTP Request context
         # ---------------------------------------------------------------------------
-        http_request_payload: dict[str, Any] = {
+        http_request_payload: dict[str, str] = {
             "requestMethod": request.method,
             "requestUrl": str(request.url),
             "userAgent": request.headers.get("user-agent", ""),
@@ -49,36 +45,10 @@ class GCPTraceMiddleware:
             "protocol": f"HTTP/{scope.get('http_version', '1.1')}",
             "requestSize": request.headers.get("content-length", "0"),
         }
-
         token_http = http_request_context.set(http_request_payload)
 
-        # ---------------------------------------------------------------------------
-        # HTTP Request context
-        # ---------------------------------------------------------------------------
-        body_chunks = []
-
-        async def receive_with_logging() -> Message:
-            message = await receive()
-
-            if message["type"] == "http.request":
-                chunk = message.get("body", b"")
-                if chunk:
-                    body_chunks.append(chunk)
-
-                if not message.get("more_body", False):
-                    full_body = b"".join(body_chunks)
-                    if full_body:
-                        try:
-                            http_request_payload["requestBody"] = json.loads(full_body.decode("utf-8"))
-                        except (json.JSONDecodeError, UnicodeDecodeError):
-                            http_request_payload["requestBody"] = full_body.decode("utf-8", errors="replace")
-
-                        http_request_context.set(http_request_payload)
-
-            return message
-
         try:
-            await self.app(scope, receive_with_logging, send)
+            await self.app(scope, receive, send)
         finally:
             cloud_trace_context.reset(token_trace)
             http_request_context.reset(token_http)
