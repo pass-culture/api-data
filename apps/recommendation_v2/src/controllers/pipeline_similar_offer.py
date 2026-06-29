@@ -32,7 +32,7 @@ from services.logger import logger
 SIMILAR_OFFERS_LIST_MAXIMUM_SIZE = 20
 
 
-async def generate_similar_offers(  # noqa: PLR0913
+async def generate_similar_offers(  # noqa: PLR0913, PLR0915
     db: AsyncSession,
     offer_id: str,
     retrieval_model: SimilarOfferModelChoices = SimilarOfferModelChoices.coreservation,
@@ -138,6 +138,26 @@ async def generate_similar_offers(  # noqa: PLR0913
             "has_filters": any([categories, subcategories, search_group_names]),
         },
     )
+
+    # --- HACK for AB testing ---
+    SECOND_MUSIQUE_PLAYLIST_SEARCH_GROUPS = set(SearchGroupNameEnum) - {SearchGroupNameEnum.MUSIQUE}
+    if (
+        search_group_names is not None
+        and set(search_group_names) == SECOND_MUSIQUE_PLAYLIST_SEARCH_GROUPS
+        and retrieval_model == SimilarOfferModelChoices.coreservation
+    ):
+        logger.debug(
+            "⚠️ AB test hack triggered: "
+            "=> replacing search_group_names with ['MUSIQUE'] and forcing retrieval_model to 'graph'.",
+            extra={
+                "call_id": call_id,
+                "original_search_group_names": search_group_names,
+                "original_retrieval_model": retrieval_model,
+            },
+        )
+        search_group_names = [SearchGroupNameEnum.MUSIQUE]
+        retrieval_model = SimilarOfferModelChoices.graph
+    # --- End of HACK for AB testing ---
 
     # --- 2. Retrieval Phase ---
     logger.info(
