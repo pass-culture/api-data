@@ -128,9 +128,14 @@ jobs:
     permissions:
       contents: 'read'
       id-token: 'write'
+    outputs:
+      # URL of the freshly deployed revision, reachable via its "test" tag even when
+      # no_traffic=true. Consumed by the smoke-test job.
+      url: ${{ steps.resolve_tag_url.outputs.url }}
     env:
       DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
       ENV_SHORT_NAME: ${{ vars.ENV_SHORT_NAME }}
+      TAG_NAME: "test"
     steps:
     - uses: actions/checkout@v4
     - name: "Connect to Secret Manager"
@@ -185,7 +190,7 @@ jobs:
         region: "${{ env.DOCKER_REGISTRY_REGION }}"
         project_id: ${{ env.DATA_GCP_PROJECT }}
         no_traffic: ${{ needs.setup-job.outputs.no_traffic }}
-        tag: "test"
+        tag: ${{ env.TAG_NAME }}
         env_vars_update_strategy: overwrite
         secrets_update_strategy: overwrite
         env_vars: |-
@@ -208,10 +213,39 @@ jobs:
           SQL_BASE_USER=cloudsql-recommendation-${{ steps.sha.outputs.secret_env_name }}-ew1_database_credentials_username:latest
           SQL_HOST=cloudsql-recommendation-${{ steps.sha.outputs.secret_env_name }}-ew1_private_ip:latest
 
+    - uses: 'google-github-actions/setup-gcloud@v2'
+    - id: resolve_tag_url
+      name:  "Resolve test-tagged revision URL for smoke testing"
+      run: |
+        URL=$(gcloud run services describe "apireco-${ENV_SHORT_NAME}" \
+          --region "${DOCKER_REGISTRY_REGION}" \
+          --project "${DATA_GCP_PROJECT}" \
+          --format='json(status.traffic)' \
+          | jq -r --arg tag "$TAG_NAME" '.status.traffic[] | select(.tag==$tag) | .url')
+        if [ -z "$URL" ] || [ "$URL" = "null" ]; then
+          echo "❌ Could not resolve the '${TAG_NAME}'-tagged URL for apireco-${ENV_SHORT_NAME}"
+          exit 1
+        fi
+        echo "Resolved tagged URL: $URL"
+        echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+  smoke-test:
+    name: "Smoke test"
+    needs: [setup-job, deploy-api]
+    uses: ./.github/workflows/api_v2_smoke_test.yml
+    permissions:
+      contents: read
+      id-token: write
+    with:
+      TARGET_ENV: ${{ needs.setup-job.outputs.env_name }}
+      TARGET_URL: ${{ needs.deploy-api.outputs.url }}
+    secrets:
+      WORKLOAD_IDENTITY_PRD: ${{ secrets.WORKLOAD_IDENTITY_PRD }}
+
   slack-notification:
     runs-on: ubuntu-latest
     environment: ${{ needs.setup-job.outputs.env_name }}
-    needs: [setup-job, deploy-api]
+    needs: [setup-job, deploy-api, smoke-test]
     permissions:
       id-token: write
     if: always()

@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
+from controllers.pipeline_playlist_recommendation import generate_playlist_recommendations
 from core.diversification import apply_offer_diversification
 from core.geo import get_iris_id_from_coordinates
 from core.ranking import rank_and_sort_offers_with_vertex
@@ -20,6 +21,7 @@ from models.user import EnrichedUser
 from schemas.categories import CategoryEnum
 from schemas.categories import SearchGroupNameEnum
 from schemas.categories import SubcategoryEnum
+from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.similar_offer import SimilarOfferModelChoices
 from schemas.similar_offer import SimilarOfferResponse
@@ -54,8 +56,11 @@ async def generate_similar_offers(  # noqa: PLR0913
      applying any provided filters.
     3. Filtering: Removes already-booked items if a user_id is provided.
     4. Resolution: Maps ML items to actual offers, resolving spatial proximity if location data is provided.
-    5. Ranking & Diversification: Ranks and diversifies the results for better user experience.
-    6. Logging: Pushes the context and results to storage for future analysis.
+    5. Ranking: Re-orders the resolved offers using a dedicated Vertex AI scoring model.
+    6. Diversification & Truncation: Shuffles and interleaves categories, then caps the list to a maximum size.
+    7. Fallback (coreservation only): If the pipeline produces zero results, delegates entirely to
+     generate_playlist_recommendations, preserving the original category filters.
+    8. Logging: Pushes the context and results to storage for future analysis.
 
     Args:
         db (AsyncSession): The active asynchronous database session.
@@ -98,6 +103,10 @@ async def generate_similar_offers(  # noqa: PLR0913
         # Fallback to the offer's venue location if user location is not provided
         latitude = reference_offer.venue_latitude
         longitude = reference_offer.venue_longitude
+        logger.debug(
+            "📍 User location missing — falling back to offer's venue location.",
+            extra={"call_id": call_id, "offer_id": offer_id, "latitude": latitude, "longitude": longitude},
+        )
 
     # 1.3. Build user context (use provided user_id or default to unauthenticated)
     effective_user_id = user_id if user_id else UNAUTHENTICATED_USER_ID
@@ -113,9 +122,23 @@ async def generate_similar_offers(  # noqa: PLR0913
         iris_id=iris_id,
     )
 
+    logger.info(
+        "🚀 Starting similar_offers pipeline.",
+        extra={
+            "call_id": call_id,
+            "offer_id": offer_id,
+            "item_id": reference_item_id,
+            "retrieval_model": retrieval_model,
+            "user_id": effective_user_id,
+            "is_authenticated": user_context.is_authenticated,
+            "is_geolocated": user_context.is_geolocated,
+            "has_filters": any([categories, subcategories, search_group_names]),
+        },
+    )
+
     # --- 2. Retrieval Phase ---
     logger.info(
-        "Fetching similar offers from Vertex AI.",
+        "📡 Fetching similar offers from Vertex AI.",
         extra={
             "item_id": reference_item_id,
             "call_id": call_id,
@@ -135,11 +158,25 @@ async def generate_similar_offers(  # noqa: PLR0913
     else:
         vertex_raw_predictions = await fetch_retrieval_predictions_from_vertex(prediction_payload=retrieval_payload)
 
+    logger.info(
+        "📦 Raw candidates retrieved from Vertex AI.",
+        extra={"call_id": call_id, "raw_candidate_count": len(vertex_raw_predictions.predictions)},
+    )
+
     # --- 3. Filtering Phase ---
     # Remove already-booked items if the user is authenticated
     if user_context.is_authenticated and user_context.user_id:
         unbooked_candidate_items = await filter_out_already_booked_items(
             db=db, candidate_items=vertex_raw_predictions.predictions, user_id=user_context.user_id
+        )
+        logger.info(
+            "🚫 Already-booked items filtered out.",
+            extra={
+                "call_id": call_id,
+                "before_filter": len(vertex_raw_predictions.predictions),
+                "after_filter": len(unbooked_candidate_items),
+                "filtered_out": len(vertex_raw_predictions.predictions) - len(unbooked_candidate_items),
+            },
         )
     else:
         unbooked_candidate_items = vertex_raw_predictions.predictions
@@ -150,9 +187,19 @@ async def generate_similar_offers(  # noqa: PLR0913
         db=db, candidate_items=unbooked_candidate_items, user_context=user_context
     )
 
+    logger.info(
+        "📍 Offers resolved from items (venue proximity applied).",
+        extra={"call_id": call_id, "resolved_offers_count": len(resolved_offers)},
+    )
+
     # --- 5. Ranking Phase ---
     # Re-order the filtered offers using a dedicated scoring model
     ranked_offers = await rank_and_sort_offers_with_vertex(resolved_offers, user_context)
+
+    logger.info(
+        "🏆 Offers ranked by Vertex AI scoring model.",
+        extra={"call_id": call_id, "ranked_offers_count": len(ranked_offers)},
+    )
 
     # --- 6. Diversification & Truncation Phase ---
     # Shuffle and interleave categories to ensure a diverse final list
@@ -161,7 +208,66 @@ async def generate_similar_offers(  # noqa: PLR0913
     # Cap the final list to a strict maximum
     final_similar_offers = diversified_offers[:SIMILAR_OFFERS_LIST_MAXIMUM_SIZE]
 
-    # --- 7. Logging Phase ---
+    logger.info(
+        "🎨 Diversification applied — final similar offers list ready.",
+        extra={
+            "call_id": call_id,
+            "after_diversification": len(diversified_offers),
+            "final_list_size": len(final_similar_offers),
+        },
+    )
+
+    # --- 7. Fallback Phase (coreservation only) ---
+    # If the full pipeline produced zero results, delegate entirely to generate_playlist_recommendations.
+    # That function handles its own retrieval, ranking, diversification, and logging — no duplication needed.
+    is_coreservation_model = retrieval_model == SimilarOfferModelChoices.coreservation
+    if is_coreservation_model and len(final_similar_offers) == 0:
+        logger.warning(
+            "⚠️ No similar offers found with coreservation model. Falling back to standard recommendation pipeline.",
+            extra={
+                "offer_id": offer_id,
+                "call_id": call_id,
+                "latitude": latitude,
+                "longitude": longitude,
+                "categories": categories,
+                "subcategories": subcategories,
+                "search_group_names": search_group_names,
+            },
+        )
+        fallback_params = PlaylistRequestParams(
+            categories=categories,
+            subcategories=subcategories,
+            search_group_names=search_group_names,
+        )
+        fallback_response = await generate_playlist_recommendations(
+            db=db,
+            user_id=user_context.user_id,
+            latitude=user_context.latitude,
+            longitude=user_context.longitude,
+            params=fallback_params,
+        )
+
+        logger.info(
+            "↩️ Fallback to playlist_recommendation pipeline completed.",
+            extra={
+                "call_id": call_id,
+                "fallback_call_id": fallback_response.params.call_id,
+                "fallback_results_count": len(
+                    fallback_response.playlist_recommended_offers[:SIMILAR_OFFERS_LIST_MAXIMUM_SIZE]
+                ),
+            },
+        )
+
+        return SimilarOfferResponse(
+            results=fallback_response.playlist_recommended_offers[:SIMILAR_OFFERS_LIST_MAXIMUM_SIZE],
+            params=RecommendationMetadata(
+                reco_origin="recommendation_fallback",
+                model_origin=fallback_response.params.model_origin,
+                call_id=call_id,
+            ),
+        )
+
+    # --- 8. Logging Phase ---
     recommendation_origin = "similar_offer" if retrieval_model == SimilarOfferModelChoices.coreservation else "graph"
 
     log_past_offer_context_to_sink(

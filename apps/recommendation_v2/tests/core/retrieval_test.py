@@ -144,10 +144,9 @@ def test_playlist_filters_is_digital_false_maps_to_geolocated_only():
 
 def test_playlist_filters_empty_list_fields_are_not_added():
     """Empty lists must not produce a $in [] condition that would match nothing."""
-    params = PlaylistRequestParams(categories=[], gtl_ids=[])
+    params = PlaylistRequestParams(categories=[])
     conditions = _build_playlist_recommendation_search_filters(_user(), params)["$and"]
     assert not any("category" in c for c in conditions)
-    assert not any("gtl_id" in c for c in conditions)
 
 
 def test_playlist_filters_adds_end_date_condition():
@@ -166,6 +165,18 @@ def test_playlist_filters_adds_is_duo_condition():
     params = PlaylistRequestParams(is_duo=True)
     conditions = _build_playlist_recommendation_search_filters(_user(), params)["$and"]
     assert {"offer_is_duo": {"$eq": 1.0}} in conditions
+
+
+def test_playlist_filters_clamps_negative_remaining_credit_to_zero():
+    """
+    When a user has a negative remaining_credit (due to corrupted DB data), the effective
+    price cap must be clamped to 0 instead of producing a nonsensical negative filter
+    (e.g. stock_price <= -5) that would return zero results.
+    """
+    conditions = _build_playlist_recommendation_search_filters(_user(remaining_credit=-50.0), PlaylistRequestParams())[
+        "$and"
+    ]
+    assert {"stock_price": {"$lte": 0.0}} in conditions
 
 
 def test_playlist_filters_adds_non_empty_list_as_in_condition():

@@ -1,5 +1,7 @@
 import logging
+import secrets
 import tomllib
+import traceback
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -7,45 +9,71 @@ import uvicorn
 from fastapi import Depends
 from fastapi import FastAPI
 from fastapi import HTTPException
+from fastapi import Request
 from fastapi import Security
 from fastapi import status
+from fastapi.responses import JSONResponse
+from fastapi.security import APIKeyHeader
 from fastapi.security import APIKeyQuery
+from sqlalchemy.exc import SQLAlchemyError
 
 from api.health_check import router as health_check_router
 from api.playlist_recommendation import router as playlist_router
 from api.similar_artists import router as similar_artists_router
 from api.similar_offer import router as similar_offer_router
 from config import settings
+from middleware.gcp_trace import GCPTraceMiddleware
+from services.db import async_db_engine
 from services.logger import logger
 from services.redis import redis_cache_service
 
 
-api_key_query = APIKeyQuery(name="token", auto_error=True)
+api_key_query = APIKeyQuery(name="token", auto_error=False)
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
-def verify_api_token(token: str = Security(api_key_query)) -> None:
+def verify_api_token(
+    token_query: str | None = Security(api_key_query),
+    token_header: str | None = Security(api_key_header),
+) -> None:
     """
-    Verifies the API token provided in the application's query parameters.
+    Verifies the API token provided either as a query parameter or as an HTTP header.
 
-    This function strictly compares the provided token against the expected
-    API token defined in the application settings. If they do not match,
-    it prevents access by raising an HTTP 401 Unauthorized error.
+    The token is accepted from two sources (checked in order):
+    - Query parameter  ``?token=<token>``
+    - HTTP header  ``X-API-Key: <token>``
+
+    If the token is present in at least one source and matches the configured value,
+    the request is accepted. If neither source provides a valid token, an HTTP 401
+    Unauthorized error is raised.
 
     Args:
-        token (str): The token passed in the query parameters of the HTTP request.
+        token_query (str | None): Token passed via the ``token`` query parameter.
+        token_header (str | None): Token passed via the ``X-API-Key`` HTTP header.
 
     Raises:
-        HTTPException: Raised with status 401 if the token does not match.
+        HTTPException: Raised with status 401 if no valid token is found.
 
-    Example:
-        A request to an endpoint protected by this dependency would look like:
+    Examples:
+        Via query parameter (legacy):
         > GET /playlist/recommendations?token=my_secret_token
 
-        If `settings.API_TOKEN` is "my_secret_token", access is granted.
-        Otherwise, a 401 error is returned.
+        Via HTTP header (preferred):
+        > GET /playlist/recommendations
+        > X-API-Key: my_secret_token
     """
-    # Reject request if the provided token does not match the configured one
-    if token != settings.API_TOKEN:
+    token = token_query or token_header
+
+    # TODO (jmontagnat - 2026-06-19): This manual check is required
+    #   during the migration phase from query parameters to headers.
+    #   Once the transition is complete and all consumers use the header, perform the following cleanup:
+    #   1. Remove this manual 'if token is None' check.
+    #   2. Set 'auto_error=True' in the 'APIKeyHeader' definition above.
+    #   3. Remove the 'APIKeyQuery' dependency entirely.
+    if token is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+
+    if not secrets.compare_digest(token, settings.API_TOKEN):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
 
@@ -91,12 +119,11 @@ def show_api_config() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await async_db_engine.dispose()
     await redis_cache_service.connect()
 
     swagger_url = f"http://127.0.0.1:{settings.FASTAPI_SERVER_PORT}/docs"
-
     show_api_config()
-
     logger.info(
         "🚀 Recommendation API started successfully !"
         f" Redis Cache: {'ENABLED 🟢' if settings.REDIS_CACHE_ENABLED else 'DISABLED 🔴'}",
@@ -107,7 +134,10 @@ async def lifespan(app: FastAPI):
             "redis_enabled": settings.REDIS_CACHE_ENABLED,
         },
     )
+
     yield
+
+    await async_db_engine.dispose()
     await redis_cache_service.disconnect()
 
 
@@ -117,6 +147,40 @@ app = FastAPI(
     version=get_version(),
     lifespan=lifespan,
 )
+
+app.add_middleware(GCPTraceMiddleware)  # ty: ignore[invalid-argument-type]
+
+
+@app.exception_handler(SQLAlchemyError)
+async def database_exception_handler(request: Request, exc: SQLAlchemyError):
+    underlying_error = getattr(exc, "orig", exc)
+    exact_error_name = type(underlying_error).__name__
+    route = request.scope.get("route")
+    route_template = route.path if route else request.url.path
+
+    body_content = None
+    if request.method != "GET":
+        body_content = await request.json()
+
+    logger.error(
+        f"🚨 Database error [{exact_error_name}] on {request.method} {route_template}",
+        extra={
+            "database_error_type": exact_error_name,
+            "database_error_detail": str(underlying_error),
+            "route_template": route_template,
+            "path": request.url.path,
+            "method": request.method,
+            "query_params": dict(request.query_params),
+            "body": body_content,
+            "traceback": traceback.format_exc(),
+        },
+    )
+
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={"detail": "Service temporarily unavailable. Please try again later."},
+    )
+
 
 # Determine the required dependencies based on the current environment
 # In local environments, authentication is bypassed to simplify development

@@ -9,6 +9,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from config import settings
+from services.logger import logger
 from services.redis import redis_cache_service
 
 
@@ -94,8 +95,16 @@ class RedisAPI:
         cached_data = await redis_cache_service.get_cached_value(cache_key=cache_key)
 
         if cached_data is not None:
+            logger.debug(
+                "💾 Redis cache HIT.",
+                extra={"cache_key": cache_key, "namespace": namespace_prefix},
+            )
             return response_model_class(**cached_data)
 
+        logger.debug(
+            "🔍 Redis cache MISS.",
+            extra={"cache_key": cache_key, "namespace": namespace_prefix},
+        )
         return None
 
     @staticmethod
@@ -123,6 +132,15 @@ class RedisAPI:
 
         await redis_cache_service.set_cached_value(
             cache_key=cache_key, value_to_cache=serialized_payload, time_to_live_in_seconds=time_to_live_in_seconds
+        )
+
+        logger.debug(
+            "💾 Response stored in Redis cache.",
+            extra={
+                "cache_key": cache_key,
+                "namespace": namespace_prefix,
+                "ttl_seconds": time_to_live_in_seconds,
+            },
         )
 
 

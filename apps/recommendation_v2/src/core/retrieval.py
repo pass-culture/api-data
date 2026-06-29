@@ -18,6 +18,7 @@ from schemas.categories import SubcategoryEnum
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.vertex_prediction_item import RecommendableItem
+from services.logger import logger
 from utils.benchmark import log_execution_time
 
 
@@ -63,7 +64,11 @@ def _build_playlist_recommendation_search_filters(
         and_conditions.append({date_field: {"$lte": params.end_date.timestamp()}})
 
     # 2. Price constraints (bounded by user's remaining credit)
-    effective_price_max = round(user_context.remaining_credit)
+    # TODO: (jmontagnat - 2026-06-23)
+    #  Corrupted data in the database can cause remaining_credit to be negative for some users.
+    #  This max(0, ...) is a temporary fix to prevent an absurd price filter (e.g. stock_price <= -5).
+    #  Remove this fix once the investigation is complete and the user data has been cleaned up in the database.
+    effective_price_max = round(max(0, user_context.remaining_credit))
     if params.price_max is not None:
         effective_price_max = min(params.price_max, effective_price_max)
 
@@ -91,11 +96,6 @@ def _build_playlist_recommendation_search_filters(
         "categories": "category",
         "subcategories": "subcategory_id",
         "search_group_names": "search_group_name",
-        "gtl_ids": "gtl_id",
-        "gtl_l1": "gtl_l1",
-        "gtl_l2": "gtl_l2",
-        "gtl_l3": "gtl_l3",
-        "gtl_l4": "gtl_l4",
     }
 
     for param_field, vertex_field in list_mappings.items():
@@ -349,7 +349,19 @@ async def fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
     for result in parallel_results:
         all_candidate_items.extend(result.predictions)
 
-    return deduplicate_candidate_items_by_item_id(all_candidate_items)
+    deduplicated = deduplicate_candidate_items_by_item_id(all_candidate_items)
+
+    logger.debug(
+        "🔀 Retrieval endpoints aggregated and deduplicated.",
+        extra={
+            "endpoint_count": len(parallel_results),
+            "raw_total": len(all_candidate_items),
+            "after_dedup": len(deduplicated),
+            "duplicates_removed": len(all_candidate_items) - len(deduplicated),
+        },
+    )
+
+    return deduplicated
 
 
 # ==============================================================================
@@ -502,6 +514,16 @@ async def filter_out_already_booked_items(
 
     unseen_candidate_items = [item for item in candidate_items if item.item_id not in already_booked_item_ids]
 
+    logger.debug(
+        "🚫 Booked items cross-referenced.",
+        extra={
+            "user_id": user_id,
+            "already_booked_count": len(already_booked_item_ids),
+            "candidates_in": len(candidate_items),
+            "candidates_out": len(unseen_candidate_items),
+        },
+    )
+
     return unseen_candidate_items
 
 
@@ -537,12 +559,15 @@ async def resolve_closest_venues_from_items(
     fast_track_enriched_offers: list[EnrichedRecommendableOffer] = []
     multi_venue_item_ids: list[str] = []
     item_lookup_map: dict[str, RecommendableItem] = {}
+    skipped_no_geo_context = 0
+    skipped_too_far = 0
 
     for item in candidate_items:
         # Route A: Fast-Track (Digital or single-venue physical)
         if not item.is_geolocated or item.total_offers == 1:
             # Reject physical offers if user has no GPS context
             if item.is_geolocated and not user_context.is_geolocated:
+                skipped_no_geo_context += 1
                 continue
 
             calculated_distance = None
@@ -556,6 +581,7 @@ async def resolve_closest_venues_from_items(
 
                 # Reject if beyond default max radius (100km)
                 if calculated_distance is not None and calculated_distance > DEFAULT_MAX_DISTANCE_IN_METERS:
+                    skipped_too_far += 1
                     continue
 
             # Instantiate the clean DTO directly from the ML Item
@@ -587,6 +613,17 @@ async def resolve_closest_venues_from_items(
         elif user_context.is_geolocated:
             multi_venue_item_ids.append(item.item_id)
             item_lookup_map[item.item_id] = item
+
+    logger.debug(
+        "🔀 Venue resolution routing.",
+        extra={
+            "candidates_in": len(candidate_items),
+            "fast_track_count": len(fast_track_enriched_offers),
+            "multi_venue_db_count": len(multi_venue_item_ids),
+            "skipped_no_geo_context": skipped_no_geo_context,
+            "skipped_too_far": skipped_too_far,
+        },
+    )
 
     # --- 2. DATABASE SPATIAL RESOLUTION ---
     database_resolved_enriched_offers: list[EnrichedRecommendableOffer] = []
@@ -625,6 +662,14 @@ async def resolve_closest_venues_from_items(
                 booking_number_last_28_days=item_data.booking_number_last_28_days,
             )
             database_resolved_enriched_offers.append(enriched_offer)
+
+        logger.debug(
+            "🗺️ Multi-venue items resolved via database spatial query.",
+            extra={
+                "multi_venue_requested": len(multi_venue_item_ids),
+                "db_resolved_count": len(database_resolved_enriched_offers),
+            },
+        )
 
     # --- 3. MERGE & SORT ---
     final_resolved_offers = fast_track_enriched_offers + database_resolved_enriched_offers

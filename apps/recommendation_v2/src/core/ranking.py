@@ -6,6 +6,7 @@ from typing import Any
 from connectors import ranking_api_client
 from core.user_context import UserContext
 from schemas.enriched_offer import EnrichedRecommendableOffer
+from services.logger import logger
 
 
 if TYPE_CHECKING:
@@ -118,6 +119,11 @@ async def rank_and_sort_offers_with_vertex(
     # --- 1. Prepare Features & Call Model ---
     ranking_instances = [_build_vertex_ranking_features(offer, user_context) for offer in offers]
 
+    logger.debug(
+        "📤 Sending offers to Vertex AI ranking model.",
+        extra={"offers_to_rank": len(ranking_instances), "user_id": user_context.user_id},
+    )
+
     predictions: list[RankingPrediction] = await ranking_api_client.fetch_ranking_predictions(
         feature_payloads=ranking_instances
     )
@@ -125,6 +131,10 @@ async def rank_and_sort_offers_with_vertex(
     # --- 2. Fallback Mechanism ---
     # If Vertex prediction fails or returns nothing, fallback to the retrieval 'item_rank'
     if not predictions:
+        logger.warning(
+            "⚠️ Vertex ranking returned no predictions — falling back to item_rank ordering.",
+            extra={"offers_count": len(offers), "user_id": user_context.user_id},
+        )
         return sorted(offers, key=lambda o: o.item_rank if o.item_rank is not None else float("inf"))
 
     # --- 3. Map Scores & Sort ---
@@ -133,6 +143,15 @@ async def rank_and_sort_offers_with_vertex(
     for offer in offers:
         # Attach the dynamic score to the offer object for downstream logging (default to 0.0)
         offer.ranking_score = prediction_score_map.get(str(offer.offer_id), 0.0)
+
+    logger.debug(
+        "✅ Ranking scores applied to offers.",
+        extra={
+            "ranked_count": len(predictions),
+            "unmatched_count": len(offers) - len(predictions),
+            "user_id": user_context.user_id,
+        },
+    )
 
     # Sort descending based on the predicted score attached to the object (highest score first)
     return sorted(offers, key=lambda offer: offer.ranking_score, reverse=True)
