@@ -159,8 +159,7 @@ async def find_closest_offers_with_h3_index(
             RecommendableOffers.item_id.in_(item_ids),
             h3_index_column.in_(candidate_h3_cells),
         )
-        .distinct(RecommendableOffers.item_id, RecommendableOffers.venue_id)
-        .order_by(RecommendableOffers.item_id, RecommendableOffers.venue_id)
+        .distinct(RecommendableOffers.offer_id, RecommendableOffers.venue_id)
         .subquery()
     )
     deduped_offers = aliased(RecommendableOffers, deduped_offers_by_venue)
