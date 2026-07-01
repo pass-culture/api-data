@@ -71,7 +71,6 @@ async def generate_playlist_recommendations(
     logger.info(
         "🚀 Starting playlist_recommendation pipeline.",
         extra={
-            "call_id": call_id,
             "user_id": user_id,
             "is_authenticated": user_context.is_authenticated,
             "is_cold_start": user_context.is_cold_start,
@@ -91,7 +90,6 @@ async def generate_playlist_recommendations(
     logger.info(
         "📡 Sending retrieval payloads to Vertex AI.",
         extra={
-            "call_id": call_id,
             "payload_count": len(retrieval_payloads),
             "is_cold_start": user_context.is_cold_start,
         },
@@ -103,23 +101,28 @@ async def generate_playlist_recommendations(
 
     logger.info(
         "📦 Raw candidates retrieved from Vertex AI.",
-        extra={"call_id": call_id, "raw_candidate_count": len(raw_candidate_items)},
+        extra={"raw_candidate_count": len(raw_candidate_items)},
     )
 
     # --- 3. Filtering Phase & Resolution ---
-    unbooked_candidate_items = await filter_out_already_booked_items(
-        db=db, candidate_items=raw_candidate_items, user_id=user_context.user_id
-    )
-
-    logger.info(
-        "🚫 Already-booked items filtered out.",
-        extra={
-            "call_id": call_id,
-            "before_filter": len(raw_candidate_items),
-            "after_filter": len(unbooked_candidate_items),
-            "filtered_out": len(raw_candidate_items) - len(unbooked_candidate_items),
-        },
-    )
+    if user_context.is_authenticated and user_context.user_id:
+        unbooked_candidate_items = await filter_out_already_booked_items(
+            db=db, candidate_items=raw_candidate_items, user_id=user_context.user_id
+        )
+        logger.info(
+            "🚫 Already-booked items filtered out.",
+            extra={
+                "before_filter": len(raw_candidate_items),
+                "after_filter": len(unbooked_candidate_items),
+                "filtered_out": len(raw_candidate_items) - len(unbooked_candidate_items),
+            },
+        )
+    else:
+        unbooked_candidate_items = raw_candidate_items
+        logger.info(
+            "⏭️ Skipping already-booked filter: user is not authenticated or not in database.",
+            extra={"user_id": user_id},
+        )
 
     # Convert abstract items into actionable offers, keeping only the closest venues for physical items
     resolved_offers = await resolve_closest_venues_from_items(
@@ -128,7 +131,7 @@ async def generate_playlist_recommendations(
 
     logger.info(
         "📍 Offers resolved from items (venue proximity applied).",
-        extra={"call_id": call_id, "resolved_offers_count": len(resolved_offers)},
+        extra={"resolved_offers_count": len(resolved_offers)},
     )
 
     # --- 4. Ranking Phase ---
@@ -137,7 +140,7 @@ async def generate_playlist_recommendations(
 
     logger.info(
         "🏆 Offers ranked by Vertex AI scoring model.",
-        extra={"call_id": call_id, "ranked_offers_count": len(ranked_offers)},
+        extra={"ranked_offers_count": len(ranked_offers)},
     )
 
     # --- 5. Diversification & Truncation Phase ---
@@ -150,7 +153,6 @@ async def generate_playlist_recommendations(
     logger.info(
         "🎨 Diversification applied — final playlist ready.",
         extra={
-            "call_id": call_id,
             "after_diversification": len(diversified_offers),
             "final_playlist_size": len(final_playlist),
             "truncated": len(diversified_offers) > len(final_playlist),
@@ -177,7 +179,7 @@ async def generate_playlist_recommendations(
         # the dataset with guest/unknown users who cannot produce engagement signals (clicks/bookings).
         logger.debug(
             "⏭️ Skipping tracking: User is not authenticated (guest/unknown user).",
-            extra={"user_id": user_id, "call_id": call_id},
+            extra={"user_id": user_id},
         )
 
     return RecommendationResponse(

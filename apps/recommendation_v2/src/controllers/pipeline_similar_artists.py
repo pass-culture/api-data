@@ -19,7 +19,7 @@ async def get_similar_artists_from_db(
     call_id = str(uuid.uuid4())
     call_id_context.set(call_id)
 
-    logger.info("🚀 Starting similar_artists pipeline.", extra={"call_id": call_id, "artist_id": artist_id})
+    logger.info("🚀 Starting similar_artists pipeline.", extra={"artist_id": artist_id})
 
     # Fetch similar artists from the database
     result = await db.execute(select(SimilarArtist.similar_artists_json).where(SimilarArtist.artist_id == artist_id))
@@ -28,7 +28,7 @@ async def get_similar_artists_from_db(
     if similar_artist_record is None:
         logger.warning(
             "No similar artists found for the given artist_id.",
-            extra={"artist_id": artist_id, "call_id": call_id},
+            extra={"artist_id": artist_id},
         )
         return SimilarArtistsResponse(
             similar_artists=[],
@@ -41,7 +41,7 @@ async def get_similar_artists_from_db(
     similar_artists = [MatchedArtist(**item) for item in similar_artist_record]
     logger.info(
         "✅ Similar artists found.",
-        extra={"call_id": call_id, "artist_id": artist_id, "similar_artists_count": len(similar_artists)},
+        extra={"artist_id": artist_id, "similar_artists_count": len(similar_artists)},
     )
 
     return SimilarArtistsResponse(
