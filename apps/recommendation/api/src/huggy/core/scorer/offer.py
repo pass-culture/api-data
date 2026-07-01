@@ -17,6 +17,7 @@ from huggy.core.endpoint.retrieval_endpoint import RetrievalEndpoint
 from huggy.crud.non_recommendable_offer import get_non_recommendable_items
 from huggy.crud.recommendable_offer import RecommendableOffer as RecommendableOfferDB
 from huggy.schemas.model_selection.model_configuration import QueryOrderChoices
+from huggy.utils.benchmark import log_execution_time
 from huggy.utils.cloud_logging import logger
 from huggy.utils.distance import haversine_distance
 from huggy.utils.exception import log_error
@@ -124,6 +125,7 @@ class OfferScorer:
 
         return recommendable_offers
 
+    @log_execution_time
     async def get_recommendable_offers(
         self,
         db: AsyncSession,
@@ -222,6 +224,7 @@ class OfferScorer:
                 return latitude, longitude
         return None, None
 
+    @log_execution_time
     async def get_nearest_offers(
         self,
         db: AsyncSession,

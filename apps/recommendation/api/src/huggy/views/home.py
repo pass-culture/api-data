@@ -9,6 +9,7 @@ from huggy.core.model_engine.factory import ModelEngineFactory, ModelEngineOut
 from huggy.crud.offer import Offer
 from huggy.crud.user import UserContextDB
 from huggy.database.session import get_db
+from huggy.utils.benchmark import log_execution_time
 from huggy.views.common import check_token, get_call_id, setup_trace
 
 home_router = r = APIRouter(tags=["home"])
@@ -18,6 +19,7 @@ home_router = r = APIRouter(tags=["home"])
     "/playlist_recommendation/{user_id}",
     dependencies=[Depends(setup_trace), Depends(check_token)],
 )
+@log_execution_time
 async def playlist_recommendation(
     user_id: str,
     playlist_params: p.PlaylistParams,

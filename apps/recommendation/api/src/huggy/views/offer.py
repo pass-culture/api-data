@@ -10,6 +10,7 @@ from huggy.crud.offer import Offer
 from huggy.crud.user import UserContextDB
 from huggy.database.session import get_db
 from huggy.schemas.model_selection.model_configuration import RetrievalModelChoices
+from huggy.utils.benchmark import log_execution_time
 from huggy.views.common import check_token, get_call_id, setup_trace
 
 offer_router = r = APIRouter(tags=["offer"])
@@ -19,6 +20,7 @@ offer_router = r = APIRouter(tags=["offer"])
     "/similar_offers/{offer_id}",
     dependencies=[Depends(setup_trace), Depends(check_token)],
 )
+@log_execution_time
 async def get_similar_offers(
     offer_id: str,
     token: t.Optional[str] = None,
