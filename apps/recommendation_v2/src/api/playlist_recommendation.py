@@ -16,6 +16,7 @@ from schemas.playlist_recommendation import RecommendationResponse
 from services.db import get_database_session
 from services.h3 import get_h3_index_from_coordinates
 from services.logger import logger
+from utils.benchmark import LogLevel
 from utils.benchmark import log_execution_time
 from utils.location_presets import PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING
 
@@ -28,7 +29,7 @@ router = APIRouter()
     response_model=RecommendationResponse,
     summary="Generate a personalized recommendation playlist",
 )
-@log_execution_time
+@log_execution_time(level=LogLevel.INFO)
 async def get_playlist(
     params: Annotated[PlaylistRequestParams, Body(...)],
     db: Annotated[AsyncSession, Depends(get_database_session)],
