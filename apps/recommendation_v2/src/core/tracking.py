@@ -21,6 +21,7 @@ def log_past_offer_context_to_sink(
     reco_origin: str,
     context_name: str,
 ) -> None:
+    return
     """
     Formats and logs the full context of the generated recommendation playlist.
 
