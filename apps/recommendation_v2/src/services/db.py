@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from config import settings
+from utils.benchmark import instrument_sql_query_timing
 
 
 # --- 1. Database Engine Initialization ---
@@ -20,6 +21,9 @@ async_db_engine = create_async_engine(
         "server_settings": {"statement_timeout": str(settings.DATABASE_STATEMENT_TIMEOUT_MS)},
     },
 )
+
+# Log per-statement SQL execution time (excluding pool wait) and pool saturation status
+instrument_sql_query_timing(async_db_engine)
 
 
 # --- 2. Session Factory ---
