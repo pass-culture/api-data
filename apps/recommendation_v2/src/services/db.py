@@ -13,8 +13,8 @@ from config import settings
 async_db_engine = create_async_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,
-    pool_size=15,
-    max_overflow=15,
+    pool_size=5,
+    max_overflow=5,
     echo=False,
     connect_args={
         "server_settings": {"statement_timeout": str(settings.DATABASE_STATEMENT_TIMEOUT_MS)},
