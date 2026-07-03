@@ -629,9 +629,27 @@ async def resolve_closest_venues_from_items(
     database_resolved_enriched_offers: list[EnrichedRecommendableOffer] = []
 
     if multi_venue_item_ids:
-        db_rows = await find_closest_offers_with_h3_index(
-            db, multi_venue_item_ids, user_context, resolution=settings.GEOSPATIAL_RETRIEVAL_H3_RESOLUTION
-        )
+        if not user_context.is_geolocated or user_context.latitude is None or user_context.longitude is None:
+            logger.debug(
+                "⏭️ Skipping spatial DB resolution: user has no GPS context.",
+                extra={
+                    "multi_venue_item_count": len(multi_venue_item_ids),
+                    "is_geolocated": user_context.is_geolocated,
+                },
+            )
+            db_rows = []
+        else:
+            logger.debug(
+                "🗺️ Resolving multi-venue items via spatial DB query.",
+                extra={
+                    "multi_venue_item_count": len(multi_venue_item_ids),
+                    "user_lat": user_context.latitude,
+                    "user_lng": user_context.longitude,
+                },
+            )
+            db_rows = await find_closest_offers_with_h3_index(
+                db, multi_venue_item_ids, user_context, resolution=settings.GEOSPATIAL_RETRIEVAL_H3_RESOLUTION
+            )
 
         # Map SQL results back to Vertex ML data
         for db_offer, distance in db_rows:
