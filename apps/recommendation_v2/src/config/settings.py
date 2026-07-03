@@ -145,6 +145,30 @@ OFFER_RESOLUTION_CACHE_ENABLED: bool = REDIS_CACHE_ENABLED and bool(
     int(os.environ.get("OFFER_RESOLUTION_CACHE_ENABLED", "0" if IS_LOCAL else "1"))
 )
 
+# --- 12. Retrieval Cache ---
+# Three independent flags, one per retrieval sub-strategy.
+# Each caches the raw list of RecommendableItems returned by a Vertex AI retrieval call,
+# keyed by the prediction payload (minus volatile fields such as call_id).
+# The model is not retrained intra-day, so identical payloads always produce identical results.
+# Disabled locally by default to keep development simple; enabled in staging/prod.
+
+# Controls caching for model_type="similar_offer" (both coreservation and graph endpoints).
+RETRIEVAL_CACHE_SIMILAR_OFFER_ENABLED: bool = REDIS_CACHE_ENABLED and bool(
+    int(os.environ.get("RETRIEVAL_CACHE_SIMILAR_OFFER_ENABLED", "0" if IS_LOCAL else "1"))
+)
+
+# Controls caching for model_type="tops" (playlist cold-start & the three tops payloads in warm-start).
+RETRIEVAL_CACHE_PLAYLIST_TOPS_ENABLED: bool = REDIS_CACHE_ENABLED and bool(
+    int(os.environ.get("RETRIEVAL_CACHE_PLAYLIST_TOPS_ENABLED", "0" if IS_LOCAL else "1"))
+)
+
+# Controls caching for model_type="recommendation" (personalised collaborative-filtering payload).
+# User embedding is stable intra-day, so cache hits are possible for repeated calls by the same user
+# with identical filters during the same cache window.
+RETRIEVAL_CACHE_PLAYLIST_PERSONALIZED_ENABLED: bool = REDIS_CACHE_ENABLED and bool(
+    int(os.environ.get("RETRIEVAL_CACHE_PLAYLIST_PERSONALIZED_ENABLED", "0" if IS_LOCAL else "1"))
+)
+
 # H3 resolution used to build the offer-resolution cache key.
 # Kept separate from CACHE_H3_RESOLUTION (playlist cache) so each cache can be tuned independently.
 # Resolution 7 → cell area ~5 km², a good trade-off: fine enough to avoid cross-zone pollution,

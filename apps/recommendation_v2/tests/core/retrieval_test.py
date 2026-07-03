@@ -3,11 +3,16 @@ from datetime import datetime
 
 import pytest
 
+import config.settings as _settings
+from connectors.redis_api import RedisAPI
 from core.retrieval import _build_playlist_recommendation_search_filters
 from core.retrieval import _build_similar_offer_search_filters
+from core.retrieval import _is_retrieval_cache_enabled_for_model_type
 from core.retrieval import build_playlist_recommendation_retrieval_payload
 from core.retrieval import build_similar_offer_retrieval_payload
 from core.retrieval import fetch_all_playlist_recommendation_retrieval_predictions_from_vertex
+from core.retrieval import fetch_graph_retrieval_predictions
+from core.retrieval import fetch_retrieval_predictions
 from core.retrieval import filter_out_already_booked_items
 from core.retrieval import resolve_closest_venues_from_items
 from core.user_context import UserContext
@@ -16,6 +21,8 @@ from schemas.categories import SearchGroupNameEnum
 from schemas.categories import SubcategoryEnum
 from schemas.playlist_recommendation import PlaylistRequestParams
 
+from tests.conftest import patch_all_caches_disabled
+from tests.conftest import patch_all_caches_enabled
 from tests.factories.models import NonRecommendableItemsFactory
 from tests.factories.schemas import RecommendableItemFactory
 from tests.factories.schemas import UserContextFactory
@@ -439,3 +446,254 @@ async def test_fetch_all_predictions_deduplicates_items_across_endpoints(mocker)
     assert result_item_ids == ["item-A", "item-B", "item-C", "item-D", "item-E"], (
         "First-occurrence order must be preserved across endpoints."
     )
+
+
+# ---------------------------------------------------------------------------
+# _is_retrieval_cache_enabled_for_model_type
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("model_type", "flag_attr", "expected"),
+    [
+        pytest.param("similar_offer", "RETRIEVAL_CACHE_SIMILAR_OFFER_ENABLED", True, id="similar_offer_enabled"),
+        pytest.param("tops", "RETRIEVAL_CACHE_PLAYLIST_TOPS_ENABLED", True, id="tops_enabled"),
+        pytest.param(
+            "recommendation", "RETRIEVAL_CACHE_PLAYLIST_PERSONALIZED_ENABLED", True, id="recommendation_enabled"
+        ),
+        pytest.param("similar_offer", "RETRIEVAL_CACHE_SIMILAR_OFFER_ENABLED", False, id="similar_offer_disabled"),
+        pytest.param("tops", "RETRIEVAL_CACHE_PLAYLIST_TOPS_ENABLED", False, id="tops_disabled"),
+        pytest.param(
+            "recommendation", "RETRIEVAL_CACHE_PLAYLIST_PERSONALIZED_ENABLED", False, id="recommendation_disabled"
+        ),
+    ],
+)
+def test_is_retrieval_cache_enabled_for_model_type_respects_its_flag(mocker, model_type, flag_attr, expected):
+    mocker.patch.object(_settings, flag_attr, new=expected)
+    assert _is_retrieval_cache_enabled_for_model_type(model_type) is expected
+
+
+def test_is_retrieval_cache_enabled_returns_false_for_unknown_model_type(mocker):
+    """Unknown model_types must never be considered cacheable, regardless of flag values."""
+    mocker.patch.object(_settings, "RETRIEVAL_CACHE_SIMILAR_OFFER_ENABLED", new=True)
+    mocker.patch.object(_settings, "RETRIEVAL_CACHE_PLAYLIST_TOPS_ENABLED", new=True)
+    mocker.patch.object(_settings, "RETRIEVAL_CACHE_PLAYLIST_PERSONALIZED_ENABLED", new=True)
+
+    assert _is_retrieval_cache_enabled_for_model_type("graph") is False
+    assert _is_retrieval_cache_enabled_for_model_type("") is False
+    assert _is_retrieval_cache_enabled_for_model_type("unknown") is False
+
+
+# ---------------------------------------------------------------------------
+# fetch_retrieval_predictions
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_fetch_retrieval_predictions_skips_cache_when_disabled_and_calls_vertex(mocker):
+    """When the cache is disabled, fetch_retrieval_predictions must call Vertex directly."""
+    patch_all_caches_disabled(mocker)
+    expected_result = VertexPredictionResultFactory.build()
+
+    mock_vertex = mocker.patch(
+        "core.retrieval.fetch_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=expected_result,
+    )
+    mock_redis_fetch = mocker.patch(
+        "core.retrieval.redis_api.fetch_cached_retrieval_predictions",
+        new_callable=mocker.AsyncMock,
+    )
+    mock_redis_store = mocker.patch(
+        "core.retrieval.redis_api.store_retrieval_predictions",
+        new_callable=mocker.AsyncMock,
+    )
+
+    payload = {"call_id": "c1", "user_id": "u1", "model_type": "tops"}
+    result = await fetch_retrieval_predictions(payload)
+
+    assert result == expected_result
+    mock_vertex.assert_called_once_with(payload)
+    mock_redis_fetch.assert_not_called()
+    mock_redis_store.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_fetch_retrieval_predictions_returns_cached_result_on_hit(mocker):
+    """On a cache hit, fetch_retrieval_predictions must return the cached result without calling Vertex."""
+    patch_all_caches_enabled(mocker)
+    cached_items = RecommendableItemFactory.batch(3)
+    serialized_cached_items = [item.model_dump(mode="json") for item in cached_items]
+
+    mocker.patch(
+        "core.retrieval.redis_api.fetch_cached_retrieval_predictions",
+        new_callable=mocker.AsyncMock,
+        return_value=serialized_cached_items,
+    )
+    mock_vertex = mocker.patch(
+        "core.retrieval.fetch_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+    )
+    mock_redis_store = mocker.patch(
+        "core.retrieval.redis_api.store_retrieval_predictions",
+        new_callable=mocker.AsyncMock,
+    )
+
+    payload = {"call_id": "c1", "user_id": "u1", "model_type": "tops"}
+    result = await fetch_retrieval_predictions(payload)
+
+    assert len(result.predictions) == len(cached_items)
+    mock_vertex.assert_not_called()
+    mock_redis_store.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_fetch_retrieval_predictions_stores_result_on_cache_miss(mocker):
+    """On a cache miss, fetch_retrieval_predictions must fetch from Vertex and store the result in Redis."""
+    patch_all_caches_enabled(mocker)
+    fresh_result = VertexPredictionResultFactory.build()
+    fresh_result.status = "success"
+
+    mocker.patch(
+        "core.retrieval.redis_api.fetch_cached_retrieval_predictions",
+        new_callable=mocker.AsyncMock,
+        return_value=None,
+    )
+    mocker.patch(
+        "core.retrieval.fetch_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=fresh_result,
+    )
+    mock_redis_store = mocker.patch(
+        "core.retrieval.redis_api.store_retrieval_predictions",
+        new_callable=mocker.AsyncMock,
+    )
+
+    payload = {"call_id": "c1", "user_id": "u1", "model_type": "tops"}
+    result = await fetch_retrieval_predictions(payload)
+
+    assert result == fresh_result
+    mock_redis_store.assert_called_once()
+    store_kwargs = mock_redis_store.call_args
+    assert store_kwargs.args[0] == payload
+    assert store_kwargs.kwargs["namespace"] == RedisAPI.RETRIEVAL_NAMESPACE
+
+
+@pytest.mark.asyncio
+async def test_fetch_retrieval_predictions_does_not_store_on_vertex_error(mocker):
+    """When Vertex returns a non-success status, the result must not be stored in Redis."""
+    patch_all_caches_enabled(mocker)
+    error_result = VertexPredictionResultFactory.build()
+    error_result.status = "error"
+    error_result.predictions = []
+
+    mocker.patch(
+        "core.retrieval.redis_api.fetch_cached_retrieval_predictions",
+        new_callable=mocker.AsyncMock,
+        return_value=None,
+    )
+    mocker.patch(
+        "core.retrieval.fetch_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=error_result,
+    )
+    mock_redis_store = mocker.patch(
+        "core.retrieval.redis_api.store_retrieval_predictions",
+        new_callable=mocker.AsyncMock,
+    )
+
+    payload = {"call_id": "c1", "user_id": "u1", "model_type": "tops"}
+    await fetch_retrieval_predictions(payload)
+
+    mock_redis_store.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# fetch_graph_retrieval_predictions
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_fetch_graph_retrieval_predictions_skips_cache_when_disabled(mocker):
+    """When the cache is disabled, fetch_graph_retrieval_predictions must call graph Vertex directly."""
+    patch_all_caches_disabled(mocker)
+    expected_result = VertexPredictionResultFactory.build()
+
+    mock_vertex = mocker.patch(
+        "core.retrieval.fetch_graph_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=expected_result,
+    )
+    mock_redis_fetch = mocker.patch(
+        "core.retrieval.redis_api.fetch_cached_retrieval_predictions",
+        new_callable=mocker.AsyncMock,
+    )
+    mock_redis_store = mocker.patch(
+        "core.retrieval.redis_api.store_retrieval_predictions",
+        new_callable=mocker.AsyncMock,
+    )
+
+    payload = {"call_id": "c1", "user_id": "u1", "model_type": "similar_offer"}
+    result = await fetch_graph_retrieval_predictions(payload)
+
+    assert result == expected_result
+    mock_vertex.assert_called_once_with(payload)
+    mock_redis_fetch.assert_not_called()
+    mock_redis_store.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_fetch_graph_retrieval_predictions_uses_graph_namespace(mocker):
+    """The graph namespace must be used, not the standard one, to prevent cache collisions."""
+    patch_all_caches_enabled(mocker)
+    fresh_result = VertexPredictionResultFactory.build()
+    fresh_result.status = "success"
+
+    mocker.patch(
+        "core.retrieval.redis_api.fetch_cached_retrieval_predictions",
+        new_callable=mocker.AsyncMock,
+        return_value=None,
+    )
+    mocker.patch(
+        "core.retrieval.fetch_graph_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=fresh_result,
+    )
+    mock_redis_store = mocker.patch(
+        "core.retrieval.redis_api.store_retrieval_predictions",
+        new_callable=mocker.AsyncMock,
+    )
+
+    payload = {"call_id": "c1", "user_id": "u1", "model_type": "similar_offer"}
+    await fetch_graph_retrieval_predictions(payload)
+
+    mock_redis_store.assert_called_once()
+    store_kwargs = mock_redis_store.call_args
+    assert store_kwargs.kwargs["namespace"] == RedisAPI.RETRIEVAL_GRAPH_NAMESPACE
+
+
+@pytest.mark.asyncio
+async def test_fetch_retrieval_predictions_does_not_cache_unknown_model_type(mocker):
+    """Unknown model_types must never trigger a cache read or write."""
+    patch_all_caches_enabled(mocker)
+    expected_result = VertexPredictionResultFactory.build()
+
+    mocker.patch(
+        "core.retrieval.fetch_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=expected_result,
+    )
+    mock_redis_fetch = mocker.patch(
+        "core.retrieval.redis_api.fetch_cached_retrieval_predictions",
+        new_callable=mocker.AsyncMock,
+    )
+    mock_redis_store = mocker.patch(
+        "core.retrieval.redis_api.store_retrieval_predictions",
+        new_callable=mocker.AsyncMock,
+    )
+
+    payload = {"call_id": "c1", "user_id": "u1", "model_type": "unknown_type"}
+    await fetch_retrieval_predictions(payload)
+
+    mock_redis_fetch.assert_not_called()
+    mock_redis_store.assert_not_called()

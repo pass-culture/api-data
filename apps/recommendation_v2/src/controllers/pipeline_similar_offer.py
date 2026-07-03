@@ -9,8 +9,8 @@ from core.diversification import apply_offer_diversification
 from core.geo import get_iris_id_from_coordinates
 from core.ranking import rank_and_sort_offers_with_vertex
 from core.retrieval import build_similar_offer_retrieval_payload
-from core.retrieval import fetch_graph_predictions_from_vertex
-from core.retrieval import fetch_retrieval_predictions_from_vertex
+from core.retrieval import fetch_graph_retrieval_predictions
+from core.retrieval import fetch_retrieval_predictions
 from core.retrieval import filter_out_already_booked_items
 from core.retrieval import resolve_closest_venues_from_items
 from core.tracking import log_past_offer_context_to_sink
@@ -155,9 +155,9 @@ async def generate_similar_offers(  # noqa: PLR0913
         search_group_names=search_group_names,
     )
     if retrieval_model == SimilarOfferModelChoices.graph:
-        vertex_raw_predictions = await fetch_graph_predictions_from_vertex(prediction_payload=retrieval_payload)
+        vertex_raw_predictions = await fetch_graph_retrieval_predictions(prediction_payload=retrieval_payload)
     else:
-        vertex_raw_predictions = await fetch_retrieval_predictions_from_vertex(prediction_payload=retrieval_payload)
+        vertex_raw_predictions = await fetch_retrieval_predictions(prediction_payload=retrieval_payload)
 
     logger.info(
         "📦 Raw candidates retrieved from Vertex AI.",

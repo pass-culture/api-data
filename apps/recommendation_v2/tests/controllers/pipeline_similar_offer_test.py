@@ -300,12 +300,12 @@ async def test_similar_offer_uses_graph_retrieval_when_model_is_graph(
 
     graph_items = [RecommendableItemFactory.build(is_geolocated=False, total_offers=1) for _ in range(5)]
     mock_graph_fetch = mocker.patch(
-        "controllers.pipeline_similar_offer.fetch_graph_predictions_from_vertex",
+        "controllers.pipeline_similar_offer.fetch_graph_retrieval_predictions",
         new_callable=mocker.AsyncMock,
         return_value=VertexPredictionResultFactory.build(predictions=graph_items),
     )
     mock_standard_fetch = mocker.patch(
-        "controllers.pipeline_similar_offer.fetch_retrieval_predictions_from_vertex",
+        "controllers.pipeline_similar_offer.fetch_retrieval_predictions",
         new_callable=mocker.AsyncMock,
     )
     mock_vertex_ranking[1].side_effect = lambda offers, _ctx: offers
@@ -403,7 +403,7 @@ async def test_similar_offer_does_not_fall_back_when_retrieval_model_is_graph(
 
     graph_items = [RecommendableItemFactory.build(is_geolocated=False, total_offers=1) for _ in range(5)]
     mocker.patch(
-        "controllers.pipeline_similar_offer.fetch_graph_predictions_from_vertex",
+        "controllers.pipeline_similar_offer.fetch_graph_retrieval_predictions",
         new_callable=mocker.AsyncMock,
         return_value=VertexPredictionResultFactory.build(predictions=graph_items),
     )

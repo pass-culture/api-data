@@ -113,10 +113,15 @@ def show_api_config() -> None:
         "VERTEX_RANKING_ENDPOINT_NAME": settings.VERTEX_RANKING_ENDPOINT_NAME,
         "VERTEX_PREDICTION_TIMEOUT": settings.VERTEX_PREDICTION_TIMEOUT,
         "ENABLE_TRACKING_LOGS": settings.ENABLE_TRACKING_LOGS,
-        # Redis & Cache Strategies
+        # Redis — master switch
         "REDIS_CACHE_ENABLED": settings.REDIS_CACHE_ENABLED,
+        # Redis — cache strategies
         "ENDPOINT_RESPONSE_CACHE_ENABLED": settings.ENDPOINT_RESPONSE_CACHE_ENABLED,
         "OFFER_RESOLUTION_CACHE_ENABLED": settings.OFFER_RESOLUTION_CACHE_ENABLED,
+        "RETRIEVAL_CACHE_SIMILAR_OFFER_ENABLED": settings.RETRIEVAL_CACHE_SIMILAR_OFFER_ENABLED,
+        "RETRIEVAL_CACHE_PLAYLIST_TOPS_ENABLED": settings.RETRIEVAL_CACHE_PLAYLIST_TOPS_ENABLED,
+        "RETRIEVAL_CACHE_PLAYLIST_PERSONALIZED_ENABLED": settings.RETRIEVAL_CACHE_PLAYLIST_PERSONALIZED_ENABLED,
+        # Redis — tuning
         "OFFER_RESOLUTION_CACHE_H3_RESOLUTION": settings.OFFER_RESOLUTION_CACHE_H3_RESOLUTION,
         "CACHE_H3_RESOLUTION": settings.CACHE_H3_RESOLUTION,
         # Geospatial
@@ -136,7 +141,11 @@ async def lifespan(app: FastAPI):
         "🚀 Recommendation API started successfully !"
         f" Redis: {'ENABLED 🟢' if settings.REDIS_CACHE_ENABLED else 'DISABLED 🔴'}"
         f" | Endpoint cache: {'🟢' if settings.ENDPOINT_RESPONSE_CACHE_ENABLED else '🔴'}"
-        f" | Offer resolution cache: {'🟢' if settings.OFFER_RESOLUTION_CACHE_ENABLED else '🔴'}",
+        f" | Offer resolution cache: {'🟢' if settings.OFFER_RESOLUTION_CACHE_ENABLED else '🔴'}"
+        f" | Retrieval cache (similar_offer): {'🟢' if settings.RETRIEVAL_CACHE_SIMILAR_OFFER_ENABLED else '🔴'}"
+        f" | Retrieval cache (playlist tops): {'🟢' if settings.RETRIEVAL_CACHE_PLAYLIST_TOPS_ENABLED else '🔴'}"
+        " | Retrieval cache (playlist personalized):"
+        f" {'🟢' if settings.RETRIEVAL_CACHE_PLAYLIST_PERSONALIZED_ENABLED else '🔴'}",
         extra={
             "swagger_url": swagger_url,
             "environment": settings.ENV,
@@ -144,6 +153,9 @@ async def lifespan(app: FastAPI):
             "redis_enabled": settings.REDIS_CACHE_ENABLED,
             "endpoint_response_cache_enabled": settings.ENDPOINT_RESPONSE_CACHE_ENABLED,
             "offer_resolution_cache_enabled": settings.OFFER_RESOLUTION_CACHE_ENABLED,
+            "retrieval_cache_similar_offer_enabled": settings.RETRIEVAL_CACHE_SIMILAR_OFFER_ENABLED,
+            "retrieval_cache_playlist_tops_enabled": settings.RETRIEVAL_CACHE_PLAYLIST_TOPS_ENABLED,
+            "retrieval_cache_playlist_personalized_enabled": settings.RETRIEVAL_CACHE_PLAYLIST_PERSONALIZED_ENABLED,
         },
     )
 
