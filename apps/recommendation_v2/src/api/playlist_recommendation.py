@@ -104,13 +104,13 @@ async def get_playlist(
             # sends click/booking events referencing this call_id, which links them
             # back to the original display rows.
             logger.info(
-                "✅ Cache HIT — returning cached playlist_recommendation.",
+                "✅ [HTTP Request Cache] Cache HIT — returning cached playlist_recommendation.",
                 extra={"user_id": user_id, "call_id": cached_playlist_result.params.call_id},
             )
             return cached_playlist_result
 
     logger.info(
-        "🔍 Cache MISS — running full playlist_recommendation pipeline.",
+        "🔍 [HTTP Request Cache] Cache MISS — running full playlist_recommendation pipeline.",
         extra={"user_id": user_id},
     )
 
