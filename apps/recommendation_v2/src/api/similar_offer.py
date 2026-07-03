@@ -120,7 +120,7 @@ async def get_similar_offers(  # noqa: PLR0913
     }
 
     # Handle Redis cache retrieval
-    if settings.REDIS_CACHE_ENABLED:
+    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
         cached_similar_offer_result = await redis_api.fetch_cached_response(
             namespace_prefix="similar_offer",
             request_signature_data=request_signature_data,
@@ -158,7 +158,7 @@ async def get_similar_offers(  # noqa: PLR0913
     )
 
     # Store the newly generated result in Cache
-    if settings.REDIS_CACHE_ENABLED:
+    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
         await redis_api.store_endpoint_response(
             namespace_prefix="similar_offer",
             request_signature_data=request_signature_data,

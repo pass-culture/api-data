@@ -10,6 +10,7 @@ from connectors.redis_api import RedisAPI
 from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.playlist_recommendation import RecommendationResponse
 
+from tests.conftest import patch_all_caches_disabled
 from tests.factories.schemas import RecommendationResponseFactory
 
 
@@ -116,7 +117,8 @@ def test_ttl_points_to_the_next_reset_hour():
 
 @pytest.mark.asyncio
 async def test_fetch_returns_none_when_cache_disabled(mocker):
-    mocker.patch.object(_settings, "REDIS_CACHE_ENABLED", new=False)
+    patch_all_caches_disabled(mocker)
+
     mock_get = mocker.patch(
         "connectors.redis_api.redis_cache_service.get_cached_value",
         new_callable=mocker.AsyncMock,
@@ -182,7 +184,7 @@ async def test_fetch_returns_none_on_miss(mocker):
 
 @pytest.mark.asyncio
 async def test_store_does_nothing_when_cache_disabled(mocker):
-    mocker.patch.object(_settings, "REDIS_CACHE_ENABLED", new=False)
+    patch_all_caches_disabled(mocker)
     mock_set = mocker.patch(
         "connectors.redis_api.redis_cache_service.set_cached_value",
         new_callable=mocker.AsyncMock,

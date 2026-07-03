@@ -11,20 +11,27 @@ from pydantic import BaseModel
 from config import settings
 from services.logger import logger
 from services.redis import redis_cache_service
+from utils.benchmark import log_execution_time
 
 
 class RedisAPI:
     """
-    Connector responsible for generic cache operations across different API endpoints.
+    Connector responsible for all cache operations.
 
-    It standardizes how cache keys are generated (using MD5 hashes of request parameters)
-    and abstracts the retrieval and storage of Pydantic models in Redis.
+    Covers two caching strategies:
+    - Endpoint response cache: stores full pipeline results keyed by request signature.
+    - Offer resolution cache: stores per-item DB-resolved (offer_id, venue) keyed by (H3 cell, item_id),
+      allowing partial cache hits and avoiding redundant spatial SQL queries for "tops" items.
 
     Business Rule:
     The database is repopulated every night.
     To ensure users always retrieve fresh and accurately weighted recommendations
     after the daily batch, all cached data automatically expires at the upcoming reset hour (configurable).
     """
+
+    # ===========================================================================
+    # SHARED UTILITIES
+    # ===========================================================================
 
     @staticmethod
     def calculate_seconds_until_next_database_population_time() -> int:
@@ -70,6 +77,10 @@ class RedisAPI:
 
         return final_cache_key
 
+    # ===========================================================================
+    # ENDPOINT RESPONSE CACHE
+    # ===========================================================================
+
     @staticmethod
     async def fetch_cached_response(
         namespace_prefix: str, request_signature_data: dict[str, Any], response_model_class: type[BaseModel]
@@ -85,7 +96,7 @@ class RedisAPI:
         Returns:
             Optional[BaseModel]: The instantiated response model if found, otherwise None.
         """
-        if not settings.REDIS_CACHE_ENABLED:
+        if not settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
             return None
 
         cache_key = RedisAPI.generate_cache_key(
@@ -119,7 +130,7 @@ class RedisAPI:
             request_signature_data: A dictionary containing all the unique request parameters.
             response_model_instance: The Pydantic response model to store.
         """
-        if not settings.REDIS_CACHE_ENABLED:
+        if not settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
             return
 
         cache_key = RedisAPI.generate_cache_key(
@@ -142,6 +153,62 @@ class RedisAPI:
                 "ttl_seconds": time_to_live_in_seconds,
             },
         )
+
+    # ===========================================================================
+    # OFFER RESOLUTION CACHE
+    # ===========================================================================
+
+    _OFFER_RESOLUTION_NAMESPACE = "offer_resolution"
+
+    @staticmethod
+    def build_offer_resolution_cache_key(h3_cell: str, item_id: str) -> str:
+        """
+        Builds a deterministic cache key for a given (H3 cell, item_id) pair.
+
+        Args:
+            h3_cell: The H3 cell index representing the user's geographic zone.
+            item_id: The item identifier.
+
+        Returns:
+            str: A cache key of the form 'offer_resolution:{h3_cell}:{item_id}'.
+        """
+        return f"{RedisAPI._OFFER_RESOLUTION_NAMESPACE}:{h3_cell}:{item_id}"
+
+    @staticmethod
+    @log_execution_time
+    async def mget_resolved_offers(cache_keys: list[str]) -> list[dict | None]:
+        """
+        Fetches cached offer-resolution payloads for a batch of keys in one round-trip.
+
+        For "tops" multi-venue items, caches the DB-resolved (offer_id, venue coordinates,
+        offer dates) keyed by (H3 cell, item_id). This allows partial cache hits,
+        skipping the spatial SQL query for items already resolved in the same geographic zone.
+
+        The cached payload stores only the DB-side fields that cannot be derived from
+        the Vertex AI item data:
+            - offer_id, venue_latitude, venue_longitude
+            - offer_creation_date, stock_beginning_date  (offer-level, may differ across venues)
+
+        Args:
+            cache_keys: Cache keys built via build_offer_resolution_cache_key.
+
+        Returns:
+            list[dict | None]: Cached payloads in the same order as cache_keys.
+                               None for any key not yet cached.
+        """
+        return await redis_cache_service.mget_cached_values(cache_keys)
+
+    @staticmethod
+    @log_execution_time
+    async def mset_resolved_offers(key_value_pairs: dict[str, dict], time_to_live_in_seconds: int) -> None:
+        """
+        Stores a batch of offer-resolution payloads in one Redis pipeline round-trip.
+
+        Args:
+            key_value_pairs: Mapping of cache key → offer resolution payload dict.
+            time_to_live_in_seconds: TTL applied to every key (aligned with nightly reset).
+        """
+        await redis_cache_service.mset_cached_values(key_value_pairs, time_to_live_in_seconds)
 
 
 redis_api = RedisAPI()

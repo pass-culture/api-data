@@ -90,7 +90,7 @@ async def get_playlist(
     }
 
     # Handle Redis cache retrieval
-    if settings.REDIS_CACHE_ENABLED:
+    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
         cached_playlist_result = await redis_api.fetch_cached_response(
             namespace_prefix="playlist_recommendation",
             request_signature_data=request_signature_data,
@@ -118,9 +118,8 @@ async def get_playlist(
     result = await generate_playlist_recommendations(
         db=db, user_id=user_id, latitude=latitude, longitude=longitude, params=params
     )
-
     # Store the newly generated result in Cache
-    if settings.REDIS_CACHE_ENABLED:
+    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
         await redis_api.store_endpoint_response(
             namespace_prefix="playlist_recommendation",
             request_signature_data=request_signature_data,
