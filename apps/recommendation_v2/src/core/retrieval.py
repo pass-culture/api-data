@@ -761,20 +761,24 @@ async def _store_tops_offer_resolutions_in_cache(
         )
 
 
-async def _resolve_multi_venue_items_with_cache(
+async def _resolve_multi_venue_items(
     db: AsyncSession,
     multi_venue_item_ids: list[str],
     item_lookup_map: dict[str, RecommendableItem],
     user_context: UserContext,
 ) -> list[EnrichedRecommendableOffer]:
     """
-    Resolves multi-venue physical items into their closest offers, using the offer-resolution
-    cache to skip the spatial SQL query for "tops" items already resolved in the same H3 zone.
+    Resolves multi-venue physical items into their closest offers.
+
+    When the offer-resolution cache is enabled, "tops" items already resolved in the same H3 zone
+    are served from Redis, skipping the spatial SQL query entirely for those items.
 
     Strategy:
-    - "tops" items (most redundant in Vertex retrieval results) are checked in Redis first (MGET).
-      Cache hits skip the SQL query entirely; their distance is recomputed via pure-Python Haversine.
-    - Cache misses and non-tops items are resolved via a single batched spatial SQL query.
+    - "tops" items (most redundant in Vertex retrieval results) are checked in Redis first (MGET)
+      when the cache is enabled. Cache hits skip the SQL query entirely; their distance is
+      recomputed via pure-Python Haversine.
+    - Cache misses, non-tops items, and all items when cache is disabled are resolved via a
+      single batched spatial SQL query.
     - Newly DB-resolved tops items are written back to Redis in a single pipeline (MSET).
 
     Cached payload per item (minimal — only what cannot be derived from Vertex AI item data):
@@ -968,7 +972,7 @@ async def resolve_closest_venues_from_items(
     Processing Flow:
     1. Routing: Segregates items into a Fast-Track bucket (digital/single venue) and a SQL bucket (multi-venue).
     2. Cache-assisted spatial resolution: delegates multi-venue items to
-       _resolve_multi_venue_items_with_cache, which handles Redis cache lookup/write
+       _resolve_multi_venue_items, which handles Redis cache lookup/write
        and falls back to a batched spatial SQL query for misses.
     3. Merge & Sort: Combines both buckets and sorts by ascending distance.
 
@@ -1066,7 +1070,7 @@ async def resolve_closest_venues_from_items(
                 },
             )
         else:
-            database_resolved_enriched_offers = await _resolve_multi_venue_items_with_cache(
+            database_resolved_enriched_offers = await _resolve_multi_venue_items(
                 db=db,
                 multi_venue_item_ids=multi_venue_item_ids,
                 item_lookup_map=item_lookup_map,
