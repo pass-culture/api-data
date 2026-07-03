@@ -134,13 +134,13 @@ async def get_similar_offers(  # noqa: PLR0913
             # sends click/booking events referencing this call_id, which links them
             # back to the original display rows
             logger.info(
-                "✅ Cache HIT — returning cached similar_offers.",
+                "✅ [HTTP Request Cache] Cache HIT — returning cached similar_offers.",
                 extra={"offer_id": offer_id, "call_id": cached_similar_offer_result.params.call_id},
             )
             return cached_similar_offer_result
 
     logger.info(
-        "🔍 Cache MISS — running full similar_offers pipeline.",
+        "🔍 [HTTP Request Cache] Cache MISS — running full similar_offers pipeline.",
         extra={"offer_id": offer_id, "retrieval_model": retrieval_model},
     )
 
