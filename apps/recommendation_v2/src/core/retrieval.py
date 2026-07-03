@@ -348,7 +348,7 @@ async def fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
         Each endpoint returns up to 150 items → up to 600 raw items → deduplicated output.
     """
     parallel_results: list[VertexPredictionResult] = await asyncio.gather(
-        *[fetch_retrieval_predictions_from_vertex(payload) for payload in retrieval_payloads]
+        *[fetch_retrieval_predictions(payload) for payload in retrieval_payloads]
     )
 
     all_candidate_items: list[RecommendableItem] = []
@@ -485,6 +485,149 @@ async def fetch_graph_predictions_from_vertex(prediction_payload: dict[str, Any]
     prediction_result = await graph_api_client.fetch_retrieval_predictions(feature_payloads=[prediction_payload])
 
     return prediction_result
+
+
+def _is_retrieval_cache_enabled_for_model_type(model_type: str) -> bool:
+    """
+    Returns True if the retrieval cache is active for the given Vertex model_type.
+
+    Each model_type maps to an independent feature flag in settings, so each
+    sub-strategy (similar_offer, tops, recommendation) can be toggled separately
+    without affecting the others.
+
+    ┌─────────────────┬──────────────────────────────────────────────────┐
+    │ model_type      │ Feature flag                                     │
+    ├─────────────────┼──────────────────────────────────────────────────┤
+    │ similar_offer   │ settings.RETRIEVAL_CACHE_SIMILAR_OFFER_ENABLED   │
+    │ tops            │ settings.RETRIEVAL_CACHE_PLAYLIST_TOPS_ENABLED   │
+    │ recommendation  │ settings.RETRIEVAL_CACHE_PLAYLIST_PERSONALIZED_  │
+    │                 │           ENABLED                                │
+    ├─────────────────┼──────────────────────────────────────────────────┤
+    │ (any other)     │ False — unknown model_types are never cached      │
+    └─────────────────┴──────────────────────────────────────────────────┘
+
+    Args:
+        model_type: The ``model_type`` field from the Vertex prediction payload
+                    (e.g. ``"similar_offer"``, ``"tops"``, ``"recommendation"``).
+
+    Returns:
+        bool: True when the retrieval cache should be consulted/written for this model_type.
+    """
+    model_type_to_flag: dict[str, bool] = {
+        "similar_offer": settings.RETRIEVAL_CACHE_SIMILAR_OFFER_ENABLED,
+        "tops": settings.RETRIEVAL_CACHE_PLAYLIST_TOPS_ENABLED,
+        "recommendation": settings.RETRIEVAL_CACHE_PLAYLIST_PERSONALIZED_ENABLED,
+    }
+    return model_type_to_flag.get(model_type, False)
+
+
+async def _reconstruct_vertex_result_from_cache(cached_predictions: list[dict]) -> VertexPredictionResult:
+    """Reconstructs a VertexPredictionResult from a list of cached serialised RecommendableItem dicts."""
+    predictions = [RecommendableItem.model_validate(item) for item in cached_predictions]
+    return VertexPredictionResult(status="success", predictions=predictions)
+
+
+async def fetch_retrieval_predictions(prediction_payload: dict[str, Any]) -> VertexPredictionResult:
+    """
+    Returns the retrieval predictions for the given payload, reading from the Redis cache
+    when enabled and falling back to the coreservation Vertex endpoint on a miss.
+
+    Cache eligibility is determined by the payload's ``model_type`` field via
+    ``_is_retrieval_cache_enabled_for_model_type``. When the cache is disabled for this
+    model_type, the function behaves identically to a direct call to
+    ``fetch_retrieval_predictions_from_vertex``.
+
+    On a cache miss, the fresh Vertex result is stored in Redis (when cache is enabled and
+    the result is non-empty), so subsequent identical calls within the same cache window
+    benefit from a cache hit.
+
+    Cache flow:
+    ┌──────────────────────────────────────────────────────────────────────┐
+    │  cache enabled?  ──NO──► fetch from Vertex ──► return result        │
+    │       │                                                              │
+    │      YES                                                             │
+    │       │                                                              │
+    │  Redis GET ──HIT──► reconstruct result ──► return result            │
+    │       │                                                              │
+    │      MISS                                                            │
+    │       │                                                              │
+    │  fetch from Vertex ──► store in Redis ──► return result             │
+    └──────────────────────────────────────────────────────────────────────┘
+
+    Args:
+        prediction_payload: The raw Vertex prediction payload (built by the retrieval builders).
+
+    Returns:
+        VertexPredictionResult: Either the cached result or a freshly fetched one.
+    """
+    model_type = prediction_payload.get("model_type", "")
+
+    if _is_retrieval_cache_enabled_for_model_type(model_type):
+        cached_predictions = await redis_api.fetch_cached_retrieval_predictions(
+            prediction_payload, namespace=RedisAPI.RETRIEVAL_NAMESPACE
+        )
+        if cached_predictions is not None:
+            return await _reconstruct_vertex_result_from_cache(cached_predictions)
+
+    result = await fetch_retrieval_predictions_from_vertex(prediction_payload)
+
+    if _is_retrieval_cache_enabled_for_model_type(model_type) and result.status == "success" and result.predictions:
+        serialized = [item.model_dump(mode="json") for item in result.predictions]
+        await redis_api.store_retrieval_predictions(
+            prediction_payload, serialized, namespace=RedisAPI.RETRIEVAL_NAMESPACE
+        )
+
+    return result
+
+
+@log_execution_time
+async def fetch_graph_retrieval_predictions(prediction_payload: dict[str, Any]) -> VertexPredictionResult:
+    """
+    Returns the retrieval predictions for the given payload, reading from the Redis cache
+    when enabled and falling back to the graph Vertex endpoint on a miss.
+
+    Identical in behaviour to ``fetch_retrieval_predictions`` but targets the graph Vertex
+    endpoint. A distinct Redis namespace (``RedisAPI.RETRIEVAL_GRAPH_NAMESPACE``) is used
+    to prevent collisions with coreservation cache entries that share the same model_type
+    values.
+
+    Cache flow:
+    ┌──────────────────────────────────────────────────────────────────────┐
+    │  cache enabled?  ──NO──► fetch from graph Vertex ──► return result  │
+    │       │                                                              │
+    │      YES                                                             │
+    │       │                                                              │
+    │  Redis GET ──HIT──► reconstruct result ──► return result            │
+    │       │                                                              │
+    │      MISS                                                            │
+    │       │                                                              │
+    │  fetch from graph Vertex ──► store in Redis ──► return result       │
+    └──────────────────────────────────────────────────────────────────────┘
+
+    Args:
+        prediction_payload: The raw Vertex prediction payload (built by the retrieval builders).
+
+    Returns:
+        VertexPredictionResult: Either the cached result or a freshly fetched one.
+    """
+    model_type = prediction_payload.get("model_type", "")
+
+    if _is_retrieval_cache_enabled_for_model_type(model_type):
+        cached_predictions = await redis_api.fetch_cached_retrieval_predictions(
+            prediction_payload, namespace=RedisAPI.RETRIEVAL_GRAPH_NAMESPACE
+        )
+        if cached_predictions is not None:
+            return await _reconstruct_vertex_result_from_cache(cached_predictions)
+
+    result = await fetch_graph_predictions_from_vertex(prediction_payload)
+
+    if _is_retrieval_cache_enabled_for_model_type(model_type) and result.status == "success" and result.predictions:
+        serialized = [item.model_dump(mode="json") for item in result.predictions]
+        await redis_api.store_retrieval_predictions(
+            prediction_payload, serialized, namespace=RedisAPI.RETRIEVAL_GRAPH_NAMESPACE
+        )
+
+    return result
 
 
 async def filter_out_already_booked_items(

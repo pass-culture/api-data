@@ -107,13 +107,13 @@ class RedisAPI:
 
         if cached_data is not None:
             logger.debug(
-                "💾 Redis cache HIT.",
+                "💾 Redis cache HIT 🟢.",
                 extra={"cache_key": cache_key, "namespace": namespace_prefix},
             )
             return response_model_class(**cached_data)
 
         logger.debug(
-            "🔍 Redis cache MISS.",
+            "🔍 Redis cache MISS 🔴.",
             extra={"cache_key": cache_key, "namespace": namespace_prefix},
         )
         return None
@@ -209,6 +209,124 @@ class RedisAPI:
             time_to_live_in_seconds: TTL applied to every key (aligned with nightly reset).
         """
         await redis_cache_service.mset_cached_values(key_value_pairs, time_to_live_in_seconds)
+
+    # ===========================================================================
+    # RETRIEVAL CACHE
+    # ===========================================================================
+
+    # Namespace for the standard coreservation Vertex retrieval endpoint.
+    RETRIEVAL_NAMESPACE = "retrieval"
+    # Namespace for the graph Vertex retrieval endpoint — kept separate to avoid
+    # collisions with coreservation results that share the same model_type values.
+    RETRIEVAL_GRAPH_NAMESPACE = "retrieval_graph"
+
+    # Payload fields that change on every call but do not influence the Vertex model output.
+    # These are stripped before hashing the cache key so that two requests with the same
+    # business parameters but different call_ids still produce the same cache key.
+    _RETRIEVAL_CACHE_EXCLUDED_KEYS: frozenset[str] = frozenset({"call_id"})
+
+    @staticmethod
+    def build_retrieval_cache_signature(payload: dict[str, Any]) -> dict[str, Any]:
+        """
+        Strips volatile keys from a Vertex prediction payload before hashing.
+
+        Volatile keys (e.g. call_id) change on every request but do not affect the model
+        output. Removing them ensures that two logically identical requests — differing only
+        in call_id — resolve to the same cache key and benefit from a cache hit.
+
+        Args:
+            payload: The raw Vertex prediction payload as built by the retrieval builders.
+
+        Returns:
+            dict[str, Any]: A copy of the payload with all excluded keys removed.
+        """
+        return {k: v for k, v in payload.items() if k not in RedisAPI._RETRIEVAL_CACHE_EXCLUDED_KEYS}
+
+    @staticmethod
+    async def fetch_cached_retrieval_predictions(
+        payload: dict[str, Any],
+        namespace: str = "retrieval",
+    ) -> list[dict] | None:
+        """
+        Looks up a cached Vertex retrieval result for the given payload.
+
+        The cache key is derived from the prediction payload after stripping volatile fields
+        (call_id), so that two calls with the same business parameters but different call_ids
+        resolve to the same entry.
+
+        This method is a pure Redis operation: it does not check any feature flag.
+        The caller is responsible for deciding whether the cache should be consulted
+        (see ``_is_retrieval_cache_enabled_for_model_type`` in ``core.retrieval``).
+
+        Args:
+            payload:   The raw Vertex prediction payload.
+            namespace: Redis key namespace. Use ``RedisAPI.RETRIEVAL_NAMESPACE`` for the
+                       coreservation endpoint and ``RedisAPI.RETRIEVAL_GRAPH_NAMESPACE``
+                       for the graph endpoint.
+
+        Returns:
+            list[dict] | None: A list of serialised RecommendableItem dicts on hit,
+                               or None on a cache miss.
+        """
+        signature = RedisAPI.build_retrieval_cache_signature(payload)
+        cache_key = RedisAPI.generate_cache_key(namespace, signature)
+
+        cached_data = await redis_cache_service.get_cached_value(cache_key=cache_key)
+
+        if cached_data is not None:
+            logger.debug(
+                "💾 Retrieval cache HIT 🟢.",
+                extra={"cache_key": cache_key, "namespace": namespace},
+            )
+            return cached_data  # list[dict]
+
+        logger.debug(
+            "🔍 Retrieval cache MISS 🔴.",
+            extra={"cache_key": cache_key, "namespace": namespace},
+        )
+        return None
+
+    @staticmethod
+    async def store_retrieval_predictions(
+        payload: dict[str, Any],
+        serialized_predictions: list[dict],
+        namespace: str = "retrieval",
+    ) -> None:
+        """
+        Stores the serialised Vertex retrieval predictions in Redis.
+
+        The payload is stripped of volatile keys (call_id) before hashing the cache key,
+        so that a subsequent call with a different call_id resolves to the same entry.
+
+        This method is a pure Redis operation: it does not check any feature flag.
+        The caller is responsible for deciding whether the result should be stored
+        (see ``_is_retrieval_cache_enabled_for_model_type`` in ``core.retrieval``).
+
+        Args:
+            payload:                The raw Vertex prediction payload used to produce the predictions.
+            serialized_predictions: The list of RecommendableItem dicts (model_dump(mode="json")).
+            namespace:              Redis key namespace (RETRIEVAL_NAMESPACE or RETRIEVAL_GRAPH_NAMESPACE).
+        """
+        signature = RedisAPI.build_retrieval_cache_signature(payload)
+        cache_key = RedisAPI.generate_cache_key(namespace, signature)
+
+        time_to_live_in_seconds = RedisAPI.calculate_seconds_until_next_database_population_time()
+
+        await redis_cache_service.set_cached_value(
+            cache_key=cache_key,
+            value_to_cache=serialized_predictions,
+            time_to_live_in_seconds=time_to_live_in_seconds,
+        )
+
+        logger.debug(
+            "💾 Retrieval predictions stored in cache.",
+            extra={
+                "cache_key": cache_key,
+                "namespace": namespace,
+                "predictions_count": len(serialized_predictions),
+                "ttl_seconds": time_to_live_in_seconds,
+            },
+        )
 
 
 redis_api = RedisAPI()

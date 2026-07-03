@@ -11,15 +11,17 @@ from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.playlist_recommendation import RecommendationResponse
 
 from tests.conftest import patch_all_caches_disabled
-from tests.factories.schemas import RecommendationResponseFactory
+from tests.factories.schemas import RecommendableItemFactory
 
 
 _MD5_HEX_LENGTH = 32
 
-
 # Hardcoded in tests so assertions are exact known values, not re-derived from settings
 _TEST_RESET_HOUR = 5
 _SECONDS_PER_DAY = 86400
+_RETRIEVAL_SIGNATURE_SIZE = 150
+_TWO_CACHE_KEYS = 2
+_BATCH_SIZE_SMALL = 4
 
 _TTL_BOUNDARY_CASES = [
     pytest.param(datetime(2024, 6, 15, 4, 59, 59, tzinfo=UTC), 1, id="one_second_before_reset"),
@@ -231,85 +233,221 @@ async def test_store_calls_set_with_serialized_payload_and_ttl(mocker):
 
 
 # ---------------------------------------------------------------------------
+# RedisAPI.build_retrieval_cache_signature
+# ---------------------------------------------------------------------------
+
+
+def test_build_retrieval_cache_signature_strips_call_id():
+    payload = {"call_id": "abc-123", "user_id": "user-1", "model_type": "tops", "size": 150}
+    signature = RedisAPI.build_retrieval_cache_signature(payload)
+    assert "call_id" not in signature
+    assert signature["user_id"] == "user-1"
+    assert signature["model_type"] == "tops"
+    assert signature["size"] == _RETRIEVAL_SIGNATURE_SIZE
+
+
+def test_build_retrieval_cache_signature_is_stable_across_call_ids():
+    """Two payloads differing only in call_id must produce the same signature."""
+    payload_a = {"call_id": "call-1", "user_id": "u1", "model_type": "tops", "params": {"$and": []}}
+    payload_b = {"call_id": "call-2", "user_id": "u1", "model_type": "tops", "params": {"$and": []}}
+    assert RedisAPI.build_retrieval_cache_signature(payload_a) == RedisAPI.build_retrieval_cache_signature(payload_b)
+
+
+def test_build_retrieval_cache_signature_preserves_user_id():
+    """user_id must be part of the signature (personalised results differ between users)."""
+    payload_a = {"call_id": "c1", "user_id": "user-A", "model_type": "recommendation"}
+    payload_b = {"call_id": "c1", "user_id": "user-B", "model_type": "recommendation"}
+    assert RedisAPI.build_retrieval_cache_signature(payload_a) != RedisAPI.build_retrieval_cache_signature(payload_b)
+
+
+def test_build_retrieval_cache_signature_preserves_params():
+    """Different filter params must produce different signatures."""
+    payload_a = {"call_id": "c1", "user_id": "u1", "model_type": "tops", "params": {"$and": [{"category": "LIVRES"}]}}
+    payload_b = {"call_id": "c1", "user_id": "u1", "model_type": "tops", "params": {"$and": [{"category": "CINEMA"}]}}
+    assert RedisAPI.build_retrieval_cache_signature(payload_a) != RedisAPI.build_retrieval_cache_signature(payload_b)
+
+
+# ---------------------------------------------------------------------------
+# RedisAPI.fetch_cached_retrieval_predictions — unit tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_fetch_cached_retrieval_predictions_returns_none_on_cache_miss(mocker):
+    mocker.patch(
+        "connectors.redis_api.redis_cache_service.get_cached_value",
+        new_callable=mocker.AsyncMock,
+        return_value=None,
+    )
+    payload = {"call_id": "c1", "user_id": "u1", "model_type": "tops"}
+    result = await RedisAPI.fetch_cached_retrieval_predictions(payload)
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_fetch_cached_retrieval_predictions_returns_list_on_hit(mocker):
+    items = RecommendableItemFactory.batch(3)
+    serialized = [item.model_dump(mode="json") for item in items]
+    mocker.patch(
+        "connectors.redis_api.redis_cache_service.get_cached_value",
+        new_callable=mocker.AsyncMock,
+        return_value=serialized,
+    )
+    payload = {"call_id": "c1", "user_id": "u1", "model_type": "similar_offer"}
+    result = await RedisAPI.fetch_cached_retrieval_predictions(payload)
+    assert result == serialized
+
+
+# ---------------------------------------------------------------------------
+# RedisAPI.store_retrieval_predictions — unit tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_store_retrieval_predictions_calls_set_with_correct_args(mocker):
+    mock_set = mocker.patch(
+        "connectors.redis_api.redis_cache_service.set_cached_value",
+        new_callable=mocker.AsyncMock,
+    )
+    items = RecommendableItemFactory.batch(5)
+    serialized = [item.model_dump(mode="json") for item in items]
+    payload = {"call_id": "c1", "user_id": "u1", "model_type": "tops", "size": 150}
+
+    await RedisAPI.store_retrieval_predictions(payload, serialized)
+
+    mock_set.assert_called_once()
+    kwargs = mock_set.call_args.kwargs
+    expected_key = RedisAPI.generate_cache_key(
+        RedisAPI.RETRIEVAL_NAMESPACE,
+        RedisAPI.build_retrieval_cache_signature(payload),
+    )
+    assert kwargs["cache_key"] == expected_key
+    assert kwargs["value_to_cache"] == serialized
+    assert isinstance(kwargs["time_to_live_in_seconds"], int)
+    assert kwargs["time_to_live_in_seconds"] > 0
+
+
+@pytest.mark.asyncio
+async def test_store_retrieval_predictions_call_id_does_not_affect_cache_key(mocker):
+    """Two stores with different call_ids must produce the same cache key."""
+    captured_keys: list[str] = []
+
+    async def _capture_key(cache_key, value_to_cache, time_to_live_in_seconds):
+        captured_keys.append(cache_key)
+
+    mocker.patch(
+        "connectors.redis_api.redis_cache_service.set_cached_value",
+        side_effect=_capture_key,
+    )
+
+    base_payload = {"user_id": "u1", "model_type": "tops", "size": 150}
+    items = RecommendableItemFactory.batch(2)
+    serialized = [item.model_dump(mode="json") for item in items]
+
+    await RedisAPI.store_retrieval_predictions({**base_payload, "call_id": "call-AAA"}, serialized)
+    await RedisAPI.store_retrieval_predictions({**base_payload, "call_id": "call-BBB"}, serialized)
+
+    assert len(captured_keys) == _TWO_CACHE_KEYS
+    assert captured_keys[0] == captured_keys[1]
+
+
+@pytest.mark.asyncio
+async def test_store_retrieval_predictions_graph_namespace_differs_from_standard(mocker):
+    """Graph and coreservation namespaces must produce different cache keys for the same payload."""
+    captured_keys: list[str] = []
+
+    async def _capture_key(cache_key, value_to_cache, time_to_live_in_seconds):
+        captured_keys.append(cache_key)
+
+    mocker.patch(
+        "connectors.redis_api.redis_cache_service.set_cached_value",
+        side_effect=_capture_key,
+    )
+
+    payload = {"call_id": "c1", "user_id": "u1", "model_type": "similar_offer"}
+    serialized = [item.model_dump(mode="json") for item in RecommendableItemFactory.batch(2)]
+
+    await RedisAPI.store_retrieval_predictions(payload, serialized, namespace=RedisAPI.RETRIEVAL_NAMESPACE)
+    await RedisAPI.store_retrieval_predictions(payload, serialized, namespace=RedisAPI.RETRIEVAL_GRAPH_NAMESPACE)
+
+    assert len(captured_keys) == _TWO_CACHE_KEYS
+    assert captured_keys[0] != captured_keys[1]
+    assert captured_keys[0].startswith(f"{RedisAPI.RETRIEVAL_NAMESPACE}:")
+    assert captured_keys[1].startswith(f"{RedisAPI.RETRIEVAL_GRAPH_NAMESPACE}:")
+
+
+# ---------------------------------------------------------------------------
 # Integration tests — require a live Redis container (redis_service fixture)
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_store_then_fetch_returns_original_model(redis_service):
-    """A response stored via store_endpoint_response must be returned verbatim by fetch_cached_response."""
-    model = RecommendationResponseFactory.build()
-    sig = {"user_id": "integration-user-1"}
+async def test_retrieval_store_then_fetch_returns_original_predictions(redis_service):
+    """Predictions stored via store_retrieval_predictions must be returned verbatim by fetch."""
+    items = RecommendableItemFactory.batch(_BATCH_SIZE_SMALL)
+    serialized = [item.model_dump(mode="json") for item in items]
+    payload = {"call_id": "c1", "user_id": "u1", "model_type": "tops", "size": 150}
 
-    await RedisAPI.store_endpoint_response(
-        namespace_prefix="playlist_recommendation",
-        request_signature_data=sig,
-        response_model_instance=model,
-    )
-    result = await RedisAPI.fetch_cached_response(
-        namespace_prefix="playlist_recommendation",
-        request_signature_data=sig,
-        response_model_class=RecommendationResponse,
-    )
+    await RedisAPI.store_retrieval_predictions(payload, serialized)
+    result = await RedisAPI.fetch_cached_retrieval_predictions(payload)
 
-    assert isinstance(result, RecommendationResponse)
-    assert result.playlist_recommended_offers == model.playlist_recommended_offers
+    assert result is not None
+    assert len(result) == _BATCH_SIZE_SMALL
+    assert result == serialized
 
 
 @pytest.mark.asyncio
-async def test_different_namespace_returns_none(redis_service):
-    """A cache entry stored under namespace 'ns-a' must not be retrievable under 'ns-b'."""
-    sig = {"user_id": "ns-test-user"}
+async def test_retrieval_different_call_ids_hit_same_cache_entry(redis_service):
+    """Two payloads differing only in call_id must resolve to the same cache entry."""
+    items = RecommendableItemFactory.batch(2)
+    serialized = [item.model_dump(mode="json") for item in items]
 
-    await RedisAPI.store_endpoint_response(
-        namespace_prefix="ns-a",
-        request_signature_data=sig,
-        response_model_instance=RecommendationResponseFactory.build(),
-    )
-    result = await RedisAPI.fetch_cached_response(
-        namespace_prefix="ns-b",
-        request_signature_data=sig,
-        response_model_class=RecommendationResponse,
-    )
+    payload_store = {"call_id": "call-1", "user_id": "u1", "model_type": "tops"}
+    payload_fetch = {"call_id": "call-2", "user_id": "u1", "model_type": "tops"}
 
-    assert result is None
+    await RedisAPI.store_retrieval_predictions(payload_store, serialized)
+    result = await RedisAPI.fetch_cached_retrieval_predictions(payload_fetch)
+
+    assert result == serialized
 
 
 @pytest.mark.asyncio
-async def test_different_signature_returns_none(redis_service):
-    """A cache entry keyed on user-A must not be returned when querying for user-B."""
-    sig_a = {"user_id": "user-A"}
-    sig_b = {"user_id": "user-B"}
+async def test_retrieval_different_users_produce_independent_entries(redis_service):
+    """Different user_ids must produce independent cache entries (personalised payloads)."""
+    items_a = RecommendableItemFactory.batch(2)
+    items_b = RecommendableItemFactory.batch(3)
+    serialized_a = [item.model_dump(mode="json") for item in items_a]
+    serialized_b = [item.model_dump(mode="json") for item in items_b]
 
-    await RedisAPI.store_endpoint_response(
-        namespace_prefix="playlist_recommendation",
-        request_signature_data=sig_a,
-        response_model_instance=RecommendationResponseFactory.build(),
-    )
-    result = await RedisAPI.fetch_cached_response(
-        namespace_prefix="playlist_recommendation",
-        request_signature_data=sig_b,
-        response_model_class=RecommendationResponse,
-    )
+    payload_a = {"call_id": "c1", "user_id": "user-A", "model_type": "recommendation"}
+    payload_b = {"call_id": "c1", "user_id": "user-B", "model_type": "recommendation"}
 
-    assert result is None
+    await RedisAPI.store_retrieval_predictions(payload_a, serialized_a)
+    await RedisAPI.store_retrieval_predictions(payload_b, serialized_b)
+
+    result_a = await RedisAPI.fetch_cached_retrieval_predictions(payload_a)
+    result_b = await RedisAPI.fetch_cached_retrieval_predictions(payload_b)
+
+    assert result_a == serialized_a
+    assert result_b == serialized_b
+    assert result_a != result_b
 
 
 @pytest.mark.asyncio
-async def test_different_signatures_produce_independent_cache_entries(redis_service):
-    """Two distinct signatures must produce independent cache entries without cross-contamination."""
-    sig_a = {"offer_id": "offer-1", "user_id": "user-A"}
-    sig_b = {"offer_id": "offer-1", "user_id": "user-B"}
-    model_a = RecommendationResponseFactory.build()
-    model_b = RecommendationResponseFactory.build()
+async def test_retrieval_graph_namespace_isolated_from_standard(redis_service):
+    """Entries stored under the graph namespace must not pollute the standard namespace."""
+    items = RecommendableItemFactory.batch(3)
+    serialized = [item.model_dump(mode="json") for item in items]
+    payload = {"call_id": "c1", "user_id": "u1", "model_type": "similar_offer"}
 
-    await RedisAPI.store_endpoint_response("similar_offer", sig_a, model_a)
-    await RedisAPI.store_endpoint_response("similar_offer", sig_b, model_b)
+    await RedisAPI.store_retrieval_predictions(payload, serialized, namespace=RedisAPI.RETRIEVAL_GRAPH_NAMESPACE)
 
-    result_a = await RedisAPI.fetch_cached_response("similar_offer", sig_a, RecommendationResponse)
-    result_b = await RedisAPI.fetch_cached_response("similar_offer", sig_b, RecommendationResponse)
+    # Must be a hit under graph namespace
+    graph_result = await RedisAPI.fetch_cached_retrieval_predictions(
+        payload, namespace=RedisAPI.RETRIEVAL_GRAPH_NAMESPACE
+    )
+    assert graph_result == serialized
 
-    assert isinstance(result_a, RecommendationResponse)
-    assert isinstance(result_b, RecommendationResponse)
-    assert result_a.playlist_recommended_offers == model_a.playlist_recommended_offers
-    assert result_b.playlist_recommended_offers == model_b.playlist_recommended_offers
+    # Must be a miss under standard namespace
+    standard_result = await RedisAPI.fetch_cached_retrieval_predictions(payload, namespace=RedisAPI.RETRIEVAL_NAMESPACE)
+    assert standard_result is None
