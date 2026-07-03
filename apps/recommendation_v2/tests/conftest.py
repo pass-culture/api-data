@@ -36,6 +36,45 @@ settings.REDIS_CACHE_ENABLED = False
 
 
 # ---------------------------------------------------------------------------
+# Cache test helpers
+# ---------------------------------------------------------------------------
+
+
+def patch_all_caches_enabled(mocker) -> None:
+    """
+    Enable the Redis master switch and all cache strategy flags atomically.
+
+    Use this helper in tests instead of patching REDIS_CACHE_ENABLED alone.
+
+    Why this is needed:
+    ENDPOINT_RESPONSE_CACHE_ENABLED and OFFER_RESOLUTION_CACHE_ENABLED are pre-computed
+    from REDIS_CACHE_ENABLED at settings module load time. Patching only REDIS_CACHE_ENABLED
+    at runtime (via mocker) does NOT cascade to the strategy flags — they keep the value
+    they had at import time. This helper patches all flags atomically, mirroring the
+    production behaviour of REDIS_CACHE_ENABLED=True.
+    """
+    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
+    mocker.patch.object(settings, "ENDPOINT_RESPONSE_CACHE_ENABLED", new=True)
+    mocker.patch.object(settings, "OFFER_RESOLUTION_CACHE_ENABLED", new=True)
+
+
+def patch_all_caches_disabled(mocker) -> None:
+    """
+    Disable the Redis master switch and all cache strategy flags atomically.
+
+    Use this helper in tests instead of patching REDIS_CACHE_ENABLED alone.
+
+    Why this is needed:
+    Strategy flags are pre-computed at module load time, so patching only the master
+    switch at runtime does not disable them. This helper patches all flags atomically,
+    mirroring the production behaviour of REDIS_CACHE_ENABLED=False.
+    """
+    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=False)
+    mocker.patch.object(settings, "ENDPOINT_RESPONSE_CACHE_ENABLED", new=False)
+    mocker.patch.object(settings, "OFFER_RESOLUTION_CACHE_ENABLED", new=False)
+
+
+# ---------------------------------------------------------------------------
 # Marker auto-assignment
 # ---------------------------------------------------------------------------
 
@@ -347,6 +386,8 @@ async def redis_service(redis_container):
     port = redis_container.get_exposed_port(6379)
     settings.REDIS_URL = f"redis://{host}:{port}"
     settings.REDIS_CACHE_ENABLED = True
+    settings.ENDPOINT_RESPONSE_CACHE_ENABLED = True
+    settings.OFFER_RESOLUTION_CACHE_ENABLED = True
     await redis_cache_service.connect()
     await redis_cache_service._monitor_ready.wait()
     assert redis_cache_service.redis_client is not None
