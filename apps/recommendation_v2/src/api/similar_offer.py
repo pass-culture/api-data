@@ -169,7 +169,6 @@ async def get_similar_offers(  # noqa: PLR0913
         "✅ similar_offers pipeline completed.",
         extra={
             "offer_id": offer_id,
-            "call_id": result.params.call_id,
             "reco_origin": result.params.reco_origin,
             "results_count": len(result.results),
         },
