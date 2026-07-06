@@ -17,7 +17,14 @@ async_db_engine = create_async_engine(
     max_overflow=15,
     echo=False,
     connect_args={
-        "server_settings": {"statement_timeout": str(settings.DATABASE_STATEMENT_TIMEOUT_MS)},
+        "server_settings": {
+            "statement_timeout": str(settings.DATABASE_STATEMENT_TIMEOUT_MS),
+            # asyncpg uses named prepared statements: after 5 executions on a given
+            # connection, PostgreSQL may switch to a generic plan that ignores actual
+            # parameter values (H3 cells, item_ids, lat/lng) and is ~10x slower on the
+            # geospatial retrieval query. Force per-execution (custom) planning instead.
+            "plan_cache_mode": "force_custom_plan",
+        },
     },
 )
 
