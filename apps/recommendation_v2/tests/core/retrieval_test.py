@@ -6,7 +6,6 @@ import pytest
 
 import config.settings as _settings
 from connectors.redis_api import RedisAPI
-from connectors.redis_api import redis_api
 from core.retrieval import _build_playlist_recommendation_search_filters
 from core.retrieval import _build_similar_offer_search_filters
 from core.retrieval import _fetch_tops_offer_resolutions_from_cache
@@ -840,11 +839,9 @@ async def test_fetch_tops_offer_resolutions_from_cache_uses_h3_resolution_from_s
         return_value=[None],
     )
 
-    import config.settings as s
-
     await _fetch_tops_offer_resolutions_from_cache(["item-1"], user)
 
-    mock_h3.assert_called_once_with(_PARIS[0], _PARIS[1], resolution=s.OFFER_RESOLUTION_CACHE_H3_RESOLUTION)
+    mock_h3.assert_called_once_with(_PARIS[0], _PARIS[1], resolution=_settings.OFFER_RESOLUTION_CACHE_H3_RESOLUTION)
 
 
 @pytest.mark.asyncio
@@ -945,9 +942,7 @@ async def test_store_tops_offer_resolutions_uses_ttl_until_next_reset(mocker):
     expected_ttl = 7200
 
     mock_mset = mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
-    mocker.patch.object(
-        RedisAPI, "calculate_seconds_until_next_database_population_time", return_value=expected_ttl
-    )
+    mocker.patch.object(RedisAPI, "calculate_seconds_until_next_database_population_time", return_value=expected_ttl)
 
     await _store_tops_offer_resolutions_in_cache(["item-1"], [(resolved_offer, 500.0)], h3_cell=_H3_CELL)
 
@@ -1144,9 +1139,7 @@ async def test_resolve_multi_venue_items_partial_tops_hits_only_misses_sent_to_d
     mock_mset = mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
     mocker.patch.object(RedisAPI, "calculate_seconds_until_next_database_population_time", return_value=3600)
 
-    result = await _resolve_multi_venue_items(
-        mocker.MagicMock(), ["item-hit", "item-miss"], item_lookup_map, user
-    )
+    result = await _resolve_multi_venue_items(mocker.MagicMock(), ["item-hit", "item-miss"], item_lookup_map, user)
 
     # DB query must have been called only with the cache-miss item
     db_item_ids_passed = mock_db_query.call_args.args[1]
@@ -1219,9 +1212,7 @@ async def test_resolve_multi_venue_items_non_tops_items_always_go_to_db_when_cac
     )
     mock_mset = mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
 
-    await _resolve_multi_venue_items(
-        mocker.MagicMock(), ["item-user-based"], item_lookup_map, user
-    )
+    await _resolve_multi_venue_items(mocker.MagicMock(), ["item-user-based"], item_lookup_map, user)
 
     mock_mget.assert_not_called()
     mock_db_query.assert_called_once()
@@ -1262,9 +1253,7 @@ async def test_resolve_multi_venue_items_mixed_tops_and_non_tops_correct_routing
     )
     mock_mset = mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
 
-    result = await _resolve_multi_venue_items(
-        mocker.MagicMock(), ["item-tops", "item-reco"], item_lookup_map, user
-    )
+    result = await _resolve_multi_venue_items(mocker.MagicMock(), ["item-tops", "item-reco"], item_lookup_map, user)
 
     # DB must have been called only with the non-tops item
     db_item_ids_passed = mock_db_query.call_args.args[1]
@@ -1358,6 +1347,9 @@ async def test_resolve_multi_venue_items_no_mset_when_db_returns_nothing_for_top
     assert result == []
 
 
+_PARIS_VERSAILLES_MAX_DISTANCE_METERS = 30_000  # Paris ↔ Versailles ≈ 17 km, well within this bound
+
+
 @pytest.mark.asyncio
 async def test_resolve_multi_venue_items_cache_hit_blends_cache_and_vertex_data(mocker):
     """
@@ -1381,9 +1373,7 @@ async def test_resolve_multi_venue_items_cache_hit_blends_cache_and_vertex_data(
     mocker.patch(
         "core.retrieval.redis_api.mget_resolved_offers",
         new_callable=mocker.AsyncMock,
-        return_value=[
-            _cached_offer_payload("offer-versailles", _VERSAILLES[0], _VERSAILLES[1])
-        ],
+        return_value=[_cached_offer_payload("offer-versailles", _VERSAILLES[0], _VERSAILLES[1])],
     )
     mocker.patch(
         "core.retrieval.find_closest_offers_with_h3_index",
@@ -1411,5 +1401,4 @@ async def test_resolve_multi_venue_items_cache_hit_blends_cache_and_vertex_data(
 
     # Distance recomputed via Haversine (Paris ↔ Versailles ≈ 17 km)
     assert offer.offer_user_distance is not None
-    assert offer.offer_user_distance < 30_000
-
+    assert offer.offer_user_distance < _PARIS_VERSAILLES_MAX_DISTANCE_METERS
