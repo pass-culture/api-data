@@ -161,18 +161,27 @@ class RedisAPI:
     _OFFER_RESOLUTION_NAMESPACE = "offer_resolution"
 
     @staticmethod
-    def build_offer_resolution_cache_key(h3_cell: str, item_id: str) -> str:
+    def build_offer_resolution_cache_key(h3_cell: str, item_id: str, resolution: int) -> str:
         """
-        Builds a deterministic cache key for a given (H3 cell, item_id) pair.
+        Builds a deterministic cache key for a given (H3 cell, item_id, resolution) triplet.
+
+        The resolution level is embedded in the key so that entries computed at different
+        H3 resolutions never collide and the active resolution is immediately readable from
+        the key itself.
 
         Args:
             h3_cell: The H3 cell index representing the user's geographic zone.
             item_id: The item identifier.
+            resolution: The H3 resolution used to compute ``h3_cell`` (0-15).
 
         Returns:
-            str: A cache key of the form 'offer_resolution:{h3_cell}:{item_id}'.
+            str: A cache key of the form 'offer_resolution:r{resolution}:{h3_cell}:{item_id}'.
+
+        Example:
+            >>> RedisAPI.build_offer_resolution_cache_key("8928308280fffff", "item-42", 8)
+            'offer_resolution:r8:8928308280fffff:item-42'
         """
-        return f"{RedisAPI._OFFER_RESOLUTION_NAMESPACE}:{h3_cell}:{item_id}"
+        return f"{RedisAPI._OFFER_RESOLUTION_NAMESPACE}:r{resolution}:{h3_cell}:{item_id}"
 
     @staticmethod
     @log_execution_time

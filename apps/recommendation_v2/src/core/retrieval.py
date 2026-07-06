@@ -700,7 +700,10 @@ async def _fetch_tops_offer_resolutions_from_cache(
         resolution=settings.OFFER_RESOLUTION_CACHE_H3_RESOLUTION,
     )
     assert h3_cell is not None, "h3_cell must not be None when user is geolocated"  # help ty
-    cache_keys = [redis_api.build_offer_resolution_cache_key(h3_cell, iid) for iid in tops_item_ids]
+    cache_keys = [
+        redis_api.build_offer_resolution_cache_key(h3_cell, iid, settings.OFFER_RESOLUTION_CACHE_H3_RESOLUTION)
+        for iid in tops_item_ids
+    ]
     cached_values = await redis_api.mget_resolved_offers(cache_keys)
 
     cache_hits = {
@@ -732,7 +735,7 @@ async def _store_tops_offer_resolutions_in_cache(
     """
     db_resolved_by_item_id = {db_offer.item_id: db_offer for db_offer, _ in db_rows}
     new_cache_entries: dict[str, dict] = {
-        redis_api.build_offer_resolution_cache_key(h3_cell, item_id): {
+        redis_api.build_offer_resolution_cache_key(h3_cell, item_id, settings.OFFER_RESOLUTION_CACHE_H3_RESOLUTION): {
             "offer_id": db_offer.offer_id,
             "venue_latitude": float(db_offer.venue_latitude) if db_offer.venue_latitude is not None else None,
             "venue_longitude": float(db_offer.venue_longitude) if db_offer.venue_longitude is not None else None,

@@ -1,13 +1,18 @@
 from datetime import UTC
 from datetime import datetime
+from unittest.mock import MagicMock
 
 import pytest
 
 import config.settings as _settings
 from connectors.redis_api import RedisAPI
+from connectors.redis_api import redis_api
 from core.retrieval import _build_playlist_recommendation_search_filters
 from core.retrieval import _build_similar_offer_search_filters
+from core.retrieval import _fetch_tops_offer_resolutions_from_cache
 from core.retrieval import _is_retrieval_cache_enabled_for_model_type
+from core.retrieval import _resolve_multi_venue_items
+from core.retrieval import _store_tops_offer_resolutions_in_cache
 from core.retrieval import build_playlist_recommendation_retrieval_payload
 from core.retrieval import build_similar_offer_retrieval_payload
 from core.retrieval import fetch_all_playlist_recommendation_retrieval_predictions_from_vertex
@@ -20,6 +25,7 @@ from schemas.categories import CategoryEnum
 from schemas.categories import SearchGroupNameEnum
 from schemas.categories import SubcategoryEnum
 from schemas.playlist_recommendation import PlaylistRequestParams
+from schemas.vertex_prediction_item import ItemOrigin
 
 from tests.conftest import patch_all_caches_disabled
 from tests.conftest import patch_all_caches_enabled
@@ -697,3 +703,713 @@ async def test_fetch_retrieval_predictions_does_not_cache_unknown_model_type(moc
 
     mock_redis_fetch.assert_not_called()
     mock_redis_store.assert_not_called()
+
+
+# ===========================================================================
+# Helpers shared by cache-strategy tests
+# ===========================================================================
+
+_PARIS = (48.8566, 2.3522)
+_VERSAILLES = (48.8048, 2.1203)  # ~17 km from Paris
+_LONDON = (51.5074, -0.1278)  # ~343 km from Paris
+
+# Arbitrary H3 cell used when mocking get_h3_index_from_coordinates
+_H3_CELL = "881f1d4a11fffff"
+
+
+def _make_db_offer(
+    item_id: str,
+    offer_id: str,
+    lat: float,
+    lng: float,
+    creation_date: datetime | None = None,
+    stock_date: datetime | None = None,
+) -> MagicMock:
+    """
+    Creates a lightweight mock mimicking a RecommendableOffers ORM row as returned
+    by find_closest_offers_with_h3_index (only the attributes read by the production code).
+    """
+    mock = MagicMock()
+    mock.item_id = item_id
+    mock.offer_id = offer_id
+    mock.venue_latitude = lat
+    mock.venue_longitude = lng
+    mock.offer_creation_date = creation_date
+    mock.stock_beginning_date = stock_date
+    return mock
+
+
+def _cached_offer_payload(
+    offer_id: str,
+    lat: float,
+    lng: float,
+    creation_date: str | None = None,
+    stock_date: str | None = None,
+) -> dict:
+    """Builds a minimal cache payload dict as stored by _store_tops_offer_resolutions_in_cache."""
+    return {
+        "offer_id": offer_id,
+        "venue_latitude": lat,
+        "venue_longitude": lng,
+        "offer_creation_date": creation_date,
+        "stock_beginning_date": stock_date,
+    }
+
+
+# ===========================================================================
+# _fetch_tops_offer_resolutions_from_cache
+# ===========================================================================
+
+
+@pytest.mark.asyncio
+async def test_fetch_tops_offer_resolutions_from_cache_all_hits(mocker):
+    """All tops items found in cache → cache_hits contains all items, misses list is empty."""
+    tops_item_ids = ["item-1", "item-2"]
+    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
+
+    mocker.patch("core.retrieval.get_h3_index_from_coordinates", return_value=_H3_CELL)
+    mocker.patch(
+        "core.retrieval.redis_api.mget_resolved_offers",
+        new_callable=mocker.AsyncMock,
+        return_value=[
+            _cached_offer_payload("offer-1", _PARIS[0], _PARIS[1]),
+            _cached_offer_payload("offer-2", _PARIS[0], _PARIS[1]),
+        ],
+    )
+
+    cache_hits, misses, h3_cell = await _fetch_tops_offer_resolutions_from_cache(tops_item_ids, user)
+
+    assert set(cache_hits.keys()) == {"item-1", "item-2"}
+    assert misses == []
+    assert h3_cell == _H3_CELL
+
+
+@pytest.mark.asyncio
+async def test_fetch_tops_offer_resolutions_from_cache_all_misses(mocker):
+    """No tops items found in cache → cache_hits is empty, all items are in the miss list."""
+    tops_item_ids = ["item-1", "item-2"]
+    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
+
+    mocker.patch("core.retrieval.get_h3_index_from_coordinates", return_value=_H3_CELL)
+    mocker.patch(
+        "core.retrieval.redis_api.mget_resolved_offers",
+        new_callable=mocker.AsyncMock,
+        return_value=[None, None],
+    )
+
+    cache_hits, misses, h3_cell = await _fetch_tops_offer_resolutions_from_cache(tops_item_ids, user)
+
+    assert cache_hits == {}
+    assert misses == ["item-1", "item-2"]
+    assert h3_cell == _H3_CELL
+
+
+@pytest.mark.asyncio
+async def test_fetch_tops_offer_resolutions_from_cache_partial_hits(mocker):
+    """Some items in cache, some not → correct split between hits and misses."""
+    tops_item_ids = ["item-1", "item-2", "item-3"]
+    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
+
+    mocker.patch("core.retrieval.get_h3_index_from_coordinates", return_value=_H3_CELL)
+    mocker.patch(
+        "core.retrieval.redis_api.mget_resolved_offers",
+        new_callable=mocker.AsyncMock,
+        return_value=[
+            _cached_offer_payload("offer-1", _PARIS[0], _PARIS[1]),  # hit
+            None,  # miss
+            None,  # miss
+        ],
+    )
+
+    cache_hits, misses, h3_cell = await _fetch_tops_offer_resolutions_from_cache(tops_item_ids, user)
+
+    assert set(cache_hits.keys()) == {"item-1"}
+    assert misses == ["item-2", "item-3"]
+    assert h3_cell == _H3_CELL
+
+
+@pytest.mark.asyncio
+async def test_fetch_tops_offer_resolutions_from_cache_uses_h3_resolution_from_settings(mocker):
+    """The H3 cell must be derived using settings.OFFER_RESOLUTION_CACHE_H3_RESOLUTION."""
+    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
+
+    mock_h3 = mocker.patch("core.retrieval.get_h3_index_from_coordinates", return_value=_H3_CELL)
+    mocker.patch(
+        "core.retrieval.redis_api.mget_resolved_offers",
+        new_callable=mocker.AsyncMock,
+        return_value=[None],
+    )
+
+    import config.settings as s
+
+    await _fetch_tops_offer_resolutions_from_cache(["item-1"], user)
+
+    mock_h3.assert_called_once_with(_PARIS[0], _PARIS[1], resolution=s.OFFER_RESOLUTION_CACHE_H3_RESOLUTION)
+
+
+@pytest.mark.asyncio
+async def test_fetch_tops_offer_resolutions_from_cache_builds_correct_cache_keys(mocker):
+    """Cache keys must follow the 'offer_resolution:r{resolution}:{h3_cell}:{item_id}' pattern."""
+    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
+
+    mocker.patch("core.retrieval.get_h3_index_from_coordinates", return_value=_H3_CELL)
+    mock_mget = mocker.patch(
+        "core.retrieval.redis_api.mget_resolved_offers",
+        new_callable=mocker.AsyncMock,
+        return_value=[None, None],
+    )
+
+    await _fetch_tops_offer_resolutions_from_cache(["item-A", "item-B"], user)
+
+    cache_keys_passed = mock_mget.call_args.args[0]
+    resolution = _settings.OFFER_RESOLUTION_CACHE_H3_RESOLUTION
+    assert cache_keys_passed == [
+        f"offer_resolution:r{resolution}:{_H3_CELL}:item-A",
+        f"offer_resolution:r{resolution}:{_H3_CELL}:item-B",
+    ]
+
+
+# ===========================================================================
+# _store_tops_offer_resolutions_in_cache
+# ===========================================================================
+
+
+@pytest.mark.asyncio
+async def test_store_tops_offer_resolutions_stores_only_resolved_items(mocker):
+    """Items not resolved by the DB (no matching row) must not be stored in cache."""
+    resolved_offer = _make_db_offer("item-1", "offer-1", _PARIS[0], _PARIS[1])
+    db_rows = [(resolved_offer, 1000.0)]  # item-1 resolved, item-2 absent
+    tops_cache_misses = ["item-1", "item-2"]
+
+    mock_mset = mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
+    mocker.patch.object(RedisAPI, "calculate_seconds_until_next_database_population_time", return_value=3600)
+
+    await _store_tops_offer_resolutions_in_cache(tops_cache_misses, db_rows, h3_cell=_H3_CELL)
+
+    mock_mset.assert_called_once()
+    stored_entries: dict = mock_mset.call_args.args[0]
+    assert len(stored_entries) == 1
+    assert any("item-1" in key for key in stored_entries)
+    assert not any("item-2" in key for key in stored_entries)
+
+
+@pytest.mark.asyncio
+async def test_store_tops_offer_resolutions_no_mset_when_all_items_unresolved(mocker):
+    """When the DB resolves none of the cache-miss items, mset must not be called."""
+    mock_mset = mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
+    mocker.patch.object(RedisAPI, "calculate_seconds_until_next_database_population_time", return_value=3600)
+
+    await _store_tops_offer_resolutions_in_cache(["item-1", "item-2"], db_rows=[], h3_cell=_H3_CELL)
+
+    mock_mset.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_store_tops_offer_resolutions_serializes_dates_as_iso_strings(mocker):
+    """Dates in the cached payload must be ISO 8601 strings (JSON-safe for Redis)."""
+    creation_dt = datetime(2024, 3, 15, 10, 30, tzinfo=UTC)
+    stock_dt = datetime(2024, 5, 20, tzinfo=UTC)
+    resolved_offer = _make_db_offer("item-1", "offer-1", _PARIS[0], _PARIS[1], creation_dt, stock_dt)
+
+    mock_mset = mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
+    mocker.patch.object(RedisAPI, "calculate_seconds_until_next_database_population_time", return_value=3600)
+
+    await _store_tops_offer_resolutions_in_cache(["item-1"], [(resolved_offer, 500.0)], h3_cell=_H3_CELL)
+
+    stored_entries: dict = mock_mset.call_args.args[0]
+    cached_payload = next(iter(stored_entries.values()))
+    assert cached_payload["offer_creation_date"] == creation_dt.isoformat()
+    assert cached_payload["stock_beginning_date"] == stock_dt.isoformat()
+
+
+@pytest.mark.asyncio
+async def test_store_tops_offer_resolutions_handles_none_dates(mocker):
+    """When an offer has no dates, the cached payload must store None for those fields."""
+    resolved_offer = _make_db_offer("item-1", "offer-1", _PARIS[0], _PARIS[1], creation_date=None, stock_date=None)
+
+    mock_mset = mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
+    mocker.patch.object(RedisAPI, "calculate_seconds_until_next_database_population_time", return_value=3600)
+
+    await _store_tops_offer_resolutions_in_cache(["item-1"], [(resolved_offer, 200.0)], h3_cell=_H3_CELL)
+
+    stored_entries: dict = mock_mset.call_args.args[0]
+    cached_payload = next(iter(stored_entries.values()))
+    assert cached_payload["offer_creation_date"] is None
+    assert cached_payload["stock_beginning_date"] is None
+
+
+@pytest.mark.asyncio
+async def test_store_tops_offer_resolutions_uses_ttl_until_next_reset(mocker):
+    """The TTL passed to mset must come from calculate_seconds_until_next_database_population_time."""
+    resolved_offer = _make_db_offer("item-1", "offer-1", _PARIS[0], _PARIS[1])
+    expected_ttl = 7200
+
+    mock_mset = mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
+    mocker.patch.object(
+        RedisAPI, "calculate_seconds_until_next_database_population_time", return_value=expected_ttl
+    )
+
+    await _store_tops_offer_resolutions_in_cache(["item-1"], [(resolved_offer, 500.0)], h3_cell=_H3_CELL)
+
+    ttl_passed = mock_mset.call_args.args[1]
+    assert ttl_passed == expected_ttl
+
+
+@pytest.mark.asyncio
+async def test_store_tops_offer_resolutions_builds_correct_cache_key(mocker):
+    """Each stored entry key must follow 'offer_resolution:r{resolution}:{h3_cell}:{item_id}'."""
+    resolved_offer = _make_db_offer("item-42", "offer-42", _PARIS[0], _PARIS[1])
+
+    mock_mset = mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
+    mocker.patch.object(RedisAPI, "calculate_seconds_until_next_database_population_time", return_value=3600)
+
+    await _store_tops_offer_resolutions_in_cache(["item-42"], [(resolved_offer, 100.0)], h3_cell=_H3_CELL)
+
+    stored_entries: dict = mock_mset.call_args.args[0]
+    expected_key = f"offer_resolution:r{_settings.OFFER_RESOLUTION_CACHE_H3_RESOLUTION}:{_H3_CELL}:item-42"
+    assert expected_key in stored_entries
+
+
+# ===========================================================================
+# _resolve_multi_venue_items — offer-resolution cache strategy
+# ===========================================================================
+
+
+@pytest.mark.asyncio
+async def test_resolve_multi_venue_items_cache_disabled_skips_cache_and_uses_db(mocker):
+    """
+    When OFFER_RESOLUTION_CACHE_ENABLED=False, the MGET lookup must be skipped,
+    all items must go to the DB, and MSET must never be called.
+    """
+    patch_all_caches_disabled(mocker)
+
+    tops_item = RecommendableItemFactory.build(
+        item_id="item-tops", is_geolocated=True, total_offers=3, item_origin=ItemOrigin.TOPS
+    )
+    item_lookup_map = {"item-tops": tops_item}
+    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
+
+    mock_mget = mocker.patch("core.retrieval.redis_api.mget_resolved_offers", new_callable=mocker.AsyncMock)
+    mock_mset = mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
+    db_offer = _make_db_offer("item-tops", "offer-from-db", _PARIS[0], _PARIS[1])
+    mocker.patch(
+        "core.retrieval.find_closest_offers_with_h3_index",
+        new_callable=mocker.AsyncMock,
+        return_value=[(db_offer, 500.0)],
+    )
+
+    result = await _resolve_multi_venue_items(mocker.MagicMock(), ["item-tops"], item_lookup_map, user)
+
+    mock_mget.assert_not_called()
+    mock_mset.assert_not_called()
+    assert len(result) == 1
+    assert result[0].offer_id == "offer-from-db"
+
+
+@pytest.mark.asyncio
+async def test_resolve_multi_venue_items_cache_enabled_but_no_tops_items_skips_mget(mocker):
+    """
+    When cache is enabled but there are no tops items, the MGET round-trip must be
+    skipped entirely — only non-tops items go through the DB.
+    """
+    patch_all_caches_enabled(mocker)
+
+    reco_item = RecommendableItemFactory.build(
+        item_id="item-reco", is_geolocated=True, total_offers=3, item_origin=ItemOrigin.USER_BASED
+    )
+    item_lookup_map = {"item-reco": reco_item}
+    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
+
+    mock_mget = mocker.patch("core.retrieval.redis_api.mget_resolved_offers", new_callable=mocker.AsyncMock)
+    mock_mset = mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
+    db_offer = _make_db_offer("item-reco", "offer-reco-db", _PARIS[0], _PARIS[1])
+    mocker.patch(
+        "core.retrieval.find_closest_offers_with_h3_index",
+        new_callable=mocker.AsyncMock,
+        return_value=[(db_offer, 500.0)],
+    )
+
+    result = await _resolve_multi_venue_items(mocker.MagicMock(), ["item-reco"], item_lookup_map, user)
+
+    mock_mget.assert_not_called()
+    mock_mset.assert_not_called()
+    assert len(result) == 1
+
+
+@pytest.mark.asyncio
+async def test_resolve_multi_venue_items_all_tops_cache_hits_skip_db_query(mocker):
+    """
+    When all tops items are served from cache, the spatial SQL query must not be triggered
+    and MSET must not be called (nothing new to store).
+    """
+    patch_all_caches_enabled(mocker)
+
+    tops_item = RecommendableItemFactory.build(
+        item_id="item-tops", is_geolocated=True, total_offers=3, item_origin=ItemOrigin.TOPS
+    )
+    item_lookup_map = {"item-tops": tops_item}
+    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
+
+    mocker.patch("core.retrieval.get_h3_index_from_coordinates", return_value=_H3_CELL)
+    mocker.patch(
+        "core.retrieval.redis_api.mget_resolved_offers",
+        new_callable=mocker.AsyncMock,
+        return_value=[_cached_offer_payload("offer-cached", _PARIS[0], _PARIS[1])],
+    )
+    mock_db_query = mocker.patch(
+        "core.retrieval.find_closest_offers_with_h3_index",
+        new_callable=mocker.AsyncMock,
+    )
+    mock_mset = mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
+
+    result = await _resolve_multi_venue_items(mocker.MagicMock(), ["item-tops"], item_lookup_map, user)
+
+    mock_db_query.assert_not_called()
+    mock_mset.assert_not_called()
+    assert len(result) == 1
+    assert result[0].offer_id == "offer-cached"
+
+
+@pytest.mark.asyncio
+async def test_resolve_multi_venue_items_all_tops_cache_misses_resolved_via_db_and_stored(mocker):
+    """
+    When all tops items miss the cache:
+    - The spatial DB query is called for those items.
+    - Resolved items are written to cache via MSET.
+    """
+    patch_all_caches_enabled(mocker)
+
+    tops_item = RecommendableItemFactory.build(
+        item_id="item-tops", is_geolocated=True, total_offers=3, item_origin=ItemOrigin.TOPS
+    )
+    item_lookup_map = {"item-tops": tops_item}
+    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
+
+    mocker.patch("core.retrieval.get_h3_index_from_coordinates", return_value=_H3_CELL)
+    mocker.patch(
+        "core.retrieval.redis_api.mget_resolved_offers",
+        new_callable=mocker.AsyncMock,
+        return_value=[None],  # cache miss
+    )
+    db_offer = _make_db_offer("item-tops", "offer-from-db", _PARIS[0], _PARIS[1])
+    mocker.patch(
+        "core.retrieval.find_closest_offers_with_h3_index",
+        new_callable=mocker.AsyncMock,
+        return_value=[(db_offer, 500.0)],
+    )
+    mock_mset = mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
+    mocker.patch.object(RedisAPI, "calculate_seconds_until_next_database_population_time", return_value=3600)
+
+    result = await _resolve_multi_venue_items(mocker.MagicMock(), ["item-tops"], item_lookup_map, user)
+
+    mock_mset.assert_called_once()
+    assert len(result) == 1
+    assert result[0].offer_id == "offer-from-db"
+
+
+@pytest.mark.asyncio
+async def test_resolve_multi_venue_items_partial_tops_hits_only_misses_sent_to_db(mocker):
+    """
+    With a partial cache hit:
+    - Cache-hit items must be built from the cache payload (DB query not called for them).
+    - Cache-miss items must be sent to the DB.
+    - Only the cache-miss item that was resolved gets stored via MSET.
+    """
+    patch_all_caches_enabled(mocker)
+
+    tops_hit = RecommendableItemFactory.build(
+        item_id="item-hit", is_geolocated=True, total_offers=3, item_origin=ItemOrigin.TOPS
+    )
+    tops_miss = RecommendableItemFactory.build(
+        item_id="item-miss", is_geolocated=True, total_offers=3, item_origin=ItemOrigin.TOPS
+    )
+    item_lookup_map = {"item-hit": tops_hit, "item-miss": tops_miss}
+    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
+
+    mocker.patch("core.retrieval.get_h3_index_from_coordinates", return_value=_H3_CELL)
+    mocker.patch(
+        "core.retrieval.redis_api.mget_resolved_offers",
+        new_callable=mocker.AsyncMock,
+        return_value=[
+            _cached_offer_payload("offer-from-cache", _PARIS[0], _PARIS[1]),  # hit
+            None,  # miss
+        ],
+    )
+    db_offer = _make_db_offer("item-miss", "offer-from-db", _PARIS[0], _PARIS[1])
+    mock_db_query = mocker.patch(
+        "core.retrieval.find_closest_offers_with_h3_index",
+        new_callable=mocker.AsyncMock,
+        return_value=[(db_offer, 1000.0)],
+    )
+    mock_mset = mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
+    mocker.patch.object(RedisAPI, "calculate_seconds_until_next_database_population_time", return_value=3600)
+
+    result = await _resolve_multi_venue_items(
+        mocker.MagicMock(), ["item-hit", "item-miss"], item_lookup_map, user
+    )
+
+    # DB query must have been called only with the cache-miss item
+    db_item_ids_passed = mock_db_query.call_args.args[1]
+    assert "item-miss" in db_item_ids_passed
+    assert "item-hit" not in db_item_ids_passed
+
+    # Both offers must appear in the result
+    result_offer_ids = {r.offer_id for r in result}
+    assert "offer-from-cache" in result_offer_ids
+    assert "offer-from-db" in result_offer_ids
+
+    # MSET called once (for the cache miss that was resolved)
+    mock_mset.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_resolve_multi_venue_items_cache_hit_beyond_max_distance_is_excluded(mocker):
+    """
+    A cache hit whose stored venue exceeds MAX_DISTANCE_METERS_FOR_OFFER_RETRIEVAL (50 km)
+    must be excluded from the result — the guard prevents stale cross-zone entries from
+    being served to users near a zone boundary.
+    """
+    patch_all_caches_enabled(mocker)
+
+    tops_item = RecommendableItemFactory.build(
+        item_id="item-far", is_geolocated=True, total_offers=3, item_origin=ItemOrigin.TOPS
+    )
+    item_lookup_map = {"item-far": tops_item}
+    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
+
+    mocker.patch("core.retrieval.get_h3_index_from_coordinates", return_value=_H3_CELL)
+    # London is ~343 km from Paris — well beyond the 50 km search radius
+    mocker.patch(
+        "core.retrieval.redis_api.mget_resolved_offers",
+        new_callable=mocker.AsyncMock,
+        return_value=[_cached_offer_payload("offer-london", _LONDON[0], _LONDON[1])],
+    )
+    mocker.patch(
+        "core.retrieval.find_closest_offers_with_h3_index",
+        new_callable=mocker.AsyncMock,
+        return_value=[],
+    )
+    mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
+
+    result = await _resolve_multi_venue_items(mocker.MagicMock(), ["item-far"], item_lookup_map, user)
+
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_resolve_multi_venue_items_non_tops_items_always_go_to_db_when_cache_enabled(mocker):
+    """
+    Non-tops items (USER_BASED, GRAPH) are never eligible for caching.
+    Even when OFFER_RESOLUTION_CACHE_ENABLED=True, they must bypass the MGET lookup
+    and go directly to the DB.  MSET must not be called (no tops misses).
+    """
+    patch_all_caches_enabled(mocker)
+
+    user_based_item = RecommendableItemFactory.build(
+        item_id="item-user-based", is_geolocated=True, total_offers=3, item_origin=ItemOrigin.USER_BASED
+    )
+    item_lookup_map = {"item-user-based": user_based_item}
+    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
+
+    mock_mget = mocker.patch("core.retrieval.redis_api.mget_resolved_offers", new_callable=mocker.AsyncMock)
+    mock_db_query = mocker.patch(
+        "core.retrieval.find_closest_offers_with_h3_index",
+        new_callable=mocker.AsyncMock,
+        return_value=[],
+    )
+    mock_mset = mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
+
+    await _resolve_multi_venue_items(
+        mocker.MagicMock(), ["item-user-based"], item_lookup_map, user
+    )
+
+    mock_mget.assert_not_called()
+    mock_db_query.assert_called_once()
+    mock_mset.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_resolve_multi_venue_items_mixed_tops_and_non_tops_correct_routing(mocker):
+    """
+    Mixed scenario (tops + non-tops in the same call):
+    - Tops item served from cache → not in DB call.
+    - Non-tops item goes to DB → not in MGET call.
+    - Both contribute to the final resolved offers list.
+    - MSET not called (no tops cache misses).
+    """
+    patch_all_caches_enabled(mocker)
+
+    tops_item = RecommendableItemFactory.build(
+        item_id="item-tops", is_geolocated=True, total_offers=3, item_origin=ItemOrigin.TOPS
+    )
+    reco_item = RecommendableItemFactory.build(
+        item_id="item-reco", is_geolocated=True, total_offers=5, item_origin=ItemOrigin.USER_BASED
+    )
+    item_lookup_map = {"item-tops": tops_item, "item-reco": reco_item}
+    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
+
+    mocker.patch("core.retrieval.get_h3_index_from_coordinates", return_value=_H3_CELL)
+    mocker.patch(
+        "core.retrieval.redis_api.mget_resolved_offers",
+        new_callable=mocker.AsyncMock,
+        return_value=[_cached_offer_payload("offer-tops-cached", _PARIS[0], _PARIS[1])],
+    )
+    db_offer = _make_db_offer("item-reco", "offer-reco-db", _PARIS[0], _PARIS[1])
+    mock_db_query = mocker.patch(
+        "core.retrieval.find_closest_offers_with_h3_index",
+        new_callable=mocker.AsyncMock,
+        return_value=[(db_offer, 2000.0)],
+    )
+    mock_mset = mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
+
+    result = await _resolve_multi_venue_items(
+        mocker.MagicMock(), ["item-tops", "item-reco"], item_lookup_map, user
+    )
+
+    # DB must have been called only with the non-tops item
+    db_item_ids_passed = mock_db_query.call_args.args[1]
+    assert "item-reco" in db_item_ids_passed
+    assert "item-tops" not in db_item_ids_passed
+
+    # Both offers in result
+    result_offer_ids = {r.offer_id for r in result}
+    assert "offer-tops-cached" in result_offer_ids
+    assert "offer-reco-db" in result_offer_ids
+
+    # No tops cache misses → no MSET
+    mock_mset.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_resolve_multi_venue_items_deserializes_iso_dates_from_cache_payload(mocker):
+    """
+    Dates stored in the Redis cache as ISO 8601 strings must be correctly
+    deserialized into datetime objects on the resulting EnrichedRecommendableOffer.
+    """
+    patch_all_caches_enabled(mocker)
+
+    tops_item = RecommendableItemFactory.build(
+        item_id="item-tops", is_geolocated=True, total_offers=3, item_origin=ItemOrigin.TOPS
+    )
+    item_lookup_map = {"item-tops": tops_item}
+    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
+
+    creation_dt = datetime(2024, 3, 15, 10, 30, tzinfo=UTC)
+    stock_dt = datetime(2024, 5, 20, tzinfo=UTC)
+
+    mocker.patch("core.retrieval.get_h3_index_from_coordinates", return_value=_H3_CELL)
+    mocker.patch(
+        "core.retrieval.redis_api.mget_resolved_offers",
+        new_callable=mocker.AsyncMock,
+        return_value=[
+            _cached_offer_payload(
+                "offer-dated",
+                _PARIS[0],
+                _PARIS[1],
+                creation_date=creation_dt.isoformat(),
+                stock_date=stock_dt.isoformat(),
+            )
+        ],
+    )
+    mocker.patch(
+        "core.retrieval.find_closest_offers_with_h3_index",
+        new_callable=mocker.AsyncMock,
+        return_value=[],
+    )
+    mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
+
+    result = await _resolve_multi_venue_items(mocker.MagicMock(), ["item-tops"], item_lookup_map, user)
+
+    assert len(result) == 1
+    assert result[0].offer_creation_date == creation_dt
+    assert result[0].stock_beginning_date == stock_dt
+
+
+@pytest.mark.asyncio
+async def test_resolve_multi_venue_items_no_mset_when_db_returns_nothing_for_tops_misses(mocker):
+    """
+    When the DB resolves no rows for tops cache-miss items (e.g. no venue within radius),
+    MSET must not be called — absence of an offer must not be cached.
+    """
+    patch_all_caches_enabled(mocker)
+
+    tops_item = RecommendableItemFactory.build(
+        item_id="item-tops", is_geolocated=True, total_offers=3, item_origin=ItemOrigin.TOPS
+    )
+    item_lookup_map = {"item-tops": tops_item}
+    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
+
+    mocker.patch("core.retrieval.get_h3_index_from_coordinates", return_value=_H3_CELL)
+    mocker.patch(
+        "core.retrieval.redis_api.mget_resolved_offers",
+        new_callable=mocker.AsyncMock,
+        return_value=[None],  # miss
+    )
+    mocker.patch(
+        "core.retrieval.find_closest_offers_with_h3_index",
+        new_callable=mocker.AsyncMock,
+        return_value=[],  # DB resolves nothing
+    )
+    mock_mset = mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
+
+    result = await _resolve_multi_venue_items(mocker.MagicMock(), ["item-tops"], item_lookup_map, user)
+
+    mock_mset.assert_not_called()
+    assert result == []
+
+
+@pytest.mark.asyncio
+async def test_resolve_multi_venue_items_cache_hit_blends_cache_and_vertex_data(mocker):
+    """
+    An EnrichedRecommendableOffer built from a cache hit must correctly blend:
+    - offer_id, venue coordinates (from the cached payload)
+    - item_score, item_rank, category, booking_number, etc. (from the Vertex item data)
+    - offer_user_distance computed via Haversine from the cached venue coordinates
+    """
+    patch_all_caches_enabled(mocker)
+
+    tops_item = RecommendableItemFactory.build(
+        item_id="item-tops",
+        is_geolocated=True,
+        total_offers=3,
+        item_origin=ItemOrigin.TOPS,
+    )
+    item_lookup_map = {"item-tops": tops_item}
+    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
+
+    mocker.patch("core.retrieval.get_h3_index_from_coordinates", return_value=_H3_CELL)
+    mocker.patch(
+        "core.retrieval.redis_api.mget_resolved_offers",
+        new_callable=mocker.AsyncMock,
+        return_value=[
+            _cached_offer_payload("offer-versailles", _VERSAILLES[0], _VERSAILLES[1])
+        ],
+    )
+    mocker.patch(
+        "core.retrieval.find_closest_offers_with_h3_index",
+        new_callable=mocker.AsyncMock,
+        return_value=[],
+    )
+    mocker.patch("core.retrieval.redis_api.mset_resolved_offers", new_callable=mocker.AsyncMock)
+
+    result = await _resolve_multi_venue_items(mocker.MagicMock(), ["item-tops"], item_lookup_map, user)
+
+    assert len(result) == 1
+    offer = result[0]
+
+    # DB-side fields come from the cache payload
+    assert offer.offer_id == "offer-versailles"
+    assert offer.item_id == "item-tops"
+    assert offer.venue_latitude == _VERSAILLES[0]
+    assert offer.venue_longitude == _VERSAILLES[1]
+
+    # Vertex-side fields come from item_lookup_map
+    assert offer.item_score == tops_item.item_score
+    assert offer.item_rank == tops_item.item_rank
+    assert offer.category == tops_item.category
+    assert offer.booking_number == tops_item.booking_number
+
+    # Distance recomputed via Haversine (Paris ↔ Versailles ≈ 17 km)
+    assert offer.offer_user_distance is not None
+    assert offer.offer_user_distance < 30_000
+
