@@ -5,7 +5,6 @@ import h3
 from sqlalchemy import func
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased
 from sqlalchemy.sql import ColumnElement
 
 from models.iris import IrisFrance
@@ -158,39 +157,21 @@ async def find_closest_offers_with_h3_index(
 
     h3_index_column = getattr(Venue, f"h3_res{resolution}")
 
-    # TODO (lmontier, jmontagnat, 2026-07-01):
-    #  This deduplication is a runtime quickfix. Offers with multiple rows per
-    #  unique (offer_id, venue_id) pair (e.g. one row per cinema screening) should
-    #  ideally be deduplicated upstream in the DBT model.
-    #  In data-gcp github repository:
-    #   orchestration/dags/data_gcp_dbt/models/machine_learning/recommendation/ml_reco__recommendable_offer.sql
-    #  Once that is done, this subquery can be removed.
-    deduped_offers_by_venue = (
-        select(RecommendableOffers)
-        .join(Venue, RecommendableOffers.venue_id == Venue.venue_id)
-        .where(
-            RecommendableOffers.item_id.in_(item_ids),
-            h3_index_column.in_(candidate_h3_cells),
-        )
-        .distinct(RecommendableOffers.offer_id, RecommendableOffers.venue_id)
-        .subquery()
-    )
-    deduped_offers = aliased(RecommendableOffers, deduped_offers_by_venue)
-
     # Build SQL components
     distance_expr = build_haversine_distance_expression(user_lat, user_lng, Venue).label("calc_distance")
 
     # Construct the query
     stmt = (
-        select(deduped_offers, distance_expr)
-        .join(Venue, deduped_offers.venue_id == Venue.venue_id)
+        select(RecommendableOffers, distance_expr)
+        .join(Venue, RecommendableOffers.venue_id == Venue.venue_id)
         .where(
+            RecommendableOffers.item_id.in_(item_ids),
+            h3_index_column.in_(candidate_h3_cells),
             distance_expr <= MAX_DISTANCE_METERS_FOR_OFFER_RETRIEVAL,
         )
-        # Keep only one offer per item (the closest one)
-        .distinct(deduped_offers.item_id)
+        .distinct(RecommendableOffers.item_id)
         .order_by(
-            deduped_offers.item_id,
+            RecommendableOffers.item_id,
             distance_expr.asc(),
         )
     )
