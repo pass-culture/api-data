@@ -158,6 +158,15 @@ async def find_closest_offers_with_h3_index(
 
     h3_index_column = getattr(Venue, f"h3_res{resolution}")
 
+    # Pre-fetch venue IDs matching the H3 cells so that the deduplication subquery
+    # can filter RecommendableOffers with a simple IN clause, avoiding an extra join
+    # inside the subquery and letting the planner use the offers table index directly.
+    candidate_venue_ids_result = await db.execute(select(Venue.venue_id).where(h3_index_column.in_(candidate_h3_cells)))
+    candidate_venue_ids: list[int] = [row[0] for row in candidate_venue_ids_result.all()]
+
+    if not candidate_venue_ids:
+        return []
+
     # TODO (lmontier, jmontagnat, 2026-07-01):
     #  This deduplication is a runtime quickfix. Offers with multiple rows per
     #  unique (offer_id, venue_id) pair (e.g. one row per cinema screening) should
@@ -167,10 +176,9 @@ async def find_closest_offers_with_h3_index(
     #  Once that is done, this subquery can be removed.
     deduped_offers_by_venue = (
         select(RecommendableOffers)
-        .join(Venue, RecommendableOffers.venue_id == Venue.venue_id)
         .where(
             RecommendableOffers.item_id.in_(item_ids),
-            h3_index_column.in_(candidate_h3_cells),
+            RecommendableOffers.venue_id.in_(candidate_venue_ids),
         )
         .distinct(RecommendableOffers.offer_id, RecommendableOffers.venue_id)
         .subquery()
