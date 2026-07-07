@@ -154,19 +154,19 @@ OFFER_RESOLUTION_CACHE_ENABLED: bool = REDIS_CACHE_ENABLED and bool(
 
 # Controls caching for model_type="similar_offer" (both coreservation and graph endpoints).
 RETRIEVAL_CACHE_SIMILAR_OFFER_ENABLED: bool = REDIS_CACHE_ENABLED and bool(
-    int(os.environ.get("RETRIEVAL_CACHE_SIMILAR_OFFER_ENABLED", "0" if IS_LOCAL else "1"))
+    int(os.environ.get("RETRIEVAL_CACHE_SIMILAR_OFFER_ENABLED", "0"))
 )
 
 # Controls caching for model_type="tops" (playlist cold-start & the three tops payloads in warm-start).
 RETRIEVAL_CACHE_PLAYLIST_TOPS_ENABLED: bool = REDIS_CACHE_ENABLED and bool(
-    int(os.environ.get("RETRIEVAL_CACHE_PLAYLIST_TOPS_ENABLED", "0" if IS_LOCAL else "1"))
+    int(os.environ.get("RETRIEVAL_CACHE_PLAYLIST_TOPS_ENABLED", "0"))
 )
 
 # Controls caching for model_type="recommendation" (personalised collaborative-filtering payload).
 # User embedding is stable intra-day, so cache hits are possible for repeated calls by the same user
 # with identical filters during the same cache window.
 RETRIEVAL_CACHE_PLAYLIST_PERSONALIZED_ENABLED: bool = REDIS_CACHE_ENABLED and bool(
-    int(os.environ.get("RETRIEVAL_CACHE_PLAYLIST_PERSONALIZED_ENABLED", "0" if IS_LOCAL else "1"))
+    int(os.environ.get("RETRIEVAL_CACHE_PLAYLIST_PERSONALIZED_ENABLED", "0"))
 )
 
 # H3 resolution used to build the offer-resolution cache key.
