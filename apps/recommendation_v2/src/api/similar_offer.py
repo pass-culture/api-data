@@ -106,7 +106,7 @@ async def get_similar_offers(  # noqa: PLR0913
     )
 
     # Use a finer resolution for cache to avoid reusing the same cache if a user moves within a large resolution cell.
-    cache_h3_resolution = settings.CACHE_H3_RESOLUTION
+    cache_h3_resolution = settings.ENDPOINT_RESPONSE_CACHE_H3_RESOLUTION
     h3_index = get_h3_index_from_coordinates(latitude, longitude, resolution=cache_h3_resolution)
 
     request_signature_data = {
@@ -120,7 +120,7 @@ async def get_similar_offers(  # noqa: PLR0913
     }
 
     # Handle Redis cache retrieval
-    if settings.REDIS_CACHE_ENABLED:
+    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
         cached_similar_offer_result = await redis_api.fetch_cached_response(
             namespace_prefix="similar_offer",
             request_signature_data=request_signature_data,
@@ -134,13 +134,13 @@ async def get_similar_offers(  # noqa: PLR0913
             # sends click/booking events referencing this call_id, which links them
             # back to the original display rows
             logger.info(
-                "✅ Cache HIT — returning cached similar_offers.",
+                "✅ [HTTP Request Cache] Cache HIT — returning cached similar_offers.",
                 extra={"offer_id": offer_id, "call_id": cached_similar_offer_result.params.call_id},
             )
             return cached_similar_offer_result
 
     logger.info(
-        "🔍 Cache MISS — running full similar_offers pipeline.",
+        "🔍 [HTTP Request Cache] Cache MISS — running full similar_offers pipeline.",
         extra={"offer_id": offer_id, "retrieval_model": retrieval_model},
     )
 
@@ -158,7 +158,7 @@ async def get_similar_offers(  # noqa: PLR0913
     )
 
     # Store the newly generated result in Cache
-    if settings.REDIS_CACHE_ENABLED:
+    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
         await redis_api.store_endpoint_response(
             namespace_prefix="similar_offer",
             request_signature_data=request_signature_data,

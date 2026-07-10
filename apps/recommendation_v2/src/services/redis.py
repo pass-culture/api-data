@@ -181,5 +181,64 @@ class RedisCacheService:
                 extra={"cache_key": cache_key, "error": str(redis_set_error), "traceback": traceback.format_exc()},
             )
 
+    async def mget_cached_values(self, cache_keys: list[str]) -> list[Any | None]:
+        """
+        Retrieves multiple cached values in a single round-trip using Redis MGET.
+
+        Args:
+            cache_keys: List of unique string identifiers to fetch in bulk.
+
+        Returns:
+            list[Any | None]: Parsed JSON objects in the same order as cache_keys.
+                              None is returned for any key that does not exist or on error.
+        """
+        if self.redis_client is None or not cache_keys:
+            return [None] * len(cache_keys)
+
+        try:
+            raw_values = await self.redis_client.mget(cache_keys)
+            return [json.loads(v) if v is not None else None for v in raw_values]
+
+        except Exception as redis_mget_error:
+            logger.warning(
+                "Failed to mget values from Redis",
+                extra={
+                    "keys_count": len(cache_keys),
+                    "error": str(redis_mget_error),
+                    "traceback": traceback.format_exc(),
+                },
+            )
+            return [None] * len(cache_keys)
+
+    async def mset_cached_values(self, key_value_pairs: dict[str, Any], time_to_live_in_seconds: int) -> None:
+        """
+        Serializes and stores multiple values in a single Redis pipeline call.
+
+        MSET natively does not support per-key TTLs, so this method uses a pipeline
+        to issue one SET (with EX) per key — all sent in a single network round-trip.
+
+        Args:
+            key_value_pairs: Mapping of cache key → JSON-serializable value.
+            time_to_live_in_seconds: TTL applied uniformly to every key.
+        """
+        if self.redis_client is None or not key_value_pairs:
+            return
+
+        try:
+            async with self.redis_client.pipeline(transaction=False) as pipe:
+                for key, value in key_value_pairs.items():
+                    pipe.set(name=key, value=json.dumps(value), ex=time_to_live_in_seconds)
+                await pipe.execute()
+
+        except Exception as redis_mset_error:
+            logger.warning(
+                "Failed to mset values in Redis",
+                extra={
+                    "keys_count": len(key_value_pairs),
+                    "error": str(redis_mset_error),
+                    "traceback": traceback.format_exc(),
+                },
+            )
+
 
 redis_cache_service = RedisCacheService()

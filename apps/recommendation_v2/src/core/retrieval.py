@@ -4,25 +4,19 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import settings
 from connectors import graph_api_client
 from connectors import retrieval_api_client
 from connectors.vertex_api import VertexPredictionResult
-from core.geo import calculate_haversine_distance_in_meters
-from core.geo import find_closest_offers_with_h3_index
 from core.user_context import UserContext
 from models.items import NonRecommendableItems
 from schemas.categories import CategoryEnum
 from schemas.categories import SearchGroupNameEnum
 from schemas.categories import SubcategoryEnum
-from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.vertex_prediction_item import RecommendableItem
 from services.logger import logger
 from utils.benchmark import log_execution_time
 
-
-DEFAULT_MAX_DISTANCE_IN_METERS = 100_000
 
 # ISO v1: each retrieval endpoint fetches 150 items; 4 endpoints * 150 = up to 600 items before deduplication.
 PLAYLIST_RECOMMENDATION_RETRIEVAL_SIZE_PER_ENDPOINT = 150
@@ -525,175 +519,3 @@ async def filter_out_already_booked_items(
     )
 
     return unseen_candidate_items
-
-
-async def resolve_closest_venues_from_items(
-    db: AsyncSession, candidate_items: list[RecommendableItem], user_context: UserContext
-) -> list[EnrichedRecommendableOffer]:
-    """
-    Transforms abstract ML 'Items' into physical or digital 'Offers', keeping only the closest one.
-
-    This function acts as a smart spatial funnel. To optimize memory and performance,
-    it splits candidates into two processing routes (Fast-Track vs Database) to avoid
-    loading thousands of duplicate physical offers into RAM.
-
-    Processing Flow:
-    1. Routing: Segregates items into a Fast-Track bucket (digital/single venue) and a SQL bucket (multi-venue).
-    2. Spatial Resolution: Uses PostGIS ROW_NUMBER() over ST_Distance
-        to find the single closest venue for each multi-venue item.
-    3. Merge: Combines both buckets into EnrichedRecommendableOffer objects and sorts by distance.
-
-    Args:
-        db (AsyncSession): The async database session.
-        candidate_items (list[RecommendableItem]): Raw items returned by Vertex AI.
-        user_context (UserContext): Standardized user context (geo, credit, etc.).
-
-    Returns:
-        list[EnrichedRecommendableOffer]: A clean list of fully enriched offers, sorted by distance.
-    """
-
-    if not candidate_items:
-        return []
-
-    # --- 1. FAST-TRACK & DB ROUTING ---
-    fast_track_enriched_offers: list[EnrichedRecommendableOffer] = []
-    multi_venue_item_ids: list[str] = []
-    item_lookup_map: dict[str, RecommendableItem] = {}
-    skipped_no_geo_context = 0
-    skipped_too_far = 0
-
-    for item in candidate_items:
-        # Route A: Fast-Track (Digital or single-venue physical)
-        if not item.is_geolocated or item.total_offers == 1:
-            # Reject physical offers if user has no GPS context
-            if item.is_geolocated and not user_context.is_geolocated:
-                skipped_no_geo_context += 1
-                continue
-
-            calculated_distance = None
-            if item.is_geolocated and user_context.is_geolocated:
-                calculated_distance = calculate_haversine_distance_in_meters(
-                    user_context.latitude,
-                    user_context.longitude,
-                    item.example_venue_latitude,
-                    item.example_venue_longitude,
-                )
-
-                # Reject if beyond default max radius (100km)
-                if calculated_distance is not None and calculated_distance > DEFAULT_MAX_DISTANCE_IN_METERS:
-                    skipped_too_far += 1
-                    continue
-
-            # Instantiate the clean DTO directly from the ML Item
-            enriched_offer = EnrichedRecommendableOffer(
-                offer_id=item.example_offer_id,
-                item_id=item.item_id,
-                offer_creation_date=item.offer_creation_date,
-                stock_beginning_date=item.stock_beginning_date,
-                is_geolocated=item.is_geolocated,
-                venue_latitude=item.example_venue_latitude,
-                venue_longitude=item.example_venue_longitude,
-                offer_user_distance=calculated_distance,
-                item_score=item.item_score,
-                item_rank=item.item_rank,
-                item_origin=item.item_origin,
-                semantic_emb_mean=item.semantic_emb_mean,
-                stock_price=item.stock_price,
-                category=item.category,
-                subcategory_id=item.subcategory_id,
-                search_group_name=item.search_group_name,
-                booking_number=item.booking_number,
-                booking_number_last_7_days=item.booking_number_last_7_days,
-                booking_number_last_14_days=item.booking_number_last_14_days,
-                booking_number_last_28_days=item.booking_number_last_28_days,
-            )
-            fast_track_enriched_offers.append(enriched_offer)
-
-        # Route B: SQL Database Resolution (Multi-venue physical items)
-        elif user_context.is_geolocated:
-            multi_venue_item_ids.append(item.item_id)
-            item_lookup_map[item.item_id] = item
-
-    logger.debug(
-        "🔀 Venue resolution routing.",
-        extra={
-            "candidates_in": len(candidate_items),
-            "fast_track_count": len(fast_track_enriched_offers),
-            "multi_venue_db_count": len(multi_venue_item_ids),
-            "skipped_no_geo_context": skipped_no_geo_context,
-            "skipped_too_far": skipped_too_far,
-        },
-    )
-
-    # --- 2. DATABASE SPATIAL RESOLUTION ---
-    database_resolved_enriched_offers: list[EnrichedRecommendableOffer] = []
-
-    if multi_venue_item_ids:
-        if not user_context.is_geolocated or user_context.latitude is None or user_context.longitude is None:
-            logger.debug(
-                "⏭️ Skipping spatial DB resolution: user has no GPS context.",
-                extra={
-                    "multi_venue_item_count": len(multi_venue_item_ids),
-                    "is_geolocated": user_context.is_geolocated,
-                },
-            )
-            db_rows = []
-        else:
-            logger.debug(
-                "🗺️ Resolving multi-venue items via spatial DB query.",
-                extra={
-                    "multi_venue_item_count": len(multi_venue_item_ids),
-                    "user_lat": user_context.latitude,
-                    "user_lng": user_context.longitude,
-                },
-            )
-            db_rows = await find_closest_offers_with_h3_index(
-                db, multi_venue_item_ids, user_context, resolution=settings.GEOSPATIAL_RETRIEVAL_H3_RESOLUTION
-            )
-
-        # Map SQL results back to Vertex ML data
-        for db_offer, distance in db_rows:
-            item_data = item_lookup_map.get(db_offer.item_id)
-            if not item_data:
-                continue
-
-            enriched_offer = EnrichedRecommendableOffer(
-                offer_id=db_offer.offer_id,
-                item_id=db_offer.item_id,
-                offer_creation_date=db_offer.offer_creation_date,
-                stock_beginning_date=db_offer.stock_beginning_date,
-                is_geolocated=item_data.is_geolocated,
-                venue_latitude=db_offer.venue_latitude,
-                venue_longitude=db_offer.venue_longitude,
-                offer_user_distance=float(distance) if distance is not None else None,
-                item_score=item_data.item_score,
-                item_rank=item_data.item_rank,
-                item_origin=item_data.item_origin,
-                semantic_emb_mean=item_data.semantic_emb_mean,
-                stock_price=item_data.stock_price,
-                category=item_data.category,
-                subcategory_id=item_data.subcategory_id,
-                search_group_name=item_data.search_group_name,
-                booking_number=item_data.booking_number,
-                booking_number_last_7_days=item_data.booking_number_last_7_days,
-                booking_number_last_14_days=item_data.booking_number_last_14_days,
-                booking_number_last_28_days=item_data.booking_number_last_28_days,
-            )
-            database_resolved_enriched_offers.append(enriched_offer)
-
-        logger.debug(
-            "🗺️ Multi-venue items resolved via database spatial query.",
-            extra={
-                "multi_venue_requested": len(multi_venue_item_ids),
-                "db_resolved_count": len(database_resolved_enriched_offers),
-            },
-        )
-
-    # --- 3. MERGE & SORT ---
-    final_resolved_offers = fast_track_enriched_offers + database_resolved_enriched_offers
-
-    final_resolved_offers.sort(
-        key=lambda x: x.offer_user_distance if x.offer_user_distance is not None else float("inf")
-    )
-
-    return final_resolved_offers
