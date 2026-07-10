@@ -7,12 +7,12 @@ from config import settings
 from controllers.pipeline_playlist_recommendation import generate_playlist_recommendations
 from core.diversification import apply_offer_diversification
 from core.geo import get_iris_id_from_coordinates
+from core.offer_resolution import resolve_closest_venues_from_items
 from core.ranking import rank_and_sort_offers_with_vertex
 from core.retrieval import build_similar_offer_retrieval_payload
 from core.retrieval import fetch_graph_predictions_from_vertex
 from core.retrieval import fetch_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
-from core.retrieval import resolve_closest_venues_from_items
 from core.tracking import log_past_offer_context_to_sink
 from core.user_context import UNAUTHENTICATED_USER_ID
 from core.user_context import UserContext

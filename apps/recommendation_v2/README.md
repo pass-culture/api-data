@@ -32,15 +32,15 @@ ty check src
 
 The V2 API operates as a recommendation funnel. It takes millions of potential cultural offers and progressively filters, resolves, scores, and mixes them to return a tailored playlist of up to 60 personalized items.
 
-To drastically decrease repetitive computations and speed up subsequent identical user queries, the API utilizes a **Redis** caching layer that intercepts identical requests, returning the exact playlist directly without hitting the Vertex endpoints again.
+To drastically decrease repetitive computations and speed up subsequent identical user queries, the API utilizes a **Redis** caching layer with two independent strategies: one that intercepts identical HTTP requests and one that avoids redundant spatial SQL queries during offer resolution.
+
+👉 **[Read the full Cache Strategies documentation](docs/cache_strategies.md)**
 
 Here is the step-by-step lifecycle of a single request:
 
 ### 0. ⚡ Cache Interception (`connectors/redis_api.py`)
 * **The Goal:** Provide instant responses for identical repeated queries while ensuring data freshness.
-* **Process:** If enabled, the API generates a unique MD5 signature. To increase hit rates and handle GPS precision jitter, the exact coordinates are normalized into an **H3 index (resolution 5)**. This signature also includes the user ID and query parameters.
-* **Call ID Management:** If a result is returned from cache, a new unique `call_id` is automatically generated and injected into the response. This ensures that every recommendation display remains uniquely identifiable for downstream model retraining, even if the underlying list of offers was cached.
-* **Expiration:** Cached data is dynamically set to expire based on the upcoming database reset cycle (`REDIS_CACHE_RESET_HOUR`).
+* **Process:** Two independent caching strategies are applied at different stages of the pipeline. See **[`docs/cache_strategies.md`](docs/cache_strategies.md)** for a detailed explanation of both strategies, their cache key formats, TTL logic, and configuration flags.
 
 ### 1. 👤 Contextualization (`core/user_context.py`, `core/geo.py`)
 * **The Goal:** Build a snapshot of the user's state at request time.
@@ -146,6 +146,8 @@ make start-redis
 *💡 Note: To actually use the cache in the API, you must also set `REDIS_CACHE_ENABLED=1` in your `.env` file.*
 
 *(You can interact directly with the cache store via `make redis-cli` or flush it via `make reset-redis`)*
+
+👉 **For a full explanation of the caching strategies and their configuration flags, see [`docs/cache_strategies.md`](docs/cache_strategies.md).**
 
 ### 6. Run the API (with Staging Database)
 To develop and test locally using the Staging database, we use an automated SSH tunnel. You have two options depending on your needs:
@@ -270,11 +272,16 @@ Used by the Makefile to establish secure tunnels to the VPC (for DB access).
 | `REMOTE_SQL_PORT` | Port of the remote Postgres instance (e.g., `5432`). |
 
 #### 🗄️ Redis Caching Layer
+
+For a detailed explanation of the caching strategies and all related configuration flags, see **[`docs/cache_strategies.md`](docs/cache_strategies.md)**.
+
 | Variable | Description |
 |----------|-------------|
-| `REDIS_CACHE_ENABLED` | Set to `1` to enable Redis caching, `0` to disable. Default: `0` locally. |
+| `REDIS_CACHE_ENABLED` | Master switch — set to `1` to enable Redis caching, `0` to disable all cache strategies. Default: `0` locally. |
 | `REDIS_URL` | Connection string to the Redis server (e.g., `redis://localhost:6379/0`). |
 | `REDIS_CACHE_RESET_HOUR` | The hour [0-23] at which the cache automatically expires (usually `5` AM). |
+| `ENDPOINT_RESPONSE_CACHE_ENABLED` | Enables the HTTP endpoint response cache. Default: `0` locally. |
+| `OFFER_RESOLUTION_CACHE_ENABLED` | Enables the offer resolution cache (spatial SQL query optimization). Default: `0` locally. |
 
 #### 🛠️ Debugging & Logs
 | Variable | Description |
