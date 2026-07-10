@@ -106,38 +106,6 @@ def _build_playlist_recommendation_search_filters(
     return {"$and": and_conditions}
 
 
-def build_playlist_recommendation_retrieval_payload(
-    user_context: UserContext, call_id: str, params: PlaylistRequestParams
-) -> dict[str, Any]:
-    """
-    Constructs the prediction payload for playlist recommendations.
-    """
-    search_filters = _build_playlist_recommendation_search_filters(user_context, params)
-
-    prediction_payload: dict[str, Any] = {
-        "call_id": call_id,
-        "user_id": user_context.user_id,
-        "params": search_filters,
-        # TODO: Remove this field or rename it in the Vertex API.
-        #  It is currently required, but having a hardcoded "debug" flag in production is confusing.
-        "debug": 1,
-        "prefilter": 1,
-        "size": PLAYLIST_RECOMMENDATION_RETRIEVAL_SIZE_PER_ENDPOINT,
-    }
-
-    if user_context.is_cold_start:
-        prediction_payload["model_type"] = "tops"
-        # TODO find out which vector column(s) fit best for cold start scenario.
-        prediction_payload["vector_column_name"] = (
-            "booking_number_desc"  # "booking_creation_trend_desc", "booking_release_trend_desc"
-        )
-        prediction_payload["re_rank"] = 0
-    else:
-        prediction_payload["model_type"] = "recommendation"
-
-    return prediction_payload
-
-
 # ==============================================================================
 # PLAYLIST RECOMMENDATION — MULTI-ENDPOINT (ISO v1)
 # ==============================================================================
@@ -250,8 +218,17 @@ def build_all_playlist_recommendation_retrieval_payloads(
     Returns all retrieval payloads to be sent to Vertex AI in parallel.
 
     Mirrors the v1 multi-endpoint strategy:
-    - Cold start (no user history): 1 payload  → tops by booking number only.
+    - Cold start (no user history): 3 payloads → tops * 3 (ISO v1: MIX_TOPS).
     - Warm start (user has history): 4 payloads → tops * 3 + personalized recommendation.
+
+    Cold start payload breakdown (each fetches 150 items):
+    ┌───┬────────────────────────────┬────────────────────────────────────┐
+    │ # │ Model Type                 │ vector_column_name                 │
+    ├───┼────────────────────────────┼────────────────────────────────────┤
+    │ 1 │ tops                       │ booking_number_desc                │
+    │ 2 │ tops                       │ booking_release_trend_desc         │
+    │ 3 │ tops                       │ booking_creation_trend_desc        │
+    └───┴────────────────────────────┴────────────────────────────────────┘
 
     Warm start payload breakdown (each fetches 150 items):
     ┌───┬────────────────────────────┬────────────────────────────────────┐
@@ -263,7 +240,7 @@ def build_all_playlist_recommendation_retrieval_payloads(
     │ 4 │ tops                       │ booking_creation_trend_desc        │
     └───┴────────────────────────────┴────────────────────────────────────┘
 
-    Maximum candidate pool before deduplication: 4 * 150 = 600 items.
+    Maximum candidate pool before deduplication: 4 * 150 = 600 items (warm start), 3 * 150 = 450 items (cold start).
 
     Args:
         user_context (UserContext): The contextual data of the current user.
@@ -275,17 +252,21 @@ def build_all_playlist_recommendation_retrieval_payloads(
 
     Example:
         >>> payloads = build_all_playlist_recommendation_retrieval_payloads(user_context, call_id, params)
-        >>> len(payloads)  # 4 for warm start, 1 for cold start
+        >>> len(payloads)  # 4 for warm start, 3 for cold start
         4
     """
-    if user_context.is_cold_start:
-        return [_build_booking_number_tops_retrieval_payload(user_context, call_id, params)]
-
-    return [
-        _build_personalized_recommendation_retrieval_payload(user_context, call_id, params),
+    cold_start_payloads = [
         _build_booking_number_tops_retrieval_payload(user_context, call_id, params),
         _build_release_trend_tops_retrieval_payload(user_context, call_id, params),
         _build_creation_trend_tops_retrieval_payload(user_context, call_id, params),
+    ]
+
+    if user_context.is_cold_start:
+        return cold_start_payloads
+
+    return [
+        _build_personalized_recommendation_retrieval_payload(user_context, call_id, params),
+        *cold_start_payloads,
     ]
 
 

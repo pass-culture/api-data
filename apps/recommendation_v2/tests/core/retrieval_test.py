@@ -5,7 +5,7 @@ import pytest
 
 from core.retrieval import _build_playlist_recommendation_search_filters
 from core.retrieval import _build_similar_offer_search_filters
-from core.retrieval import build_playlist_recommendation_retrieval_payload
+from core.retrieval import build_all_playlist_recommendation_retrieval_payloads
 from core.retrieval import build_similar_offer_retrieval_payload
 from core.retrieval import fetch_all_playlist_recommendation_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
@@ -186,29 +186,63 @@ def test_playlist_filters_adds_non_empty_list_as_in_condition():
 
 
 # ---------------------------------------------------------------------------
-# build_playlist_recommendation_retrieval_payload
+# build_all_playlist_recommendation_retrieval_payloads
 # ---------------------------------------------------------------------------
 
+_COLD_START_PAYLOAD_COUNT = 3
+_WARM_START_PAYLOAD_COUNT = 4
 
-def test_playlist_payload_cold_start_uses_tops_model():
-    """Cold start switches to a popularity-based model and adds vector_column_name and re_rank=0.
 
-    These keys are absent in the warm path; their presence here distinguishes the two branches.
-    """
+def test_cold_start_returns_exactly_3_payloads():
+    """Cold start (ISO v1 MIX_TOPS) must produce 3 tops payloads, not 1."""
     user = UserContext(user_id="u", is_authenticated=False)
-    payload = build_playlist_recommendation_retrieval_payload(user, "call-1", PlaylistRequestParams())
-    assert payload["model_type"] == "tops"
-    assert payload["vector_column_name"] == "booking_number_desc"
-    assert payload["re_rank"] == 0
+    payloads = build_all_playlist_recommendation_retrieval_payloads(user, "call-1", PlaylistRequestParams())
+    assert len(payloads) == _COLD_START_PAYLOAD_COUNT
 
 
-def test_playlist_payload_warm_user_uses_recommendation_model():
-    """Warm users use collaborative filtering; the cold-start-specific keys must be absent from the payload."""
+def test_cold_start_all_payloads_use_tops_model():
+    """All 3 cold start payloads must target the tops model."""
+    user = UserContext(user_id="u", is_authenticated=False)
+    payloads = build_all_playlist_recommendation_retrieval_payloads(user, "call-1", PlaylistRequestParams())
+    assert all(p["model_type"] == "tops" for p in payloads)
+
+
+def test_cold_start_payloads_cover_all_three_vector_columns():
+    """The 3 cold start payloads must cover all 3 popularity signals: booking_number, release_trend, creation_trend."""
+    user = UserContext(user_id="u", is_authenticated=False)
+    payloads = build_all_playlist_recommendation_retrieval_payloads(user, "call-1", PlaylistRequestParams())
+    vector_columns = {p["vector_column_name"] for p in payloads}
+    assert vector_columns == {"booking_number_desc", "booking_release_trend_desc", "booking_creation_trend_desc"}
+
+
+def test_cold_start_payloads_all_have_re_rank_zero():
+    """re_rank must be 0 on every cold start payload."""
+    user = UserContext(user_id="u", is_authenticated=False)
+    payloads = build_all_playlist_recommendation_retrieval_payloads(user, "call-1", PlaylistRequestParams())
+    assert all(p["re_rank"] == 0 for p in payloads)
+
+
+def test_warm_start_returns_exactly_4_payloads():
+    """Warm start must produce 4 payloads: 1 personalized recommendation + 3 tops."""
     user = UserContext(user_id="u", is_authenticated=True, bookings_count=2)
-    payload = build_playlist_recommendation_retrieval_payload(user, "call-1", PlaylistRequestParams())
-    assert payload["model_type"] == "recommendation"
-    assert "vector_column_name" not in payload
-    assert "re_rank" not in payload
+    payloads = build_all_playlist_recommendation_retrieval_payloads(user, "call-1", PlaylistRequestParams())
+    assert len(payloads) == _WARM_START_PAYLOAD_COUNT
+
+
+def test_warm_start_includes_one_personalized_recommendation_payload():
+    """Warm start must include exactly one personalized recommendation payload (model_type='recommendation')."""
+    user = UserContext(user_id="u", is_authenticated=True, bookings_count=2)
+    payloads = build_all_playlist_recommendation_retrieval_payloads(user, "call-1", PlaylistRequestParams())
+    reco_payloads = [p for p in payloads if p["model_type"] == "recommendation"]
+    assert len(reco_payloads) == 1
+
+
+def test_warm_start_includes_three_tops_payloads():
+    """Warm start must include exactly 3 tops payloads alongside the personalized one."""
+    user = UserContext(user_id="u", is_authenticated=True, bookings_count=2)
+    payloads = build_all_playlist_recommendation_retrieval_payloads(user, "call-1", PlaylistRequestParams())
+    tops_payloads = [p for p in payloads if p["model_type"] == "tops"]
+    assert len(tops_payloads) == _COLD_START_PAYLOAD_COUNT
 
 
 # ---------------------------------------------------------------------------
