@@ -65,7 +65,7 @@ jobs:
 
       - name: "Wait for the tunnel to accept connections"
         run: |
-          for i in $(seq 1 30); do
+          for i in $(seq 1 60); do
             if nc -z 127.0.0.1 "$PROXY_PORT" 2>/dev/null; then
               echo "✅ Tunnel listening on 127.0.0.1:$PROXY_PORT after ${i}s"
               exit 0

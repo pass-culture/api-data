@@ -82,14 +82,17 @@ async def generate_similar_offers(  # noqa: PLR0913
     call_id = str(uuid.uuid4())
     call_id_context.set(call_id)
 
-    # 1.1. Fetch the reference offer from the database
-    offer_query_result = await db.execute(select(RecommendableOffers).where(RecommendableOffers.offer_id == offer_id))
+    # 1.1. Fetch the reference offer from the database.
+    # We use .limit(1) because an offer_id can have multiple rows (e.g. different cinema screenings).
+    offer_query_result = await db.execute(
+        select(RecommendableOffers).where(RecommendableOffers.offer_id == offer_id).limit(1)
+    )
     reference_offer = offer_query_result.scalar_one_or_none()
 
     if not reference_offer:
         logger.warning(
             "Offer not found in recommendable offers table. Falling back to 'tops' model.",
-            extra={"offer_id": offer_id, "call_id": call_id},
+            extra={"offer_id": offer_id},
         )
         reference_item_id = None
     else:
@@ -105,7 +108,7 @@ async def generate_similar_offers(  # noqa: PLR0913
         longitude = reference_offer.venue_longitude
         logger.debug(
             "📍 User location missing — falling back to offer's venue location.",
-            extra={"call_id": call_id, "offer_id": offer_id, "latitude": latitude, "longitude": longitude},
+            extra={"offer_id": offer_id, "latitude": latitude, "longitude": longitude},
         )
 
     # 1.3. Build user context (use provided user_id or default to unauthenticated)
@@ -125,7 +128,6 @@ async def generate_similar_offers(  # noqa: PLR0913
     logger.info(
         "🚀 Starting similar_offers pipeline.",
         extra={
-            "call_id": call_id,
             "offer_id": offer_id,
             "item_id": reference_item_id,
             "retrieval_model": retrieval_model,
@@ -141,7 +143,6 @@ async def generate_similar_offers(  # noqa: PLR0913
         "📡 Fetching similar offers from Vertex AI.",
         extra={
             "item_id": reference_item_id,
-            "call_id": call_id,
             "has_filters": any([categories, subcategories, search_group_names]),
         },
     )
@@ -160,19 +161,18 @@ async def generate_similar_offers(  # noqa: PLR0913
 
     logger.info(
         "📦 Raw candidates retrieved from Vertex AI.",
-        extra={"call_id": call_id, "raw_candidate_count": len(vertex_raw_predictions.predictions)},
+        extra={"raw_candidate_count": len(vertex_raw_predictions.predictions)},
     )
 
     # --- 3. Filtering Phase ---
     # Remove already-booked items if the user is authenticated
-    if user_context.is_authenticated and user_context.user_id:
+    if user_context.is_authenticated:
         unbooked_candidate_items = await filter_out_already_booked_items(
             db=db, candidate_items=vertex_raw_predictions.predictions, user_id=user_context.user_id
         )
         logger.info(
             "🚫 Already-booked items filtered out.",
             extra={
-                "call_id": call_id,
                 "before_filter": len(vertex_raw_predictions.predictions),
                 "after_filter": len(unbooked_candidate_items),
                 "filtered_out": len(vertex_raw_predictions.predictions) - len(unbooked_candidate_items),
@@ -180,6 +180,10 @@ async def generate_similar_offers(  # noqa: PLR0913
         )
     else:
         unbooked_candidate_items = vertex_raw_predictions.predictions
+        logger.info(
+            "⏭️ Skipping already-booked filter: user is not authenticated or not in database.",
+            extra={"user_id": effective_user_id},
+        )
 
     # --- 4. Resolution Phase ---
     # Convert abstract items into actionable offers, keeping only the closest venues for physical items
@@ -189,7 +193,7 @@ async def generate_similar_offers(  # noqa: PLR0913
 
     logger.info(
         "📍 Offers resolved from items (venue proximity applied).",
-        extra={"call_id": call_id, "resolved_offers_count": len(resolved_offers)},
+        extra={"resolved_offers_count": len(resolved_offers)},
     )
 
     # --- 5. Ranking Phase ---
@@ -198,7 +202,7 @@ async def generate_similar_offers(  # noqa: PLR0913
 
     logger.info(
         "🏆 Offers ranked by Vertex AI scoring model.",
-        extra={"call_id": call_id, "ranked_offers_count": len(ranked_offers)},
+        extra={"ranked_offers_count": len(ranked_offers)},
     )
 
     # --- 6. Diversification & Truncation Phase ---
@@ -211,7 +215,6 @@ async def generate_similar_offers(  # noqa: PLR0913
     logger.info(
         "🎨 Diversification applied — final similar offers list ready.",
         extra={
-            "call_id": call_id,
             "after_diversification": len(diversified_offers),
             "final_list_size": len(final_similar_offers),
         },
@@ -226,7 +229,6 @@ async def generate_similar_offers(  # noqa: PLR0913
             "⚠️ No similar offers found with coreservation model. Falling back to standard recommendation pipeline.",
             extra={
                 "offer_id": offer_id,
-                "call_id": call_id,
                 "latitude": latitude,
                 "longitude": longitude,
                 "categories": categories,
@@ -250,7 +252,6 @@ async def generate_similar_offers(  # noqa: PLR0913
         logger.info(
             "↩️ Fallback to playlist_recommendation pipeline completed.",
             extra={
-                "call_id": call_id,
                 "fallback_call_id": fallback_response.params.call_id,
                 "fallback_results_count": len(
                     fallback_response.playlist_recommended_offers[:SIMILAR_OFFERS_LIST_MAXIMUM_SIZE]
