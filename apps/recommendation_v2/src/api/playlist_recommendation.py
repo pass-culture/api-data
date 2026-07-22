@@ -9,9 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
 from connectors.redis_api import redis_api
-from controllers.pipeline_playlist_recommendation import generate_playlist_recommendations
 from schemas.location import LocationParams
 from schemas.playlist_recommendation import PlaylistRequestParams
+from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.playlist_recommendation import RecommendationResponse
 from services.db import get_database_session
 from services.h3 import get_h3_index_from_coordinates
@@ -110,30 +110,40 @@ async def get_playlist(
             return cached_playlist_result
 
     logger.info(
-        "🔍 Cache MISS — running full playlist_recommendation pipeline.",
-        extra={"user_id": user_id},
+        "⚠️ Migrating PostgreSQL : Returning empty playlist_recommendation response for now (pipeline is disabled).",
     )
 
-    # Delegate the heavy lifting to the core orchestration pipeline
-    result = await generate_playlist_recommendations(
-        db=db, user_id=user_id, latitude=latitude, longitude=longitude, params=params
+    return RecommendationResponse(
+        playlist_recommended_offers=[],
+        params=RecommendationMetadata(
+            call_id=str(uuid.uuid4()),
+            unique_call_id=str(uuid.uuid4()),
+            model_origin="pipeline_disabled",
+            reco_origin="pipeline_disabled",
+        ),
+        from_cache=False,
     )
 
-    # Store the newly generated result in Cache
-    if settings.REDIS_CACHE_ENABLED:
-        await redis_api.store_endpoint_response(
-            namespace_prefix="playlist_recommendation",
-            request_signature_data=request_signature_data,
-            response_model_instance=result,
-        )
+    # # Delegate the heavy lifting to the core orchestration pipeline
+    # result = await generate_playlist_recommendations(
+    #     db=db, user_id=user_id, latitude=latitude, longitude=longitude, params=params
+    # )
 
-    logger.info(
-        "✅ playlist_recommendation pipeline completed.",
-        extra={
-            "user_id": user_id,
-            "reco_origin": result.params.reco_origin,
-            "playlist_size": len(result.playlist_recommended_offers),
-        },
-    )
+    # # Store the newly generated result in Cache
+    # if settings.REDIS_CACHE_ENABLED:
+    #     await redis_api.store_endpoint_response(
+    #         namespace_prefix="playlist_recommendation",
+    #         request_signature_data=request_signature_data,
+    #         response_model_instance=result,
+    #     )
 
-    return result
+    # logger.info(
+    #     "✅ playlist_recommendation pipeline completed.",
+    #     extra={
+    #         "user_id": user_id,
+    #         "reco_origin": result.params.reco_origin,
+    #         "playlist_size": len(result.playlist_recommended_offers),
+    #     },
+    # )
+
+    # return result

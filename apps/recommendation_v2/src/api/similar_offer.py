@@ -9,11 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
 from connectors.redis_api import redis_api
-from controllers.pipeline_similar_offer import generate_similar_offers
 from schemas.categories import CategoryEnum
 from schemas.categories import SearchGroupNameEnum
 from schemas.categories import SubcategoryEnum
 from schemas.location import LocationParams
+from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.similar_offer import SimilarOfferModelChoices
 from schemas.similar_offer import SimilarOfferResponse
 from services.db import get_database_session
@@ -144,34 +144,48 @@ async def get_similar_offers(  # noqa: PLR0913
         extra={"offer_id": offer_id, "retrieval_model": retrieval_model},
     )
 
-    # Delegate the heavy lifting to the core orchestration pipeline
-    result = await generate_similar_offers(
-        db=db,
-        offer_id=offer_id,
-        user_id=user_id,
-        categories=categories,
-        subcategories=subcategories,
-        search_group_names=search_group_names,
-        latitude=latitude,
-        longitude=longitude,
-        retrieval_model=retrieval_model,
-    )
-
-    # Store the newly generated result in Cache
-    if settings.REDIS_CACHE_ENABLED:
-        await redis_api.store_endpoint_response(
-            namespace_prefix="similar_offer",
-            request_signature_data=request_signature_data,
-            response_model_instance=result,
-        )
-
     logger.info(
-        "✅ similar_offers pipeline completed.",
-        extra={
-            "offer_id": offer_id,
-            "reco_origin": result.params.reco_origin,
-            "results_count": len(result.results),
-        },
+        "Migrating PostgreSQL : Returning empty similar_offers response for now (pipeline is disabled).",
+    )
+    return SimilarOfferResponse(
+        results=[],
+        params=RecommendationMetadata(
+            reco_origin="pipeline_disabled",
+            model_origin="pipeline_disabled",
+            call_id=str(uuid.uuid4()),
+            unique_call_id=str(uuid.uuid4()),
+        ),
+        from_cache=False,
     )
 
-    return result
+    # # Delegate the heavy lifting to the core orchestration pipeline
+    # result = await generate_similar_offers(
+    #     db=db,
+    #     offer_id=offer_id,
+    #     user_id=user_id,
+    #     categories=categories,
+    #     subcategories=subcategories,
+    #     search_group_names=search_group_names,
+    #     latitude=latitude,
+    #     longitude=longitude,
+    #     retrieval_model=retrieval_model,
+    # )
+
+    # # Store the newly generated result in Cache
+    # if settings.REDIS_CACHE_ENABLED:
+    #     await redis_api.store_endpoint_response(
+    #         namespace_prefix="similar_offer",
+    #         request_signature_data=request_signature_data,
+    #         response_model_instance=result,
+    #     )
+
+    # logger.info(
+    #     "✅ similar_offers pipeline completed.",
+    #     extra={
+    #         "offer_id": offer_id,
+    #         "reco_origin": result.params.reco_origin,
+    #         "results_count": len(result.results),
+    #     },
+    # )
+
+    # return result

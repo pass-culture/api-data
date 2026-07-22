@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter
@@ -5,7 +6,7 @@ from fastapi import Depends
 from fastapi import Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from controllers.pipeline_similar_artists import get_similar_artists_from_db
+from schemas.similar_artists import SimilarArtistsParams
 from schemas.similar_artists import SimilarArtistsResponse
 from services.db import get_database_session
 from services.logger import logger
@@ -30,13 +31,22 @@ async def get_similar_artists(
     ],
 ) -> SimilarArtistsResponse:
     logger.info("📥 Incoming similar_artists request.", extra={"artist_id": artist_id})
-    result = await get_similar_artists_from_db(db=db, artist_id=artist_id)
+
     logger.info(
-        "✅ similar_artists request completed.",
-        extra={
-            "artist_id": artist_id,
-            "call_id": result.params.call_id,
-            "similar_artists_count": len(result.similar_artists),
-        },
+        "⚠️ Migrating PostgreSQL : Returning empty similar_artists response for now (pipeline is disabled).",
     )
-    return result
+    return SimilarArtistsResponse(
+        similar_artists=[],
+        params=SimilarArtistsParams(artist_id=artist_id, call_id=str(uuid.uuid4())),
+    )
+
+    # result = await get_similar_artists_from_db(db=db, artist_id=artist_id)
+    # logger.info(
+    #     "✅ similar_artists request completed.",
+    #     extra={
+    #         "artist_id": artist_id,
+    #         "call_id": result.params.call_id,
+    #         "similar_artists_count": len(result.similar_artists),
+    #     },
+    # )
+    # return result
