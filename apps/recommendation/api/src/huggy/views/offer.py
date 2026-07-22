@@ -4,10 +4,6 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import huggy.schemas.playlist_params as p
-from huggy.core.model_engine.factory import ModelEngineFactory, ModelEngineOut
-from huggy.crud.offer import Offer
-from huggy.crud.user import UserContextDB
 from huggy.database.session import get_db
 from huggy.schemas.model_selection.model_configuration import RetrievalModelChoices
 from huggy.views.common import check_token, get_call_id, setup_trace
@@ -34,38 +30,12 @@ async def get_similar_offers(
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):
-    playlist_params = p.GetSimilarOfferPlaylistParams(
-        user_id=user_id,
-        categories=categories,
-        subcategories=subcategories,
-        search_group_names=search_group_names,
-        input_offers=[offer_id],
-        retrieval_model=retrieval_model,
-    )
-    user = await UserContextDB().get_user_context(
-        db, playlist_params.user_id, latitude, longitude
-    )
-    input_offers = await Offer().parse_offer_list(db, playlist_params.input_offers)
-
-    use_fallback = (
-        retrieval_model == RetrievalModelChoices.CORESERVATION
-    )  # Dirt but we will move this to api v2
-    model_engine_out: ModelEngineOut = await ModelEngineFactory.handle_prediction(
-        db,
-        user=user,
-        params_in=playlist_params,
-        call_id=call_id,
-        context="similar_offer",
-        input_offers=input_offers,
-        use_fallback=use_fallback,
-    )
-
     return jsonable_encoder(
         {
-            "results": model_engine_out.results,
+            "results": [],
             "params": {
-                "reco_origin": model_engine_out.model.reco_origin,
-                "model_origin": model_engine_out.model.model_origin,
+                "reco_origin": None,
+                "model_origin": None,
                 "call_id": call_id,
             },
         }

@@ -5,9 +5,6 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import huggy.schemas.playlist_params as p
-from huggy.core.model_engine.factory import ModelEngineFactory, ModelEngineOut
-from huggy.crud.offer import Offer
-from huggy.crud.user import UserContextDB
 from huggy.database.session import get_db
 from huggy.views.common import check_token, get_call_id, setup_trace
 
@@ -28,28 +25,12 @@ async def playlist_recommendation(
     db: AsyncSession = Depends(get_db),
     call_id: str = Depends(get_call_id),
 ):
-    # legacy: force modelEndpoint input
-    playlist_params.add_model_endpoint(modelEndpoint)
-
-    user = await UserContextDB().get_user_context(db, user_id, latitude, longitude)
-    input_offers = await Offer.parse_offer_list(db, playlist_params.input_offers)
-
-    model_engine_out: ModelEngineOut = await ModelEngineFactory.handle_prediction(
-        db,
-        user=user,
-        params_in=playlist_params,
-        call_id=call_id,
-        context="recommendation",
-        input_offers=input_offers,
-        use_fallback=True,
-    )
-
     return jsonable_encoder(
         {
-            "playlist_recommended_offers": model_engine_out.results,
+            "playlist_recommended_offers": [],
             "params": {
-                "reco_origin": model_engine_out.model.reco_origin,
-                "model_origin": model_engine_out.model.model_origin,
+                "reco_origin": None,
+                "model_origin": None,
                 "call_id": call_id,
             },
         }
