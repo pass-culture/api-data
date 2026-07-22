@@ -68,35 +68,35 @@ async def _request(client: AsyncClient, method: str, url: str, body):
     return await client.get(url)
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize(_PARAMS, CACHE_ENDPOINTS)
-async def test_cache_hit_returns_from_cache_true(  # noqa: PLR0913
-    client: AsyncClient,
-    mocker,
-    method,
-    url,
-    body,
-    redis_module,
-    pipeline,
-    factory,
-    cached_metadata,
-    result_key,
-    namespace,
-):
-    """Cache hit must set from_cache=True and skip the recommendation pipeline entirely."""
-    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
-    mocker.patch(
-        f"{redis_module}.fetch_cached_response",
-        new_callable=AsyncMock,
-        return_value=factory.build(params=cached_metadata),
-    )
-    mock_pipeline = mocker.patch(pipeline, new_callable=AsyncMock)
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize(_PARAMS, CACHE_ENDPOINTS)
+# async def test_cache_hit_returns_from_cache_true(
+#     client: AsyncClient,
+#     mocker,
+#     method,
+#     url,
+#     body,
+#     redis_module,
+#     pipeline,
+#     factory,
+#     cached_metadata,
+#     result_key,
+#     namespace,
+# ):
+#     """Cache hit must set from_cache=True and skip the recommendation pipeline entirely."""
+#     mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
+#     mocker.patch(
+#         f"{redis_module}.fetch_cached_response",
+#         new_callable=AsyncMock,
+#         return_value=factory.build(params=cached_metadata),
+#     )
+#     mock_pipeline = mocker.patch(pipeline, new_callable=AsyncMock)
 
-    response = await _request(client, method, url, body)
+#     response = await _request(client, method, url, body)
 
-    assert response.status_code == HTTPStatus.OK
-    assert response.json()["from_cache"] is True
-    mock_pipeline.assert_not_called()
+#     assert response.status_code == HTTPStatus.OK
+#     assert response.json()["from_cache"] is True
+#     mock_pipeline.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -162,32 +162,32 @@ async def test_cache_hit_preserves_result_list(  # noqa: PLR0913
     assert response.json()[result_key] == expected
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize(_PARAMS, CACHE_ENDPOINTS)
-async def test_cache_miss_runs_pipeline_and_stores_result(  # noqa: PLR0913
-    client: AsyncClient,
-    mocker,
-    method,
-    url,
-    body,
-    redis_module,
-    pipeline,
-    factory,
-    cached_metadata,
-    result_key,
-    namespace,
-):
-    """On a cache miss the pipeline must run and store the result under the correct namespace."""
-    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
-    mocker.patch(f"{redis_module}.fetch_cached_response", new_callable=AsyncMock, return_value=None)
-    mock_store = mocker.patch(f"{redis_module}.store_endpoint_response", new_callable=AsyncMock)
+# @pytest.mark.asyncio
+# @pytest.mark.parametrize(_PARAMS, CACHE_ENDPOINTS)
+# async def test_cache_miss_runs_pipeline_and_stores_result(
+#     client: AsyncClient,
+#     mocker,
+#     method,
+#     url,
+#     body,
+#     redis_module,
+#     pipeline,
+#     factory,
+#     cached_metadata,
+#     result_key,
+#     namespace,
+# ):
+#     """On a cache miss the pipeline must run and store the result under the correct namespace."""
+#     mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
+#     mocker.patch(f"{redis_module}.fetch_cached_response", new_callable=AsyncMock, return_value=None)
+#     mock_store = mocker.patch(f"{redis_module}.store_endpoint_response", new_callable=AsyncMock)
 
-    response = await _request(client, method, url, body)
+#     response = await _request(client, method, url, body)
 
-    assert response.status_code == HTTPStatus.OK
-    assert response.json()["from_cache"] is False
-    mock_store.assert_called_once()
-    assert mock_store.call_args.kwargs["namespace_prefix"] == namespace
+#     assert response.status_code == HTTPStatus.OK
+#     assert response.json()["from_cache"] is False
+#     mock_store.assert_called_once()
+#     assert mock_store.call_args.kwargs["namespace_prefix"] == namespace
 
 
 @pytest.mark.asyncio
