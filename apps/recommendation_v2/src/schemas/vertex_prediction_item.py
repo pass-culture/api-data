@@ -25,6 +25,7 @@ class RecommendableItem(BaseModel):
     # --- Core Identifiers ---
     item_id: str
     item_origin: ItemOrigin
+    reco_type: str | None
 
     # --- ML & Ranking Scores ---
     item_rank: int

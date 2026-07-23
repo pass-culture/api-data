@@ -7,6 +7,7 @@ from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.playlist_recommendation import RecommendationResponse
 from schemas.similar_offer import SimilarOfferModelChoices
 from schemas.similar_offer import SimilarOfferResponse
+from schemas.vertex_prediction_item import ItemOrigin
 
 from tests.factories.models import EnrichedUserFactory
 from tests.factories.models import NonRecommendableItemsFactory
@@ -35,7 +36,8 @@ def _make_enriched_offer(
         offer_user_distance=None,
         item_score=item_score,
         item_rank=1,
-        item_origin="default",
+        item_origin=ItemOrigin.TOPS,
+        reco_type=None,
         semantic_emb_mean=None,
         stock_price=0.0,
         category="LIVRES_PAPIER",

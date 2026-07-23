@@ -13,6 +13,7 @@ from schemas.playlist_recommendation import RecommendationResponse
 from schemas.playlist_recommendation import SearchGroupNameEnum
 from schemas.playlist_recommendation import SubcategoryEnum
 from schemas.similar_offer import SimilarOfferResponse
+from schemas.vertex_prediction_item import ItemOrigin
 from schemas.vertex_prediction_item import RecommendableItem
 
 
@@ -38,6 +39,7 @@ class EnrichedRecommendableOfferFactory(DataclassFactory[EnrichedRecommendableOf
     category = Use(lambda: random.choice(list(CategoryEnum)).value)
     subcategory_id = Use(lambda: random.choice(list(SubcategoryEnum)).value)
     search_group_name = Use(lambda: random.choice(list(SearchGroupNameEnum)).value)
+    item_origin = Use(lambda: random.choice(list(ItemOrigin)).value)
 
 
 class UserContextFactory(DataclassFactory[UserContext]):

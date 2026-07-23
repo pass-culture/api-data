@@ -7,6 +7,7 @@ from controllers.pipeline_playlist_recommendation import generate_playlist_recom
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.playlist_recommendation import RecommendationResponse
+from schemas.vertex_prediction_item import ItemOrigin
 from utils.location_presets import PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING
 from utils.location_presets import PresetLocation
 
@@ -47,7 +48,8 @@ def _make_enriched_offer(
         offer_user_distance=None,
         item_score=item_score,
         item_rank=1,
-        item_origin="default",
+        item_origin=ItemOrigin.TOPS,
+        reco_type=None,
         semantic_emb_mean=None,
         stock_price=0.0,
         category="LIVRES_PAPIER",
