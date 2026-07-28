@@ -21,6 +21,7 @@ from testcontainers.redis import RedisContainer
 from config import settings
 from connectors.vertex_api import RankingPredictionResult
 from connectors.vertex_api import VertexAPI
+from core.retrieval import AggregatedRetrievalResult
 from main import app
 from models.base import Base
 from services.db import get_database_session
@@ -178,8 +179,10 @@ def mock_vertex_retrieval(mocker):
         "controllers.pipeline_similar_offer.fetch_graph_predictions_from_vertex",
         new_callable=mocker.AsyncMock,
     )
-    mock_retrieval_playlist.return_value = RetrievalPredictionResultFactory.build(
-        predictions=RecommendableItemFactory.batch(10)
+    items = RecommendableItemFactory.batch(10)
+    mock_retrieval_playlist.return_value = AggregatedRetrievalResult(
+        predictions=items,
+        calls=[RetrievalPredictionResultFactory.build(predictions=items)],
     )
     mock_retrieval_similar.return_value = RetrievalPredictionResultFactory.build()
     mock_retrieval_graph.return_value = RetrievalPredictionResultFactory.build()

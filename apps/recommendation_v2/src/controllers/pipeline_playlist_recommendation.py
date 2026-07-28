@@ -101,15 +101,14 @@ async def generate_playlist_recommendations(
         retrieval_payloads=retrieval_payloads
     )
     raw_candidate_items = raw_retrieval_result.predictions
-    retrieval_model_version = raw_retrieval_result.model_version
-    retrieval_model_display_name = raw_retrieval_result.model_display_name
 
     logger.info(
         "📦 Raw candidates retrieved from Vertex AI.",
         extra={
             "raw_candidate_count": len(raw_candidate_items),
-            "retrieval_model_version": retrieval_model_version,
-            "retrieval_model_display_name": retrieval_model_display_name,
+            "retrieval_calls": [
+                {"endpoint_name": c.endpoint_name, "model_version": c.model_version} for c in raw_retrieval_result.calls
+            ],
         },
     )
     # --- 3. Filtering Phase & Resolution ---
@@ -175,11 +174,14 @@ async def generate_playlist_recommendations(
         recommendation_origin = "cold_start" if user_context.is_cold_start else "algo"
 
     scorer = TrackingScorerInfo(
-        retrievals=TrackingModelInfo(
-            endpoint_name=raw_retrieval_result.endpoint_name,
-            model_version=raw_retrieval_result.model_version,
-            model_display_name=raw_retrieval_result.model_display_name,
-        ),
+        retrievals=[
+            TrackingModelInfo(
+                endpoint_name=call.endpoint_name,
+                model_version=call.model_version,
+                model_display_name=call.model_display_name,
+            )
+            for call in raw_retrieval_result.calls
+        ],
         ranking=TrackingModelInfo(
             endpoint_name=ranking_result.endpoint_name,
             model_version=ranking_result.model_version,

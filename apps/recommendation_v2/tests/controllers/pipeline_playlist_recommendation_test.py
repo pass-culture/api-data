@@ -6,6 +6,7 @@ from connectors.vertex_api import RankingPredictionResult
 from connectors.vertex_api import RetrievalPredictionResult
 from controllers.pipeline_playlist_recommendation import PLAYLIST_RECOMMENDATION_MAXIMUM_SIZE
 from controllers.pipeline_playlist_recommendation import generate_playlist_recommendations
+from core.retrieval import AggregatedRetrievalResult
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.playlist_recommendation import RecommendationResponse
@@ -88,7 +89,9 @@ async def test_pipeline_generates_successful_playlist_for_geolocated_user(
         for i in range(50)
     ]
 
-    mock_vertex_retrieval[0].return_value = RetrievalPredictionResult(status="success", predictions=digital_items)
+    mock_vertex_retrieval[0].return_value = AggregatedRetrievalResult(
+        predictions=digital_items, calls=[RetrievalPredictionResult(status="success")]
+    )
     mock_vertex_ranking[0].side_effect = lambda offers, _ctx: RankingPredictionResult(status="success", offers=offers)
     mock_tracking = mocker.patch("controllers.pipeline_playlist_recommendation.log_past_offer_context_to_sink")
 
@@ -149,8 +152,8 @@ async def test_pipeline_generates_successful_playlist_without_gps(
         example_venue_longitude=2.3522,
     )
 
-    mock_vertex_retrieval[0].return_value = RetrievalPredictionResult(
-        status="success", predictions=[*digital_items, geolocated_item]
+    mock_vertex_retrieval[0].return_value = AggregatedRetrievalResult(
+        predictions=[*digital_items, geolocated_item], calls=[RetrievalPredictionResult(status="success")]
     )
     mock_vertex_ranking[0].side_effect = lambda offers, _ctx: RankingPredictionResult(status="success", offers=offers)
     mocker.patch("controllers.pipeline_playlist_recommendation.log_past_offer_context_to_sink")
@@ -197,8 +200,8 @@ async def test_pipeline_filters_out_already_booked_items(
     item_b = RecommendableItemFactory.build(item_id="item-B", is_geolocated=False, total_offers=1)
     item_c = RecommendableItemFactory.build(item_id="item-C", is_geolocated=False, total_offers=1)
 
-    mock_vertex_retrieval[0].return_value = RetrievalPredictionResult(
-        status="success", predictions=[item_a, item_b, item_c]
+    mock_vertex_retrieval[0].return_value = AggregatedRetrievalResult(
+        predictions=[item_a, item_b, item_c], calls=[RetrievalPredictionResult(status="success")]
     )
 
     await NonRecommendableItemsFactory.create_async(
@@ -338,8 +341,8 @@ async def test_pipeline_handles_venues_out_of_range(
         total_offers=3,
     )
 
-    mock_vertex_retrieval[0].return_value = RetrievalPredictionResult(
-        status="success", predictions=[item_close, item_far, item_multi]
+    mock_vertex_retrieval[0].return_value = AggregatedRetrievalResult(
+        predictions=[item_close, item_far, item_multi], calls=[RetrievalPredictionResult(status="success")]
     )
     mock_vertex_ranking[0].side_effect = lambda offers, _ctx: RankingPredictionResult(status="success", offers=offers)
     mocker.patch("controllers.pipeline_playlist_recommendation.log_past_offer_context_to_sink")
@@ -397,7 +400,9 @@ async def test_pipeline_applies_diversification_correctly(
     ]
     all_offers = music_offers + other_offers
 
-    mock_vertex_retrieval[0].return_value = RetrievalPredictionResult(status="success", predictions=[])
+    mock_vertex_retrieval[0].return_value = AggregatedRetrievalResult(
+        predictions=[], calls=[RetrievalPredictionResult(status="success")]
+    )
     mocker.patch(
         "controllers.pipeline_playlist_recommendation.resolve_closest_venues_from_items",
         new_callable=mocker.AsyncMock,
@@ -444,7 +449,9 @@ async def test_pipeline_handles_new_user_cold_start(
     cold_start_user = await EnrichedUserFactory.create_cold_start()
 
     cold_start_items = [RecommendableItemFactory.build(is_geolocated=False, total_offers=1) for _ in range(5)]
-    mock_vertex_retrieval[0].return_value = RetrievalPredictionResult(status="success", predictions=cold_start_items)
+    mock_vertex_retrieval[0].return_value = AggregatedRetrievalResult(
+        predictions=cold_start_items, calls=[RetrievalPredictionResult(status="success")]
+    )
 
     resolved_offers = [_make_enriched_offer(str(i)) for i in range(5)]
     mocker.patch(
@@ -485,7 +492,9 @@ async def test_pipeline_handles_empty_retrieval_from_vertex(
     """
     user = await EnrichedUserFactory.create_warm()
 
-    mock_vertex_retrieval[0].return_value = RetrievalPredictionResult(status="success", predictions=[])
+    mock_vertex_retrieval[0].return_value = AggregatedRetrievalResult(
+        predictions=[], calls=[RetrievalPredictionResult(status="success")]
+    )
     mocker.patch("controllers.pipeline_playlist_recommendation.log_past_offer_context_to_sink")
 
     response = await generate_playlist_recommendations(
@@ -524,8 +533,8 @@ async def test_pipeline_skips_tracking_for_unauthenticated_user(
     unknown_user_id = "non-existent-user-id-99999"
 
     unauthenticated_items = [RecommendableItemFactory.build(is_geolocated=False, total_offers=1) for _ in range(5)]
-    mock_vertex_retrieval[0].return_value = RetrievalPredictionResult(
-        status="success", predictions=unauthenticated_items
+    mock_vertex_retrieval[0].return_value = AggregatedRetrievalResult(
+        predictions=unauthenticated_items, calls=[RetrievalPredictionResult(status="success")]
     )
     mock_vertex_ranking[0].side_effect = lambda offers, _ctx: RankingPredictionResult(status="success", offers=offers)
     mock_tracking = mocker.patch("controllers.pipeline_playlist_recommendation.log_past_offer_context_to_sink")

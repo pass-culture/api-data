@@ -1,4 +1,6 @@
 import asyncio
+from dataclasses import dataclass
+from dataclasses import field
 from typing import Any
 
 from sqlalchemy import select
@@ -29,6 +31,20 @@ PLAYLIST_RECOMMENDATION_RETRIEVAL_SIZE_PER_ENDPOINT = 150
 
 # ISO v1: OfferRetrievalEndpoint uses size=100.
 SIMILAR_OFFER_RETRIEVAL_SIZE = 100
+
+
+@dataclass
+class AggregatedRetrievalResult:
+    """
+    Result from all parallel Vertex retrieval calls for the playlist pipeline.
+
+    Carries both the merged deduplicated predictions and the individual per-call
+    results so that each call's exact metadata (endpoint, model version) is
+    available for tracking — even when calls target different endpoints.
+    """
+
+    predictions: list[RecommendableItem] = field(default_factory=list)
+    calls: list[RetrievalPredictionResult] = field(default_factory=list)
 
 
 # ==============================================================================
@@ -324,7 +340,7 @@ def deduplicate_candidate_items_by_item_id(
 @log_execution_time
 async def fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
     retrieval_payloads: list[dict[str, Any]],
-) -> RetrievalPredictionResult:
+) -> AggregatedRetrievalResult:
     """
     Fetches candidate items from all retrieval payloads concurrently, then deduplicates the results.
 
@@ -337,8 +353,9 @@ async def fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
             as returned by build_all_playlist_recommendation_retrieval_payloads.
 
     Returns:
-        RetrievalPredictionResult: A flat, deduplicated list of candidate items from all endpoints,
-            along with the Vertex model version used.
+        AggregatedRetrievalResult: The merged deduplicated predictions plus the individual per-call
+            results (each with their own endpoint metadata), so the controller can accurately
+            attribute the correct model info to each retrieval call in the tracking payload.
 
     Example (warm start, 4 payloads):
         Each endpoint returns up to 150 items → up to 600 raw items → deduplicated output.
@@ -348,18 +365,8 @@ async def fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
     )
 
     all_candidate_items: list[RecommendableItem] = []
-    endpoint_name = "unknown"
-    model_version = "unknown"
-    model_display_name = "unknown"
     for result in parallel_results:
         all_candidate_items.extend(result.predictions)
-        # Keep the first non-"unknown" values across all parallel calls
-        if endpoint_name == "unknown" and result.endpoint_name not in ("unknown", ""):
-            endpoint_name = result.endpoint_name
-        if model_version == "unknown" and result.model_version not in ("unknown", ""):
-            model_version = result.model_version
-        if model_display_name == "unknown" and result.model_display_name not in ("unknown", ""):
-            model_display_name = result.model_display_name
 
     deduplicated = deduplicate_candidate_items_by_item_id(all_candidate_items)
 
@@ -370,18 +377,19 @@ async def fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
             "raw_total": len(all_candidate_items),
             "after_dedup": len(deduplicated),
             "duplicates_removed": len(all_candidate_items) - len(deduplicated),
-            "endpoint_name": endpoint_name,
-            "model_version": model_version,
-            "model_display_name": model_display_name,
+            "calls": [
+                {
+                    "endpoint_name": r.endpoint_name,
+                    "model_version": r.model_version,
+                }
+                for r in parallel_results
+            ],
         },
     )
 
-    return RetrievalPredictionResult(
-        status="success",
+    return AggregatedRetrievalResult(
         predictions=deduplicated,
-        endpoint_name=endpoint_name,
-        model_version=model_version,
-        model_display_name=model_display_name,
+        calls=list(parallel_results),
     )
 
 

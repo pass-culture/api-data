@@ -278,11 +278,13 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
     recommendation_origin = "similar_offer" if retrieval_model == SimilarOfferModelChoices.coreservation else "graph"
 
     scorer = TrackingScorerInfo(
-        retrievals=TrackingModelInfo(
-            endpoint_name=vertex_raw_predictions.endpoint_name,
-            model_version=vertex_raw_predictions.model_version,
-            model_display_name=vertex_raw_predictions.model_display_name,
-        ),
+        retrievals=[
+            TrackingModelInfo(
+                endpoint_name=vertex_raw_predictions.endpoint_name,
+                model_version=vertex_raw_predictions.model_version,
+                model_display_name=vertex_raw_predictions.model_display_name,
+            )
+        ],
         ranking=TrackingModelInfo(
             endpoint_name=ranking_result.endpoint_name,
             model_version=ranking_result.model_version,

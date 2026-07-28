@@ -26,7 +26,7 @@ class TrackingModelInfo(BaseModel):
 class TrackingScorerInfo(BaseModel):
     """Aggregated model info for all scoring steps: retrieval and ranking."""
 
-    retrievals: TrackingModelInfo
+    retrievals: list[TrackingModelInfo]
     ranking: TrackingModelInfo
 
 
