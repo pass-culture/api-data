@@ -1,5 +1,6 @@
 import pytest
 
+from connectors.vertex_api import RankingPredictionResult
 from controllers.pipeline_similar_offer import SIMILAR_OFFERS_LIST_MAXIMUM_SIZE
 from controllers.pipeline_similar_offer import generate_similar_offers
 from schemas.enriched_offer import EnrichedRecommendableOffer
@@ -12,7 +13,7 @@ from tests.factories.models import EnrichedUserFactory
 from tests.factories.models import NonRecommendableItemsFactory
 from tests.factories.models import RecommendableOffersFactory
 from tests.factories.schemas import RecommendableItemFactory
-from tests.factories.schemas import VertexPredictionResultFactory
+from tests.factories.schemas import RetrievalPredictionResultFactory
 
 
 PARIS_LATITUDE = 48.8566
@@ -73,8 +74,8 @@ async def test_similar_offer_returns_successful_response(
         for i in range(20)
     ]
 
-    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(predictions=digital_items)
-    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: offers
+    mock_vertex_retrieval[1].return_value = RetrievalPredictionResultFactory.build(predictions=digital_items)
+    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: RankingPredictionResult(status="success", offers=offers)
     mocker.patch("controllers.pipeline_similar_offer.log_past_offer_context_to_sink")
 
     response = await generate_similar_offers(
@@ -103,8 +104,8 @@ async def test_similar_offer_handles_unknown_offer_id(
     """
     digital_items = [RecommendableItemFactory.build(is_geolocated=False, total_offers=1) for _ in range(5)]
 
-    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(predictions=digital_items)
-    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: offers
+    mock_vertex_retrieval[1].return_value = RetrievalPredictionResultFactory.build(predictions=digital_items)
+    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: RankingPredictionResult(status="success", offers=offers)
     mocker.patch("controllers.pipeline_similar_offer.log_past_offer_context_to_sink")
 
     response = await generate_similar_offers(
@@ -142,7 +143,7 @@ async def test_similar_offer_filters_out_already_booked_items(
     item_b = RecommendableItemFactory.build(item_id="item-B", is_geolocated=False, total_offers=1)
     item_c = RecommendableItemFactory.build(item_id="item-C", is_geolocated=False, total_offers=1)
 
-    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(predictions=[item_a, item_b, item_c])
+    mock_vertex_retrieval[1].return_value = RetrievalPredictionResultFactory.build(predictions=[item_a, item_b, item_c])
 
     await NonRecommendableItemsFactory.create_async(user_id=user_id, item_id="item-A")
 
@@ -193,8 +194,8 @@ async def test_similar_offer_skips_booked_filter_for_unauthenticated_user(
     reference_offer = await RecommendableOffersFactory.create_async(offer_id="offer-ref", item_id="item-ref")
 
     items = [RecommendableItemFactory.build(is_geolocated=False, total_offers=1) for _ in range(5)]
-    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(predictions=items)
-    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: offers
+    mock_vertex_retrieval[1].return_value = RetrievalPredictionResultFactory.build(predictions=items)
+    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: RankingPredictionResult(status="success", offers=offers)
 
     mock_filter = mocker.patch(
         "controllers.pipeline_similar_offer.filter_out_already_booked_items",
@@ -233,8 +234,8 @@ async def test_similar_offer_falls_back_to_offer_location_when_user_has_no_gps(
     )
 
     items = [RecommendableItemFactory.build(is_geolocated=False, total_offers=1) for _ in range(5)]
-    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(predictions=items)
-    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: offers
+    mock_vertex_retrieval[1].return_value = RetrievalPredictionResultFactory.build(predictions=items)
+    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: RankingPredictionResult(status="success", offers=offers)
 
     mock_resolve = mocker.patch(
         "controllers.pipeline_similar_offer.resolve_closest_venues_from_items",
@@ -271,13 +272,13 @@ async def test_similar_offer_caps_results_at_maximum_size(
 
     many_offers = [_make_enriched_offer(f"offer-{i}") for i in range(50)]
 
-    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(predictions=[])
+    mock_vertex_retrieval[1].return_value = RetrievalPredictionResultFactory.build(predictions=[])
     mocker.patch(
         "controllers.pipeline_similar_offer.resolve_closest_venues_from_items",
         new_callable=mocker.AsyncMock,
         return_value=many_offers,
     )
-    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: offers
+    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: RankingPredictionResult(status="success", offers=offers)
     mocker.patch("controllers.pipeline_similar_offer.log_past_offer_context_to_sink")
 
     response = await generate_similar_offers(
@@ -302,13 +303,13 @@ async def test_similar_offer_uses_graph_retrieval_when_model_is_graph(
     mock_graph_fetch = mocker.patch(
         "controllers.pipeline_similar_offer.fetch_graph_predictions_from_vertex",
         new_callable=mocker.AsyncMock,
-        return_value=VertexPredictionResultFactory.build(predictions=graph_items),
+        return_value=RetrievalPredictionResultFactory.build(predictions=graph_items),
     )
     mock_standard_fetch = mocker.patch(
         "controllers.pipeline_similar_offer.fetch_retrieval_predictions_from_vertex",
         new_callable=mocker.AsyncMock,
     )
-    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: offers
+    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: RankingPredictionResult(status="success", offers=offers)
     mocker.patch("controllers.pipeline_similar_offer.log_past_offer_context_to_sink")
 
     response = await generate_similar_offers(
@@ -347,7 +348,7 @@ async def test_similar_offer_falls_back_to_playlist_recommendation_pipeline_when
     reference_offer = await RecommendableOffersFactory.create_async(offer_id="offer-ref", item_id="item-ref")
 
     # Force the similar-offer pipeline to produce zero results
-    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(predictions=[])
+    mock_vertex_retrieval[1].return_value = RetrievalPredictionResultFactory.build(predictions=[])
 
     # Prepare a predictable fallback response
     fallback_offer_ids = ["fallback-offer-1", "fallback-offer-2", "fallback-offer-3"]
@@ -405,7 +406,7 @@ async def test_similar_offer_does_not_fall_back_when_retrieval_model_is_graph(
     mocker.patch(
         "controllers.pipeline_similar_offer.fetch_graph_predictions_from_vertex",
         new_callable=mocker.AsyncMock,
-        return_value=VertexPredictionResultFactory.build(predictions=graph_items),
+        return_value=RetrievalPredictionResultFactory.build(predictions=graph_items),
     )
     # Resolution returns nothing → final_similar_offers will be empty
     mocker.patch(
@@ -413,7 +414,7 @@ async def test_similar_offer_does_not_fall_back_when_retrieval_model_is_graph(
         new_callable=mocker.AsyncMock,
         return_value=[],
     )
-    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: offers
+    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: RankingPredictionResult(status="success", offers=offers)
     mock_generate_playlist = mocker.patch(
         "controllers.pipeline_similar_offer.generate_playlist_recommendations",
         new_callable=mocker.AsyncMock,

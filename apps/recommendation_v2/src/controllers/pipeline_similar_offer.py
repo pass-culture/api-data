@@ -25,6 +25,8 @@ from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.similar_offer import SimilarOfferModelChoices
 from schemas.similar_offer import SimilarOfferResponse
+from schemas.tracking_payload import TrackingModelInfo
+from schemas.tracking_payload import TrackingScorerInfo
 from services.logger import call_id_context
 from services.logger import logger
 
@@ -32,7 +34,7 @@ from services.logger import logger
 SIMILAR_OFFERS_LIST_MAXIMUM_SIZE = 20
 
 
-async def generate_similar_offers(  # noqa: PLR0913
+async def generate_similar_offers(  # noqa: PLR0913, PLR0915
     db: AsyncSession,
     offer_id: str,
     retrieval_model: SimilarOfferModelChoices = SimilarOfferModelChoices.coreservation,
@@ -161,9 +163,12 @@ async def generate_similar_offers(  # noqa: PLR0913
 
     logger.info(
         "📦 Raw candidates retrieved from Vertex AI.",
-        extra={"raw_candidate_count": len(vertex_raw_predictions.predictions)},
+        extra={
+            "raw_candidate_count": len(vertex_raw_predictions.predictions),
+            "retrieval_model_version": vertex_raw_predictions.model_version,
+            "retrieval_model_display_name": vertex_raw_predictions.model_display_name,
+        },
     )
-
     # --- 3. Filtering Phase ---
     # Remove already-booked items if the user is authenticated
     if user_context.is_authenticated:
@@ -198,7 +203,8 @@ async def generate_similar_offers(  # noqa: PLR0913
 
     # --- 5. Ranking Phase ---
     # Re-order the filtered offers using a dedicated scoring model
-    ranked_offers = await rank_and_sort_offers_with_vertex(resolved_offers, user_context)
+    ranking_result = await rank_and_sort_offers_with_vertex(resolved_offers, user_context)
+    ranked_offers = ranking_result.offers
 
     logger.info(
         "🏆 Offers ranked by Vertex AI scoring model.",
@@ -271,6 +277,19 @@ async def generate_similar_offers(  # noqa: PLR0913
     # --- 8. Logging Phase ---
     recommendation_origin = "similar_offer" if retrieval_model == SimilarOfferModelChoices.coreservation else "graph"
 
+    scorer = TrackingScorerInfo(
+        retrievals=TrackingModelInfo(
+            endpoint_name=vertex_raw_predictions.endpoint_name,
+            model_version=vertex_raw_predictions.model_version,
+            model_display_name=vertex_raw_predictions.model_display_name,
+        ),
+        ranking=TrackingModelInfo(
+            endpoint_name=ranking_result.endpoint_name,
+            model_version=ranking_result.model_version,
+            model_display_name=ranking_result.model_display_name,
+        ),
+    )
+
     log_past_offer_context_to_sink(
         user_context=user_context,
         final_playlist=final_similar_offers,
@@ -278,11 +297,14 @@ async def generate_similar_offers(  # noqa: PLR0913
         call_id=call_id,
         reco_origin=recommendation_origin,
         context_name="similar_offer",
+        scorer=scorer,
     )
 
     return SimilarOfferResponse(
         results=[offer.offer_id for offer in final_similar_offers],
         params=RecommendationMetadata(
-            reco_origin=recommendation_origin, model_origin=settings.SIMILAR_OFFER_MODEL_CONTEXT, call_id=call_id
+            reco_origin=recommendation_origin,
+            model_origin=settings.SIMILAR_OFFER_MODEL_CONTEXT,
+            call_id=call_id,
         ),
     )

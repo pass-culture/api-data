@@ -1,16 +1,13 @@
 from datetime import UTC
 from datetime import datetime
-from typing import TYPE_CHECKING
 from typing import Any
 
 from connectors import ranking_api_client
+from connectors.vertex_api import RankingPredictionResult
+from connectors.vertex_api import VertexModelInfo
 from core.user_context import UserContext
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from services.logger import logger
-
-
-if TYPE_CHECKING:
-    from connectors.vertex_api import RankingPrediction
 
 
 def calculate_days_since(target_date: datetime | None) -> float | None:
@@ -99,7 +96,7 @@ def _build_vertex_ranking_features(
 
 async def rank_and_sort_offers_with_vertex(
     offers: list[EnrichedRecommendableOffer], user_context: UserContext
-) -> list[EnrichedRecommendableOffer]:
+) -> RankingPredictionResult:
     """
     Scores a list of candidate offers using the Vertex AI Ranking model and sorts them.
 
@@ -111,10 +108,12 @@ async def rank_and_sort_offers_with_vertex(
         user_context (UserContext): The current user's profile and state.
 
     Returns:
-        list[EnrichedRecommendableOffer]: The same offers, mutually sorted by their predicted ranking score (descending)
+        RankingPredictionResult: The sorted offers and the ranking model metadata (endpoint, version, display name).
     """
     if not offers:
-        return []
+        # No offers to rank: still fetch model info for metadata consistency
+        empty_model_info = await ranking_api_client.get_model_info()
+        return RankingPredictionResult(status="success", **empty_model_info)
 
     # --- 1. Prepare Features & Call Model ---
     ranking_instances = [_build_vertex_ranking_features(offer, user_context) for offer in offers]
@@ -124,9 +123,15 @@ async def rank_and_sort_offers_with_vertex(
         extra={"offers_to_rank": len(ranking_instances), "user_id": user_context.user_id},
     )
 
-    predictions: list[RankingPrediction] = await ranking_api_client.fetch_ranking_predictions(
+    ranking_result: RankingPredictionResult = await ranking_api_client.fetch_ranking_predictions(
         feature_payloads=ranking_instances
     )
+    predictions = ranking_result.predictions
+    model_info: VertexModelInfo = {
+        "endpoint_name": ranking_result.endpoint_name,
+        "model_version": ranking_result.model_version,
+        "model_display_name": ranking_result.model_display_name,
+    }
 
     # --- 2. Fallback Mechanism ---
     # If Vertex prediction fails or returns nothing, fallback to the retrieval 'item_rank'
@@ -135,7 +140,8 @@ async def rank_and_sort_offers_with_vertex(
             "⚠️ Vertex ranking returned no predictions — falling back to item_rank ordering.",
             extra={"offers_count": len(offers), "user_id": user_context.user_id},
         )
-        return sorted(offers, key=lambda o: o.item_rank if o.item_rank is not None else float("inf"))
+        sorted_offers = sorted(offers, key=lambda o: o.item_rank if o.item_rank is not None else float("inf"))
+        return RankingPredictionResult(status=ranking_result.status, offers=sorted_offers, **model_info)
 
     # --- 3. Map Scores & Sort ---
     prediction_score_map: dict[str, float] = {prediction.offer_id: prediction.score for prediction in predictions}
@@ -153,5 +159,5 @@ async def rank_and_sort_offers_with_vertex(
         },
     )
 
-    # Sort descending based on the predicted score attached to the object (highest score first)
-    return sorted(offers, key=lambda offer: offer.ranking_score, reverse=True)
+    sorted_offers = sorted(offers, key=lambda offer: offer.ranking_score, reverse=True)
+    return RankingPredictionResult(status=ranking_result.status, offers=sorted_offers, **model_info)

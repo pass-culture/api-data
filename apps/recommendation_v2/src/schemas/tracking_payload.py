@@ -15,12 +15,28 @@ class TrackingLabels(BaseModel):
     event_type: str
 
 
+class TrackingModelInfo(BaseModel):
+    """Metadata for a single Vertex AI model endpoint used during scoring."""
+
+    endpoint_name: str
+    model_version: str
+    model_display_name: str
+
+
+class TrackingScorerInfo(BaseModel):
+    """Aggregated model info for all scoring steps: retrieval and ranking."""
+
+    retrievals: TrackingModelInfo
+    ranking: TrackingModelInfo
+
+
 class TrackingRequestExtraData(BaseModel):
     """Request-level context logged once and reused for every offer entry in the call."""
 
     reco_origin: str
     context: str
     params_in: dict[str, Any] | None
+    scorer: TrackingScorerInfo | None = None
 
 
 class TrackingOfferExtraData(BaseModel):

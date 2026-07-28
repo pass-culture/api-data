@@ -18,8 +18,8 @@ from schemas.playlist_recommendation import PlaylistRequestParams
 
 from tests.factories.models import NonRecommendableItemsFactory
 from tests.factories.schemas import RecommendableItemFactory
+from tests.factories.schemas import RetrievalPredictionResultFactory
 from tests.factories.schemas import UserContextFactory
-from tests.factories.schemas import VertexPredictionResultFactory
 
 
 # ---------------------------------------------------------------------------
@@ -412,10 +412,10 @@ async def test_fetch_all_predictions_deduplicates_items_across_endpoints(mocker)
     item_e = RecommendableItemFactory.build(item_id="item-E")
 
     endpoint_results = [
-        VertexPredictionResultFactory.build(predictions=[item_a, item_b]),
-        VertexPredictionResultFactory.build(predictions=[item_a, item_c]),
-        VertexPredictionResultFactory.build(predictions=[item_b, item_d]),
-        VertexPredictionResultFactory.build(predictions=[item_c, item_e]),
+        RetrievalPredictionResultFactory.build(predictions=[item_a, item_b]),
+        RetrievalPredictionResultFactory.build(predictions=[item_a, item_c]),
+        RetrievalPredictionResultFactory.build(predictions=[item_b, item_d]),
+        RetrievalPredictionResultFactory.build(predictions=[item_c, item_e]),
     ]
 
     mocker.patch(
@@ -429,7 +429,7 @@ async def test_fetch_all_predictions_deduplicates_items_across_endpoints(mocker)
 
     result = await fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(dummy_payloads)
 
-    result_item_ids = [item.item_id for item in result]
+    result_item_ids = [item.item_id for item in result.predictions]
 
     expected_unique_items_after_deduplication = 5
     assert len(result_item_ids) == expected_unique_items_after_deduplication, (

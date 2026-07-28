@@ -17,6 +17,8 @@ from models.user import EnrichedUser
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.playlist_recommendation import RecommendationResponse
+from schemas.tracking_payload import TrackingModelInfo
+from schemas.tracking_payload import TrackingScorerInfo
 from services.logger import call_id_context
 from services.logger import logger
 
@@ -95,15 +97,21 @@ async def generate_playlist_recommendations(
         },
     )
 
-    raw_candidate_items = await fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
+    raw_retrieval_result = await fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
         retrieval_payloads=retrieval_payloads
     )
+    raw_candidate_items = raw_retrieval_result.predictions
+    retrieval_model_version = raw_retrieval_result.model_version
+    retrieval_model_display_name = raw_retrieval_result.model_display_name
 
     logger.info(
         "📦 Raw candidates retrieved from Vertex AI.",
-        extra={"raw_candidate_count": len(raw_candidate_items)},
+        extra={
+            "raw_candidate_count": len(raw_candidate_items),
+            "retrieval_model_version": retrieval_model_version,
+            "retrieval_model_display_name": retrieval_model_display_name,
+        },
     )
-
     # --- 3. Filtering Phase & Resolution ---
     if user_context.is_authenticated:
         unbooked_candidate_items = await filter_out_already_booked_items(
@@ -136,7 +144,8 @@ async def generate_playlist_recommendations(
 
     # --- 4. Ranking Phase ---
     # Re-order the filtered offers using a dedicated scoring model
-    ranked_offers = await rank_and_sort_offers_with_vertex(resolved_offers, user_context)
+    ranking_result = await rank_and_sort_offers_with_vertex(resolved_offers, user_context)
+    ranked_offers = ranking_result.offers
 
     logger.info(
         "🏆 Offers ranked by Vertex AI scoring model.",
@@ -165,6 +174,19 @@ async def generate_playlist_recommendations(
     else:
         recommendation_origin = "cold_start" if user_context.is_cold_start else "algo"
 
+    scorer = TrackingScorerInfo(
+        retrievals=TrackingModelInfo(
+            endpoint_name=raw_retrieval_result.endpoint_name,
+            model_version=raw_retrieval_result.model_version,
+            model_display_name=raw_retrieval_result.model_display_name,
+        ),
+        ranking=TrackingModelInfo(
+            endpoint_name=ranking_result.endpoint_name,
+            model_version=ranking_result.model_version,
+            model_display_name=ranking_result.model_display_name,
+        ),
+    )
+
     if user_context.is_authenticated:
         log_past_offer_context_to_sink(
             user_context=user_context,
@@ -173,6 +195,7 @@ async def generate_playlist_recommendations(
             call_id=call_id,
             reco_origin=recommendation_origin,
             context_name="recommendation",
+            scorer=scorer,
         )
     else:
         # If the user does not exist in our database (is_authenticated=False), we skip tracking to avoid polluting

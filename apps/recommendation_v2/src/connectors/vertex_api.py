@@ -1,22 +1,43 @@
 import traceback
+from typing import TypedDict
 
 from fastapi import HTTPException
 from pydantic import BaseModel
 
 from config import settings
+from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.vertex_prediction_item import ItemOrigin
 from schemas.vertex_prediction_item import RecommendableItem
 from services.logger import logger
 from services.vertex import VertexService
 
 
-class VertexPredictionResult(BaseModel):
-    """Encapsulates the parsed response from the Retrieval Vertex Model."""
+class VertexModelInfo(TypedDict):
+    """Typed dict for Vertex AI model identity metadata returned by get_model_info()."""
+
+    endpoint_name: str
+    model_version: str
+    model_display_name: str
+
+
+class VertexEndpointMetadata(BaseModel):
+    """
+    Base model for all Vertex AI endpoint responses.
+
+    Carries the model identity metadata common to every prediction call:
+    execution status, endpoint name, deployed model version, and display name.
+    """
 
     status: str
-    predictions: list[RecommendableItem] = []
+    endpoint_name: str = "unknown"
     model_version: str = "unknown"
     model_display_name: str = "unknown"
+
+
+class RetrievalPredictionResult(VertexEndpointMetadata):
+    """Encapsulates the parsed response from the Retrieval Vertex Model."""
+
+    predictions: list[RecommendableItem] = []
 
 
 class RankingPrediction(BaseModel):
@@ -24,6 +45,13 @@ class RankingPrediction(BaseModel):
 
     offer_id: str
     score: float
+
+
+class RankingPredictionResult(VertexEndpointMetadata):
+    """Encapsulates the full response from the Ranking Vertex Model, including sorted offers and model metadata."""
+
+    predictions: list[RankingPrediction] = []
+    offers: list[EnrichedRecommendableOffer] = []
 
 
 class VertexAPI:
@@ -49,6 +77,23 @@ class VertexAPI:
     def __init__(self, endpoint_name: str, location: str = "europe-west1"):
         self.endpoint_name = endpoint_name
         self.vertex_infrastructure_service = VertexService(endpoint_name=endpoint_name, location=location)
+
+    async def get_model_info(self) -> VertexModelInfo:
+        """
+        Returns the endpoint name and deployed model version identifier for this client.
+
+        Mirrors the v1 approach: endpoint_name as model_display_name,
+        deployed_models[0].display_name as model_version.
+
+        Returns:
+            dict with keys: endpoint_name, model_version, model_display_name.
+        """
+        model_version = await self.vertex_infrastructure_service.get_model_version_id()
+        return VertexModelInfo(
+            endpoint_name=self.endpoint_name,
+            model_version=model_version,
+            model_display_name=self.endpoint_name,
+        )
 
     def get_item_origin(self, model_type: str) -> ItemOrigin:
         """Deduce item_origin from model_type and the current endpoint.
@@ -88,7 +133,7 @@ class VertexAPI:
 
         return item_origin
 
-    async def fetch_retrieval_predictions(self, feature_payloads: list[dict]) -> VertexPredictionResult:
+    async def fetch_retrieval_predictions(self, feature_payloads: list[dict]) -> RetrievalPredictionResult:
         """
         Calls the Retrieval model to get a massive list of candidate items.
         This endpoint returns a rich dictionary for each predicted item, which is
@@ -98,13 +143,16 @@ class VertexAPI:
             feature_payloads (list[dict]): The search context and user constraints.
 
         Returns:
-            VertexPredictionResult: The standardized wrapper containing the list of items.
+            RetrievalPredictionResult: The standardized wrapper containing the list of items.
         """
         try:
             # --- 1. Execute Network Call via Infrastructure Service ---
             response = await self.vertex_infrastructure_service.execute_grpc_prediction(feature_payloads)
 
-            # --- 2. Parse Protobuf Response into Pydantic Models ---
+            # --- 2. Resolve model info from endpoint metadata (mirrors v1 + same approach as ranking) ---
+            model_info = await self.get_model_info()
+
+            # --- 3. Parse Protobuf Response into Pydantic Models ---
             model_type = feature_payloads[0]["model_type"]
             item_origin = self.get_item_origin(model_type)
 
@@ -145,14 +193,14 @@ class VertexAPI:
                     "endpoint": self.endpoint_name,
                     "model_type": feature_payloads[0].get("model_type"),
                     "predictions_count": len(parsed_predictions),
-                    "model_version": response.deployed_model_id,
+                    "model_version": model_info["model_version"],
                 },
             )
 
-            return VertexPredictionResult(
+            return RetrievalPredictionResult(
                 status="success",
-                model_version=response.deployed_model_id,
                 predictions=parsed_predictions,
+                **model_info,
             )
 
         except HTTPException:
@@ -164,9 +212,9 @@ class VertexAPI:
                 extra={"error": str(error), "traceback": traceback.format_exc()},
             )
             # Fail gracefully by returning an empty list rather than crashing the API
-            return VertexPredictionResult(status="error", model_display_name=self.endpoint_name, predictions=[])
+            return RetrievalPredictionResult(status="error", endpoint_name=self.endpoint_name)
 
-    async def fetch_ranking_predictions(self, feature_payloads: list[dict]) -> list[RankingPrediction]:
+    async def fetch_ranking_predictions(self, feature_payloads: list[dict]) -> RankingPredictionResult:
         """
         Calls the Ranking model to score a specific list of resolved offers.
 
@@ -174,13 +222,16 @@ class VertexAPI:
             feature_payloads (list[dict]): The enriched features for the user and each offer.
 
         Returns:
-            list[RankingPrediction]: The validated offer IDs mapped to their ML score.
+            RankingPredictionResult: The validated offer IDs mapped to their ML score, plus model metadata.
         """
         try:
             # --- 1. Execute Network Call via Infrastructure Service ---
             response = await self.vertex_infrastructure_service.execute_grpc_prediction(feature_payloads)
 
-            # --- 2. Parse & Validate Protobuf Response ---
+            # --- 2. Resolve model info from endpoint metadata (same approach as retrieval) ---
+            model_info = await self.get_model_info()
+
+            # --- 3. Parse & Validate Protobuf Response ---
             parsed_results = []
             for raw_prediction in response.predictions:
                 try:
@@ -201,7 +252,7 @@ class VertexAPI:
                 extra={"endpoint": self.endpoint_name, "rankings_count": len(parsed_results)},
             )
 
-            return parsed_results
+            return RankingPredictionResult(status="success", predictions=parsed_results, **model_info)
 
         except HTTPException:
             raise
@@ -212,4 +263,4 @@ class VertexAPI:
                 extra={"error": str(error), "traceback": traceback.format_exc()},
             )
             # Fail gracefully, the caller will fallback to standard ranking
-            return []
+            return RankingPredictionResult(status="error", endpoint_name=self.endpoint_name)

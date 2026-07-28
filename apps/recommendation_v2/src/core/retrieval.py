@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from connectors import graph_api_client
 from connectors import retrieval_api_client
-from connectors.vertex_api import VertexPredictionResult
+from connectors.vertex_api import RetrievalPredictionResult
 from core.geo import calculate_haversine_distance_in_meters
 from core.geo import find_closest_offers_with_h3_index
 from core.user_context import UserContext
@@ -29,6 +29,7 @@ PLAYLIST_RECOMMENDATION_RETRIEVAL_SIZE_PER_ENDPOINT = 150
 
 # ISO v1: OfferRetrievalEndpoint uses size=100.
 SIMILAR_OFFER_RETRIEVAL_SIZE = 100
+
 
 # ==============================================================================
 # PLAYLIST RECOMMENDATION
@@ -323,7 +324,7 @@ def deduplicate_candidate_items_by_item_id(
 @log_execution_time
 async def fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
     retrieval_payloads: list[dict[str, Any]],
-) -> list[RecommendableItem]:
+) -> RetrievalPredictionResult:
     """
     Fetches candidate items from all retrieval payloads concurrently, then deduplicates the results.
 
@@ -336,18 +337,29 @@ async def fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
             as returned by build_all_playlist_recommendation_retrieval_payloads.
 
     Returns:
-        list[RecommendableItem]: A flat, deduplicated list of candidate items from all endpoints.
+        RetrievalPredictionResult: A flat, deduplicated list of candidate items from all endpoints,
+            along with the Vertex model version used.
 
     Example (warm start, 4 payloads):
         Each endpoint returns up to 150 items → up to 600 raw items → deduplicated output.
     """
-    parallel_results: list[VertexPredictionResult] = await asyncio.gather(
+    parallel_results: list[RetrievalPredictionResult] = await asyncio.gather(
         *[fetch_retrieval_predictions_from_vertex(payload) for payload in retrieval_payloads]
     )
 
     all_candidate_items: list[RecommendableItem] = []
+    endpoint_name = "unknown"
+    model_version = "unknown"
+    model_display_name = "unknown"
     for result in parallel_results:
         all_candidate_items.extend(result.predictions)
+        # Keep the first non-"unknown" values across all parallel calls
+        if endpoint_name == "unknown" and result.endpoint_name not in ("unknown", ""):
+            endpoint_name = result.endpoint_name
+        if model_version == "unknown" and result.model_version not in ("unknown", ""):
+            model_version = result.model_version
+        if model_display_name == "unknown" and result.model_display_name not in ("unknown", ""):
+            model_display_name = result.model_display_name
 
     deduplicated = deduplicate_candidate_items_by_item_id(all_candidate_items)
 
@@ -358,10 +370,19 @@ async def fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
             "raw_total": len(all_candidate_items),
             "after_dedup": len(deduplicated),
             "duplicates_removed": len(all_candidate_items) - len(deduplicated),
+            "endpoint_name": endpoint_name,
+            "model_version": model_version,
+            "model_display_name": model_display_name,
         },
     )
 
-    return deduplicated
+    return RetrievalPredictionResult(
+        status="success",
+        predictions=deduplicated,
+        endpoint_name=endpoint_name,
+        model_version=model_version,
+        model_display_name=model_display_name,
+    )
 
 
 # ==============================================================================
@@ -462,7 +483,7 @@ def build_similar_offer_retrieval_payload(
 
 
 @log_execution_time
-async def fetch_retrieval_predictions_from_vertex(prediction_payload: dict[str, Any]) -> VertexPredictionResult:
+async def fetch_retrieval_predictions_from_vertex(prediction_payload: dict[str, Any]) -> RetrievalPredictionResult:
     """
     Calls the Vertex AI matching engine to retrieve a raw list of candidate Item IDs.
     """
@@ -472,7 +493,7 @@ async def fetch_retrieval_predictions_from_vertex(prediction_payload: dict[str, 
 
 
 @log_execution_time
-async def fetch_graph_predictions_from_vertex(prediction_payload: dict[str, Any]) -> VertexPredictionResult:
+async def fetch_graph_predictions_from_vertex(prediction_payload: dict[str, Any]) -> RetrievalPredictionResult:
     """
     Calls the Vertex AI matching engine to retrieve a raw list of candidate Item IDs.
     """

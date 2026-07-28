@@ -4,6 +4,7 @@ from datetime import datetime
 import pytest
 
 from connectors.vertex_api import RankingPrediction
+from connectors.vertex_api import RankingPredictionResult
 from core.ranking import _build_vertex_ranking_features
 from core.ranking import calculate_days_since
 from core.ranking import rank_and_sort_offers_with_vertex
@@ -85,17 +86,25 @@ def test_build_ranking_features_context_field_combines_context_name_and_item_ori
 @pytest.mark.asyncio
 async def test_rank_returns_empty_for_empty_input(mocker):
     mocker.patch(
-        "core.ranking.ranking_api_client.fetch_ranking_predictions", new_callable=mocker.AsyncMock, return_value=[]
+        "core.ranking.ranking_api_client.get_model_info",
+        new_callable=mocker.AsyncMock,
+        return_value={
+            "endpoint_name": "mock-endpoint",
+            "model_version": "unknown",
+            "model_display_name": "mock-endpoint",
+        },
     )
     result = await rank_and_sort_offers_with_vertex([], UserContextFactory.build())
-    assert result == []
+    assert result.offers == []
 
 
 @pytest.mark.asyncio
 async def test_rank_falls_back_to_item_rank_when_predictions_empty(mocker):
     """When Vertex returns nothing, offers are sorted ascending by item_rank so retrieval order is preserved."""
     mocker.patch(
-        "core.ranking.ranking_api_client.fetch_ranking_predictions", new_callable=mocker.AsyncMock, return_value=[]
+        "core.ranking.ranking_api_client.fetch_ranking_predictions",
+        new_callable=mocker.AsyncMock,
+        return_value=RankingPredictionResult(status="success", predictions=[]),
     )
 
     offers = [
@@ -106,7 +115,7 @@ async def test_rank_falls_back_to_item_rank_when_predictions_empty(mocker):
 
     result = await rank_and_sort_offers_with_vertex(offers, UserContextFactory.build())
 
-    assert [o.item_rank for o in result] == [1, 2, 3]
+    assert [o.item_rank for o in result.offers] == [1, 2, 3]
 
 
 @pytest.mark.asyncio
@@ -124,12 +133,12 @@ async def test_rank_sorts_offers_descending_by_prediction_score(mocker):
     mocker.patch(
         "core.ranking.ranking_api_client.fetch_ranking_predictions",
         new_callable=mocker.AsyncMock,
-        return_value=predictions,
+        return_value=RankingPredictionResult(status="success", predictions=predictions),
     )
 
     result = await rank_and_sort_offers_with_vertex(offers, UserContextFactory.build())
 
-    assert [o.offer_id for o in result] == ["offer-b", "offer-c", "offer-a"]
+    assert [o.offer_id for o in result.offers] == ["offer-b", "offer-c", "offer-a"]
 
 
 @pytest.mark.asyncio
@@ -142,11 +151,11 @@ async def test_rank_assigns_zero_score_to_offer_absent_from_predictions(mocker):
     mocker.patch(
         "core.ranking.ranking_api_client.fetch_ranking_predictions",
         new_callable=mocker.AsyncMock,
-        return_value=predictions,
+        return_value=RankingPredictionResult(status="success", predictions=predictions),
     )
 
     result = await rank_and_sort_offers_with_vertex([scored_offer, unscored_offer], UserContextFactory.build())
 
-    assert result[0].offer_id == "offer-scored"
-    assert result[-1].offer_id == "offer-unscored"
-    assert result[-1].ranking_score == 0.0
+    assert result.offers[0].offer_id == "offer-scored"
+    assert result.offers[-1].offer_id == "offer-unscored"
+    assert result.offers[-1].ranking_score == 0.0

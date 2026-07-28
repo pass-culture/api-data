@@ -19,6 +19,7 @@ from testcontainers.postgres import PostgresContainer
 from testcontainers.redis import RedisContainer
 
 from config import settings
+from connectors.vertex_api import RankingPredictionResult
 from connectors.vertex_api import VertexAPI
 from main import app
 from models.base import Base
@@ -27,7 +28,7 @@ from services.redis import redis_cache_service
 
 from tests.factories.models import factory_session
 from tests.factories.schemas import RecommendableItemFactory
-from tests.factories.schemas import VertexPredictionResultFactory
+from tests.factories.schemas import RetrievalPredictionResultFactory
 
 
 MOCK_CALL_ID = "12345678-1234-5678-1234-567812345678"
@@ -161,9 +162,9 @@ def mock_vertex_retrieval(mocker):
     - ``fetch_all_playlist_recommendation_retrieval_predictions_from_vertex`` (playlist pipeline)
       → returns a ``list[RecommendableItem]`` directly (already merged and deduplicated).
     - ``fetch_retrieval_predictions_from_vertex`` (similar-offer pipeline, standard path)
-      → returns a ``VertexPredictionResult``.
+      → returns a ``RetrievalPredictionResult``.
     - ``fetch_graph_predictions_from_vertex`` (similar-offer pipeline, ``retrieval_model=graph`` path)
-      → returns a ``VertexPredictionResult``.
+      → returns a ``RetrievalPredictionResult``.
     """
     mock_retrieval_playlist = mocker.patch(
         "controllers.pipeline_playlist_recommendation.fetch_all_playlist_recommendation_retrieval_predictions_from_vertex",
@@ -177,9 +178,11 @@ def mock_vertex_retrieval(mocker):
         "controllers.pipeline_similar_offer.fetch_graph_predictions_from_vertex",
         new_callable=mocker.AsyncMock,
     )
-    mock_retrieval_playlist.return_value = RecommendableItemFactory.batch(10)
-    mock_retrieval_similar.return_value = VertexPredictionResultFactory.build()
-    mock_retrieval_graph.return_value = VertexPredictionResultFactory.build()
+    mock_retrieval_playlist.return_value = RetrievalPredictionResultFactory.build(
+        predictions=RecommendableItemFactory.batch(10)
+    )
+    mock_retrieval_similar.return_value = RetrievalPredictionResultFactory.build()
+    mock_retrieval_graph.return_value = RetrievalPredictionResultFactory.build()
 
     return mock_retrieval_playlist, mock_retrieval_similar, mock_retrieval_graph
 
@@ -200,8 +203,12 @@ def mock_vertex_ranking(mocker):
         "controllers.pipeline_similar_offer.rank_and_sort_offers_with_vertex",
         new_callable=mocker.AsyncMock,
     )
-    mock_rank_playlist.side_effect = lambda offers, user_context: offers
-    mock_rank_similar.side_effect = lambda offers, user_context: offers
+    mock_rank_playlist.side_effect = lambda offers, user_context: RankingPredictionResult(
+        status="success", offers=offers
+    )
+    mock_rank_similar.side_effect = lambda offers, user_context: RankingPredictionResult(
+        status="success", offers=offers
+    )
 
     return mock_rank_playlist, mock_rank_similar
 

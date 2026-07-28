@@ -143,7 +143,7 @@ async def test_fetch_retrieval_returns_error_result_on_unexpected_exception(vert
 
     assert result.status == "error"
     assert result.predictions == []
-    assert result.model_display_name == "test-endpoint"
+    assert result.endpoint_name == "test-endpoint"
 
 
 # ---------------------------------------------------------------------------
@@ -160,7 +160,7 @@ async def test_fetch_ranking_coerces_offer_id_to_string(vertex_api):
 
     result = await vertex_api.fetch_ranking_predictions(feature_payloads=[{}])
 
-    assert result[0].offer_id == "12345"
+    assert result.predictions[0].offer_id == "12345"
 
 
 @pytest.mark.asyncio
@@ -174,8 +174,8 @@ async def test_fetch_ranking_skips_malformed_prediction_and_keeps_valid_ones(ver
 
     result = await vertex_api.fetch_ranking_predictions(feature_payloads=[{}])
 
-    assert len(result) == 1
-    assert result[0].offer_id == "offer-good"
+    assert len(result.predictions) == 1
+    assert result.predictions[0].offer_id == "offer-good"
 
 
 @pytest.mark.asyncio
@@ -196,4 +196,5 @@ async def test_fetch_ranking_returns_empty_list_on_unexpected_exception(vertex_a
 
     result = await vertex_api.fetch_ranking_predictions(feature_payloads=[{}])
 
-    assert result == []
+    assert result.status == "error"
+    assert result.predictions == []

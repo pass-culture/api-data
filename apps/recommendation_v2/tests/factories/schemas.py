@@ -5,7 +5,7 @@ from polyfactory.factories.pydantic_factory import ModelFactory
 from polyfactory.fields import Use
 
 from connectors.vertex_api import RankingPrediction
-from connectors.vertex_api import VertexPredictionResult
+from connectors.vertex_api import RetrievalPredictionResult
 from core.user_context import UserContext
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import CategoryEnum
@@ -24,8 +24,9 @@ class RecommendableItemFactory(ModelFactory[RecommendableItem]):
     search_group_name = Use(lambda: random.choice(list(SearchGroupNameEnum)).value)
 
 
-class VertexPredictionResultFactory(ModelFactory[VertexPredictionResult]):
-    __model__ = VertexPredictionResult
+class RetrievalPredictionResultFactory(ModelFactory[RetrievalPredictionResult]):
+    __model__ = RetrievalPredictionResult
+    status = "success"
 
 
 class RankingPredictionFactory(ModelFactory[RankingPrediction]):

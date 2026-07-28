@@ -10,16 +10,18 @@ from schemas.tracking_payload import TrackingLabels
 from schemas.tracking_payload import TrackingLogPayload
 from schemas.tracking_payload import TrackingOfferExtraData
 from schemas.tracking_payload import TrackingRequestExtraData
+from schemas.tracking_payload import TrackingScorerInfo
 from services.logger import logger
 
 
-def log_past_offer_context_to_sink(
+def log_past_offer_context_to_sink(  # noqa: PLR0913
     user_context: UserContext,
     final_playlist: list[EnrichedRecommendableOffer],
     params: PlaylistRequestParams | None,
     call_id: str,
     reco_origin: str,
     context_name: str,
+    scorer: TrackingScorerInfo | None = None,
 ) -> None:
     """
     Formats and logs the full context of the generated recommendation playlist.
@@ -55,6 +57,7 @@ def log_past_offer_context_to_sink(
         reco_origin=reco_origin,
         context=context_name,
         params_in=params.model_dump(by_alias=True, exclude_none=True) if params else None,
+        scorer=scorer,
     )
 
     # --- 2. Iterate and Log Each Offer ---

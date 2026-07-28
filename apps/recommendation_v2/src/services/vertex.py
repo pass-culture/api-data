@@ -75,6 +75,48 @@ class VertexService:
             logger.error(f"🔌 Failed to resolve endpoint {display_name}: {error!s}")
             raise error
 
+    @cached(ttl=600, cache=Cache.MEMORY)
+    async def _get_endpoint_deployed_model_version_id(self, display_name: str) -> str:
+        """
+        Returns the display_name of the first deployed model on the endpoint.
+
+        This is the human-readable model version identifier stored in the endpoint metadata,
+        e.g. 'retrieval_recommendation_v1_2_dev_v_20260726T060000'.
+        It mirrors the v1 approach: endpoint_dict["deployedModels"][0]["displayName"].
+
+        Args:
+            display_name (str): The human-readable name of the endpoint in the GCP Console.
+
+        Returns:
+            str: The deployed model version identifier, or "unknown" if not resolvable.
+        """
+        try:
+            client = await self._get_cached_endpoint_service_client()
+            parent_resource = f"projects/{self.project_id}/locations/{self.location}"
+
+            request = aiplatform_v1.ListEndpointsRequest(
+                parent=parent_resource, filter=f'display_name="{display_name}"', order_by="create_time desc"
+            )
+
+            response = await client.list_endpoints(request=request)
+
+            if not response.endpoints:
+                return "unknown"
+
+            deployed_models = response.endpoints[0].deployed_models
+            if not deployed_models:
+                return "unknown"
+
+            return deployed_models[0].display_name or "unknown"
+
+        except Exception as error:
+            logger.warning(f"⚠️ Could not fetch model version for {display_name}: {error!s}")
+            return "unknown"
+
+    async def get_model_version_id(self) -> str:
+        """Public shorthand to get the deployed model version id for this service's endpoint."""
+        return await self._get_endpoint_deployed_model_version_id(self.endpoint_name)
+
     @log_execution_time
     async def execute_grpc_prediction(self, feature_payloads: list[dict]) -> Any:
         """
