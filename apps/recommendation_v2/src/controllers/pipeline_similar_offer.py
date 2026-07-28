@@ -270,6 +270,11 @@ async def generate_similar_offers(  # noqa: PLR0913
 
     # --- 8. Logging Phase ---
     recommendation_origin = "similar_offer" if retrieval_model == SimilarOfferModelChoices.coreservation else "graph"
+    model_description = (
+        settings.VERTEX_SIMILAR_OFFER_MODEL_DESCRIPTION
+        if retrieval_model == SimilarOfferModelChoices.coreservation
+        else settings.VERTEX_GRAPH_RETRIEVAL_MODEL_DESCRIPTION
+    )
 
     log_past_offer_context_to_sink(
         user_context=user_context,
@@ -278,6 +283,7 @@ async def generate_similar_offers(  # noqa: PLR0913
         call_id=call_id,
         reco_origin=recommendation_origin,
         context_name="similar_offer",
+        model_description=model_description,
     )
 
     return SimilarOfferResponse(

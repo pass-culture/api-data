@@ -15,11 +15,18 @@ class TrackingLabels(BaseModel):
     event_type: str
 
 
+class TrackingModelParams(BaseModel):
+    """Nested model parameters logged inside context_extra_data — mirrors the v1 model_params structure."""
+
+    description: str
+
+
 class TrackingRequestExtraData(BaseModel):
     """Request-level context logged once and reused for every offer entry in the call."""
 
     reco_origin: str
     context: str
+    model_params: TrackingModelParams | None
     params_in: dict[str, Any] | None
 
 
