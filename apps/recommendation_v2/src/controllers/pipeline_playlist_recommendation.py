@@ -173,6 +173,7 @@ async def generate_playlist_recommendations(
             call_id=call_id,
             reco_origin=recommendation_origin,
             context_name="recommendation",
+            model_description=settings.VERTEX_RECOMMENDATION_MODEL_DESCRIPTION,
         )
     else:
         # If the user does not exist in our database (is_authenticated=False), we skip tracking to avoid polluting

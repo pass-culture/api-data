@@ -41,6 +41,7 @@ def _invoke(offers, params=None, call_id="call-abc"):
         call_id=call_id,
         reco_origin="algo",
         context_name="playlist",
+        model_description="Recommendation Configuration (default)",
     )
 
 
