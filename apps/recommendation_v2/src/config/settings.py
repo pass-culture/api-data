@@ -88,6 +88,17 @@ VERTEX_RANKING_ENDPOINT_NAME: str = os.environ.get("VERTEX_RANKING_ENDPOINT_NAME
 
 VERTEX_PREDICTION_TIMEOUT: float = float(os.environ.get("VERTEX_PREDICTION_TIMEOUT", "10.0" if IS_LOCAL else "2.0"))
 
+# Human-readable descriptions logged to BigQuery via the tracking sink.
+VERTEX_GRAPH_RETRIEVAL_MODEL_DESCRIPTION: str = os.environ.get(
+    "VERTEX_GRAPH_RETRIEVAL_MODEL_DESCRIPTION", "Similar offers based on graph retrieval."
+)
+VERTEX_SIMILAR_OFFER_MODEL_DESCRIPTION: str = os.environ.get(
+    "VERTEX_SIMILAR_OFFER_MODEL_DESCRIPTION", "Similar Offer Configuration (default)"
+)
+VERTEX_RECOMMENDATION_MODEL_DESCRIPTION: str = os.environ.get(
+    "VERTEX_RECOMMENDATION_MODEL_DESCRIPTION", "Recommendation Configuration (default)"
+)
+
 # --- 6. Swagger UI for API Testing ---
 SWAGGER_UI_EXAMPLE_USER_ID: str = os.environ.get("SWAGGER_UI_EXAMPLE_USER_ID", "")
 SWAGGER_UI_EXAMPLE_OFFER_ID: str = os.environ.get("SWAGGER_UI_EXAMPLE_OFFER_ID", "")
