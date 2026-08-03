@@ -9,7 +9,6 @@ from core.retrieval import build_playlist_recommendation_retrieval_payload
 from core.retrieval import build_similar_offer_retrieval_payload
 from core.retrieval import fetch_all_playlist_recommendation_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
-from core.retrieval import resolve_closest_venues_from_items
 from core.user_context import UserContext
 from schemas.categories import CategoryEnum
 from schemas.categories import SearchGroupNameEnum
@@ -263,125 +262,6 @@ async def test_filter_booked_items_removes_booked_and_keeps_new(db_session):
 
     assert len(result) == 1
     assert result[0].item_id == "item-new"
-
-
-# ---------------------------------------------------------------------------
-# resolve_closest_venues_from_items
-# ---------------------------------------------------------------------------
-
-_PARIS = (48.8566, 2.3522)
-_VERSAILLES = (48.8048, 2.1203)  # ~17 km from Paris
-_LONDON = (51.5074, -0.1278)  # ~343 km from Paris
-
-
-@pytest.mark.asyncio
-async def test_resolve_returns_empty_for_empty_input(db_session):
-    result = await resolve_closest_venues_from_items(db_session, [], UserContextFactory.build())
-    assert result == []
-
-
-@pytest.mark.asyncio
-async def test_resolve_fast_tracks_digital_item_without_computing_distance(db_session):
-    """Digital (non-geolocated) items bypass the DB and are returned with no distance."""
-    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
-    item = RecommendableItemFactory.build(is_geolocated=False, total_offers=10)
-
-    result = await resolve_closest_venues_from_items(db_session, [item], user)
-
-    assert len(result) == 1
-    assert result[0].offer_user_distance is None
-
-
-@pytest.mark.asyncio
-async def test_resolve_computes_distance_for_single_venue_geolocated_item(db_session):
-    """Single-venue physical items are fast-tracked but their distance from the user is computed via haversine."""
-    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
-    item = RecommendableItemFactory.build(
-        is_geolocated=True,
-        total_offers=1,
-        example_venue_latitude=_VERSAILLES[0],
-        example_venue_longitude=_VERSAILLES[1],
-    )
-
-    max_distance_meters = 50_000
-    result = await resolve_closest_venues_from_items(db_session, [item], user)
-
-    assert len(result) == 1
-    assert result[0].offer_user_distance is not None
-    assert result[0].offer_user_distance < max_distance_meters
-
-
-@pytest.mark.asyncio
-async def test_resolve_skips_geolocated_item_when_user_has_no_gps(db_session):
-    """A geolocated single-venue item is silently dropped when the user has no GPS coordinates."""
-    user = UserContext(user_id="u")  # no GPS
-    item = RecommendableItemFactory.build(is_geolocated=True, total_offers=1)
-
-    result = await resolve_closest_venues_from_items(db_session, [item], user)
-
-    assert result == []
-
-
-@pytest.mark.asyncio
-async def test_resolve_skips_item_beyond_100km(db_session):
-    """Items whose closest venue exceeds the 100 km radius are excluded regardless of relevance score."""
-    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
-    item = RecommendableItemFactory.build(
-        is_geolocated=True,
-        total_offers=1,
-        example_venue_latitude=_LONDON[0],
-        example_venue_longitude=_LONDON[1],
-    )
-
-    result = await resolve_closest_venues_from_items(db_session, [item], user)
-
-    assert result == []
-
-
-@pytest.mark.asyncio
-async def test_resolve_drops_multi_venue_item_when_user_has_no_gps(db_session):
-    """
-    Multi-venue items are only routed to the DB query when the user is geolocated;
-    without GPS they are silently dropped.
-    """
-    user = UserContext(user_id="u")  # no GPS
-    item = RecommendableItemFactory.build(is_geolocated=True, total_offers=5)
-
-    result = await resolve_closest_venues_from_items(db_session, [item], user)
-
-    assert result == []
-
-
-@pytest.mark.asyncio
-async def test_resolve_sorts_offers_by_distance_with_none_last(db_session):
-    """
-    The final list is sorted ascending by distance;
-    offers with no distance (digital items) are treated as inf and sorted last.
-
-    Mixing geolocated and digital items in the input validates both the sort key and the None-last sentinel.
-    """
-    user = UserContext(user_id="u", latitude=_PARIS[0], longitude=_PARIS[1])
-
-    near_item = RecommendableItemFactory.build(
-        is_geolocated=True,
-        total_offers=1,
-        example_venue_latitude=_VERSAILLES[0],
-        example_venue_longitude=_VERSAILLES[1],
-    )
-    far_item = RecommendableItemFactory.build(
-        is_geolocated=True,
-        total_offers=1,
-        example_venue_latitude=48.0,
-        example_venue_longitude=1.0,
-    )
-    digital_item = RecommendableItemFactory.build(is_geolocated=False)
-
-    result = await resolve_closest_venues_from_items(db_session, [far_item, near_item, digital_item], user)
-
-    distances = [r.offer_user_distance for r in result]
-    non_none = [d for d in distances if d is not None]
-    assert non_none == sorted(non_none)
-    assert distances[-1] is None
 
 
 # ---------------------------------------------------------------------------

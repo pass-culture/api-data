@@ -80,7 +80,7 @@ async def get_playlist(
     )
 
     # Use a finer resolution for cache to avoid reusing the same cache if a user moves within a large resolution cell.
-    cache_h3_resolution = settings.CACHE_H3_RESOLUTION
+    cache_h3_resolution = settings.ENDPOINT_RESPONSE_CACHE_H3_RESOLUTION
     h3_index = get_h3_index_from_coordinates(latitude, longitude, resolution=cache_h3_resolution)
 
     request_signature_data = {
@@ -90,7 +90,7 @@ async def get_playlist(
     }
 
     # Handle Redis cache retrieval
-    if settings.REDIS_CACHE_ENABLED:
+    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
         cached_playlist_result = await redis_api.fetch_cached_response(
             namespace_prefix="playlist_recommendation",
             request_signature_data=request_signature_data,
@@ -104,13 +104,13 @@ async def get_playlist(
             # sends click/booking events referencing this call_id, which links them
             # back to the original display rows.
             logger.info(
-                "✅ Cache HIT — returning cached playlist_recommendation.",
+                "✅ [HTTP Request Cache] Cache HIT — returning cached playlist_recommendation.",
                 extra={"user_id": user_id, "call_id": cached_playlist_result.params.call_id},
             )
             return cached_playlist_result
 
     logger.info(
-        "🔍 Cache MISS — running full playlist_recommendation pipeline.",
+        "🔍 [HTTP Request Cache] Cache MISS — running full playlist_recommendation pipeline.",
         extra={"user_id": user_id},
     )
 
@@ -118,9 +118,8 @@ async def get_playlist(
     result = await generate_playlist_recommendations(
         db=db, user_id=user_id, latitude=latitude, longitude=longitude, params=params
     )
-
     # Store the newly generated result in Cache
-    if settings.REDIS_CACHE_ENABLED:
+    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
         await redis_api.store_endpoint_response(
             namespace_prefix="playlist_recommendation",
             request_signature_data=request_signature_data,

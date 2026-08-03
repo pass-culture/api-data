@@ -4,9 +4,10 @@ from unittest.mock import AsyncMock
 import pytest
 from httpx import AsyncClient
 
-from config import settings
 from schemas.playlist_recommendation import RecommendationMetadata
 
+from tests.conftest import patch_all_caches_disabled
+from tests.conftest import patch_all_caches_enabled
 from tests.factories.schemas import RecommendationResponseFactory
 from tests.factories.schemas import SimilarOfferResponseFactory
 
@@ -84,7 +85,7 @@ async def test_cache_hit_returns_from_cache_true(  # noqa: PLR0913
     namespace,
 ):
     """Cache hit must set from_cache=True and skip the recommendation pipeline entirely."""
-    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
+    patch_all_caches_enabled(mocker)
     mocker.patch(
         f"{redis_module}.fetch_cached_response",
         new_callable=AsyncMock,
@@ -120,7 +121,7 @@ async def test_cache_hit_preserves_original_call_id(  # noqa: PLR0913
     click/booking events referencing this call_id, which links them back to
     the original display rows.
     """
-    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
+    patch_all_caches_enabled(mocker)
     mocker.patch(
         f"{redis_module}.fetch_cached_response",
         new_callable=AsyncMock,
@@ -150,7 +151,7 @@ async def test_cache_hit_preserves_result_list(  # noqa: PLR0913
 ):
     """The cached offer/result list must be returned unchanged."""
     expected = ["offer-A", "offer-B", "offer-C"]
-    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
+    patch_all_caches_enabled(mocker)
     mocker.patch(
         f"{redis_module}.fetch_cached_response",
         new_callable=AsyncMock,
@@ -178,7 +179,7 @@ async def test_cache_miss_runs_pipeline_and_stores_result(  # noqa: PLR0913
     namespace,
 ):
     """On a cache miss the pipeline must run and store the result under the correct namespace."""
-    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=True)
+    patch_all_caches_enabled(mocker)
     mocker.patch(f"{redis_module}.fetch_cached_response", new_callable=AsyncMock, return_value=None)
     mock_store = mocker.patch(f"{redis_module}.store_endpoint_response", new_callable=AsyncMock)
 
@@ -206,7 +207,7 @@ async def test_no_cache_interaction_when_disabled(  # noqa: PLR0913
     namespace,
 ):
     """With REDIS_CACHE_ENABLED=False neither fetch nor store must be called."""
-    mocker.patch.object(settings, "REDIS_CACHE_ENABLED", new=False)
+    patch_all_caches_disabled(mocker)
     mock_fetch = mocker.patch(f"{redis_module}.fetch_cached_response", new_callable=AsyncMock)
     mock_store = mocker.patch(f"{redis_module}.store_endpoint_response", new_callable=AsyncMock)
 

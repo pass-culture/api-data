@@ -103,22 +103,14 @@ VERTEX_RECOMMENDATION_MODEL_DESCRIPTION: str = os.environ.get(
 SWAGGER_UI_EXAMPLE_USER_ID: str = os.environ.get("SWAGGER_UI_EXAMPLE_USER_ID", "")
 SWAGGER_UI_EXAMPLE_OFFER_ID: str = os.environ.get("SWAGGER_UI_EXAMPLE_OFFER_ID", "")
 
-# --- 7. Tracking Configuration ---
-ENABLE_TRACKING_LOGS: bool = bool(int(os.environ.get("ENABLE_TRACKING_LOGS", "1")))
-
-# --- 8. Redis Configuration ---
-REDIS_CACHE_ENABLED: bool = bool(int(os.environ.get("REDIS_CACHE_ENABLED", "0" if IS_LOCAL else "1")))
-REDIS_URL: str = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
-REDIS_CACHE_RESET_HOUR: int = int(os.environ.get("REDIS_CACHE_RESET_HOUR", "5"))
-REDIS_MONITOR_INTERVAL_SECONDS: int = int(os.environ.get("REDIS_MONITOR_INTERVAL_SECONDS", "600"))
-REDIS_CA_CERT_PATH: str = os.environ.get("REDIS_CA_CERT_PATH", "")  # Path to PEM file for Redis TLS
-REDIS_AUTH_STRING: str = os.environ.get("REDIS_AUTH_STRING", "")  # Optional auth string for Redis
-
-# --- 9. Model Context Configuration ---
+# --- 7. Model Context Configuration ---
 SIMILAR_OFFER_MODEL_CONTEXT: str = os.environ.get("SIMILAR_OFFER_MODEL_CONTEXT", "default")
 PLAYLIST_RECOMMENDATION_MODEL_CONTEXT: str = os.environ.get("RECO_MODEL_CONTEXT", "default")
 
-# --- 10. Geospatial Configuration ---
+# --- 8. Tracking Configuration ---
+ENABLE_TRACKING_LOGS: bool = bool(int(os.environ.get("ENABLE_TRACKING_LOGS", "1")))
+
+# --- 9. Geospatial Configuration ---
 GEOSPATIAL_RETRIEVAL_H3_RESOLUTION: int = int(os.environ.get("GEOSPATIAL_RETRIEVAL_H3_RESOLUTION", "5"))
 
 # Fail-fast: only resolutions that are materialised as indexed
@@ -130,4 +122,36 @@ if GEOSPATIAL_RETRIEVAL_H3_RESOLUTION not in VALID_H3_RESOLUTIONS:  # pragma: no
         f"Must be one of {VALID_H3_RESOLUTIONS}."
     )
 
-CACHE_H3_RESOLUTION: int = int(os.environ.get("CACHE_H3_RESOLUTION", "8"))
+# --- 10. Redis & Cache Configuration ---
+# REDIS_CACHE_ENABLED is the global master switch.
+# When False, the Redis client will not connect and ALL cache strategies below are forced to False,
+# regardless of their individual environment variable values.
+REDIS_CACHE_ENABLED: bool = bool(int(os.environ.get("REDIS_CACHE_ENABLED", "0" if IS_LOCAL else "1")))
+REDIS_URL: str = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+REDIS_CACHE_RESET_HOUR: int = int(os.environ.get("REDIS_CACHE_RESET_HOUR", "5"))
+REDIS_MONITOR_INTERVAL_SECONDS: int = int(os.environ.get("REDIS_MONITOR_INTERVAL_SECONDS", "600"))
+REDIS_CA_CERT_PATH: str = os.environ.get("REDIS_CA_CERT_PATH", "")  # Path to PEM file for Redis TLS
+REDIS_AUTH_STRING: str = os.environ.get("REDIS_AUTH_STRING", "")  # Optional auth string for Redis
+
+# Cache Strategy Flags
+# Each flag controls an independent caching strategy.
+# All are automatically forced to False if REDIS_CACHE_ENABLED (the master switch) is off,
+# even if the individual env var is set to "1". This ensures a single env var is enough
+# to fully disable Redis in an environment without having to touch each strategy flag.
+
+# Controls HTTP endpoint response caching (playlist_recommendation and similar_offer endpoints).
+# When enabled, the full pipeline result is stored in Redis and returned directly on cache hits.
+ENDPOINT_RESPONSE_CACHE_ENABLED: bool = REDIS_CACHE_ENABLED and bool(
+    int(os.environ.get("ENDPOINT_RESPONSE_CACHE_ENABLED", "0" if IS_LOCAL else "1"))
+)
+
+ENDPOINT_RESPONSE_CACHE_H3_RESOLUTION: int = int(os.environ.get("ENDPOINT_RESPONSE_CACHE_H3_RESOLUTION", "8"))
+
+# Caches the DB-resolved (offer_id, venue) for "tops" multi-venue items keyed by H3 cell,
+# allowing partial cache hits and avoiding the spatial SQL query for already-resolved items.
+OFFER_RESOLUTION_CACHE_ENABLED: bool = REDIS_CACHE_ENABLED and bool(
+    int(os.environ.get("OFFER_RESOLUTION_CACHE_ENABLED", "0" if IS_LOCAL else "1"))
+)
+
+# H3 resolution used to build the offer-resolution cache key. Resolution 8 → cell area ~0.74 km².
+OFFER_RESOLUTION_CACHE_H3_RESOLUTION: int = int(os.environ.get("OFFER_RESOLUTION_CACHE_H3_RESOLUTION", "8"))
