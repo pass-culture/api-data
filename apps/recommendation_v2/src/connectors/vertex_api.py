@@ -26,6 +26,14 @@ class RankingPrediction(BaseModel):
     score: float
 
 
+class RankingResult(BaseModel):
+    """Encapsulates the full response from the Ranking Vertex Model, including model provenance."""
+
+    predictions: list[RankingPrediction]
+    model_name: str = "unknown"
+    model_version: str = "unknown"
+
+
 class VertexAPI:
     """
     Business-level API wrapper for Vertex AI models.
@@ -109,6 +117,11 @@ class VertexAPI:
             item_origin = self.get_item_origin(model_type)
             retrieval_vector_column = feature_payloads[0].get("vector_column_name", None)
 
+            retrieval_model_name = self.endpoint_name
+            retrieval_model_version = await self.vertex_infrastructure_service.get_deployed_model_display_name(
+                self.endpoint_name
+            )
+
             parsed_predictions = []
             for raw_prediction in response.predictions:
                 parsed_item = RecommendableItem(
@@ -117,6 +130,8 @@ class VertexAPI:
                     item_score=raw_prediction.get("_distance", None),
                     item_origin=item_origin,
                     retrieval_vector_column=retrieval_vector_column,
+                    retrieval_model_name=retrieval_model_name,
+                    retrieval_model_version=retrieval_model_version,
                     item_cluster_id=raw_prediction.get("cluster_id", None),
                     item_topic_id=raw_prediction.get("topic_id", None),
                     semantic_emb_mean=raw_prediction.get("semantic_emb_mean", None),
@@ -145,6 +160,7 @@ class VertexAPI:
                 "✅ Vertex retrieval predictions fetched successfully.",
                 extra={
                     "endpoint": self.endpoint_name,
+                    "retrieval_model_version": retrieval_model_version,
                     "model_type": feature_payloads[0].get("model_type"),
                     "predictions_count": len(parsed_predictions),
                     "model_version": response.deployed_model_id,
@@ -168,7 +184,7 @@ class VertexAPI:
             # Fail gracefully by returning an empty list rather than crashing the API
             return VertexPredictionResult(status="error", model_display_name=self.endpoint_name, predictions=[])
 
-    async def fetch_ranking_predictions(self, feature_payloads: list[dict]) -> list[RankingPrediction]:
+    async def fetch_ranking_predictions(self, feature_payloads: list[dict]) -> RankingResult:
         """
         Calls the Ranking model to score a specific list of resolved offers.
 
@@ -176,13 +192,16 @@ class VertexAPI:
             feature_payloads (list[dict]): The enriched features for the user and each offer.
 
         Returns:
-            list[RankingPrediction]: The validated offer IDs mapped to their ML score.
+            RankingResult: The validated offer IDs mapped to their ML score, plus model provenance.
         """
         try:
             # --- 1. Execute Network Call via Infrastructure Service ---
             response = await self.vertex_infrastructure_service.execute_grpc_prediction(feature_payloads)
 
-            # --- 2. Parse & Validate Protobuf Response ---
+            # --- 2. Resolve Ranking Model Version
+            model_version = await self.vertex_infrastructure_service.get_deployed_model_display_name(self.endpoint_name)
+
+            # --- 3. Parse & Validate Protobuf Response ---
             parsed_results = []
             for raw_prediction in response.predictions:
                 try:
@@ -200,10 +219,18 @@ class VertexAPI:
 
             logger.debug(
                 "✅ Vertex ranking predictions fetched successfully.",
-                extra={"endpoint": self.endpoint_name, "rankings_count": len(parsed_results)},
+                extra={
+                    "endpoint": self.endpoint_name,
+                    "ranking_model_version": model_version,
+                    "rankings_count": len(parsed_results),
+                },
             )
 
-            return parsed_results
+            return RankingResult(
+                predictions=parsed_results,
+                model_name=self.endpoint_name,
+                model_version=model_version,
+            )
 
         except HTTPException:
             raise
@@ -214,4 +241,4 @@ class VertexAPI:
                 extra={"error": str(error), "traceback": traceback.format_exc()},
             )
             # Fail gracefully, the caller will fallback to standard ranking
-            return []
+            return RankingResult(predictions=[], model_name=self.endpoint_name)
