@@ -37,7 +37,7 @@ def _make_enriched_offer(
         item_score=item_score,
         item_rank=1,
         item_origin=ItemOrigin.TOPS,
-        reco_type=None,
+        retrieval_vector_column=None,
         semantic_emb_mean=None,
         stock_price=0.0,
         category="LIVRES_PAPIER",

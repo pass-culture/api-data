@@ -33,7 +33,7 @@ class EnrichedRecommendableOffer:
     item_score: float | None
     item_rank: int
     item_origin: ItemOrigin
-    reco_type: str | None  # vector_column_name from the retrieval payload (e.g. "booking_number_desc")
+    retrieval_vector_column: str | None  # vector_column_name from the retrieval payload (e.g. "booking_number_desc")
     semantic_emb_mean: float | None
 
     # --- Item Metadata & Classification ---

@@ -41,10 +41,8 @@ class TrackingOfferExtraData(BaseModel):
     offer_booking_number_last_14_days: int
     offer_booking_number_last_28_days: int
     offer_semantic_emb_mean: float | None
-    offer_model_type: str | None
-    offer_reco_type: str | None
-    offer_model_type: ItemOrigin | None  # item_origin of the offer (e.g. "user_based", "tops", "graph")
-    offer_reco_type: str | None  # vector_column_name used for retrieval (e.g. "booking_number_desc")
+    offer_retrieval_algorithm: ItemOrigin | None  # item_origin of the offer (e.g. "user_based", "tops", "graph")
+    offer_retrieval_vector_column: str | None  # vector_column_name used for retrieval (e.g. "booking_number_desc")
 
 
 class TrackingLogPayload(BaseModel):
