@@ -107,6 +107,7 @@ class VertexAPI:
             # --- 2. Parse Protobuf Response into Pydantic Models ---
             model_type = feature_payloads[0]["model_type"]
             item_origin = self.get_item_origin(model_type)
+            retrieval_vector_column = feature_payloads[0].get("vector_column_name", None)
 
             parsed_predictions = []
             for raw_prediction in response.predictions:
@@ -115,6 +116,7 @@ class VertexAPI:
                     item_rank=raw_prediction["idx"],
                     item_score=raw_prediction.get("_distance", None),
                     item_origin=item_origin,
+                    retrieval_vector_column=retrieval_vector_column,
                     item_cluster_id=raw_prediction.get("cluster_id", None),
                     item_topic_id=raw_prediction.get("topic_id", None),
                     semantic_emb_mean=raw_prediction.get("semantic_emb_mean", None),
