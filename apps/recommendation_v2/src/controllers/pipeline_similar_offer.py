@@ -139,19 +139,46 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
     )
 
     # --- HACK for AB testing ---
-    SECOND_MUSIQUE_PLAYLIST_SEARCH_GROUPS = set(SearchGroupNameEnum) - {SearchGroupNameEnum.MUSIQUE}
+    # Context: On an offer page, two playlists are displayed:
+    #   - Playlist 1 "Dans la même catégorie": shows offers from the *same* search_group_name as the current offer.
+    #   - Playlist 2 "Ca peut aussi te plaire": shows offers from *all other* search_group_names
+    #     (excluding the current offer's search_group_name).
+    #
+    # This AB test targets Playlist 2 for music offers (search_group_name = MUSIQUE).
+    # When the frontend requests "Ca peut aussi te plaire" for a MUSIQUE offer, it sends all search_group_names
+    # *except* MUSIQUE (and NONE — see below). We intercept this specific request and swap:
+    #   - the search_group_names back to [MUSIQUE]
+    #   - the retrieval model to 'graph' (Knowledge Graph based on music metadata)
+    # This allows us to A/B test the graph-based recommendation strategy vs. the standard coreservation model
+    # on the "Ca peut aussi te plaire" playlist for music, for 50% of users over one month.
+    #
+    # Why exclude SearchGroupNameEnum.NONE?
+    # NONE is a special placeholder for offers that have not been assigned a proper search_group_name.
+    # It is not a real content category. When building Playlist 2 ("Ca peut aussi te plaire"), the frontend
+    # excludes the current offer's search_group_name to avoid showing offers from the same category.
+    # However, NONE is always excluded from this exclusion logic — because filtering *out* NONE would
+    # mistakenly remove uncategorised offers that are still valid recommendations.
+    # In short: NONE is never treated as a "real" category to match or exclude against.
+    SECOND_MUSIQUE_PLAYLIST_SEARCH_GROUPS = set(SearchGroupNameEnum) - {
+        SearchGroupNameEnum.MUSIQUE,
+        SearchGroupNameEnum.NONE,  # NONE is not a real category — always excluded from playlist filtering logic
+    }
     if (
         search_group_names is not None
         and set(search_group_names) == SECOND_MUSIQUE_PLAYLIST_SEARCH_GROUPS
         and retrieval_model == SimilarOfferModelChoices.coreservation
     ):
         logger.debug(
-            "⚠️ AB test hack triggered: "
-            "=> replacing search_group_names with ['MUSIQUE'] and forcing retrieval_model to 'graph'.",
+            "⚠️ 🧪 [AB TEST] AB test hack triggered: => replacing "
+            "search_group_names with ['MUSIQUE'] "
+            "and forcing retrieval_model to 'graph'.",
             extra={
                 "call_id": call_id,
-                "original_search_group_names": search_group_names,
-                "original_retrieval_model": retrieval_model,
+                "playlist": "Ca peut aussi te plaire",
+                "original_search_group_names": [s.value for s in search_group_names],
+                "original_retrieval_model": retrieval_model.value,
+                "new_search_group_names": [SearchGroupNameEnum.MUSIQUE.value],
+                "new_retrieval_model": SimilarOfferModelChoices.graph.value,
             },
         )
         search_group_names = [SearchGroupNameEnum.MUSIQUE]
