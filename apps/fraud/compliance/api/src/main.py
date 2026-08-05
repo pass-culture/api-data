@@ -1,9 +1,7 @@
 from fastapi import FastAPI
 from fastapi_versioning import VersionedFastAPI
 
-from pcpapillon.utils.logging.setup import setup_logging
-
-custom_logger = setup_logging()
+from pcpapillon.utils.logging.setup import custom_logger
 
 
 def init_app():

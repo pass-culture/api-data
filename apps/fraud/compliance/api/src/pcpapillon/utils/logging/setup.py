@@ -24,3 +24,6 @@ def setup_logging():
         api_logger.setLevel(logging.DEBUG)
 
     return CustomLogger(logger=api_logger)
+
+
+custom_logger = setup_logging()

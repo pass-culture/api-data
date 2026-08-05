@@ -3,17 +3,19 @@ SHELL := /bin/bash
 install:
 	UV_VENV_CLEAR=1 uv venv && uv sync --locked
 
+NETSKOPE_CA_BUNDLE := /Library/Application Support/Netskope/STAgent/data/nscacert_combined.pem
+
 start:
-	cd src && API_LOCAL=True uv run uvicorn main:app --reload
+	cd src && API_LOCAL=True GRPC_DEFAULT_SSL_ROOTS_FILE_PATH="$(NETSKOPE_CA_BUNDLE)" uv run uvicorn main:app --reload
 
 start_with_gunicorn:
-	cd src && API_LOCAL=True uv run gunicorn -k uvicorn.workers.UvicornWorker --bind :8000 --workers 1 --threads 10 --preload --timeout 0 main:app
+	cd src && API_LOCAL=True GRPC_DEFAULT_SSL_ROOTS_FILE_PATH="$(NETSKOPE_CA_BUNDLE)" uv run gunicorn -k uvicorn.workers.UvicornWorker --bind :8000 --workers 1 --threads 10 --preload --timeout 0 main:app
 
 start_as_not_local_dev:
-	cd src && uv run uvicorn main:app --reload
+	cd src && GRPC_DEFAULT_SSL_ROOTS_FILE_PATH="$(NETSKOPE_CA_BUNDLE)" uv run uvicorn main:app --reload
 
 start_as_not_local_stg:
-	cd src && ENV_SHORT_NAME=stg uv run uvicorn main:app --reload
+	cd src && ENV_SHORT_NAME=stg GRPC_DEFAULT_SSL_ROOTS_FILE_PATH="$(NETSKOPE_CA_BUNDLE)" uv run uvicorn main:app --reload
 
 build_and_run_locally_in_docker:
 	cp ~/.config/gcloud/application_default_credentials.json src/

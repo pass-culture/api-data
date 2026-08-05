@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 
-from main import custom_logger
+from pcpapillon.utils.logging.setup import custom_logger
 from pcpapillon.utils.logging.trace import get_call_id, setup_trace
 
 main_router = APIRouter(tags=["home"])
@@ -10,7 +10,7 @@ main_router = APIRouter(tags=["home"])
     "/",
     dependencies=[Depends(get_call_id), Depends(setup_trace)],
 )
-async def read_root():
+def read_root() -> str:
     custom_logger.info("Auth user welcome to : Validation API test")
     return "Auth user welcome to : Validation API test"
 
@@ -18,5 +18,5 @@ async def read_root():
 @main_router.get(
     "/health/api", dependencies=[Depends(get_call_id), Depends(setup_trace)]
 )
-async def read_health():
+def read_health() -> str:
     return "OK"

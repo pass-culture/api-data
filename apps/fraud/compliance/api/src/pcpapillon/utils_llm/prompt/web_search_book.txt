@@ -2,6 +2,7 @@
 1.  Vérifie si le contenu du livre est approprié selon la Règle n°4 d'exclusion des contenus inappropriés.
 2.  Identifie si l'ouvrage contient du contenu pornographique, obscène, indécent, violent, raciste, xénophobe, révisionniste, haineux ou explicitement sexuel.
 3.  Vérifie si le livre est classé "lectorat 18+" ou s'il contient des idéologies extrémistes (ex: contenu nazi).
+4.  Verifie les editeurs du livres et verifie s'ils n'ont pas été interdit par un arrêté du ministère de l'intérieur ou si elle est interdit de diffusion en France ou une Association éditrice dissoute par la préfecture. 
 4.  Indique si le livre est **éligible** ou **non-éligible** au pass Culture. Utilise les termes exacts "éligible" et "non-éligible".
 5.  Si le livre est non-éligible, spécifie la raison précise (contenu sexuel, violent, haineux, révisionniste, etc.).
 6.  Présente les résultats de manière claire, en commençant par le titre et l'auteur, puis la vérification de conformité, et enfin la conclusion sur l'éligibilité avec justification.
