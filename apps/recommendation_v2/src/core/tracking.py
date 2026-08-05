@@ -110,6 +110,10 @@ def log_past_offer_context_to_sink(  # noqa: PLR0913
                 offer_semantic_emb_mean=offer.semantic_emb_mean,
                 offer_retrieval_algorithm=offer_retrieval_algorithm,
                 offer_retrieval_vector_column=offer.retrieval_vector_column,
+                offer_retrieval_model_name=offer.retrieval_model_name,
+                offer_retrieval_model_version=offer.retrieval_model_version,
+                offer_ranking_model_name=offer.ranking_model_name,
+                offer_ranking_model_version=offer.ranking_model_version,
             ),
             recommendation_api_version=settings.RECOMMENDATION_API_VERSION,
         )

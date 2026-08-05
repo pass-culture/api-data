@@ -43,6 +43,10 @@ class TrackingOfferExtraData(BaseModel):
     offer_semantic_emb_mean: float | None
     offer_retrieval_algorithm: ItemOrigin | None  # item_origin of the offer (e.g. "user_based", "tops", "graph")
     offer_retrieval_vector_column: str | None  # vector_column_name used for retrieval (e.g. "booking_number_desc")
+    offer_retrieval_model_name: str
+    offer_retrieval_model_version: str
+    offer_ranking_model_name: str
+    offer_ranking_model_version: str
 
 
 class TrackingLogPayload(BaseModel):

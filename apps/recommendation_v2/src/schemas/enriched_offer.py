@@ -48,4 +48,12 @@ class EnrichedRecommendableOffer:
     booking_number_last_14_days: int
     booking_number_last_28_days: int
 
+    # --- Retrieval Model Provenance ---
+    retrieval_model_name: str = "unknown"
+    retrieval_model_version: str = "unknown"
+
+    # --- Ranking Model Provenance ---
+    ranking_model_name: str = "unknown"
+    ranking_model_version: str = "unknown"
+
     ranking_score: float = 0.0

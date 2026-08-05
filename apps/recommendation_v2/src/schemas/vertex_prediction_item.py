@@ -27,6 +27,10 @@ class RecommendableItem(BaseModel):
     item_origin: ItemOrigin
     retrieval_vector_column: str | None
 
+    # --- Retrieval Model Provenance ---
+    retrieval_model_name: str = "unknown"
+    retrieval_model_version: str = "unknown"
+
     # --- ML & Ranking Scores ---
     item_rank: int
     item_score: float | None
