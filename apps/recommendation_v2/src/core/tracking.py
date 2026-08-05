@@ -64,6 +64,7 @@ def log_past_offer_context_to_sink(  # noqa: PLR0913
     # --- 2. Iterate and Log Each Offer ---
     for rank_index, offer in enumerate(final_playlist):
         ranking_score = getattr(offer, "ranking_score", None)
+        offer_retrieval_algorithm = offer.item_origin
 
         log_payload = TrackingLogPayload(
             # --- GCP Sink Routing Label ---
@@ -107,6 +108,12 @@ def log_past_offer_context_to_sink(  # noqa: PLR0913
                 offer_booking_number_last_14_days=offer.booking_number_last_14_days,
                 offer_booking_number_last_28_days=offer.booking_number_last_28_days,
                 offer_semantic_emb_mean=offer.semantic_emb_mean,
+                offer_retrieval_algorithm=offer_retrieval_algorithm,
+                offer_retrieval_vector_column=offer.retrieval_vector_column,
+                offer_retrieval_model_name=offer.retrieval_model_name,
+                offer_retrieval_model_version=offer.retrieval_model_version,
+                offer_ranking_model_name=offer.ranking_model_name,
+                offer_ranking_model_version=offer.ranking_model_version,
             ),
             recommendation_api_version=settings.RECOMMENDATION_API_VERSION,
         )

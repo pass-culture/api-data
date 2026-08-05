@@ -113,6 +113,16 @@ def show_api_config() -> None:
         "VERTEX_RANKING_ENDPOINT_NAME": settings.VERTEX_RANKING_ENDPOINT_NAME,
         "VERTEX_PREDICTION_TIMEOUT": settings.VERTEX_PREDICTION_TIMEOUT,
         "ENABLE_TRACKING_LOGS": settings.ENABLE_TRACKING_LOGS,
+        # Redis — master switch
+        "REDIS_CACHE_ENABLED": settings.REDIS_CACHE_ENABLED,
+        # Redis — cache strategies
+        "ENDPOINT_RESPONSE_CACHE_ENABLED": settings.ENDPOINT_RESPONSE_CACHE_ENABLED,
+        "OFFER_RESOLUTION_CACHE_ENABLED": settings.OFFER_RESOLUTION_CACHE_ENABLED,
+        # Redis — tuning
+        "OFFER_RESOLUTION_CACHE_H3_RESOLUTION": settings.OFFER_RESOLUTION_CACHE_H3_RESOLUTION,
+        "ENDPOINT_RESPONSE_CACHE_H3_RESOLUTION": settings.ENDPOINT_RESPONSE_CACHE_H3_RESOLUTION,
+        # Geospatial
+        "GEOSPATIAL_RETRIEVAL_H3_RESOLUTION": settings.GEOSPATIAL_RETRIEVAL_H3_RESOLUTION,
     }
     logger.info("🔧 API Configuration", extra=config_info)
 
@@ -126,12 +136,16 @@ async def lifespan(app: FastAPI):
     show_api_config()
     logger.info(
         "🚀 Recommendation API started successfully !"
-        f" Redis Cache: {'ENABLED 🟢' if settings.REDIS_CACHE_ENABLED else 'DISABLED 🔴'}",
+        f" Redis: {'ENABLED 🟢' if settings.REDIS_CACHE_ENABLED else 'DISABLED 🔴'}"
+        f" | Endpoint cache: {'🟢' if settings.ENDPOINT_RESPONSE_CACHE_ENABLED else '🔴'}"
+        f" | Offer resolution cache: {'🟢' if settings.OFFER_RESOLUTION_CACHE_ENABLED else '🔴'}",
         extra={
             "swagger_url": swagger_url,
             "environment": settings.ENV,
             "version": app.version,
             "redis_enabled": settings.REDIS_CACHE_ENABLED,
+            "endpoint_response_cache_enabled": settings.ENDPOINT_RESPONSE_CACHE_ENABLED,
+            "offer_resolution_cache_enabled": settings.OFFER_RESOLUTION_CACHE_ENABLED,
         },
     )
 

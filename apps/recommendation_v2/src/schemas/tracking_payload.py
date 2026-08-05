@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from schemas.vertex_prediction_item import ItemOrigin
+
 
 # Value matched by the GCP Log Sink that routes entries to the past_offer_context BigQuery table
 GCP_SINK_EVENT_TYPE = "recommendation_past_offer_context_sink"
@@ -39,6 +41,12 @@ class TrackingOfferExtraData(BaseModel):
     offer_booking_number_last_14_days: int
     offer_booking_number_last_28_days: int
     offer_semantic_emb_mean: float | None
+    offer_retrieval_algorithm: ItemOrigin | None  # item_origin of the offer (e.g. "user_based", "tops", "graph")
+    offer_retrieval_vector_column: str | None  # vector_column_name used for retrieval (e.g. "booking_number_desc")
+    offer_retrieval_model_name: str
+    offer_retrieval_model_version: str
+    offer_ranking_model_name: str
+    offer_ranking_model_version: str
 
 
 class TrackingLogPayload(BaseModel):
