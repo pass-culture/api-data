@@ -10,7 +10,7 @@ from services.logger import logger
 
 
 if TYPE_CHECKING:
-    from connectors.vertex_api import RankingPrediction
+    from connectors.vertex_api import RankingResult
 
 
 def calculate_days_since(target_date: datetime | None) -> float | None:
@@ -124,9 +124,10 @@ async def rank_and_sort_offers_with_vertex(
         extra={"offers_to_rank": len(ranking_instances), "user_id": user_context.user_id},
     )
 
-    predictions: list[RankingPrediction] = await ranking_api_client.fetch_ranking_predictions(
+    ranking_result: RankingResult = await ranking_api_client.fetch_ranking_predictions(
         feature_payloads=ranking_instances
     )
+    predictions = ranking_result.predictions
 
     # --- 2. Fallback Mechanism ---
     # If Vertex prediction fails or returns nothing, fallback to the retrieval 'item_rank'
@@ -135,14 +136,20 @@ async def rank_and_sort_offers_with_vertex(
             "⚠️ Vertex ranking returned no predictions — falling back to item_rank ordering.",
             extra={"offers_count": len(offers), "user_id": user_context.user_id},
         )
+        # Attach model provenance even in fallback case (ranking_score stays 0.0)
+        for offer in offers:
+            offer.ranking_model_name = ranking_result.model_name
+            offer.ranking_model_version = ranking_result.model_version
         return sorted(offers, key=lambda o: o.item_rank if o.item_rank is not None else float("inf"))
 
     # --- 3. Map Scores & Sort ---
     prediction_score_map: dict[str, float] = {prediction.offer_id: prediction.score for prediction in predictions}
 
     for offer in offers:
-        # Attach the dynamic score to the offer object for downstream logging (default to 0.0)
+        # Attach the dynamic score and ranking model provenance to the offer object
         offer.ranking_score = prediction_score_map.get(str(offer.offer_id), 0.0)
+        offer.ranking_model_name = ranking_result.model_name
+        offer.ranking_model_version = ranking_result.model_version
 
     logger.debug(
         "✅ Ranking scores applied to offers.",
@@ -150,6 +157,8 @@ async def rank_and_sort_offers_with_vertex(
             "ranked_count": len(predictions),
             "unmatched_count": len(offers) - len(predictions),
             "user_id": user_context.user_id,
+            "ranking_model_name": ranking_result.model_name,
+            "ranking_model_version": ranking_result.model_version,
         },
     )
 

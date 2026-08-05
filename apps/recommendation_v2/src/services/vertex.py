@@ -40,6 +40,35 @@ class VertexService:
         return aiplatform_v1.EndpointServiceAsyncClient(client_options=self.client_options)
 
     @cached(ttl=600, cache=Cache.MEMORY)
+    async def _list_endpoint(self, display_name: str) -> Any:
+        """
+        Lists Vertex AI endpoints matching a display name and returns the first result.
+        Result is cached for 10 minutes to avoid redundant GCP API calls.
+
+        Args:
+            display_name (str): The human-readable name of the endpoint in the GCP Console.
+
+        Returns:
+            Any: The first matching Vertex AI Endpoint proto object.
+
+        Raises:
+            ValueError: If no endpoint matches the given display name.
+        """
+        client = await self._get_cached_endpoint_service_client()
+        parent_resource = f"projects/{self.project_id}/locations/{self.location}"
+
+        request = aiplatform_v1.ListEndpointsRequest(
+            parent=parent_resource, filter=f'display_name="{display_name}"', order_by="create_time desc"
+        )
+
+        response = await client.list_endpoints(request=request)
+
+        if not response.endpoints:
+            raise ValueError(f"No Vertex Endpoint found with display_name='{display_name}'")
+
+        return response.endpoints[0]
+
+    @cached(ttl=600, cache=Cache.MEMORY)
     async def _resolve_endpoint_resource_path(self, display_name: str) -> str:
         """
         Dynamically finds the fully qualified GCP resource name for an endpoint.
@@ -57,23 +86,36 @@ class VertexService:
             ValueError: If no endpoint matches the given display name.
         """
         try:
-            client = await self._get_cached_endpoint_service_client()
-            parent_resource = f"projects/{self.project_id}/locations/{self.location}"
-
-            request = aiplatform_v1.ListEndpointsRequest(
-                parent=parent_resource, filter=f'display_name="{display_name}"', order_by="create_time desc"
-            )
-
-            response = await client.list_endpoints(request=request)
-
-            if not response.endpoints:
-                raise ValueError(f"No Vertex Endpoint found with display_name='{display_name}'")
-
-            return response.endpoints[0].name
-
+            endpoint = await self._list_endpoint(display_name)
+            return endpoint.name
         except Exception as error:
             logger.error(f"🔌 Failed to resolve endpoint {display_name}: {error!s}")
             raise error
+
+    @cached(ttl=600, cache=Cache.MEMORY)
+    async def get_deployed_model_display_name(self, display_name: str) -> str:
+        """
+        Returns the display name of the currently active deployed model for an endpoint.
+
+        Mirrors v1's `model_version_id` = `endpoint_dict["deployedModels"][0]["displayName"]`.
+        This is the human-readable model version label (e.g. 'retrieval_recommendation_v1_2_prod_v_20260801T060000'),
+        as opposed to `deployed_model_id` which is an opaque numeric ID.
+
+        Args:
+            display_name (str): The human-readable name of the endpoint in the GCP Console.
+
+        Returns:
+            str: The display name of the first deployed model on the endpoint, or "unknown" on failure.
+        """
+        try:
+            endpoint = await self._list_endpoint(display_name)
+            deployed_models = endpoint.deployed_models
+            if deployed_models:
+                return deployed_models[0].display_name
+            return "unknown"
+        except Exception as error:
+            logger.warning(f"⚠️ Could not resolve deployed model display name for {display_name}: {error!s}")
+            return "unknown"
 
     @log_execution_time
     async def execute_grpc_prediction(self, feature_payloads: list[dict]) -> Any:

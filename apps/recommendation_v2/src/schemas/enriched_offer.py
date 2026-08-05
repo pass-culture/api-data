@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime
 
+from schemas.vertex_prediction_item import ItemOrigin
+
 
 @dataclass
 class EnrichedRecommendableOffer:
@@ -30,7 +32,8 @@ class EnrichedRecommendableOffer:
     # --- ML & Ranking Features ---
     item_score: float | None
     item_rank: int
-    item_origin: str
+    item_origin: ItemOrigin
+    retrieval_vector_column: str | None  # vector_column_name from the retrieval payload (e.g. "booking_number_desc")
     semantic_emb_mean: float | None
 
     # --- Item Metadata & Classification ---
@@ -44,5 +47,13 @@ class EnrichedRecommendableOffer:
     booking_number_last_7_days: int
     booking_number_last_14_days: int
     booking_number_last_28_days: int
+
+    # --- Retrieval Model Provenance ---
+    retrieval_model_name: str = "unknown"
+    retrieval_model_version: str = "unknown"
+
+    # --- Ranking Model Provenance ---
+    ranking_model_name: str = "unknown"
+    ranking_model_version: str = "unknown"
 
     ranking_score: float = 0.0
