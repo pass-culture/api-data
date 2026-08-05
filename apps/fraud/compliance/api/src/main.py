@@ -1,8 +1,6 @@
 from fastapi import FastAPI
 from fastapi_versioning import VersionedFastAPI
 
-from pcpapillon.utils.logging.setup import custom_logger
-
 
 def init_app():
     from pcpapillon.views.compliance import compliance_router

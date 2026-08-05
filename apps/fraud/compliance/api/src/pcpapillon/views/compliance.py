@@ -41,8 +41,13 @@ def model_compliance_scoring(scoring_input: LLMComplianceInput) -> ComplianceOut
     if scoring_input.offer_subcategory_id in LLM_ALLOWED_SUBCATEGORY_WITH_MAPPING:
         try:
             llm_model = LLMComplianceModel()
-            rule_apply = LLM_ALLOWED_SUBCATEGORY_WITH_MAPPING[scoring_input.offer_subcategory_id]
-            if rule_apply in PRICE_CHECK_CATEGORIES or rule_apply in BOOK_CHECK_CATEGORIES:
+            rule_apply = LLM_ALLOWED_SUBCATEGORY_WITH_MAPPING[
+                scoring_input.offer_subcategory_id
+            ]
+            if (
+                rule_apply in PRICE_CHECK_CATEGORIES
+                or rule_apply in BOOK_CHECK_CATEGORIES
+            ):
                 llm_model.config["validation"]["mode"] = "sequential_pipeline"
             predictions_llm = llm_model.predict(data=scoring_input)
             predictions.update(predictions_llm.model_dump(mode="json"))

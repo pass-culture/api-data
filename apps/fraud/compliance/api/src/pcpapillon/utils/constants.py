@@ -2,7 +2,6 @@ import contextvars
 
 from pcpapillon.utils.env_vars import ENV_SHORT_NAME
 
-
 cloud_trace_context = contextvars.ContextVar("cloud_trace_context", default="")
 call_id_trace_context = contextvars.ContextVar("call_id_context", default="")
 http_request_context = contextvars.ContextVar("http_request_context", default={})

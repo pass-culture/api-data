@@ -15,7 +15,9 @@ from pcpapillon.utils.env_vars import GCP_LOCATION
 from pcpapillon.utils_llm.configs.llm_configs import LLM_CONFIGS
 from pcpapillon.utils_llm.configs.web_search_configs import WEB_SEARCH_CONFIGS
 from pcpapillon.utils_llm.models import LLMConfig
-from pcpapillon.utils_llm.rules.subcategory_rules_mapping import SUBCATEGORY_RULES_MAPPING
+from pcpapillon.utils_llm.rules.subcategory_rules_mapping import (
+    SUBCATEGORY_RULES_MAPPING,
+)
 from pcpapillon.utils_llm.schemas.compliance_schemas import COMPLIANCE_SCHEMAS
 
 _RULES_DIR = Path(__file__).parent / "rules"
@@ -90,8 +92,13 @@ def _parse_json(raw: str, schema: list[dict]) -> dict:
     # Bare decision word fallback (e.g. LLM returns just "APPROVED")
     bare = cleaned.strip().lower()
     if bare in ("approved", "rejected", "undetermined"):
-        logger.warning(f"LLM returned bare decision word: {cleaned!r} — wrapping as reponse_LLM")
-        return {"reponse_LLM": bare, **{s["name"]: None for s in schema if s["name"] != "reponse_LLM"}}
+        logger.warning(
+            f"LLM returned bare decision word: {cleaned!r} — wrapping as reponse_LLM"
+        )
+        return {
+            "reponse_LLM": bare,
+            **{s["name"]: None for s in schema if s["name"] != "reponse_LLM"},
+        }
 
     logger.warning(f"Could not parse LLM JSON response: {raw[:300]}")
     return {s["name"]: None for s in schema}
@@ -145,7 +152,9 @@ def _build_web_search_chain(config: LLMConfig):
 # ── Price validation ───────────────────────────────────────────────────────────
 
 
-def _invoke_web_search(config: LLMConfig, schema: list[dict], offer: dict, comparison_price: float = None) -> dict:
+def _invoke_web_search(
+    config: LLMConfig, schema: list[dict], offer: dict, comparison_price: float = None
+) -> dict:
     chain = _build_web_search_chain(config)
     raw = chain.invoke(
         {
@@ -183,7 +192,9 @@ def _validate_price(
 def _validate_book_result(ws_result: dict, llm_explanation: str) -> tuple[str, str]:
     eligibility = (ws_result.get("eligibilite") or "").strip().lower()
     if eligibility == "non-éligible":
-        reason = ws_result.get("raison_ineligibilite", "Contenu non conforme détecté par recherche web.")
+        reason = ws_result.get(
+            "raison_ineligibilite", "Contenu non conforme détecté par recherche web."
+        )
         return "rejected", reason
     if eligibility == "éligible":
         detail = ws_result.get("explication_recherche", "")
@@ -210,7 +221,9 @@ def run_validation_pipeline(global_config: dict, offer: dict) -> dict:
     mode = validation_cfg.get("mode", "llm_only")
     offer_id = offer.get("offer_id")
     subcategory = offer.get("offer_subcategory_id")
-    logger.info(f"[{offer_id}] Starting pipeline | mode={mode} | subcategory={subcategory}")
+    logger.info(
+        f"[{offer_id}] Starting pipeline | mode={mode} | subcategory={subcategory}"
+    )
 
     # Step 1: LLM compliance check
     llm_config = _get_config(validation_cfg["llm_config"])
@@ -242,7 +255,10 @@ def run_validation_pipeline(global_config: dict, offer: dict) -> dict:
     logger.info(f"[{offer_id}] Step 1 done | decision={llm_decision}")
 
     # Step 2: Optional web search
-    if mode == "sequential_pipeline" and llm_decision.lower() in ("approved", "accepted"):
+    if mode == "sequential_pipeline" and llm_decision.lower() in (
+        "approved",
+        "accepted",
+    ):
         price_col = global_config["columns"]["price_to_check"]
         comparison_price = result.get(price_col) or offer.get("stock_price")
         threshold = validation_cfg.get("price_divergence_threshold", 20.0)
@@ -252,17 +268,27 @@ def run_validation_pipeline(global_config: dict, offer: dict) -> dict:
             ws_config = _get_config(validation_cfg["book_web_search_config"])
             ws_schema = _get_schema(ws_config.schema_type)
             ws_result = _invoke_web_search(ws_config, ws_schema, offer)
-            logger.info(f"[{offer_id}] Step 2 done | eligibilite={ws_result.get('eligibilite')}")
+            logger.info(
+                f"[{offer_id}] Step 2 done | eligibilite={ws_result.get('eligibilite')}"
+            )
             decision, explanation = _validate_book_result(ws_result, llm_explanation)
         else:
-            logger.info(f"[{offer_id}] Step 2: Price web search | comparison_price={comparison_price}")
+            logger.info(
+                f"[{offer_id}] Step 2: Price web search | comparison_price={comparison_price}"
+            )
             ws_config = _get_config(validation_cfg["web_search_config"])
             ws_schema = _get_schema(ws_config.schema_type)
-            ws_result = _invoke_web_search(ws_config, ws_schema, offer, comparison_price)
+            ws_result = _invoke_web_search(
+                ws_config, ws_schema, offer, comparison_price
+            )
             market_price = float(ws_result.get("prix_moyen") or 0)
             offer_price = float(comparison_price or 0)
-            logger.info(f"[{offer_id}] Step 2 done | market_price={market_price} | offer_price={offer_price}")
-            decision, explanation = _validate_price(offer_price, market_price, threshold, llm_explanation)
+            logger.info(
+                f"[{offer_id}] Step 2 done | market_price={market_price} | offer_price={offer_price}"
+            )
+            decision, explanation = _validate_price(
+                offer_price, market_price, threshold, llm_explanation
+            )
     else:
         decision = llm_decision
         explanation = llm_explanation
@@ -270,7 +296,9 @@ def run_validation_pipeline(global_config: dict, offer: dict) -> dict:
     # Normalise: anything that is not explicitly "approved" is treated as "rejected"
     # to avoid Pydantic validation errors and ensure fail-safe behaviour.
     if decision not in ("approved", "rejected"):
-        logger.warning(f"[{offer_id}] Unexpected decision value {decision!r} — defaulting to 'rejected'")
+        logger.warning(
+            f"[{offer_id}] Unexpected decision value {decision!r} — defaulting to 'rejected'"
+        )
         decision = "rejected"
 
     logger.info(f"[{offer_id}] Pipeline done | final_decision={decision}")

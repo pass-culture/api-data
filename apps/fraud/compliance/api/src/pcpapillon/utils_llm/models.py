@@ -8,7 +8,9 @@ class LLMConfig(BaseModel):
     schema_type: str = Field(..., description="Type of response schema to use")
     temperature: float = Field(0.3, description="Model temperature")
     web_search: bool = Field(False, description="Whether to enable web search")
-    reference_sites: str | None = Field(None, description="Reference sites for web search")
+    reference_sites: str | None = Field(
+        None, description="Reference sites for web search"
+    )
 
     @field_validator("provider")
     @classmethod
@@ -20,7 +22,15 @@ class LLMConfig(BaseModel):
     @field_validator("prompt_type")
     @classmethod
     def validate_prompt_type(cls, v: str) -> str:
-        valid = {"base", "few_shot", "rules", "test_agent", "web_search_prix", "web_search_book", "metadonnees_livres"}
+        valid = {
+            "base",
+            "few_shot",
+            "rules",
+            "test_agent",
+            "web_search_prix",
+            "web_search_book",
+            "metadonnees_livres",
+        }
         if v not in valid:
             raise ValueError(f"Prompt type must be one of: {valid}")
         return v
