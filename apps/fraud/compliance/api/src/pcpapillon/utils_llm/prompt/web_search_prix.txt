@@ -1,11 +1,6 @@
-### Tâches à accomplir
-1.  Vérifie si le contenu du livre est approprié selon la Règle n°4 d'exclusion des contenus inappropriés.
-2.  Identifie si l'ouvrage contient du contenu pornographique, obscène, indécent, violent, raciste, xénophobe, révisionniste, haineux ou explicitement sexuel.
-3.  Vérifie si le livre est classé "lectorat 18+" ou s'il contient des idéologies extrémistes (ex: contenu nazi).
-4.  Indique si le livre est **éligible** ou **non-éligible** au pass Culture. Utilise les termes exacts "éligible" et "non-éligible".
-5.  Si le livre est non-éligible, spécifie la raison précise (contenu sexuel, violent, haineux, révisionniste, etc.).
-6.  Présente les résultats de manière claire, en commençant par le titre et l'auteur, puis la vérification de conformité, et enfin la conclusion sur l'éligibilité avec justification.
-
-- **Règle n°4** : Exclusion des contenus inappropriés. Les ouvrages "lectorat 18+" et les livres aux contenus inappropriés (explicitement sexuels, violents, incitant à la haine, etc.) ne sont pas éligibles.
-Par exemple, l'ouvrage "Mein Kampf" d'Adolf Hitler, en raison de son contenu haineux et de son idéologie nazie, n'est pas éligible au pass Culture.
-En particulier, on entend par contenu inapproprié, les livres aux contenus pornographiques, obscènes, indécents, choquants ou inadaptés à un public familial, diffamatoires, injurieux, violents, racistes, xénophobes ou révisionnistes ; aux contenus contrefaisants ; aux contenus attentatoires à l’image d’un tiers ; aux contenus mensongers, trompeurs ou proposant / promouvant des activités illicites, frauduleuses ou trompeuses ; aux contenus informatiquement nuisibles aux systèmes informatiques de tiers.
+1.  Recherche le prix de vente du produit sur les sites de référence mentionnés. Si le produit n'est pas disponible, tu peux élargir la recherche à d'autres sites web pertinents en utilisant le modèle exact du produit.
+2.  Calcule le prix moyen du marché à partir de tous les résultats de ta recherche.
+3.  Compare le prix sur ma plateforme avec ce prix moyen du marché.
+4.  Indique si le prix sur ma plateforme est une **surévaluation** ou une **sous-évaluation** par rapport au prix moyen du marché. Utilise les termes exacts "surévaluation" et "sous-évaluation".
+5.  Si le prix sur ma plateforme est différent du prix moyen du marché, calcule la divergence en pourcentage.
+6.  Présente les résultats de manière claire, en commençant par le prix sur ma plateforme, le prix moyen du marché, puis la conclusion sur la surévaluation/sous-évaluation et le pourcentage de divergence.
