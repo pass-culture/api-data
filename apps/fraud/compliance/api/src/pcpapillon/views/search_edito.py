@@ -52,4 +52,5 @@ def search_edito(
         endpoint_resource_name=SEARCH_EDITO_MODEL_ENDPOINT_NAME,
         instances=[payload],
     )
-    return SearchEditoOutput(results=predictions)
+)
+return SearchEditoOutput(results=predictions or [])
