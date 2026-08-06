@@ -1,4 +1,3 @@
-### Tâches à accomplir
 1.  Recherche le prix de vente du produit sur les sites de référence mentionnés. Si le produit n'est pas disponible, tu peux élargir la recherche à d'autres sites web pertinents en utilisant le modèle exact du produit.
 2.  Calcule le prix moyen du marché à partir de tous les résultats de ta recherche.
 3.  Compare le prix sur ma plateforme avec ce prix moyen du marché.

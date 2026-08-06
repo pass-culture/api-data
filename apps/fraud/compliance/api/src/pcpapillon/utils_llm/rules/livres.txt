@@ -1,0 +1,36 @@
+- **Règle n°1** : L'offre doit concerner un livre. Tout autre article mal catégorisé n'est pas éligible.
+- **Règle n°2** : Exclusion des ouvrages à vocation principalement scolaire, éducative ou de préparation à des examens/concours spécifiques.
+Ne sont PAS éligibles :
+    - Ouvrages explicitement liés à un niveau scolaire (primaire, collège, lycée) ou à un cursus universitaire diplômant. (Mots-clés : "manuel", "cahier", "programme...", "spécialité...", "terminale", "licence", "master", "BTS", etc.).
+    - Ouvrages de préparation à DES EXAMENS OU CONCOURS SPÉCIFIQUES, QUEL QUE SOIT LEUR TYPE OU LE DOMAINE. Ceci inclut les concours d'entrée à des écoles, les examens de langue (TOEIC, TOEFL), les concours administratifs, et les examens professionnels. La présence du nom de l'examen ou du concours dans le titre ou la description est un indicateur fort.
+    - Méthodes d'apprentissage ciblant un niveau spécifique (y compris pour les langues). (Mots-clés : "méthode...", "vocabulaire...", "grammaire...", "préparation...").
+    - Ouvrages de révision et fiches de révision pour des examens ou cursus spécifiques.
+    
+    Sont ÉLIGIBLES (avec une interprétation prudente) :
+    
+    - Les ouvrages de référence généraux sur un sujet (ex: "Histoire de l'art", "Introduction à la philosophie") qui ne sont PAS explicitement présentés comme un manuel scolaire ou une préparation à un examen spécifique.
+    - Les romans, essais, bandes dessinées, etc., qui pourraient être étudiés en contexte scolaire mais dont la vocation première n'est pas l'enseignement direct ou la préparation à un examen.
+    
+    Le critère déterminant est la VOCATION PRINCIPALE de l'ouvrage : est-il conçu principalement pour l'enseignement dans un cadre formel ou pour la préparation à un examen/concours spécifique ?
+    
+- **Règle n°3** : Exclusion des ouvrages d'occasion. Les ouvrages d'occasion ne sont pas éligibles.
+- **Règle n°4** : Exclusion des contenus inappropriés. Les ouvrages "lectorat 18+" et les livres aux contenus inappropriés (explicitement sexuels, violents, incitant à la haine, etc.) ne sont pas éligibles.
+Par exemple, l'ouvrage "Mein Kampf" d'Adolf Hitler, en raison de son contenu haineux et de son idéologie nazie, n'est pas éligible au pass Culture.
+En particulier, on entend par contenu inapproprié, les livres aux contenus pornographiques, obscènes, indécents, choquants ou inadaptés à un public familial, diffamatoires, injurieux, violents, racistes, xénophobes ou révisionnistes ; aux contenus contrefaisants ; aux contenus attentatoires à l’image d’un tiers ; aux contenus mensongers, trompeurs ou proposant / promouvant des activités illicites, frauduleuses ou trompeuses ; aux contenus informatiquement nuisibles aux systèmes informatiques de tiers.
+- **Règle n°5** : Conformité aux objectifs du pass Culture. Les ouvrages qui ne correspondent pas aux objectifs de politique publique du pass, à savoir faciliter l'accès à la culture, encourager la diversité des formes artistiques et des pratiques culturelles, et favoriser l'accès aux offres culturelles situées à proximité du lieu de situation de l'utilisateur, ne sont pas éligibles.
+- **Règle n°6** : Exclusion de certains articles. En référence aux 5 première règles, les articles suivants ne sont en particulier pas éligibles :
+- Coffrets comprenant des produits non culturels et un petit livret
+- Codes de la route, nautique et aviation et méthodes d'apprentissage
+- Livres de préparation aux tests linguistiques (TOEIC, TOEFL,…)
+- Méthodes de langues et livres de grammaire ou vocabulaire, guide de conversation, qu'ils soient scolaires ou à destination du grand public
+- Manuels de collège, lycée ou enseignement supérieur
+- Livres petite enfance pour les moins de 6 ans
+- Oracles, tarot, et les coffrets pierres ou encens
+- Jeux de société ou les escape games en coffret
+- Tout offre contenant un jeu de carte
+- Articles de papeterie (calendriers, cahiers, carnet de coloriage, planner, agendas, etc.)
+- Rayon “merchandising” (jouets, peluches, posters, etc.)
+- **Règle n°7** : Conditions pour les lots de livres. Les lots de livres sont autorisés sous conditions :
+- Montant maximum : 70 euros par lot.
+- Chaque lot doit préciser dans sa description les titres concernés et leurs EAN (numéros d'identification).
+- **Règle n°8** : Caractère non nominatif. Aucune offre ne doit être nominative (ne pas mentionner le nom du jeune bénéficiaire) pour des raisons RGPD.

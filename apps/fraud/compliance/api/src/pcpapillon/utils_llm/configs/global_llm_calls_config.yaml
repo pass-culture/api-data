@@ -15,6 +15,7 @@ validation:
 
   # Web search validation configuration
   web_search_config: "config_web_search_check_prix"
+  book_web_search_config: "config_web_search_check_livre"
 
   # Seuil de tolérance pour la divergence de prix en % entre le prix pass et le prix moyen trouvé
   price_divergence_threshold: 20.0
