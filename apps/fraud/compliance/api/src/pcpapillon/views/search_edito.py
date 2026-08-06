@@ -41,7 +41,7 @@ def search_edito(
     if search_input.filters:
         payload["filters_list"] = [
             {
-                "column": f.column.value if hasattr(f.column, "value") else f.column,
+                "column": f.column.value,
                 "operator": f.operator,
                 "value": f.value,
             }
@@ -52,4 +52,5 @@ def search_edito(
         endpoint_resource_name=SEARCH_EDITO_MODEL_ENDPOINT_NAME,
         instances=[payload],
     )
-    return SearchEditoOutput(results=predictions)
+
+    return SearchEditoOutput(results=predictions or [])

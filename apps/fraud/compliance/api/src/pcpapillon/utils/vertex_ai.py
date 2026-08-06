@@ -1,4 +1,5 @@
 from google.cloud import aiplatform
+from loguru import logger
 
 from pcpapillon.utils.constants import GCP_PROJECT
 from pcpapillon.utils.env_vars import GCP_LOCATION
@@ -7,10 +8,6 @@ from pcpapillon.utils.env_vars import GCP_LOCATION
 def retrieve_vertex_ai_endpoint(
     project: str, location: str, endpoint_resource_name: str
 ) -> aiplatform.Endpoint:
-    """
-    Retrieves a Vertex AI endpoint using its full resource name.
-    """
-    # Initialize the SDK
     aiplatform.init(project=project, location=location)
     endpoints = aiplatform.Endpoint.list(
         filter=f'display_name="{endpoint_resource_name}"'
@@ -20,35 +17,21 @@ def retrieve_vertex_ai_endpoint(
         raise ValueError(
             f"No endpoint found with display name: '{endpoint_resource_name}'"
         )
-    # Warning: Display names are not unique. This script selects the first match.
     if len(endpoints) > 1:
-        print(
-            f"Warning: Multiple endpoints found with name '{endpoint_resource_name}'. Using the first one found."
+        logger.warning(
+            f"Multiple endpoints found with name '{endpoint_resource_name}'. Using the first one."
         )
 
-    target_endpoint = endpoints[0]
-
-    print(f"Found Endpoint ID: {target_endpoint.name}")
-    return target_endpoint
+    logger.info(f"Found Endpoint ID: {endpoints[0].name}")
+    return endpoints[0]
 
 
 def run_vertex_ai_endpoint_prediction(
     endpoint_resource_name: str, instances: list
 ) -> list:
-    """
-    Calls a Vertex AI endpoint using its full resource name.
-    """
-
-    # 1. Retrieve the endpoint
     target_endpoint = retrieve_vertex_ai_endpoint(
         GCP_PROJECT, GCP_LOCATION, endpoint_resource_name
     )
-
-    # 2. Make the prediction
-    try:
-        response = target_endpoint.predict(instances=instances)
-        print(f"Prediction results: {response.predictions}")
-        return response.predictions[0]
-    except Exception as e:
-        print(f"Prediction failed: {e}")
-        return None
+    response = target_endpoint.predict(instances=instances)
+    logger.info(f"Prediction results: {response.predictions}")
+    return response.predictions[0]

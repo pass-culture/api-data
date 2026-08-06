@@ -1,40 +1,13 @@
 import contextvars
-from enum import Enum
 
-from loguru import logger as local_logger
+from pcpapillon.utils.env_vars import ENV_SHORT_NAME
 
-from pcpapillon.utils.env_vars import ENV_SHORT_NAME, GCP_LOCATION
-
-
-class ModelName(Enum):
-    """
-    Enum class for model names
-    """
-
-    OFFER_CATEGORISATION = "offer_categorization"
-    COMPLIANCE = "compliance_default"
-
-
-# logger
 cloud_trace_context = contextvars.ContextVar("cloud_trace_context", default="")
 call_id_trace_context = contextvars.ContextVar("call_id_context", default="")
 http_request_context = contextvars.ContextVar("http_request_context", default={})
 
-
-# Constants
 GCP_PROJECT = (
     "passculture-data-prod" if ENV_SHORT_NAME == "prod" else "passculture-data-ehp"
-)
-SA_ACCOUNT = f"algo-training-{ENV_SHORT_NAME}@{GCP_PROJECT}.iam.gserviceaccount.com"
-local_logger.info(
-    f"ENV_SHORT_NAME: {ENV_SHORT_NAME}, SA_ACCOUNT: {SA_ACCOUNT}, GCP_PROJECT: {GCP_PROJECT}, GCP_LOCATION: {GCP_LOCATION}"
-)
-
-# MLFlow
-MLFLOW_URL = (
-    "https://mlflow.passculture.team/"
-    if ENV_SHORT_NAME == "prod"
-    else "https://mlflow.staging.passculture.team/"
 )
 
 
@@ -55,5 +28,8 @@ LLM_ALLOWED_SUBCATEGORY_WITH_MAPPING = {
     "ABO_CONCERT": "spectacle_vivant",
     "FESTIVAL_SPECTACLE": "spectacle_vivant",
     "SPECTACLE_VENTE_DISTANCE": "spectacle_vivant",
+    "LIVRE_PAPIER": "livres",
+    "LIVRE_NUMERIQUE": "livres",
 }
 PRICE_CHECK_CATEGORIES = ["instruments"]
+BOOK_CHECK_CATEGORIES = ["livres"]

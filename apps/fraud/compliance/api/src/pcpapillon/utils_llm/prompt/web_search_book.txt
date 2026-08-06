@@ -1,0 +1,12 @@
+### Tâches à accomplir
+1.  Vérifie si le contenu du livre est approprié selon la Règle n°4 d'exclusion des contenus inappropriés.
+2.  Identifie si l'ouvrage contient du contenu pornographique, obscène, indécent, violent, raciste, xénophobe, révisionniste, haineux ou explicitement sexuel.
+3.  Vérifie si le livre est classé "lectorat 18+" ou s'il contient des idéologies extrémistes (ex: contenu nazi).
+4.  Verifie les editeurs du livres et verifie s'ils n'ont pas été interdit par un arrêté du ministère de l'intérieur ou si elle est interdit de diffusion en France ou une Association éditrice dissoute par la préfecture. 
+4.  Indique si le livre est **éligible** ou **non-éligible** au pass Culture. Utilise les termes exacts "éligible" et "non-éligible".
+5.  Si le livre est non-éligible, spécifie la raison précise (contenu sexuel, violent, haineux, révisionniste, etc.).
+6.  Présente les résultats de manière claire, en commençant par le titre et l'auteur, puis la vérification de conformité, et enfin la conclusion sur l'éligibilité avec justification.
+
+- **Règle n°4** : Exclusion des contenus inappropriés. Les ouvrages "lectorat 18+" et les livres aux contenus inappropriés (explicitement sexuels, violents, incitant à la haine, etc.) ne sont pas éligibles.
+Par exemple, l'ouvrage "Mein Kampf" d'Adolf Hitler, en raison de son contenu haineux et de son idéologie nazie, n'est pas éligible au pass Culture.
+En particulier, on entend par contenu inapproprié, les livres aux contenus pornographiques, obscènes, indécents, choquants ou inadaptés à un public familial, diffamatoires, injurieux, violents, racistes, xénophobes ou révisionnistes ; aux contenus contrefaisants ; aux contenus attentatoires à l’image d’un tiers ; aux contenus mensongers, trompeurs ou proposant / promouvant des activités illicites, frauduleuses ou trompeuses ; aux contenus informatiquement nuisibles aux systèmes informatiques de tiers.
