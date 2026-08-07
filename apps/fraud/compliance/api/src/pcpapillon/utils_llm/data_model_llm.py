@@ -3,24 +3,6 @@ from enum import Enum
 from pydantic import BaseModel
 
 
-class User(BaseModel):
-    username: str
-    disabled: bool | None = None
-
-
-class UserInDB(User):
-    password: str
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
-
-class TokenData(BaseModel):
-    username: str | None = None
-
-
 class LLMComplianceInput(BaseModel):
     offer_id: str | None = ""
     offer_name: str | None = ""
@@ -34,12 +16,6 @@ class LLMComplianceInput(BaseModel):
     offer_sub_type_label: str | None = ""
     author: str | None = ""
     performer: str | None = ""
-
-
-# class LLMComplianceOutput(BaseModel):
-#     offer_id: str
-#     réponse_LLM: str
-#     explication_classification: str
 
 
 class ComplianceValidationStatusPrediction(Enum):

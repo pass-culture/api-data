@@ -87,4 +87,25 @@ COMPLIANCE_SCHEMAS = {
             "type": "string",
         },
     ],
+    "verification_livre": [
+        {
+            "name": "eligibilite",
+            "description": """Indique si le livre est éligible ou non-éligible au pass Culture.
+            Les valeurs possibles sont uniquement 'éligible' ou 'non-éligible'.""",
+            "type": "string",
+        },
+        {
+            "name": "raison_ineligibilite",
+            "description": """Si le livre est non-éligible, spécifie la raison précise
+            (contenu sexuel, violent, haineux, révisionniste, etc.).
+            Indiquer 'Non applicable' si le livre est éligible.""",
+            "type": "string",
+        },
+        {
+            "name": "explication_recherche",
+            "description": """Résumé de la recherche effectuée : titre, auteur vérifié,
+            sources consultées et conclusion sur le contenu.""",
+            "type": "string",
+        },
+    ],
 }

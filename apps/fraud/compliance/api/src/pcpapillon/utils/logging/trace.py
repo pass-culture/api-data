@@ -2,8 +2,8 @@ import uuid
 
 from fastapi import Request
 
-from main import custom_logger
 from pcpapillon.utils.constants import call_id_trace_context, cloud_trace_context
+from pcpapillon.utils.logging.setup import custom_logger
 
 
 async def setup_trace(request: Request):
