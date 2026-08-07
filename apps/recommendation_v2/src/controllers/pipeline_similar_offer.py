@@ -267,15 +267,20 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
         },
     )
 
-    # --- 7. Fallback Phase (coreservation only) ---
+    # --- 7. Fallback Phase ---
     # If the full pipeline produced zero results, delegate entirely to generate_playlist_recommendations.
     # That function handles its own retrieval, ranking, diversification, and logging — no duplication needed.
-    is_coreservation_model = retrieval_model == SimilarOfferModelChoices.coreservation
-    if is_coreservation_model and len(final_similar_offers) == 0:
+    #
+    # The fallback applies to ALL retrieval models (including 'graph').
+    # Without this, the two A/B test groups would behave asymmetrically on zero-result cases:
+    # the control group (coreservation) would receive a fallback playlist while the test group (graph)
+    # would receive an empty response — penalising the test group independently of model quality.
+    if len(final_similar_offers) == 0:
         logger.warning(
-            "⚠️ No similar offers found with coreservation model. Falling back to standard recommendation pipeline.",
+            "⚠️ No similar offers found. Falling back to standard recommendation pipeline.",
             extra={
                 "offer_id": offer_id,
+                "retrieval_model": retrieval_model,
                 "latitude": latitude,
                 "longitude": longitude,
                 "categories": categories,
