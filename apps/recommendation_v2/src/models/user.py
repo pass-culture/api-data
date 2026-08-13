@@ -21,3 +21,6 @@ class EnrichedUser(Base):
     user_deposit_creation_date: sa_orm.Mapped[datetime | None] = sa_orm.mapped_column(DateTime(timezone=True))
     user_deposit_initial_amount: sa_orm.Mapped[float] = sa_orm.mapped_column(Float)
     user_theoretical_remaining_credit: sa_orm.Mapped[float] = sa_orm.mapped_column(Float)
+    user_department_code: sa_orm.Mapped[str | None] = sa_orm.mapped_column(String(3), nullable=True)
+    user_subscription_latitude: sa_orm.Mapped[float | None] = sa_orm.mapped_column(Float, nullable=True)
+    user_subscription_longitude: sa_orm.Mapped[float | None] = sa_orm.mapped_column(Float, nullable=True)
