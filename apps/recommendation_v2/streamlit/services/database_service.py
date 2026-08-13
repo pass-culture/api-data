@@ -101,3 +101,44 @@ def get_random_offer() -> str:
         return loop.run_until_complete(_get_offer_async())
     finally:
         loop.close()
+
+
+def get_user_metadata(user_id: str) -> dict | None:
+    """
+    Fetches all EnrichedUser fields for a given user_id.
+
+    Returns a dict of field → value, or None if the user is not found.
+    """
+
+    async def _get_async():
+        temp_engine = create_async_engine(settings.DATABASE_URL, poolclass=pool.NullPool)
+        temp_session_factory = async_sessionmaker(temp_engine, expire_on_commit=False)
+
+        async with temp_session_factory() as session:
+            user = await session.get(EnrichedUser, user_id)
+
+        await temp_engine.dispose()
+        return user
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        user = loop.run_until_complete(_get_async())
+    finally:
+        loop.close()
+
+    if user is None:
+        return None
+
+    return {
+        "user_id": user.user_id,
+        "booking_cnt": user.booking_cnt,
+        "consult_offer": user.consult_offer,
+        "has_added_offer_to_favorites": user.has_added_offer_to_favorites,
+        "user_theoretical_remaining_credit": user.user_theoretical_remaining_credit,
+        "user_deposit_initial_amount": user.user_deposit_initial_amount,
+        "user_birth_date": str(user.user_birth_date) if user.user_birth_date else None,
+        "user_deposit_creation_date": str(user.user_deposit_creation_date) if user.user_deposit_creation_date else None,
+        "user_subscription_latitude": user.user_subscription_latitude,
+        "user_subscription_longitude": user.user_subscription_longitude,
+    }
