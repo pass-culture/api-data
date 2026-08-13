@@ -4,6 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from core.user_context import GeoLocationSource
 from schemas.vertex_prediction_item import ItemOrigin
 
 
@@ -35,6 +36,7 @@ class TrackingRequestExtraData(BaseModel):
 class TrackingOfferExtraData(BaseModel):
     """Extra Model & Ranking Scores — nested BigQuery RECORD stored in offer_extra_data."""
 
+    user_geolocation_source: GeoLocationSource
     offer_ranking_score: float | None
     offer_ranking_origin: Literal["model", "item_rank"]
     offer_booking_number_last_7_days: int

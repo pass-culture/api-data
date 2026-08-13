@@ -98,22 +98,34 @@ async def generate_similar_offers(  # noqa: PLR0913
     else:
         reference_item_id = reference_offer.item_id
 
-    # 1.2. Determine geolocation context
+    # 1.2. Fetch user record (needed for subscription location fallback below)
+    effective_user_id = user_id if user_id else UNAUTHENTICATED_USER_ID
+    db_user = await db.get(EnrichedUser, effective_user_id)
+
+    # 1.3. Determine geolocation context
     user_location_missing = latitude is None or longitude is None
     offer_has_location = reference_offer and reference_offer.venue_latitude and reference_offer.venue_longitude
+    geolocation_source = "none"
 
-    if user_location_missing and reference_offer and offer_has_location:
-        # Fallback to the offer's venue location if user location is not provided
+    if not user_location_missing:
+        geolocation_source = "gps"
+    elif db_user and db_user.user_subscription_latitude and db_user.user_subscription_longitude:
+        latitude = db_user.user_subscription_latitude
+        longitude = db_user.user_subscription_longitude
+        geolocation_source = "subscription_department"
+        logger.debug(
+            "📍 User GPS missing — falling back to subscription department centroid.",
+            extra={"offer_id": offer_id, "user_id": effective_user_id, "latitude": latitude, "longitude": longitude},
+        )
+    elif reference_offer and offer_has_location:
         latitude = reference_offer.venue_latitude
         longitude = reference_offer.venue_longitude
+        geolocation_source = "offer_venue"
         logger.debug(
             "📍 User location missing — falling back to offer's venue location.",
             extra={"offer_id": offer_id, "latitude": latitude, "longitude": longitude},
         )
 
-    # 1.3. Build user context (use provided user_id or default to unauthenticated)
-    effective_user_id = user_id if user_id else UNAUTHENTICATED_USER_ID
-    db_user = await db.get(EnrichedUser, effective_user_id)
     iris_id = await get_iris_id_from_coordinates(db, latitude, longitude)
     # If latitude and longitude are None, get_iris_id_from_coordinates returns None
 
@@ -124,6 +136,7 @@ async def generate_similar_offers(  # noqa: PLR0913
         longitude=longitude,
         iris_id=iris_id,
     )
+    user_context.geolocation_source = geolocation_source
 
     logger.info(
         "🚀 Starting similar_offers pipeline.",

@@ -1,8 +1,12 @@
 from dataclasses import dataclass
 from datetime import UTC
 from datetime import datetime
+from typing import Literal
 
 from models.user import EnrichedUser
+
+
+GeoLocationSource = Literal["gps", "subscription_department", "offer_venue", "none"]
 
 
 DEFAULT_FALLBACK_USER_AGE = 18
@@ -69,6 +73,7 @@ class UserContext:
     latitude: float | None = None
     longitude: float | None = None
     iris_id: str | None = None
+    geolocation_source: GeoLocationSource = "none"
 
     @property
     def is_cold_start(self) -> bool:

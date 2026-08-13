@@ -51,11 +51,26 @@ async def get_iris_id_from_coordinates(db: AsyncSession, latitude: float | None,
     user_location_point = func.ST_MakePoint(longitude, latitude)
 
     # --- 3. Execute Spatial Intersection Query ---
-    # ST_Contains checks if the polygon ('shape') completely envelops the 'point'
-    intersecting_iris_query = select(IrisFrance.id).where(func.ST_Contains(IrisFrance.shape, user_location_point))
+    # ST_Contains checks if the polygon ('shape') completely envelops the 'point'.
+    # Falls back to nearest centroid for points on polygon boundaries or just outside IRIS coverage.
+    intersecting_iris_query = (
+        select(IrisFrance.id)
+        .where(func.ST_Contains(IrisFrance.shape, user_location_point))
+        .limit(1)
+    )
 
     result = await db.execute(intersecting_iris_query)
     iris_db_id = result.scalars().first()
+
+    if iris_db_id is None:
+        # Fallback: find the nearest IRIS by centroid distance
+        nearest_iris_query = (
+            select(IrisFrance.id)
+            .order_by(func.ST_Distance(func.ST_GeomFromText(IrisFrance.centroid), user_location_point))
+            .limit(1)
+        )
+        result = await db.execute(nearest_iris_query)
+        iris_db_id = result.scalars().first()
 
     return iris_db_id
 

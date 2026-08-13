@@ -540,3 +540,68 @@ async def test_pipeline_skips_tracking_for_unauthenticated_user(
         ),
     )
     response.params.reco_origin = "unknown"
+
+
+@pytest.mark.asyncio
+async def test_pipeline_uses_subscription_centroid_when_gps_missing(
+    db_session,
+    mock_vertex_retrieval,
+    mock_vertex_ranking,
+    mocker,
+):
+    """
+    Verifies that the pipeline falls back to the user's subscription department centroid
+    when no GPS coordinates are provided, and that geolocation_source is set accordingly.
+
+    Setup:
+    - The user has user_subscription_latitude and user_subscription_longitude set.
+    - No GPS coordinates are passed to generate_playlist_recommendations.
+
+    Expected behaviour:
+    - The user_context forwarded to resolve_closest_venues_from_items uses the
+      subscription centroid coordinates as the effective location.
+    - user_context.geolocation_source is "subscription_department".
+    - The pipeline completes successfully and returns a non-empty playlist.
+    """
+    bordeaux_lat, bordeaux_lon = 44.84, -0.58  # approximate Gironde department centroid
+
+    user = await EnrichedUserFactory.create_warm(
+        user_subscription_latitude=bordeaux_lat,
+        user_subscription_longitude=bordeaux_lon,
+    )
+
+    digital_items = [
+        RecommendableItemFactory.build(
+            item_id=f"item-{i}",
+            example_offer_id=f"offer-{i}",
+            is_geolocated=False,
+            total_offers=1,
+        )
+        for i in range(5)
+    ]
+    mock_vertex_retrieval[0].return_value = digital_items
+    mock_vertex_ranking[0].side_effect = lambda offers, _ctx: offers
+
+    mock_resolve = mocker.patch(
+        "controllers.pipeline_playlist_recommendation.resolve_closest_venues_from_items",
+        new_callable=mocker.AsyncMock,
+        return_value=[],
+    )
+    mocker.patch("controllers.pipeline_playlist_recommendation.log_past_offer_context_to_sink")
+
+    await generate_playlist_recommendations(
+        db=db_session,
+        user_id=str(user.user_id),
+        latitude=None,
+        longitude=None,
+        params=PlaylistRequestParams(),
+    )
+
+    call_args = mock_resolve.call_args
+    user_context = call_args.kwargs.get("user_context") or call_args[1].get("user_context") or call_args[0][2]
+
+    assert user_context.latitude == bordeaux_lat
+    assert user_context.longitude == bordeaux_lon
+    assert user_context.geolocation_source == "subscription_department", (
+        "geolocation_source must be 'subscription_department' when GPS is absent but subscription centroid is available."
+    )
