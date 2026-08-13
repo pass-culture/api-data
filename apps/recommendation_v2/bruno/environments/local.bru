@@ -1,0 +1,19 @@
+vars {
+  base_url: http://localhost:8000
+  auth_token: {{process.env.API_TOKEN}}
+
+  user_warm: 3196280
+  user_cold: usr_test_cold_001
+  user_unknown: usr_does_not_exist_000
+
+  offer_warm: 28154
+  offer_unknown: off_does_not_exist_000
+  artist_warm: a3a7c9f7-26f1-4bd3-bfc2-40a7abd398cf
+  artist_unknown: art00000-0000-0000-0000-000000000000
+
+  expected_model_origin: default
+}
+
+vars:secret [
+  auth_token
+]

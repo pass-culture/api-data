@@ -1,6 +1,6 @@
 SHELL:=/bin/bash
 
-.PHONY: install start tunnel start-with-remote-db streamlit streamlit-remote dev-with-streamlit test unit-test integration-test all-tests-marked access-remote-swagger get-api-token show-config help
+.PHONY: install start tunnel start-with-remote-db streamlit streamlit-remote dev-with-streamlit test unit-test integration-test all-tests-marked access-remote-swagger get-api-token show-config bruno-run bruno-run-remote help
 
 
 # ===========================================
@@ -56,6 +56,39 @@ tunnel: check-gcloud-auth ## Open a standalone SSH tunnel to the remote DB (fore
 	$(PREPARE_TUNNEL)
 	@echo "🔌 Opening standalone SSH tunnel..."
 	@source .env && $(SSH_BASE) -L "$$SQL_PORT":"$$REMOTE_SQL_HOST":"$$REMOTE_SQL_PORT"
+
+bruno-run: ## Run the Bruno collection against the local API (all folders, local env). Requires: npm install -g @usebruno/cli
+	@source .env && \
+	cd bruno && bru run --env local \
+		--env-var "auth_token=$${API_TOKEN}" \
+		--reporter-json ../results-bruno.json
+
+bruno-run-remote: check-gcloud-auth ## Run the Bruno collection against a remote API via HTTP proxy tunnel. Requires DEPLOY_ENV=dev|stg|prod
+	@[ -n "$(DEPLOY_ENV)" ] || (echo "❌ DEPLOY_ENV required (dev|stg|prod)"; exit 1)
+	$(PREPARE_SWAGGER_TUNNEL)
+	@$(load_env_cmd) && \
+	LOCAL_PORT="$${REMOTE_API_SOCKS_PORT:-1080}" && REMOTE_PROXY_PORT="$${BASTION_HTTP_PROXY_PORT:-8888}" ; \
+	if [ -z "$$GCP_SECRET_PROJECT" ] || [ -z "$$API_RECO_TOKEN_SECRET_NAME" ]; then \
+		echo "❌ GCP_SECRET_PROJECT or API_RECO_TOKEN_SECRET_NAME missing in .env.$(DEPLOY_ENV)"; exit 1; \
+	fi; \
+	echo "🔐 Fetching token from Secret Manager [$(DEPLOY_ENV)]..." ; \
+	TOKEN=$$(gcloud secrets versions access latest --secret "$$API_RECO_TOKEN_SECRET_NAME" --project "$$GCP_SECRET_PROJECT" 2>&1) ; \
+	if [ -z "$$TOKEN" ]; then echo "❌ Token is empty — check gcloud auth and secret name"; exit 1; fi ; \
+	echo "✅ Token fetched (length: $${#TOKEN})" ; \
+	echo "🔌 Opening HTTP proxy tunnel on localhost:$$LOCAL_PORT..." ; \
+	$(SSH_BASE) -N -q -L "$$LOCAL_PORT:localhost:$$REMOTE_PROXY_PORT" & \
+	TUNNEL_PID=$$! ; \
+	trap 'echo "🛑 Closing tunnel (PID: $$TUNNEL_PID)..."; kill $$TUNNEL_PID 2>/dev/null || true' EXIT INT TERM ; \
+	echo "⏳ Waiting for tunnel on localhost:$$LOCAL_PORT (IAP ~10s)..." ; \
+	for i in $$(seq 1 30); do lsof -nP -iTCP:$$LOCAL_PORT -sTCP:LISTEN >/dev/null 2>&1 && break; sleep 1; done ; \
+	lsof -nP -iTCP:$$LOCAL_PORT -sTCP:LISTEN >/dev/null 2>&1 || { echo "❌ Tunnel failed to open"; exit 1; } ; \
+	sleep 3 ; \
+	echo "🚀 Running Bruno against $$REMOTE_API_URL via proxy..." ; \
+	cd bruno && HTTP_PROXY="http://localhost:$$LOCAL_PORT" HTTPS_PROXY="http://localhost:$$LOCAL_PORT" \
+	bru run --env $(DEPLOY_ENV) \
+		--env-var "base_url=$$REMOTE_API_URL" \
+		--env-var "auth_token=$$TOKEN" \
+		--reporter-json ../results-bruno-$(DEPLOY_ENV).json
 
 postman-run: ## Launch the local API (start-with-remote-db), run the Postman collection, then tear it all down
 	@source .env && PORT="$${FASTAPI_SERVER_PORT:-8801}" ; \

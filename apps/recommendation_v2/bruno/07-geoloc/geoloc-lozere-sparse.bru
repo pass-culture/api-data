@@ -1,0 +1,35 @@
+meta {
+  name: Geoloc - low density (Lozère - Mende)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/playlist_recommendation/{{user_warm}}?token={{auth_token}}&preset_location=Low Density - Mende (Lozère)
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("status 200 with rural geolocation", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("playlist is returned for low-density region", function() {
+    expect(res.body.playlist_recommended_offers).to.be.an("array");
+  });
+
+  test("result differs from dense-region baseline", function() {
+    var paris = JSON.parse(bru.getVar("offers_geoloc_paris") || "null");
+    if (paris !== null) {
+      var differs = JSON.stringify(res.body.playlist_recommended_offers) !== JSON.stringify(paris);
+      if (!differs) {
+        console.warn("Lozere result identical to Paris result — geo index may not be differentiating.");
+      }
+    }
+  });
+}

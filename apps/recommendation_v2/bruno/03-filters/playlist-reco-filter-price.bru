@@ -1,0 +1,32 @@
+meta {
+  name: Filters - price range
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/playlist_recommendation/{{user_warm}}?token={{auth_token}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "priceMin": 0,
+    "priceMax": 10
+  }
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("returns at least one offer within price range", function() {
+    expect(res.body.playlist_recommended_offers).to.be.an("array").with.length.above(0);
+  });
+
+  // NOTE: price per offer is not returned in the response payload.
+  // Full filter compliance verification requires cross-checking offer IDs against the offers table.
+  // Tracking ticket to expose offer metadata in response: [TODO — open request to backend].
+}

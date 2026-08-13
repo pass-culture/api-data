@@ -1,0 +1,27 @@
+meta {
+  name: Latency - playlist warm user
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/playlist_recommendation/{{user_warm}}?token={{auth_token}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  // OPEN QUESTION: threshold to be validated with the team against prod p95 data.
+  // Current placeholder is 2000ms to account for cold Vertex AI calls on staging.
+  test("response time under threshold (warm)", function() {
+    expect(res.responseTime).to.be.below(2000);
+  });
+}

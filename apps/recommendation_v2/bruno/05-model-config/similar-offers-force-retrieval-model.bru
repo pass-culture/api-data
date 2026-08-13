@@ -1,0 +1,35 @@
+meta {
+  name: Model config - force retrieval_model on similar_offers
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/similar_offers/{{offer_warm}}?token={{auth_token}}&retrieval_model=graph
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200 (graph endpoint must be deployed in this env)", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("results is an array", function() {
+    if (res.status === 200) {
+      expect(res.body.results).to.be.an("array");
+    }
+  });
+
+  test("params.model_origin is present", function() {
+    if (res.status === 200) {
+      expect(res.body.params.model_origin).to.be.a("string").and.not.be.empty;
+    }
+  });
+}
+
+script:post-response {
+  if (res.status === 200 && res.body) {
+    bru.setVar("graph_results", JSON.stringify(res.body.results));
+  }
+}

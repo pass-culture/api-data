@@ -1,0 +1,28 @@
+meta {
+  name: Similar artists - known artist (nominal)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/similar_artists/{{artist_warm}}?token={{auth_token}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("similar_artists is non-empty for known artist", function() {
+    expect(res.body.similar_artists).to.be.an("array").with.length.above(0);
+  });
+
+  test("each result has artist_id_match and rank", function() {
+    res.body.similar_artists.forEach(function(item) {
+      expect(item.artist_id_match).to.be.a("string").and.not.be.empty;
+      expect(item.rank).to.be.a("number");
+    });
+  });
+}

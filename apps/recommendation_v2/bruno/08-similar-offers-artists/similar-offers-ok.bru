@@ -1,0 +1,22 @@
+meta {
+  name: Similar offers - known offer (nominal)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/similar_offers/{{offer_warm}}?token={{auth_token}}&latitude=48.8566&longitude=2.3522
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("results is non-empty for known offer", function() {
+    expect(res.body.results).to.be.an("array").with.length.above(0);
+  });
+
+}

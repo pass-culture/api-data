@@ -1,0 +1,31 @@
+meta {
+  name: Cold start - warm user (algo path)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/playlist_recommendation/{{user_warm}}?token={{auth_token}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  // Warm user should follow the algo recommendation path, not cold_start.
+  test("reco_origin is algo for warm user", function() {
+    expect(res.body.params.reco_origin).to.equal("algo");
+  });
+
+  // Playlist length check (spec item #1): warm users should yield a full playlist.
+  test("playlist has at least 1 offer", function() {
+    expect(res.body.playlist_recommended_offers.length).to.be.above(0);
+  });
+}

@@ -1,0 +1,23 @@
+meta {
+  name: Similar artists - unknown artist_id
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{base_url}}/similar_artists/{{artist_unknown}}?token={{auth_token}}
+  body: none
+  auth: none
+}
+
+tests {
+  // Contract: 200 with empty similar_artists list (not a 404).
+  // The DB query returns nothing for an unknown artist_id; the controller returns an empty list.
+  test("status 200 for unknown artist", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("similar_artists is empty for unknown artist", function() {
+    expect(res.body.similar_artists).to.be.an("array").that.is.empty;
+  });
+}

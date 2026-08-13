@@ -1,0 +1,33 @@
+meta {
+  name: Geoloc - no geolocation
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/playlist_recommendation/{{user_warm}}?token={{auth_token}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("status 200 without geolocation", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("playlist is non-empty even without location context", function() {
+    expect(res.body.playlist_recommended_offers).to.be.an("array").with.length.above(0);
+  });
+
+  // OPEN QUESTION: the geo index used is not exposed in the API response.
+  // To verify the correct (default) index is selected, request backend to expose
+  // a debug.geo_index field in staging responses (see migration plan notes).
+}
+
+script:post-response {
+  bru.setVar("offers_no_geoloc", JSON.stringify(res.body.playlist_recommended_offers));
+}

@@ -1,0 +1,37 @@
+meta {
+  name: Filters - multi-filter (category + isEvent + price)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{base_url}}/playlist_recommendation/{{user_warm}}?token={{auth_token}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "isEvent": true,
+    "priceMax": 20,
+    "categories": ["MUSIQUE_LIVE", "SPECTACLE"]
+  }
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("response contains playlist_recommended_offers", function() {
+    expect(res.body.playlist_recommended_offers).to.be.an("array");
+  });
+
+  // Playlist length sanity check (spec item #1)
+  test("playlist length within acceptable bounds", function() {
+    var len = res.body.playlist_recommended_offers.length;
+    expect(len).to.be.at.least(0);
+    // Upper bound: no business rule exposed yet — flag if unexpectedly large
+    expect(len).to.be.at.most(100);
+  });
+}

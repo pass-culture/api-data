@@ -1,0 +1,29 @@
+meta {
+  name: Cold start - cold user (cold_start path)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/playlist_recommendation/{{user_cold}}?token={{auth_token}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("status 200 even with no history", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("reco_origin is cold_start or unknown depending on whether cold user is seeded", function() {
+    expect(res.body.params.reco_origin).to.be.oneOf(["cold_start", "unknown"]);
+  });
+
+  test("playlist is not empty", function() {
+    expect(res.body.playlist_recommended_offers).to.be.an("array").with.length.above(0);
+  });
+}

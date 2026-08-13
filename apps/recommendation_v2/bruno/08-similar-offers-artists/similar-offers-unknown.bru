@@ -1,0 +1,24 @@
+meta {
+  name: Similar offers - unknown offer_id
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/similar_offers/{{offer_unknown}}?token={{auth_token}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("status 200 for unknown offer", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("results is an array", function() {
+    expect(res.body.results).to.be.an("array");
+  });
+
+  // Contract (observed): the API returns a fallback result set for unknown offers
+  // rather than an empty list. This is intentional — do not assert empty here.
+}

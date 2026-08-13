@@ -1,0 +1,32 @@
+meta {
+  name: Cache - 1. initial call (cache miss)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/playlist_recommendation/{{user_warm}}?token={{auth_token}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("playlist_recommended_offers is non-empty", function() {
+    expect(res.body.playlist_recommended_offers).to.be.an("array").with.length.above(0);
+  });
+}
+
+script:post-response {
+  if (res.status === 200 && res.body && res.body.params) {
+    bru.setVar("initial_offers", JSON.stringify(res.body.playlist_recommended_offers));
+    bru.setVar("initial_call_id", res.body.params.call_id);
+  }
+}

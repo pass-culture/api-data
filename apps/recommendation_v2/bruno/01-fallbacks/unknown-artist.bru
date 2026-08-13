@@ -1,0 +1,21 @@
+meta {
+  name: Fallback - unknown artist (similar_artists)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/similar_artists/{{artist_unknown}}?token={{auth_token}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns 200 for unknown artist", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("similar_artists is an empty array for unknown artist", function() {
+    expect(res.body.similar_artists).to.be.an("array").that.is.empty;
+  });
+}

@@ -1,0 +1,24 @@
+meta {
+  name: Fallback - unknown offer (similar_offers)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/similar_offers/{{offer_unknown}}?token={{auth_token}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("returns 200 for unknown offer", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("results is an array", function() {
+    expect(res.body.results).to.be.an("array");
+  });
+
+  // Contract: the API returns a fallback result set (popular/trending offers)
+  // rather than an empty list for unknown offers. Empty is NOT guaranteed.
+}

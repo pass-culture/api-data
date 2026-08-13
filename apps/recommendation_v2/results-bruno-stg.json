@@ -1,0 +1,1649 @@
+[
+  {
+    "iterationIndex": 0,
+    "results": [
+      {
+        "test": {
+          "filename": "00-health/ping.bru"
+        },
+        "request": {
+          "method": "GET",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/",
+          "headers": {
+            "content-type": null
+          }
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "87774f67a716990b3c41a4b38693b94d;o=1",
+            "date": "Thu, 09 Jul 2026 12:00:22 GMT",
+            "server": "Google Frontend",
+            "content-length": "33",
+            "connection": "close"
+          },
+          "data": {
+            "status": "OK",
+            "version": "0.1.0"
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/",
+          "responseTime": 135,
+          "duration": 135,
+          "size": 33
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200",
+            "status": "pass",
+            "uid": "A5FvYnnQ-9ItJhignBjoO"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.247971875,
+        "name": "Health check",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/00-health/ping",
+        "path": "00-health/ping",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "01-fallbacks/unknown-user.bru"
+        },
+        "request": {
+          "method": "POST",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/usr_does_not_exist_000?token=********",
+          "headers": {
+            "content-type": "application/json"
+          },
+          "data": "{}"
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "f5f9449f8a61fe65ed01c09363674606",
+            "date": "Thu, 09 Jul 2026 12:00:23 GMT",
+            "server": "Google Frontend",
+            "content-length": "228",
+            "connection": "close"
+          },
+          "data": {
+            "playlist_recommended_offers": [
+              "234954426"
+            ],
+            "params": {
+              "reco_origin": "unknown",
+              "model_origin": "default",
+              "call_id": "86f12e40-15c7-4611-bb03-de219234a406",
+              "unique_call_id": "fb3b656f-7c81-4bef-8158-0930c43e6687"
+            },
+            "from_cache": true
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/usr_does_not_exist_000?token=********",
+          "responseTime": 120,
+          "duration": 120,
+          "size": 228
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "returns 200 with fallback for unknown user",
+            "status": "pass",
+            "uid": "iT5sjQ7oZ3TO43AIPgB-e"
+          },
+          {
+            "description": "playlist_recommended_offers is an array",
+            "status": "pass",
+            "uid": "je7B7vcgnfNHb2MiV6BLC"
+          },
+          {
+            "description": "reco_origin is 'unknown' for user not in DB",
+            "status": "pass",
+            "uid": "q04C_MYrixzc6LpjQOmho"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.167687416,
+        "name": "Fallback - unknown user",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/01-fallbacks/unknown-user",
+        "path": "01-fallbacks/unknown-user",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "01-fallbacks/unknown-offer.bru"
+        },
+        "request": {
+          "method": "GET",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/similar_offers/off_does_not_exist_000?token=********",
+          "headers": {
+            "content-type": null
+          }
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "71eeb243c7fa896d8299818a704c2f4f",
+            "date": "Thu, 09 Jul 2026 12:00:23 GMT",
+            "server": "Google Frontend",
+            "content-length": "224",
+            "connection": "close"
+          },
+          "data": {
+            "results": [
+              "234954426"
+            ],
+            "params": {
+              "reco_origin": "recommendation_fallback",
+              "model_origin": "default",
+              "call_id": "efa1b341-bca5-45c9-9c6f-bbf7481b37ed",
+              "unique_call_id": "4e42c95d-72ac-426a-84e1-fde370057810"
+            },
+            "from_cache": true
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/similar_offers/off_does_not_exist_000?token=********",
+          "responseTime": 117,
+          "duration": 117,
+          "size": 224
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "returns 200 for unknown offer",
+            "status": "pass",
+            "uid": "4wo3n4sb6fUhG5cIbedAQ"
+          },
+          {
+            "description": "results is an array",
+            "status": "pass",
+            "uid": "-hP5Gak7jOLpJKsbKETs-"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.169436375,
+        "name": "Fallback - unknown offer (similar_offers)",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/01-fallbacks/unknown-offer",
+        "path": "01-fallbacks/unknown-offer",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "01-fallbacks/unknown-artist.bru"
+        },
+        "request": {
+          "method": "GET",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/similar_artists/art00000-0000-0000-0000-000000000000?token=********",
+          "headers": {
+            "content-type": null
+          }
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "19171fef03ebfc52004510e569e13ef7",
+            "date": "Thu, 09 Jul 2026 12:00:23 GMT",
+            "server": "Google Frontend",
+            "content-length": "133",
+            "connection": "close"
+          },
+          "data": {
+            "similar_artists": [],
+            "params": {
+              "artist_id": "art00000-0000-0000-0000-000000000000",
+              "call_id": "734ed7dc-671c-438b-87da-ca6c66c64f52"
+            }
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/similar_artists/art00000-0000-0000-0000-000000000000?token=********",
+          "responseTime": 139,
+          "duration": 139,
+          "size": 133
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "returns 200 for unknown artist",
+            "status": "pass",
+            "uid": "s8_d8wQ9tVnk9Uig3ji6k"
+          },
+          {
+            "description": "similar_artists is an empty array for unknown artist",
+            "status": "pass",
+            "uid": "GpMoRBZXZik5vHx9j8_BO"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.189256042,
+        "name": "Fallback - unknown artist (similar_artists)",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/01-fallbacks/unknown-artist",
+        "path": "01-fallbacks/unknown-artist",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "02-latency/playlist-latency-warm.bru"
+        },
+        "request": {
+          "method": "POST",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********",
+          "headers": {
+            "content-type": "application/json"
+          },
+          "data": "{}"
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "0cc6b853d861ebaf17e3784cc4e3d988",
+            "date": "Thu, 09 Jul 2026 12:00:23 GMT",
+            "server": "Google Frontend",
+            "content-length": "237",
+            "connection": "close"
+          },
+          "data": {
+            "playlist_recommended_offers": [
+              "234954426",
+              "320175029"
+            ],
+            "params": {
+              "reco_origin": "algo",
+              "model_origin": "default",
+              "call_id": "ef5cdf47-47f2-440c-8273-d1d818b0362b",
+              "unique_call_id": "1c2f3589-4cd6-469e-bfb3-eaa43f9b2bd6"
+            },
+            "from_cache": true
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********",
+          "responseTime": 129,
+          "duration": 129,
+          "size": 237
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200",
+            "status": "pass",
+            "uid": "MEgSaA1pH0UXDmy05tSxy"
+          },
+          {
+            "description": "response time under threshold (warm)",
+            "status": "pass",
+            "uid": "ZYHIiq2Q5oNWDdR1wwZgc"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.1794055,
+        "name": "Latency - playlist warm user",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/02-latency/playlist-latency-warm",
+        "path": "02-latency/playlist-latency-warm",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "02-latency/playlist-latency-cold.bru"
+        },
+        "request": {
+          "method": "POST",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/usr_test_cold_001?token=********",
+          "headers": {
+            "content-type": "application/json"
+          },
+          "data": "{}"
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "ad4953e50e285730736fa373cc4c9f88",
+            "date": "Thu, 09 Jul 2026 12:00:23 GMT",
+            "server": "Google Frontend",
+            "content-length": "228",
+            "connection": "close"
+          },
+          "data": {
+            "playlist_recommended_offers": [
+              "234954426"
+            ],
+            "params": {
+              "reco_origin": "unknown",
+              "model_origin": "default",
+              "call_id": "2495cd3f-8642-4b58-b99c-ec7e4e31392a",
+              "unique_call_id": "00a30c7d-fc17-4728-b775-ad28ce878f6d"
+            },
+            "from_cache": true
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/usr_test_cold_001?token=********",
+          "responseTime": 124,
+          "duration": 124,
+          "size": 228
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200",
+            "status": "pass",
+            "uid": "BhhD7AURkIpCjFZFnkqZ3"
+          },
+          {
+            "description": "response time under threshold (cold)",
+            "status": "pass",
+            "uid": "gNDwgjgPxYsY7NU9FX-7k"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.176024583,
+        "name": "Latency - playlist cold user",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/02-latency/playlist-latency-cold",
+        "path": "02-latency/playlist-latency-cold",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "03-filters/playlist-reco-filter-is-event.bru"
+        },
+        "request": {
+          "method": "POST",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********",
+          "headers": {
+            "content-type": "application/json"
+          },
+          "data": "{\n  \"isEvent\": true\n}"
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "8ce1daca25e163cac19b1764411fcefe",
+            "date": "Thu, 09 Jul 2026 12:00:23 GMT",
+            "server": "Google Frontend",
+            "content-length": "237",
+            "connection": "close"
+          },
+          "data": {
+            "playlist_recommended_offers": [
+              "234954426",
+              "320175029"
+            ],
+            "params": {
+              "reco_origin": "algo",
+              "model_origin": "default",
+              "call_id": "41e8283f-7a5b-4b53-b68b-33aa16536496",
+              "unique_call_id": "192b14ba-04b1-48db-9500-00d360b35c09"
+            },
+            "from_cache": true
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********",
+          "responseTime": 115,
+          "duration": 115,
+          "size": 237
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200",
+            "status": "pass",
+            "uid": "3mZ6j4xhuiftoUHXVuUiP"
+          },
+          {
+            "description": "returns at least one offer",
+            "status": "pass",
+            "uid": "rFz6Vj57epwQd350ZWhGw"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.167455291,
+        "name": "Filters - isEvent=true",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/03-filters/playlist-reco-filter-is-event",
+        "path": "03-filters/playlist-reco-filter-is-event",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "03-filters/playlist-reco-filter-price.bru"
+        },
+        "request": {
+          "method": "POST",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********",
+          "headers": {
+            "content-type": "application/json"
+          },
+          "data": "{\n  \"priceMin\": 0,\n  \"priceMax\": 10\n}"
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "264be089f9b6fb0d2835a75c78fbce17",
+            "date": "Thu, 09 Jul 2026 12:00:24 GMT",
+            "server": "Google Frontend",
+            "content-length": "261",
+            "connection": "close"
+          },
+          "data": {
+            "playlist_recommended_offers": [
+              "231243790",
+              "291718194",
+              "234954426",
+              "320175029"
+            ],
+            "params": {
+              "reco_origin": "algo",
+              "model_origin": "default",
+              "call_id": "59f56476-4b8a-444c-91ea-5a1e5e16235d",
+              "unique_call_id": "8bcb2cfd-ec65-4222-83c4-fe86856b5236"
+            },
+            "from_cache": true
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********",
+          "responseTime": 118,
+          "duration": 118,
+          "size": 261
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200",
+            "status": "pass",
+            "uid": "sSwwRt1bBhc-mMCdjt8UQ"
+          },
+          {
+            "description": "returns at least one offer within price range",
+            "status": "pass",
+            "uid": "LQ-E4rTavod4vuiHuDNlx"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.167819334,
+        "name": "Filters - price range",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/03-filters/playlist-reco-filter-price",
+        "path": "03-filters/playlist-reco-filter-price",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "03-filters/playlist-reco-filter-multi.bru"
+        },
+        "request": {
+          "method": "POST",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********",
+          "headers": {
+            "content-type": "application/json"
+          },
+          "data": "{\n  \"isEvent\": true,\n  \"priceMax\": 20,\n  \"categories\": [\"MUSIQUE_LIVE\", \"SPECTACLE\"]\n}"
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "5fff4a98dab2210ae8fbd40e4628adac",
+            "date": "Thu, 09 Jul 2026 12:00:24 GMT",
+            "server": "Google Frontend",
+            "content-length": "249",
+            "connection": "close"
+          },
+          "data": {
+            "playlist_recommended_offers": [
+              "232281416",
+              "250446878",
+              "340240565"
+            ],
+            "params": {
+              "reco_origin": "algo",
+              "model_origin": "default",
+              "call_id": "4b8e1781-432f-42b9-a084-254742d633b0",
+              "unique_call_id": "a331c4b2-9bda-41d0-9f27-8dfd7000dfff"
+            },
+            "from_cache": true
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********",
+          "responseTime": 133,
+          "duration": 133,
+          "size": 249
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200",
+            "status": "pass",
+            "uid": "p-2z2fHPLZ9LMYmiD3pGu"
+          },
+          {
+            "description": "response contains playlist_recommended_offers",
+            "status": "pass",
+            "uid": "VW9ElzjjyWezvOkQq8NVE"
+          },
+          {
+            "description": "playlist length within acceptable bounds",
+            "status": "pass",
+            "uid": "cSdrDmVKqKso1ZCFs1e4L"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.184649583,
+        "name": "Filters - multi-filter (category + isEvent + price)",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/03-filters/playlist-reco-filter-multi",
+        "path": "03-filters/playlist-reco-filter-multi",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "04-cold-start/user-warm.bru"
+        },
+        "request": {
+          "method": "POST",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********",
+          "headers": {
+            "content-type": "application/json"
+          },
+          "data": "{}"
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "f7eb2ba1b2ce8226ec11e41a9eef8f7e",
+            "date": "Thu, 09 Jul 2026 12:00:24 GMT",
+            "server": "Google Frontend",
+            "content-length": "237",
+            "connection": "close"
+          },
+          "data": {
+            "playlist_recommended_offers": [
+              "234954426",
+              "320175029"
+            ],
+            "params": {
+              "reco_origin": "algo",
+              "model_origin": "default",
+              "call_id": "ef5cdf47-47f2-440c-8273-d1d818b0362b",
+              "unique_call_id": "bb9e0fc9-1a97-412d-8ca4-86452c0c6c43"
+            },
+            "from_cache": true
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********",
+          "responseTime": 122,
+          "duration": 122,
+          "size": 237
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200",
+            "status": "pass",
+            "uid": "a70MrCxpf3GfsbOLoR-Z0"
+          },
+          {
+            "description": "reco_origin is algo for warm user",
+            "status": "pass",
+            "uid": "QDA95FZqdsCmNkfaxC3AL"
+          },
+          {
+            "description": "playlist has at least 1 offer",
+            "status": "pass",
+            "uid": "Xs5REhn_wUh-7VXsLx1I8"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.165168042,
+        "name": "Cold start - warm user (algo path)",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/04-cold-start/user-warm",
+        "path": "04-cold-start/user-warm",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "04-cold-start/user-cold.bru"
+        },
+        "request": {
+          "method": "POST",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/usr_test_cold_001?token=********",
+          "headers": {
+            "content-type": "application/json"
+          },
+          "data": "{}"
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "62c7834de8e8010b52765b4d6e2ddb27",
+            "date": "Thu, 09 Jul 2026 12:00:24 GMT",
+            "server": "Google Frontend",
+            "content-length": "228",
+            "connection": "close"
+          },
+          "data": {
+            "playlist_recommended_offers": [
+              "234954426"
+            ],
+            "params": {
+              "reco_origin": "unknown",
+              "model_origin": "default",
+              "call_id": "2495cd3f-8642-4b58-b99c-ec7e4e31392a",
+              "unique_call_id": "46483cf5-a0d3-4aa1-bf25-3a4bbb3d1d0c"
+            },
+            "from_cache": true
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/usr_test_cold_001?token=********",
+          "responseTime": 125,
+          "duration": 125,
+          "size": 228
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200 even with no history",
+            "status": "pass",
+            "uid": "vcpoiUi0_mMp13kM6uR98"
+          },
+          {
+            "description": "reco_origin is cold_start or unknown depending on whether cold user is seeded",
+            "status": "pass",
+            "uid": "Z-3XxsluPmH7j2mG_Oozj"
+          },
+          {
+            "description": "playlist is not empty",
+            "status": "pass",
+            "uid": "v6HiRXUzkmpF-jfpAb_o5"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.17645475,
+        "name": "Cold start - cold user (cold_start path)",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/04-cold-start/user-cold",
+        "path": "04-cold-start/user-cold",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "05-model-config/check-model-origin.bru"
+        },
+        "request": {
+          "method": "POST",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********",
+          "headers": {
+            "content-type": "application/json"
+          },
+          "data": "{}"
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "8eb08197472061d6b78bda487d36dc18",
+            "date": "Thu, 09 Jul 2026 12:00:24 GMT",
+            "server": "Google Frontend",
+            "content-length": "237",
+            "connection": "close"
+          },
+          "data": {
+            "playlist_recommended_offers": [
+              "234954426",
+              "320175029"
+            ],
+            "params": {
+              "reco_origin": "algo",
+              "model_origin": "default",
+              "call_id": "ef5cdf47-47f2-440c-8273-d1d818b0362b",
+              "unique_call_id": "90e9452e-504f-4fb7-9e3b-d2dc15c94e38"
+            },
+            "from_cache": true
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********",
+          "responseTime": 127,
+          "duration": 127,
+          "size": 237
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200",
+            "status": "pass",
+            "uid": "1WKvooUji_rD_TI3bFpnB"
+          },
+          {
+            "description": "params.model_origin is present",
+            "status": "pass",
+            "uid": "moJX7doKutTfXsTM68F3v"
+          },
+          {
+            "description": "params.model_origin matches expected env config",
+            "status": "pass",
+            "uid": "6BEwxtpoKKfkG-PivO_S7"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.176943041,
+        "name": "Model config - verify model_origin in response",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/05-model-config/check-model-origin",
+        "path": "05-model-config/check-model-origin",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "05-model-config/similar-offers-force-retrieval-model.bru"
+        },
+        "request": {
+          "method": "GET",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/similar_offers/28154?token=********&retrieval_model=graph",
+          "headers": {
+            "content-type": null
+          }
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "7bd840c345ab1894662a4f5e25d6b8d3",
+            "date": "Thu, 09 Jul 2026 12:00:24 GMT",
+            "server": "Google Frontend",
+            "content-length": "205",
+            "connection": "close"
+          },
+          "data": {
+            "results": [
+              "92770043"
+            ],
+            "params": {
+              "reco_origin": "graph",
+              "model_origin": "default",
+              "call_id": "fa3a4554-ebd7-41c8-97aa-bb6048abd23e",
+              "unique_call_id": "291daa3c-b216-488c-b25b-8c5d2fa9ab6c"
+            },
+            "from_cache": true
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/similar_offers/28154?token=********&retrieval_model=graph",
+          "responseTime": 118,
+          "duration": 118,
+          "size": 205
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200 (graph endpoint must be deployed in this env)",
+            "status": "pass",
+            "uid": "iuBE1A4IQKqqzthk29uE5"
+          },
+          {
+            "description": "results is an array",
+            "status": "pass",
+            "uid": "Wtl1F6_t84YL9NLc_jFHB"
+          },
+          {
+            "description": "params.model_origin is present",
+            "status": "pass",
+            "uid": "0eyZKPf9NnM_0VAB6xwLt"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.199135041,
+        "name": "Model config - force retrieval_model on similar_offers",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/05-model-config/similar-offers-force-retrieval-model",
+        "path": "05-model-config/similar-offers-force-retrieval-model",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "06-cache/1-call-initial.bru"
+        },
+        "request": {
+          "method": "POST",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********",
+          "headers": {
+            "content-type": "application/json"
+          },
+          "data": "{}"
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "e1ece0e08a01b1c0efee00ed492f7e93",
+            "date": "Thu, 09 Jul 2026 12:00:25 GMT",
+            "server": "Google Frontend",
+            "content-length": "237",
+            "connection": "close"
+          },
+          "data": {
+            "playlist_recommended_offers": [
+              "234954426",
+              "320175029"
+            ],
+            "params": {
+              "reco_origin": "algo",
+              "model_origin": "default",
+              "call_id": "ef5cdf47-47f2-440c-8273-d1d818b0362b",
+              "unique_call_id": "f16b6f65-4ce2-46ff-9e95-b312bb998942"
+            },
+            "from_cache": true
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********",
+          "responseTime": 142,
+          "duration": 142,
+          "size": 237
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200",
+            "status": "pass",
+            "uid": "2UMBjQ3Ez3Er-YsK32RC9"
+          },
+          {
+            "description": "playlist_recommended_offers is non-empty",
+            "status": "pass",
+            "uid": "uLYWdfOQRPOd68v3ViM3r"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.216424084,
+        "name": "Cache - 1. initial call (cache miss)",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/06-cache/1-call-initial",
+        "path": "06-cache/1-call-initial",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "06-cache/2-call-cache-hit.bru"
+        },
+        "request": {
+          "method": "POST",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********",
+          "headers": {
+            "content-type": "application/json"
+          },
+          "data": "{}"
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "58e3f63d5a479fe96df1afafcc09c7c1",
+            "date": "Thu, 09 Jul 2026 12:00:25 GMT",
+            "server": "Google Frontend",
+            "content-length": "237",
+            "connection": "close"
+          },
+          "data": {
+            "playlist_recommended_offers": [
+              "234954426",
+              "320175029"
+            ],
+            "params": {
+              "reco_origin": "algo",
+              "model_origin": "default",
+              "call_id": "ef5cdf47-47f2-440c-8273-d1d818b0362b",
+              "unique_call_id": "d7fb449a-995a-40b6-9ea5-afa9ba9c1561"
+            },
+            "from_cache": true
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********",
+          "responseTime": 120,
+          "duration": 120,
+          "size": 237
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200",
+            "status": "pass",
+            "uid": "3FoX8KERHKidf7Xm3M-dB"
+          },
+          {
+            "description": "second call is served from cache",
+            "status": "pass",
+            "uid": "C7mVZmPOxlQDGWJUhtzqU"
+          },
+          {
+            "description": "cached result matches initial result",
+            "status": "pass",
+            "uid": "miCunnWwKrj_8mt2QTWSr"
+          },
+          {
+            "description": "call_id is preserved from original request",
+            "status": "pass",
+            "uid": "qm0IM2RJJ3OFgzkrXXyTE"
+          },
+          {
+            "description": "unique_call_id is a fresh UUID on cache hit",
+            "status": "pass",
+            "uid": "-9byuKm8xBAkgtnMIhx_-"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.162290167,
+        "name": "Cache - 2. repeat call (cache hit)",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/06-cache/2-call-cache-hit",
+        "path": "06-cache/2-call-cache-hit",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "07-geoloc/sans-geoloc.bru"
+        },
+        "request": {
+          "method": "POST",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********",
+          "headers": {
+            "content-type": "application/json"
+          },
+          "data": "{}"
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "00d5c8d39864c2dd625ccb4ac4b4e06e",
+            "date": "Thu, 09 Jul 2026 12:00:25 GMT",
+            "server": "Google Frontend",
+            "content-length": "237",
+            "connection": "close"
+          },
+          "data": {
+            "playlist_recommended_offers": [
+              "234954426",
+              "320175029"
+            ],
+            "params": {
+              "reco_origin": "algo",
+              "model_origin": "default",
+              "call_id": "ef5cdf47-47f2-440c-8273-d1d818b0362b",
+              "unique_call_id": "e1b80b71-d14a-47a8-8101-91e73a111cc6"
+            },
+            "from_cache": true
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********",
+          "responseTime": 137,
+          "duration": 137,
+          "size": 237
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200 without geolocation",
+            "status": "pass",
+            "uid": "CxD_8BJ4BdFSHu2v32Cmx"
+          },
+          {
+            "description": "playlist is non-empty even without location context",
+            "status": "pass",
+            "uid": "60_w6WPkx8-4jSd3HpwkR"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.215963292,
+        "name": "Geoloc - no geolocation",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/07-geoloc/sans-geoloc",
+        "path": "07-geoloc/sans-geoloc",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "07-geoloc/geoloc-paris-dense.bru"
+        },
+        "request": {
+          "method": "POST",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********&preset_location=High Density - Paris",
+          "headers": {
+            "content-type": "application/json"
+          },
+          "data": "{}"
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "332f1384ae05c32de9ecbe62fbde5f9d",
+            "date": "Thu, 09 Jul 2026 12:00:25 GMT",
+            "server": "Google Frontend",
+            "content-length": "922",
+            "connection": "close"
+          },
+          "data": {
+            "playlist_recommended_offers": [
+              "47195504",
+              "413700569",
+              "423760317",
+              "345249622",
+              "336849709",
+              "357672402",
+              "74377635",
+              "341566584",
+              "47191555",
+              "292431765",
+              "61621789",
+              "292430865",
+              "103854071",
+              "292431398",
+              "79868104",
+              "292591217",
+              "82045835",
+              "362425435",
+              "84504866",
+              "106628714",
+              "93142591",
+              "223748831",
+              "247747464",
+              "122245485",
+              "226809226",
+              "102324565",
+              "319568092",
+              "29208655",
+              "260926351",
+              "223763468",
+              "293840403",
+              "70949604",
+              "312676420",
+              "223753122",
+              "309159888",
+              "223791178",
+              "297582824",
+              "79101175",
+              "306354793",
+              "242399289",
+              "309389887",
+              "223793799",
+              "318069615",
+              "223749920",
+              "321846970",
+              "136597569",
+              "346672946",
+              "105066247",
+              "358824062",
+              "260739973",
+              "350279594",
+              "305407300",
+              "350205154",
+              "349087125",
+              "369432807",
+              "381248961",
+              "348837515",
+              "233667814",
+              "145713754",
+              "223838880"
+            ],
+            "params": {
+              "reco_origin": "algo",
+              "model_origin": "default",
+              "call_id": "c750636c-fcc3-4a77-92e8-bf9d594a8a26",
+              "unique_call_id": "25aa3c04-d8f5-4d1b-944e-b6acbe5816a3"
+            },
+            "from_cache": true
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********&preset_location=High%20Density%20-%20Paris",
+          "responseTime": 131,
+          "duration": 131,
+          "size": 922
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200 with Paris geolocation",
+            "status": "pass",
+            "uid": "-FNsPJ34HpHL80hv7wdhI"
+          },
+          {
+            "description": "playlist is non-empty for dense region",
+            "status": "pass",
+            "uid": "EL_P0XN8217OoDhUBdYGH"
+          },
+          {
+            "description": "geolocated playlist differs from non-geolocated baseline",
+            "status": "pass",
+            "uid": "FBrP48iJQbxBRa8l1U6m5"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.216607958,
+        "name": "Geoloc - high density (Paris)",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/07-geoloc/geoloc-paris-dense",
+        "path": "07-geoloc/geoloc-paris-dense",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "07-geoloc/geoloc-lozere-sparse.bru"
+        },
+        "request": {
+          "method": "POST",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********&preset_location=Low Density - Mende (Lozère)",
+          "headers": {
+            "content-type": "application/json"
+          },
+          "data": "{}"
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "31f7bd662e30794c3cc15a8ef983ac3b",
+            "date": "Thu, 09 Jul 2026 12:00:25 GMT",
+            "server": "Google Frontend",
+            "content-length": "930",
+            "connection": "close"
+          },
+          "data": {
+            "playlist_recommended_offers": [
+              "338460070",
+              "320175029",
+              "229417087",
+              "229418152",
+              "229416687",
+              "229419903",
+              "229418353",
+              "229420495",
+              "232376087",
+              "229417243",
+              "229661558",
+              "229419914",
+              "229417250",
+              "229417976",
+              "229418452",
+              "231153846",
+              "229418467",
+              "258772843",
+              "229417984",
+              "246618496",
+              "265045308",
+              "265045222",
+              "303954575",
+              "287448461",
+              "262173842",
+              "305022441",
+              "366288474",
+              "306359253",
+              "333871955",
+              "319544679",
+              "397149056",
+              "303954576",
+              "315800798",
+              "342281425",
+              "369402159",
+              "364944194",
+              "328572286",
+              "393483253",
+              "384706227",
+              "414663766",
+              "31052931",
+              "78185190",
+              "82513659",
+              "133001927",
+              "366864053",
+              "417402810",
+              "404554790",
+              "357236240",
+              "374755647",
+              "357236241",
+              "354529444",
+              "385223356",
+              "393489292",
+              "383426572",
+              "421816762",
+              "409717689",
+              "409717869",
+              "423853651",
+              "409717682",
+              "358015674"
+            ],
+            "params": {
+              "reco_origin": "algo",
+              "model_origin": "default",
+              "call_id": "94b4ee33-25d4-440a-8b7d-63f88e1c3992",
+              "unique_call_id": "4b8c2ba3-8b12-4f5b-b0b6-56c3c4679fe3"
+            },
+            "from_cache": true
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/playlist_recommendation/3196280?token=********&preset_location=Low%20Density%20-%20Mende%20(Loz%C3%A8re)",
+          "responseTime": 115,
+          "duration": 115,
+          "size": 930
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200 with rural geolocation",
+            "status": "pass",
+            "uid": "Bp8UMXr5boFQR9-pj4Ya_"
+          },
+          {
+            "description": "playlist is returned for low-density region",
+            "status": "pass",
+            "uid": "amka25spQWjeIq0PWRdYP"
+          },
+          {
+            "description": "result differs from dense-region baseline",
+            "status": "pass",
+            "uid": "kn2mJYggAig4z83cGD41E"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.161202,
+        "name": "Geoloc - low density (Lozère - Mende)",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/07-geoloc/geoloc-lozere-sparse",
+        "path": "07-geoloc/geoloc-lozere-sparse",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "08-similar-offers-artists/similar-offers-ok.bru"
+        },
+        "request": {
+          "method": "GET",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/similar_offers/28154?token=********&latitude=48.8566&longitude=2.3522",
+          "headers": {
+            "content-type": null
+          }
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "2f260b357d44ef16604adb3269c8b7b6",
+            "date": "Thu, 09 Jul 2026 12:00:26 GMT",
+            "server": "Google Frontend",
+            "content-length": "439",
+            "connection": "close"
+          },
+          "data": {
+            "results": [
+              "79868104",
+              "423760317",
+              "345249622",
+              "292430865",
+              "84504866",
+              "247747464",
+              "226809226",
+              "260926351",
+              "312676420",
+              "309159888",
+              "318069615",
+              "346672946",
+              "358824062",
+              "350279594",
+              "350205154",
+              "369432807",
+              "145713754",
+              "316357019",
+              "369759424",
+              "78440490"
+            ],
+            "params": {
+              "reco_origin": "similar_offer",
+              "model_origin": "default",
+              "call_id": "92b8ab6e-785d-47a6-bb2d-2cf7b8c14d76",
+              "unique_call_id": "623b9536-7f73-4e63-a33f-a1ba26b2b3d8"
+            },
+            "from_cache": true
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/similar_offers/28154?token=********&latitude=48.8566&longitude=2.3522",
+          "responseTime": 146,
+          "duration": 146,
+          "size": 439
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200",
+            "status": "pass",
+            "uid": "k_GPOUCZv8DWHGeLo8e9V"
+          },
+          {
+            "description": "results is non-empty for known offer",
+            "status": "pass",
+            "uid": "ZYf6CsNF7P-CCprSjngcj"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.191334708,
+        "name": "Similar offers - known offer (nominal)",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/08-similar-offers-artists/similar-offers-ok",
+        "path": "08-similar-offers-artists/similar-offers-ok",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "08-similar-offers-artists/similar-offers-unknown.bru"
+        },
+        "request": {
+          "method": "GET",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/similar_offers/off_does_not_exist_000?token=********",
+          "headers": {
+            "content-type": null
+          }
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "1ae95b61225abfc646b895aa9f8db75b",
+            "date": "Thu, 09 Jul 2026 12:00:26 GMT",
+            "server": "Google Frontend",
+            "content-length": "224",
+            "connection": "close"
+          },
+          "data": {
+            "results": [
+              "234954426"
+            ],
+            "params": {
+              "reco_origin": "recommendation_fallback",
+              "model_origin": "default",
+              "call_id": "efa1b341-bca5-45c9-9c6f-bbf7481b37ed",
+              "unique_call_id": "c1640e1a-b2d5-4c8d-8175-38048da8d88a"
+            },
+            "from_cache": true
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/similar_offers/off_does_not_exist_000?token=********",
+          "responseTime": 127,
+          "duration": 127,
+          "size": 224
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200 for unknown offer",
+            "status": "pass",
+            "uid": "CVMlMfX7wyE7_4sqioc0y"
+          },
+          {
+            "description": "results is an array",
+            "status": "pass",
+            "uid": "UAGa4u8DcWEidASog71aO"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.173338042,
+        "name": "Similar offers - unknown offer_id",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/08-similar-offers-artists/similar-offers-unknown",
+        "path": "08-similar-offers-artists/similar-offers-unknown",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "08-similar-offers-artists/similar-artists-ok.bru"
+        },
+        "request": {
+          "method": "GET",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/similar_artists/a3a7c9f7-26f1-4bd3-bfc2-40a7abd398cf?token=********",
+          "headers": {
+            "content-type": null
+          }
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "de9db5c457602a5871735ca0219fbee7",
+            "date": "Thu, 09 Jul 2026 12:00:26 GMT",
+            "server": "Google Frontend",
+            "content-length": "813",
+            "connection": "close"
+          },
+          "data": {
+            "similar_artists": [
+              {
+                "artist_id_match": "0ae86084-7c46-490a-80dc-b3baeb85ad7e",
+                "rank": 1
+              },
+              {
+                "artist_id_match": "41374bac-75e2-4322-b424-fe4e284024eb",
+                "rank": 2
+              },
+              {
+                "artist_id_match": "74556dc4-698c-4c10-b254-cae1d98448a2",
+                "rank": 3
+              },
+              {
+                "artist_id_match": "bddc8849-9d29-4f5e-8c48-736818cae69d",
+                "rank": 4
+              },
+              {
+                "artist_id_match": "3397a0c0-9f4b-4aa8-b2ea-aace16581507",
+                "rank": 5
+              },
+              {
+                "artist_id_match": "7652508e-f16a-428d-829b-7258643473a8",
+                "rank": 6
+              },
+              {
+                "artist_id_match": "35ef60bd-935c-4141-b35c-041900598ac0",
+                "rank": 7
+              },
+              {
+                "artist_id_match": "b210a48f-8fa8-4eb7-9a41-3fc134a982bc",
+                "rank": 8
+              },
+              {
+                "artist_id_match": "447ae92a-b831-49c9-af3c-967f11ba5d58",
+                "rank": 9
+              },
+              {
+                "artist_id_match": "4eb92f94-1c4e-45da-a69e-f1b27b30eec7",
+                "rank": 10
+              }
+            ],
+            "params": {
+              "artist_id": "a3a7c9f7-26f1-4bd3-bfc2-40a7abd398cf",
+              "call_id": "ba14aa44-d24c-4dd5-835b-38f462804142"
+            }
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/similar_artists/a3a7c9f7-26f1-4bd3-bfc2-40a7abd398cf?token=********",
+          "responseTime": 143,
+          "duration": 143,
+          "size": 813
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200",
+            "status": "pass",
+            "uid": "6TiKiGIzO7ANaV0BCO7Sj"
+          },
+          {
+            "description": "similar_artists is non-empty for known artist",
+            "status": "pass",
+            "uid": "p6sduswdmraRiOaGe9MCB"
+          },
+          {
+            "description": "each result has artist_id_match and rank",
+            "status": "pass",
+            "uid": "rROEz6xoJceoKmnWBlWr_"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.18480525,
+        "name": "Similar artists - known artist (nominal)",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/08-similar-offers-artists/similar-artists-ok",
+        "path": "08-similar-offers-artists/similar-artists-ok",
+        "iterationIndex": 0
+      },
+      {
+        "test": {
+          "filename": "08-similar-offers-artists/similar-artists-unknown.bru"
+        },
+        "request": {
+          "method": "GET",
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/similar_artists/art00000-0000-0000-0000-000000000000?token=********",
+          "headers": {
+            "content-type": null
+          }
+        },
+        "response": {
+          "status": 200,
+          "statusText": "OK",
+          "headers": {
+            "content-type": "application/json",
+            "x-cloud-trace-context": "c14a211b0b187efd057310b7a2ad2157",
+            "date": "Thu, 09 Jul 2026 12:00:26 GMT",
+            "server": "Google Frontend",
+            "content-length": "133",
+            "connection": "close"
+          },
+          "data": {
+            "similar_artists": [],
+            "params": {
+              "artist_id": "art00000-0000-0000-0000-000000000000",
+              "call_id": "8955a04b-1cff-44db-adf4-1097d5241350"
+            }
+          },
+          "url": "https://test---apireco-stg-yqkaec24jq-ew.a.run.app/similar_artists/art00000-0000-0000-0000-000000000000?token=********",
+          "responseTime": 152,
+          "duration": 152,
+          "size": 133
+        },
+        "error": null,
+        "status": "pass",
+        "assertionResults": [],
+        "testResults": [
+          {
+            "description": "status 200 for unknown artist",
+            "status": "pass",
+            "uid": "1e_WYzrNtvLKBEiIxJLxQ"
+          },
+          {
+            "description": "similar_artists is empty for unknown artist",
+            "status": "pass",
+            "uid": "A9eLyA1NCQQSa1H19szCV"
+          }
+        ],
+        "preRequestTestResults": [],
+        "postResponseTestResults": [],
+        "shouldStopRunnerExecution": false,
+        "runDuration": 0.201318584,
+        "name": "Similar artists - unknown artist_id",
+        "suitename": "/Users/valentinbusson/github/api-data/apps/recommendation_v2/bruno/08-similar-offers-artists/similar-artists-unknown",
+        "path": "08-similar-offers-artists/similar-artists-unknown",
+        "iterationIndex": 0
+      }
+    ],
+    "summary": {
+      "totalRequests": 22,
+      "passedRequests": 22,
+      "failedRequests": 0,
+      "errorRequests": 0,
+      "skippedRequests": 0,
+      "skippedByBail": 0,
+      "totalAssertions": 0,
+      "passedAssertions": 0,
+      "failedAssertions": 0,
+      "totalTests": 55,
+      "passedTests": 55,
+      "failedTests": 0,
+      "totalPreRequestTests": 0,
+      "passedPreRequestTests": 0,
+      "failedPreRequestTests": 0,
+      "totalPostResponseTests": 0,
+      "passedPostResponseTests": 0,
+      "failedPostResponseTests": 0
+    }
+  }
+]

@@ -1,0 +1,27 @@
+meta {
+  name: Latency - playlist cold user
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/playlist_recommendation/{{user_cold}}?token={{auth_token}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  // Cold start still calls Vertex (generic retrieval path) so same order of magnitude.
+  // A higher threshold here documents the acceptable cold-start overhead.
+  test("response time under threshold (cold)", function() {
+    expect(res.responseTime).to.be.below(3000);
+  });
+}

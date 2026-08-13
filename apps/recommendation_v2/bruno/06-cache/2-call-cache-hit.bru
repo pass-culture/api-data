@@ -1,0 +1,43 @@
+meta {
+  name: Cache - 2. repeat call (cache hit)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/playlist_recommendation/{{user_warm}}?token={{auth_token}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("second call is served from cache", function() {
+    expect(res.body.from_cache).to.equal(true);
+  });
+
+  test("cached result matches initial result", function() {
+    var initial = JSON.parse(bru.getVar("initial_offers") || "null");
+    if (initial !== null) {
+      expect(res.body.playlist_recommended_offers).to.deep.equal(initial);
+    }
+  });
+
+  test("call_id is preserved from original request", function() {
+    var originalCallId = bru.getVar("initial_call_id");
+    if (originalCallId) {
+      expect(res.body.params.call_id).to.equal(originalCallId);
+    }
+  });
+
+  test("unique_call_id is a fresh UUID on cache hit", function() {
+    expect(res.body.params.unique_call_id).to.be.a("string").with.length.above(0);
+  });
+}

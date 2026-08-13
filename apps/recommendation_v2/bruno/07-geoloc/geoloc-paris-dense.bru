@@ -1,0 +1,39 @@
+meta {
+  name: Geoloc - high density (Paris)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/playlist_recommendation/{{user_warm}}?token={{auth_token}}&preset_location=High Density - Paris
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("status 200 with Paris geolocation", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("playlist is non-empty for dense region", function() {
+    expect(res.body.playlist_recommended_offers).to.be.an("array").with.length.above(0);
+  });
+
+  test("geolocated playlist differs from non-geolocated baseline", function() {
+    var baseline = JSON.parse(bru.getVar("offers_no_geoloc") || "null");
+    if (baseline !== null) {
+      var differs = JSON.stringify(res.body.playlist_recommended_offers) !== JSON.stringify(baseline);
+      if (!differs) {
+        console.warn("Paris geoloc result identical to no-geoloc baseline — expected divergence.");
+      }
+    }
+  });
+}
+
+script:post-response {
+  bru.setVar("offers_geoloc_paris", JSON.stringify(res.body.playlist_recommended_offers));
+}

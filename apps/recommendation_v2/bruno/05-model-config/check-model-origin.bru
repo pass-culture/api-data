@@ -1,0 +1,33 @@
+meta {
+  name: Model config - verify model_origin in response
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/playlist_recommendation/{{user_warm}}?token={{auth_token}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+tests {
+  // The API does not accept a per-request model config param; RECO_MODEL_CONTEXT is a server-side
+  // env var. This test verifies the response reports the model context the server is configured with,
+  // and that it matches the expected value for this environment (set in env var expected_model_origin).
+  test("status 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("params.model_origin is present", function() {
+    expect(res.body.params.model_origin).to.be.a("string").and.not.be.empty;
+  });
+
+  test("params.model_origin matches expected env config", function() {
+    var expected = bru.getEnvVar("expected_model_origin");
+    expect(res.body.params.model_origin).to.equal(expected);
+  });
+}

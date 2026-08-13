@@ -1,0 +1,29 @@
+meta {
+  name: Fallback - unknown user
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/playlist_recommendation/{{user_unknown}}?token={{auth_token}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}
+
+tests {
+  test("returns 200 with fallback for unknown user", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("playlist_recommended_offers is an array", function() {
+    expect(res.body.playlist_recommended_offers).to.be.an("array");
+  });
+
+  test("reco_origin is 'unknown' for user not in DB", function() {
+    expect(res.body.params.reco_origin).to.equal("unknown");
+  });
+}

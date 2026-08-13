@@ -1,0 +1,32 @@
+meta {
+  name: Filters - isEvent=true
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/playlist_recommendation/{{user_warm}}?token={{auth_token}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "isEvent": true
+  }
+}
+
+tests {
+  test("status 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("returns at least one offer", function() {
+    expect(res.body.playlist_recommended_offers).to.be.an("array").with.length.above(0);
+  });
+
+  // NOTE: the API filters at the retrieval layer (Vertex query), not post-hoc on the response.
+  // The offer type (event vs thing) is not returned in the playlist payload, so we can only
+  // assert the call succeeds and the filter param was accepted. To verify offer types respect
+  // the filter you must query the offers table directly or add an offer_type field to the response.
+}
