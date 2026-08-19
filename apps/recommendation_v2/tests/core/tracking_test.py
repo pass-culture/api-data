@@ -12,6 +12,7 @@ from schemas.tracking_payload import TrackingLabels
 from schemas.tracking_payload import TrackingLogPayload
 from schemas.tracking_payload import TrackingOfferExtraData
 from schemas.tracking_payload import TrackingRequestExtraData
+from schemas.tracking_payload import TrackingUserExtraData
 
 from tests.factories.schemas import EnrichedRecommendableOfferFactory
 from tests.factories.schemas import UserContextFactory
@@ -47,7 +48,7 @@ def _invoke(offers, params=None, call_id="call-abc"):
 
 def test_tracking_payload_all_field_names_are_snake_case():
     """All field names must be snake_case — other conventions break the BigQuery sink routing."""
-    models = [TrackingLogPayload, TrackingLabels, TrackingRequestExtraData, TrackingOfferExtraData]
+    models = [TrackingLogPayload, TrackingLabels, TrackingRequestExtraData, TrackingOfferExtraData, TrackingUserExtraData]
     violations = [
         f"{model.__name__}.{field}" for model in models for field in model.model_fields if not _SNAKE_CASE.match(field)
     ]
@@ -102,6 +103,15 @@ def test_tracking_offer_extra_data_contains_all_required_keys(mocker):
     _invoke([EnrichedRecommendableOfferFactory.build()])
 
     TrackingOfferExtraData.model_validate(mock_logger.call_args.kwargs["extra"]["offer_extra_data"])
+
+
+def test_tracking_user_extra_data_contains_all_required_keys(mocker):
+    """user_extra_data is a nested BigQuery RECORD — schema must stay in sync."""
+    mock_logger = mocker.patch("core.tracking.logger.info")
+
+    _invoke([EnrichedRecommendableOfferFactory.build()])
+
+    TrackingUserExtraData.model_validate(mock_logger.call_args.kwargs["extra"]["user_extra_data"])
 
 
 def test_tracking_payload_gcp_sink_label_routes_to_correct_bigquery_table(mocker):
