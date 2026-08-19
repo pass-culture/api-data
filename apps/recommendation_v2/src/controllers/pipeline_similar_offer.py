@@ -14,6 +14,7 @@ from core.retrieval import fetch_graph_predictions_from_vertex
 from core.retrieval import fetch_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
 from core.tracking import log_past_offer_context_to_sink
+from core.user_context import GeoLocationSource
 from core.user_context import UNAUTHENTICATED_USER_ID
 from core.user_context import UserContext
 from models.offer import RecommendableOffers
@@ -105,38 +106,40 @@ async def generate_similar_offers(  # noqa: PLR0913
     # 1.3. Determine geolocation context
     user_location_missing = latitude is None or longitude is None
     offer_has_location = reference_offer and reference_offer.venue_latitude and reference_offer.venue_longitude
-    geolocation_source = "none"
+    effective_latitude = latitude
+    effective_longitude = longitude
+    geolocation_source: GeoLocationSource = "none"
 
     if not user_location_missing:
         geolocation_source = "gps"
     elif db_user and db_user.user_subscription_latitude and db_user.user_subscription_longitude:
-        latitude = db_user.user_subscription_latitude
-        longitude = db_user.user_subscription_longitude
+        effective_latitude = db_user.user_subscription_latitude
+        effective_longitude = db_user.user_subscription_longitude
         geolocation_source = "subscription_department"
         logger.debug(
             "📍 User GPS missing — falling back to subscription department centroid.",
-            extra={"offer_id": offer_id, "user_id": effective_user_id, "latitude": latitude, "longitude": longitude},
+            extra={"offer_id": offer_id, "user_id": effective_user_id, "latitude": effective_latitude, "longitude": effective_longitude},
         )
     elif reference_offer and offer_has_location:
-        latitude = reference_offer.venue_latitude
-        longitude = reference_offer.venue_longitude
+        effective_latitude = reference_offer.venue_latitude
+        effective_longitude = reference_offer.venue_longitude
         geolocation_source = "offer_venue"
         logger.debug(
             "📍 User location missing — falling back to offer's venue location.",
-            extra={"offer_id": offer_id, "latitude": latitude, "longitude": longitude},
+            extra={"offer_id": offer_id, "latitude": effective_latitude, "longitude": effective_longitude},
         )
 
-    iris_id = await get_iris_id_from_coordinates(db, latitude, longitude)
+    iris_id = await get_iris_id_from_coordinates(db, effective_latitude, effective_longitude)
     # If latitude and longitude are None, get_iris_id_from_coordinates returns None
 
     user_context = UserContext.build_from_database_record(
         user_id=effective_user_id,
         database_user_record=db_user,
-        latitude=latitude,
-        longitude=longitude,
+        latitude=effective_latitude,
+        longitude=effective_longitude,
         iris_id=iris_id,
+        geolocation_source=geolocation_source,
     )
-    user_context.geolocation_source = geolocation_source
 
     logger.info(
         "🚀 Starting similar_offers pipeline.",

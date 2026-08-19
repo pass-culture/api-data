@@ -11,6 +11,7 @@ from core.retrieval import build_all_playlist_recommendation_retrieval_payloads
 from core.retrieval import fetch_all_playlist_recommendation_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
 from core.tracking import log_past_offer_context_to_sink
+from core.user_context import GeoLocationSource
 from core.user_context import UNAUTHENTICATED_USER_ID
 from core.user_context import UserContext
 from models.user import EnrichedUser
@@ -62,7 +63,7 @@ async def generate_playlist_recommendations(
     # Fallback to subscription department centroid when GPS is absent
     effective_latitude = latitude
     effective_longitude = longitude
-    geolocation_source = "none"
+    geolocation_source: GeoLocationSource = "none"
     if latitude is not None and longitude is not None:
         geolocation_source = "gps"
     elif db_user and db_user.user_subscription_latitude and db_user.user_subscription_longitude:
@@ -82,8 +83,8 @@ async def generate_playlist_recommendations(
         latitude=effective_latitude,
         longitude=effective_longitude,
         iris_id=iris_id,
+        geolocation_source=geolocation_source,
     )
-    user_context.geolocation_source = geolocation_source
 
     logger.info(
         "🚀 Starting playlist_recommendation pipeline.",
