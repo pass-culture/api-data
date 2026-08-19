@@ -34,10 +34,15 @@ class TrackingRequestExtraData(BaseModel):
     offer_origin_ids: str | None
 
 
+class TrackingUserExtraData(BaseModel):
+    """User-level context stored in user_extra_data — typed alternative to a plain dict."""
+
+    user_geolocation_source: GeoLocationSource
+
+
 class TrackingOfferExtraData(BaseModel):
     """Extra Model & Ranking Scores — nested BigQuery RECORD stored in offer_extra_data."""
 
-    user_geolocation_source: GeoLocationSource
     offer_ranking_score: float | None
     offer_ranking_origin: Literal["model", "item_rank"]
     offer_booking_number_last_7_days: int
@@ -79,7 +84,7 @@ class TrackingLogPayload(BaseModel):
     user_is_geolocated: bool
     user_latitude: float | None
     user_longitude: float | None
-    user_extra_data: dict[str, Any]
+    user_extra_data: TrackingUserExtraData
 
     # --- Offer Data & Features ---
     offer_id: str
