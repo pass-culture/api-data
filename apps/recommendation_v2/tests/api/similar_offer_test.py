@@ -8,9 +8,11 @@ from connectors.redis_api import RedisAPI
 @pytest.mark.asyncio
 async def test_category_order_does_not_affect_cache_key(client: AsyncClient, redis_service, mocker):
     """
-    The endpoint sorts categories before building the cache key, so request order
-    must not produce a different cache entry — otherwise the same logical request
-    could bypass the cache simply by reordering query params.
+    Categories sent in a different query-param order must resolve to the same cache entry.
+
+    Normalization (list sorting) is now centralized inside generate_cache_key._deep_normalize,
+    so the endpoint no longer needs to sort lists manually. The request_signature_data may
+    carry the lists in their raw insertion order, but the resulting Redis key is identical.
 
     Backed by a real Redis container, the reordered second request is a genuine cache
     hit (from_cache=True), proving the two requests resolve to the same cache entry.
@@ -20,11 +22,8 @@ async def test_category_order_does_not_affect_cache_key(client: AsyncClient, red
     first_response = await client.get("/similar_offers/offer-categories?categories=CINEMA&categories=LIVRE")
     second_response = await client.get("/similar_offers/offer-categories?categories=LIVRE&categories=CINEMA")
 
-    # Cache-key logic: categories are sorted, so order does not change the signature.
+    # Both calls must have been intercepted.
     assert fetch_spy.call_count == 2  # noqa: PLR2004
-    first_sig = fetch_spy.call_args_list[0].kwargs["request_signature_data"]
-    second_sig = fetch_spy.call_args_list[1].kwargs["request_signature_data"]
-    assert first_sig["categories"] == second_sig["categories"]
 
     # Real cache behavior: first call misses, reordered second call hits.
     assert first_response.status_code == status.HTTP_200_OK

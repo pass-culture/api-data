@@ -109,13 +109,19 @@ async def get_similar_offers(  # noqa: PLR0913
     cache_h3_resolution = settings.ENDPOINT_RESPONSE_CACHE_H3_RESOLUTION
     h3_index = get_h3_index_from_coordinates(latitude, longitude, resolution=cache_h3_resolution)
 
+    # Build the request signature used to derive the Redis cache key.
+    # Dict key order and list element order do NOT matter here:
+    # RedisAPI.generate_cache_key applies _deep_normalize, which recursively sorts
+    # all dict keys and all list values before hashing. Two semantically identical
+    # requests (e.g. categories=["CINEMA","LIVRE"] vs categories=["LIVRE","CINEMA"])
+    # will therefore always resolve to the same cache key.
     request_signature_data = {
         "offer_id": offer_id,
         "user_id": user_id,
         "location_h3": h3_index,
-        "categories": sorted([c.value for c in categories]) if categories else None,
-        "subcategories": sorted([s.value for s in subcategories]) if subcategories else None,
-        "search_group_names": sorted([s.value for s in search_group_names]) if search_group_names else None,
+        "categories": [c.value for c in categories] if categories else None,
+        "subcategories": [s.value for s in subcategories] if subcategories else None,
+        "search_group_names": [s.value for s in search_group_names] if search_group_names else None,
         "retrieval_model": retrieval_model,
     }
 
