@@ -22,6 +22,7 @@ def log_past_offer_context_to_sink(  # noqa: PLR0913
     reco_origin: str,
     context_name: str,
     model_description: str,
+    input_offer_id: str | None = None,
 ) -> None:
     """
     Formats and logs the full context of the generated recommendation playlist.
@@ -49,6 +50,8 @@ def log_past_offer_context_to_sink(  # noqa: PLR0913
         reco_origin (str): Indicates if this was a 'cold_start' or an 'algo' recommendation.
         context_name (str): The specific endpoint or UI context calling this function.
         model_description (str): Human-readable label for the model configuration.
+        input_offer_id (str | None): The source offer ID used as input (similar_offer context only).
+            None for playlist recommendations.
     """
 
     # --- 1. Compute Shared Context ---
@@ -59,6 +62,7 @@ def log_past_offer_context_to_sink(  # noqa: PLR0913
         context=context_name,
         model_params=TrackingModelParams(description=model_description),
         params_in=params.model_dump(by_alias=True, exclude_none=True) if params else None,
+        offer_origin_ids=input_offer_id,
     )
 
     # --- 2. Iterate and Log Each Offer ---

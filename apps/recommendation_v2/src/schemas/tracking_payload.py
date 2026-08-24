@@ -30,6 +30,7 @@ class TrackingRequestExtraData(BaseModel):
     context: str
     model_params: TrackingModelParams | None
     params_in: dict[str, Any] | None
+    offer_origin_ids: str | None
 
 
 class TrackingOfferExtraData(BaseModel):
