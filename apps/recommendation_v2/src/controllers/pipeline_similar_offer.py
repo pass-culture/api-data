@@ -265,6 +265,7 @@ async def generate_similar_offers(  # noqa: PLR0913
                 reco_origin="recommendation_fallback",
                 model_origin=fallback_response.params.model_origin,
                 call_id=call_id,
+                ab_test=settings.AB_TEST_VARIANT_LABEL,
             ),
         )
 
@@ -290,6 +291,9 @@ async def generate_similar_offers(  # noqa: PLR0913
     return SimilarOfferResponse(
         results=[offer.offer_id for offer in final_similar_offers],
         params=RecommendationMetadata(
-            reco_origin=recommendation_origin, model_origin=settings.SIMILAR_OFFER_MODEL_CONTEXT, call_id=call_id
+            reco_origin=recommendation_origin,
+            model_origin=settings.SIMILAR_OFFER_MODEL_CONTEXT,
+            call_id=call_id,
+            ab_test=settings.AB_TEST_VARIANT_LABEL,
         ),
     )

@@ -189,6 +189,7 @@ async def generate_playlist_recommendations(
             reco_origin=recommendation_origin,
             model_origin=settings.PLAYLIST_RECOMMENDATION_MODEL_CONTEXT,
             call_id=call_id,
+            ab_test=settings.AB_TEST_VARIANT_LABEL,
         ),
         from_cache=False,
     )
