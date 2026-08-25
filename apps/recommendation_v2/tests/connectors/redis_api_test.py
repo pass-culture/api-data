@@ -65,6 +65,57 @@ def test_generate_cache_key_yields_same_key_for_nested_signature_with_different_
     assert key1 == key2
 
 
+def test_generate_cache_key_same_key_for_list_values_in_different_orders():
+    """Two signatures identical in content but with list elements in a different order
+    must produce the same cache key.
+
+    This covers the playlist_recommendation case where params.model_dump() embeds
+    categories/subcategories/search_group_names as unsorted lists, and the similar_offer
+    case where the endpoint no longer needs manual sorted() calls.
+    """
+    key1 = RedisAPI.generate_cache_key("ns", {"categories": ["CINEMA", "LIVRE"], "user_id": "u1"})
+    key2 = RedisAPI.generate_cache_key("ns", {"categories": ["LIVRE", "CINEMA"], "user_id": "u1"})
+    assert key1 == key2
+
+
+def test_generate_cache_key_same_key_for_nested_list_values_in_different_orders():
+    """Lists nested inside a sub-dict (e.g. params.model_dump() for playlist_recommendation)
+    must also be normalized, regardless of how deep they appear.
+    """
+    key1 = RedisAPI.generate_cache_key(
+        "playlist_recommendation",
+        {
+            "user_id": "u1",
+            "params": {
+                "categories": ["CINEMA", "LIVRE"],
+                "subcategories": ["SEANCE_CINE", "CONCERT"],
+                "is_event": True,
+            },
+        },
+    )
+    key2 = RedisAPI.generate_cache_key(
+        "playlist_recommendation",
+        {
+            "user_id": "u1",
+            "params": {
+                "categories": ["LIVRE", "CINEMA"],
+                "subcategories": ["CONCERT", "SEANCE_CINE"],
+                "is_event": True,
+            },
+        },
+    )
+    assert key1 == key2
+
+
+def test_generate_cache_key_different_lists_still_produce_different_keys():
+    """Sanity check: different list contents must still produce different keys
+    even after normalization.
+    """
+    key1 = RedisAPI.generate_cache_key("ns", {"categories": ["CINEMA", "LIVRE"]})
+    key2 = RedisAPI.generate_cache_key("ns", {"categories": ["CINEMA", "MUSEE"]})
+    assert key1 != key2
+
+
 def test_generate_cache_key_format_is_namespace_colon_hash():
     key = RedisAPI.generate_cache_key("playlist_recommendation", {"user_id": "x"})
     namespace, hash_part = key.split(":", 1)

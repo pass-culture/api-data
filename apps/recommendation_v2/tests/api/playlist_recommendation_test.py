@@ -66,3 +66,33 @@ async def test_distant_coordinates_produce_different_cache_keys(client: AsyncCli
     assert first_response.json()["from_cache"] is False
     assert second_response.status_code == status.HTTP_200_OK
     assert second_response.json()["from_cache"] is False
+
+
+@pytest.mark.asyncio
+async def test_category_order_in_body_does_not_affect_cache_key(client: AsyncClient, redis_service, mocker):
+    """categories sent in the POST body in a different order must resolve to the same cache entry.
+
+    playlist_recommendation embeds params.model_dump() (including categories as an unsorted list)
+    directly in the request_signature_data. generate_cache_key._deep_normalize now sorts list
+    elements recursively, so the second request — with categories reversed — is a genuine cache
+    hit (from_cache=True) backed by a real Redis container.
+    """
+    fetch_spy = mocker.spy(RedisAPI, "fetch_cached_response")
+
+    first_response = await client.post(
+        "/playlist_recommendation/user-categories?latitude=48.8566&longitude=2.3522",
+        json={"categories": ["CINEMA", "LIVRE"]},
+    )
+    second_response = await client.post(
+        "/playlist_recommendation/user-categories?latitude=48.8566&longitude=2.3522",
+        json={"categories": ["LIVRE", "CINEMA"]},
+    )
+
+    # Both signatures must carry the same params dict after deep-normalization.
+    assert fetch_spy.call_count == 2  # noqa: PLR2004
+
+    # Real cache behavior: first call misses, reordered second call hits.
+    assert first_response.status_code == status.HTTP_200_OK
+    assert first_response.json()["from_cache"] is False
+    assert second_response.status_code == status.HTTP_200_OK
+    assert second_response.json()["from_cache"] is True
