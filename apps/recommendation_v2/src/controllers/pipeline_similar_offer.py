@@ -284,6 +284,7 @@ async def generate_similar_offers(  # noqa: PLR0913
         reco_origin=recommendation_origin,
         context_name="similar_offer",
         model_description=model_description,
+        input_offer_id=offer_id,
     )
 
     return SimilarOfferResponse(
