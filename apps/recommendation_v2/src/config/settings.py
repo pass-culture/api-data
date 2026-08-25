@@ -132,6 +132,7 @@ REDIS_CACHE_RESET_HOUR: int = int(os.environ.get("REDIS_CACHE_RESET_HOUR", "5"))
 REDIS_MONITOR_INTERVAL_SECONDS: int = int(os.environ.get("REDIS_MONITOR_INTERVAL_SECONDS", "600"))
 REDIS_CA_CERT_PATH: str = os.environ.get("REDIS_CA_CERT_PATH", "")  # Path to PEM file for Redis TLS
 REDIS_AUTH_STRING: str = os.environ.get("REDIS_AUTH_STRING", "")  # Optional auth string for Redis
+REDIS_TIMEOUT_SECONDS: float = float(os.environ.get("REDIS_TIMEOUT_SECONDS", "0.3"))
 
 # Cache Strategy Flags
 # Each flag controls an independent caching strategy.
