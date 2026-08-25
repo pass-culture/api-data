@@ -123,6 +123,11 @@ async def get_similar_offers(  # noqa: PLR0913
         "subcategories": [s.value for s in subcategories] if subcategories else None,
         "search_group_names": [s.value for s in search_group_names] if search_group_names else None,
         "retrieval_model": retrieval_model,
+        # Isolates the cache namespace per API variant to prevent A/B test cross-contamination.
+        # Without this, two API deployments sharing the same Redis could serve each other's cached
+        # results for requests where the A/B test hack changes the effective retrieval model
+        # *after* the cache lookup — making the A/B test results invalid.
+        "api_variant": settings.API_VARIANT,
     }
 
     # Handle Redis cache retrieval

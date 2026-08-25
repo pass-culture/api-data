@@ -44,6 +44,20 @@ FASTAPI_SERVER_PORT: int = int(os.environ.get("FASTAPI_SERVER_PORT", "8000"))
 
 RECOMMENDATION_API_VERSION = 2
 
+# --- A/B Test Variant ---
+# Identifies which deployment variant this API instance represents.
+# This value is injected into the Redis cache key so that two API deployments sharing the same
+# Redis instance never serve each other's cached results — which would silently invalidate the A/B test.
+#
+# Naming convention:
+#   - Stable API (no A/B test / control group): API_VARIANT not set → defaults to "default"
+#   - A/B test deployment (music graph): API_VARIANT=ab_test_music_graph
+#
+# Current active A/B test: "ab_test_music_graph"
+#   Targets Playlist 2 ("Ça peut aussi te plaire") for MUSIQUE offers.
+#   Swaps retrieval model from `coreservation` → `graph` for 50% of traffic.
+API_VARIANT: str = os.environ.get("API_VARIANT", "ab_test_music_graph")
+
 
 # --- 3. Logging Configuration ---
 # Reduce log noise in production by defaulting to INFO level
