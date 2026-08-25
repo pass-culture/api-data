@@ -107,6 +107,7 @@ def show_api_config() -> None:
         "RECOMMENDATION_API_VERSION": settings.RECOMMENDATION_API_VERSION,
         "FASTAPI_SERVER_PORT": settings.FASTAPI_SERVER_PORT,
         "LOG_LEVEL": logging.getLevelName(settings.LOG_LEVEL),
+        "AB_TEST_VARIANT_LABEL": settings.AB_TEST_VARIANT_LABEL,
         # Google Cloud & Vertex AI
         "GCP_PROJECT": settings.GCP_PROJECT,
         "VERTEX_RETRIEVAL_ENDPOINT_NAME": settings.VERTEX_RETRIEVAL_ENDPOINT_NAME,

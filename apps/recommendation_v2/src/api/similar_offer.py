@@ -102,6 +102,7 @@ async def get_similar_offers(  # noqa: PLR0913
             "categories": [c.value for c in categories] if categories else None,
             "subcategories": [s.value for s in subcategories] if subcategories else None,
             "search_group_names": [s.value for s in search_group_names] if search_group_names else None,
+            "ab_test_variant_label": settings.AB_TEST_VARIANT_LABEL,
         },
     )
 
