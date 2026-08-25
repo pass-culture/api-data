@@ -86,13 +86,12 @@ async def test_connect_disables_cache_when_redis_url_is_empty(redis_service):
 
 
 @pytest.mark.asyncio
-async def test_connect_sets_live_client_and_starts_monitor(redis_service):
-    """connect() must set a live redis_client and start the background monitor task on success."""
+async def test_connect_sets_live_client(redis_service):
+    """connect() must set a live redis_client on success."""
     service = RedisCacheService()
     await service.connect()
 
     assert service.redis_client is not None
-    assert service._monitor_task is not None
     await service.disconnect()
 
 
@@ -104,29 +103,6 @@ async def test_connect_disables_cache_on_connection_failure(redis_service):
     await service.connect()
 
     assert service.redis_client is None
-
-
-# ---------------------------------------------------------------------------
-# RedisCacheService.disconnect
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_disconnect_cancels_and_clears_monitor_task(redis_service):
-    """
-    disconnect() must cancel the background monitor task and set the reference to None.
-
-    The redis_service fixture awaits _monitor_ready before yielding, so the background
-    task has already completed its first iteration and is suspended on asyncio.sleep(600s)
-    when the test starts. cancel() therefore hits a predictable await point. The task
-    reference is saved before disconnect() clears it so we can assert task.cancelled().
-    """
-    task = redis_service._monitor_task  # save reference before disconnect clears it
-
-    await redis_service.disconnect()
-
-    assert redis_service._monitor_task is None
-    assert task.cancelled()
 
 
 # ---------------------------------------------------------------------------
@@ -165,72 +141,18 @@ async def test_get_returns_none_for_missing_key(redis_service):
 
 
 # ---------------------------------------------------------------------------
-# RedisCacheService._monitor_connections
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_monitor_connections_logs_connected_clients_count(redis_service):
-    """
-    The monitor loop must query Redis for client metrics and log the result at INFO level.
-
-    The redis_service fixture awaits _monitor_ready before yielding, so the fixture's
-    background task has already completed its first iteration and is suspended on
-    asyncio.sleep(600s). Redis has been flushed (lock included), so the service under
-    test can acquire the lock immediately.
-
-    wait_for drives service._monitor_connections() through one info+log cycle; the loop
-    then hits asyncio.sleep(600s) and the 0.5 s timeout fires — TimeoutError is expected.
-    """
-    service = RedisCacheService()
-    service.redis_client = redis_service.redis_client
-
-    with patch("services.redis.logger") as mock_logger, pytest.raises(asyncio.TimeoutError):
-        await asyncio.wait_for(service._monitor_connections(), timeout=0.5)
-
-    mock_logger.info.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_monitor_connections_logs_debug_and_does_not_crash_on_info_error(redis_service):
-    """
-    An exception from redis_client.info() must be swallowed and logged at DEBUG level.
-
-    The redis_service fixture awaits _monitor_ready before yielding, so the fixture's
-    background task has already completed its first iteration and is suspended on
-    asyncio.sleep(600s). Redis has been flushed (lock included). patch.object injects a
-    failure on the shared client instance, so the monitor loop catches the exception and
-    logs at DEBUG instead of INFO.
-    """
-    service = RedisCacheService()
-    service.redis_client = redis_service.redis_client
-
-    with (
-        patch.object(service.redis_client, "info", side_effect=Exception("Redis unavailable")),
-        patch("services.redis.logger") as mock_logger,
-        pytest.raises(asyncio.TimeoutError),
-    ):
-        await asyncio.wait_for(service._monitor_connections(), timeout=0.5)
-
-    mock_logger.debug.assert_called_once()
-    mock_logger.info.assert_not_called()
-
-
-# ---------------------------------------------------------------------------
 # RedisCacheService.disconnect — connection teardown
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
 async def test_disconnect_closes_connection(redis_service):
-    """After disconnect(), the monitor task reference must be cleared."""
+    """After disconnect(), the redis_client must be closeable without error."""
     service = RedisCacheService()
     await service.connect()
     assert service.redis_client is not None
 
     await service.disconnect()
-
-    assert service._monitor_task is None
 
 
 # ---------------------------------------------------------------------------
