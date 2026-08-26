@@ -8,6 +8,7 @@ from connectors.vertex_api import RankingPrediction
 from connectors.vertex_api import VertexPredictionResult
 from core.user_context import UserContext
 from schemas.enriched_offer import EnrichedRecommendableOffer
+from schemas.offer_page_playlists import OfferPagePlaylistsResponse
 from schemas.playlist_recommendation import CategoryEnum
 from schemas.playlist_recommendation import RecommendationResponse
 from schemas.playlist_recommendation import SearchGroupNameEnum
@@ -54,5 +55,11 @@ class RecommendationResponseFactory(ModelFactory[RecommendationResponse]):
 
 class SimilarOfferResponseFactory(ModelFactory[SimilarOfferResponse]):
     __model__ = SimilarOfferResponse
+
+    from_cache = False
+
+
+class OfferPagePlaylistsResponseFactory(ModelFactory[OfferPagePlaylistsResponse]):
+    __model__ = OfferPagePlaylistsResponse
 
     from_cache = False
