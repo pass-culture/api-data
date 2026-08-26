@@ -13,6 +13,7 @@ from httpx import AsyncClient
 from pytest_socket import disable_socket
 from pytest_socket import enable_socket
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 from testcontainers.postgres import PostgresContainer
@@ -315,12 +316,17 @@ async def db_session(engine):
 
 
 @pytest_asyncio.fixture()
-async def client(db_session):
+async def client(db_session, engine):
     """
     Provide an async HTTP client pointed at the FastAPI application.
 
     The application's database dependency is overridden with the test session so all
     requests share the same rolled-back transaction, guaranteeing isolation.
+
+    ``pipeline_offer_page_playlists`` creates its own sessions via ``AsyncSessionFactory``
+    (bypassing the FastAPI dependency-injection layer) to support parallel execution.
+    We patch that factory to use a session factory built on the test engine so that
+    those parallel tasks hit the testcontainer, not the production database.
     """
 
     async def override_get_database_session():
@@ -328,8 +334,15 @@ async def client(db_session):
 
     app.dependency_overrides[get_database_session] = override_get_database_session
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as async_client:
-        yield async_client
+    # Build a session factory that points at the *test* engine so that the parallel
+    # tasks in pipeline_offer_page_playlists also use the testcontainer.
+    test_async_session_factory = async_sessionmaker(
+        bind=engine, class_=AsyncSession, expire_on_commit=False, autocommit=False, autoflush=False
+    )
+
+    with patch("controllers.pipeline_offer_page_playlists.AsyncSessionFactory", test_async_session_factory):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as async_client:
+            yield async_client
 
     app.dependency_overrides.clear()
 
