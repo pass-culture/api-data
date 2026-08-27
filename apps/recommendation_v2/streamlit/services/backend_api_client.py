@@ -84,6 +84,39 @@ def fetch_similar_offer_ids(
     return offer_ids, response_params.get("reco_origin", "N/A"), response_params.get("model_origin", "N/A")
 
 
+def fetch_offer_page_playlists(
+    api_url: str,
+    params: dict,
+    proxies: dict | None = None,
+    api_token: str | None = None,
+) -> tuple[list[dict], bool]:
+    """GET the offer_page_playlists endpoint and return the raw playlists with cache info.
+
+    Unlike the other endpoints, this one returns *multiple* titled playlists in a
+    single response instead of a flat list of offer IDs, so the raw playlist dicts
+    are returned as-is (each with 'title', 'playlist_type', 'results', 'params').
+
+    Args:
+        api_url: Full endpoint URL.
+        params: URL query parameters (offer_id path is already baked into api_url).
+        proxies: Optional SOCKS5 proxy dict for VPC tunneling.
+        api_token: Optional API token injected as query param `?token=`.
+
+    Returns:
+        Tuple of (playlists list of {title, playlist_type, results, params}, from_cache bool).
+    """
+    response = requests.get(api_url, params=_inject_token(params, api_token), proxies=proxies)
+    response.raise_for_status()
+
+    data = response.json()
+
+    playlists = data.get("playlists", [])
+    if not isinstance(playlists, list):
+        playlists = []
+
+    return playlists, bool(data.get("from_cache", False))
+
+
 def fetch_similar_artist_ids(
     api_url: str,
     params: dict,
