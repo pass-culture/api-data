@@ -19,6 +19,7 @@ from schemas.similar_offer import SimilarOfferResponse
 from services.db import get_database_session
 from services.h3 import get_h3_index_from_coordinates
 from services.logger import logger
+from utils.benchmark import LogLevel
 from utils.benchmark import log_execution_time
 from utils.location_presets import PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING
 
@@ -31,7 +32,7 @@ router = APIRouter()
     response_model=SimilarOfferResponse,
     summary="Generate similar offer recommendations",
 )
-@log_execution_time
+@log_execution_time(level=LogLevel.INFO)
 async def get_similar_offers(  # noqa: PLR0913
     db: Annotated[AsyncSession, Depends(get_database_session)],
     location: Annotated[LocationParams, Depends()],
