@@ -130,6 +130,11 @@ async def test_generate_offer_page_playlists_returns_correct_structure(mocker):
         results=["offer-1", "offer-2"],
         params=dummy_metadata,
     )
+    mocker.patch(
+        "controllers.pipeline_offer_page_playlists._resolve_item_ids_for_offer_ids",
+        new_callable=mocker.AsyncMock,
+        return_value=set(),
+    )
 
     result = await generate_offer_page_playlists(
         offer_id="test-offer-id",
@@ -204,3 +209,49 @@ async def test_generate_offer_page_playlists_with_none_search_group_name(mocker)
     assert result.playlists[0].playlist_type == OfferPlaylistTypeEnum.SAME_TYPE
     assert result.playlists[1].playlist_type == OfferPlaylistTypeEnum.CROSS_TYPE
     assert mock_similar.call_count == 2  # noqa: PLR2004
+
+
+@pytest.mark.asyncio
+async def test_generate_offer_page_playlists_deduplicates_second_playlist_by_item_id(mocker):
+    """
+    The 1st playlist ("Les fans aiment aussi") must run without any exclusion.
+    The 2nd playlist must be called with exclude_item_ids containing the item_ids
+    resolved from the 1st playlist's results, so no offer linked to those items
+    can reappear in the 2nd playlist.
+    """
+
+    dummy_metadata = RecommendationMetadata(
+        reco_origin="similar_offer",
+        model_origin="default",
+        call_id="test-call-id",
+    )
+    mock_similar = mocker.patch(
+        "controllers.pipeline_offer_page_playlists.generate_similar_offers",
+        new_callable=mocker.AsyncMock,
+    )
+    mock_similar.return_value = mocker.MagicMock(results=["offer-1", "offer-2"], params=dummy_metadata)
+
+    mock_resolve_item_ids = mocker.patch(
+        "controllers.pipeline_offer_page_playlists._resolve_item_ids_for_offer_ids",
+        new_callable=mocker.AsyncMock,
+        return_value={"item-A", "item-B"},
+    )
+
+    await generate_offer_page_playlists(
+        offer_id="test-offer-id",
+        search_group_name=SearchGroupNameEnum.CINEMA,
+    )
+
+    assert mock_similar.call_count == 2  # noqa: PLR2004
+    first_call_kwargs = mock_similar.call_args_list[0].kwargs
+    second_call_kwargs = mock_similar.call_args_list[1].kwargs
+
+    # 1st playlist (LES_FANS_AIMENT_AUSSI) must not exclude anything.
+    assert first_call_kwargs["exclude_item_ids"] is None
+
+    # 2nd playlist must exclude the item_ids resolved from the 1st playlist's results.
+    assert second_call_kwargs["exclude_item_ids"] == {"item-A", "item-B"}
+
+    # item_ids are resolved once per playlist, based on that playlist's own results.
+    assert mock_resolve_item_ids.call_count == 2  # noqa: PLR2004
+    mock_resolve_item_ids.assert_any_call(["offer-1", "offer-2"])

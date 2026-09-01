@@ -1,6 +1,7 @@
-import asyncio
+from sqlalchemy import select
 
 from controllers.pipeline_similar_offer import generate_similar_offers
+from models.offer import RecommendableOffers
 from schemas.categories import SearchGroupNameEnum
 from schemas.offer_page_playlists import OfferPagePlaylistsResponse
 from schemas.offer_page_playlists import OfferPlaylistItem
@@ -58,13 +59,13 @@ def build_similar_offer_playlist_configs(offer_search_group: SearchGroupNameEnum
                 title=OfferPlaylistTitleEnum.LES_FANS_AIMENT_AUSSI,
                 playlist_type=OfferPlaylistTypeEnum.SAME_TYPE_CORESERVATION,
                 retrieval_model=SimilarOfferModelChoices.coreservation,
-                search_group_names=[offer_search_group],  # type: ignore[list-item]
+                search_group_names=[offer_search_group],
             ),
             SimilarOfferPlaylistConfig(
                 title=OfferPlaylistTitleEnum.DANS_LA_MEME_CATEGORIE,
                 playlist_type=OfferPlaylistTypeEnum.SAME_TYPE_GRAPH,
                 retrieval_model=SimilarOfferModelChoices.graph,
-                search_group_names=[offer_search_group],  # type: ignore[list-item]
+                search_group_names=[offer_search_group],
             ),
         ]
 
@@ -95,6 +96,7 @@ async def _generate_single_similar_offer_playlist(
     user_id: str | None,
     latitude: float | None,
     longitude: float | None,
+    exclude_item_ids: set[str] | None = None,
 ) -> OfferPlaylistItem:
     """
     Run the ``generate_similar_offers`` pipeline for a single playlist config.
@@ -112,6 +114,11 @@ async def _generate_single_similar_offer_playlist(
         user_id: Optional user ID for personalized filtering.
         latitude: The user's current GPS latitude.
         longitude: The user's current GPS longitude.
+        exclude_item_ids: Optional set of ``item_id`` values already used by a
+                          higher-priority playlist on the same page. Offers linked
+                          to these items are excluded from the candidate pool
+                          before ranking/diversification/truncation, so results
+                          never overlap by item_id with a previous playlist.
 
     Returns:
         The generated :class:`OfferPlaylistItem`, ready to be included in the response.
@@ -125,6 +132,7 @@ async def _generate_single_similar_offer_playlist(
             search_group_names=playlist_config.search_group_names,
             latitude=latitude,
             longitude=longitude,
+            exclude_item_ids=exclude_item_ids,
         )
 
     return OfferPlaylistItem(
@@ -135,6 +143,34 @@ async def _generate_single_similar_offer_playlist(
     )
 
 
+async def _resolve_item_ids_for_offer_ids(offer_ids: list[str]) -> set[str]:
+    """
+    Batch-resolves the ``item_id`` values linked to a list of ``offer_id``.
+
+    Used to know which items were already shown by a higher-priority playlist,
+    so the next playlist can exclude them from its own candidate pool. Opens its
+    own dedicated ``AsyncSession`` (see :func:`_generate_single_similar_offer_playlist`
+    for why sessions must not be shared/reused across sequential DB operations
+    from different pipeline stages).
+
+    Args:
+        offer_ids: The offer IDs returned by a previously generated playlist.
+
+    Returns:
+        The set of distinct ``item_id`` values linked to those offers. Offers not
+        found in ``recommendable_offers_raw_mv`` (e.g. non-recommendable offers)
+        are silently skipped — they simply cannot be cross-referenced.
+    """
+    if not offer_ids:
+        return set()
+
+    async with AsyncSessionFactory() as db_session:
+        query_result = await db_session.execute(
+            select(RecommendableOffers.item_id).where(RecommendableOffers.offer_id.in_(offer_ids))
+        )
+        return set(query_result.scalars().all())
+
+
 async def generate_offer_page_playlists(
     offer_id: str,
     search_group_name: SearchGroupNameEnum,
@@ -143,7 +179,7 @@ async def generate_offer_page_playlists(
     longitude: float | None = None,
 ) -> OfferPagePlaylistsResponse:
     """
-    Build all recommendation playlists for an offer detail page in parallel.
+    Build all recommendation playlists for an offer detail page.
 
     The ``search_group_name`` of the reference offer must be supplied by the
     caller (e.g. the client, which already knows the category of the offer
@@ -158,9 +194,16 @@ async def generate_offer_page_playlists(
     parallel coroutines (via ``asyncio.gather``) would trigger an
     ``IllegalStateChangeError``.  Creating one session per task avoids this.
 
-    All calls are executed concurrently via ``asyncio.gather``, so the total
-    latency is roughly equal to the slowest individual pipeline rather than
-    the sum of all pipelines.
+    Playlists are generated **sequentially**, in the order defined by
+    :func:`build_similar_offer_playlist_configs` (the "Les fans aiment aussi"
+    two-tower/coreservation playlist always runs first). After each playlist is
+    generated, the ``item_id`` values of its results are resolved and excluded
+    from the candidate pool of the next playlist, so no offer linked to an
+    already-shown item reappears in a lower-priority playlist. This deduplication
+    is applied before ranking/diversification/truncation in the underlying
+    pipeline, but there is no guarantee on the resulting size of a deduplicated
+    playlist: if too few alternative candidates remain, it may end up with fewer
+    than the usual maximum number of results — this is an accepted trade-off.
 
     Args:
         offer_id: The unique identifier of the reference offer.
@@ -187,18 +230,24 @@ async def generate_offer_page_playlists(
         },
     )
 
-    playlist_items = await asyncio.gather(
-        *[
-            _generate_single_similar_offer_playlist(
-                playlist_config=playlist_config,
-                offer_id=offer_id,
-                user_id=user_id,
-                latitude=latitude,
-                longitude=longitude,
-            )
-            for playlist_config in similar_offer_playlist_configs
-        ]
-    )
+    playlist_items: list[OfferPlaylistItem] = []
+    used_item_ids: set[str] = set()
+
+    for playlist_config in similar_offer_playlist_configs:
+        playlist_item = await _generate_single_similar_offer_playlist(
+            playlist_config=playlist_config,
+            offer_id=offer_id,
+            user_id=user_id,
+            latitude=latitude,
+            longitude=longitude,
+            exclude_item_ids=used_item_ids or None,
+        )
+        playlist_items.append(playlist_item)
+
+        # Resolve item_ids of this playlist's results and add them to the exclusion
+        # set for the next (lower-priority) playlist.
+        newly_used_item_ids = await _resolve_item_ids_for_offer_ids(playlist_item.results)
+        used_item_ids |= newly_used_item_ids
 
     logger.info(
         "✅ offer_page_playlists pipeline completed.",

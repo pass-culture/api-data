@@ -42,6 +42,7 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
     search_group_names: list[SearchGroupNameEnum] | None = None,
     latitude: float | None = None,
     longitude: float | None = None,
+    exclude_item_ids: set[str] | None = None,
 ) -> SimilarOfferResponse:
     """
     Orchestrates the pipeline to generate a list of offers similar to a given offer.
@@ -74,6 +75,13 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
         longitude (float | None): The user's current longitude (if geolocated).
         retrieval_model (SimilarOfferModelChoices):
                         The retrieval model to use for similar offers (coreservation or graph).
+        exclude_item_ids (set[str] | None): Optional set of ``item_id`` values to exclude from the
+                        candidate pool (e.g. items already used by another playlist on the same page,
+                        such as the offer_page_playlists pipeline deduplicating across playlists).
+                        Applied before ranking/diversification/truncation so the final list size is
+                        not artificially reduced afterward. Not applied to the fallback path (see
+                        stage 7): ``generate_playlist_recommendations`` is a rare, legacy code path
+                        likely to be replaced/removed, so it is intentionally kept dedup-free.
     Returns:
         SimilarOfferResponse: A structured payload containing the ordered list of similar offer IDs.
     """
@@ -185,6 +193,24 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
             extra={"user_id": effective_user_id},
         )
 
+    # --- 3bis. Cross-playlist deduplication ---
+    # Remove candidates whose item_id was already used by another playlist on the same page
+    # (e.g. the offer_page_playlists pipeline, which generates playlists sequentially and
+    # excludes item_ids already shown in a higher-priority playlist).
+    if exclude_item_ids:
+        candidate_items_before_dedup = len(unbooked_candidate_items)
+        unbooked_candidate_items = [
+            item for item in unbooked_candidate_items if item.item_id not in exclude_item_ids
+        ]
+        logger.info(
+            "🧹 Cross-playlist item_id deduplication applied.",
+            extra={
+                "before_filter": candidate_items_before_dedup,
+                "after_filter": len(unbooked_candidate_items),
+                "excluded_item_ids_count": len(exclude_item_ids),
+            },
+        )
+
     # --- 4. Resolution Phase ---
     # Convert abstract items into actionable offers, keeping only the closest venues for physical items
     resolved_offers = await resolve_closest_venues_from_items(
@@ -223,6 +249,8 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
     # --- 7. Fallback Phase (coreservation only) ---
     # If the full pipeline produced zero results, delegate entirely to generate_playlist_recommendations.
     # That function handles its own retrieval, ranking, diversification, and logging — no duplication needed.
+    # Note: cross-playlist item_id deduplication (exclude_item_ids) intentionally does NOT apply here.
+    # This fallback is a rare, legacy code path likely to be replaced/removed, so it is kept simple.
     # This fallback is meant for a genuine absence of similar offers, not for a transient Vertex AI
     # failure: when retrieval fails, vertex_raw_predictions.status is "error" (see VertexAPI), and we
     # must NOT delegate to the playlist pipeline — an honest empty response allows a future retry
