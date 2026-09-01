@@ -3,7 +3,9 @@ Unit tests for pipeline_offer_page_playlists controller.
 
 These tests cover:
 - build_similar_offer_playlist_configs: the playlist composition rules.
-- generate_offer_page_playlists: resolving search_group_name from DB, 404 on missing offer, and parallel sub-pipelines.
+- generate_offer_page_playlists: the partially-parallel orchestration of sub-pipelines
+  (retrieval phase concurrent for all playlists, finalization phase sequential for
+  exact cross-playlist deduplication).
 """
 
 from unittest.mock import AsyncMock
@@ -12,7 +14,10 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi import HTTPException
 from fastapi import status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from controllers.pipeline_offer_page_playlists import _resolve_item_ids_for_offer_ids
 from controllers.pipeline_offer_page_playlists import build_similar_offer_playlist_configs
 from controllers.pipeline_offer_page_playlists import generate_offer_page_playlists
 from schemas.categories import SearchGroupNameEnum
@@ -21,6 +26,8 @@ from schemas.offer_page_playlists import OfferPagePlaylistsResponse
 from schemas.offer_page_playlists import OfferPlaylistTitleEnum
 from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.similar_offer import SimilarOfferModelChoices
+
+from tests.factories.models import RecommendableOffersFactory
 
 
 # ---------------------------------------------------------------------------
@@ -134,11 +141,16 @@ async def test_generate_offer_page_playlists_returns_correct_structure(mocker):
     mock_db_result.scalar_one_or_none.return_value = SearchGroupNameEnum.CINEMA.value
     mock_db.execute.return_value = mock_db_result
 
-    mock_similar = mocker.patch(
-        "controllers.pipeline_offer_page_playlists.generate_similar_offers",
+    mocker.patch(
+        "controllers.pipeline_offer_page_playlists.retrieve_similar_offer_candidates",
+        new_callable=mocker.AsyncMock,
+        return_value=mocker.sentinel.retrieval_result,
+    )
+    mock_finalize = mocker.patch(
+        "controllers.pipeline_offer_page_playlists.finalize_similar_offers",
         new_callable=mocker.AsyncMock,
     )
-    mock_similar.return_value = mocker.MagicMock(
+    mock_finalize.return_value = mocker.MagicMock(
         results=["offer-1", "offer-2"],
         params=dummy_metadata,
     )
@@ -173,22 +185,29 @@ async def test_generate_offer_page_playlists_returns_correct_structure(mocker):
 
 
 @pytest.mark.asyncio
-async def test_generate_offer_page_playlists_runs_pipelines_in_parallel(mocker):
+async def test_generate_offer_page_playlists_runs_retrieval_concurrently(mocker):
     """
-    Verify that generate_similar_offers is called once per playlist config.
-    CINEMA → 2 configs → 2 calls.
-    LIVRES → 2 configs → 2 calls.
+    Verify that the retrieval phase is called once per playlist config, and that all
+    retrieval calls are scheduled before any of them is awaited (i.e. concurrently),
+    while the finalization phase is also called once per playlist config.
+    CINEMA → 2 configs → 2 retrieval calls + 2 finalize calls.
+    LIVRES → 2 configs → 2 retrieval calls + 2 finalize calls.
     """
     dummy_metadata = RecommendationMetadata(
         reco_origin="similar_offer",
         model_origin="default",
         call_id="test-call-id",
     )
-    mock_similar = mocker.patch(
-        "controllers.pipeline_offer_page_playlists.generate_similar_offers",
+    mock_retrieve = mocker.patch(
+        "controllers.pipeline_offer_page_playlists.retrieve_similar_offer_candidates",
+        new_callable=mocker.AsyncMock,
+        return_value=mocker.sentinel.retrieval_result,
+    )
+    mock_finalize = mocker.patch(
+        "controllers.pipeline_offer_page_playlists.finalize_similar_offers",
         new_callable=mocker.AsyncMock,
     )
-    mock_similar.return_value = mocker.MagicMock(results=[], params=dummy_metadata)
+    mock_finalize.return_value = mocker.MagicMock(results=[], params=dummy_metadata)
 
     mock_db = AsyncMock()
     mock_db_result = MagicMock()
@@ -196,12 +215,14 @@ async def test_generate_offer_page_playlists_runs_pipelines_in_parallel(mocker):
     mock_db.execute.return_value = mock_db_result
 
     await generate_offer_page_playlists(db=mock_db, offer_id="x")
-    assert mock_similar.call_count == 2
-    mock_similar.reset_mock()
+    assert mock_retrieve.call_count == 2
+    assert mock_finalize.call_count == 2
+    mock_retrieve.reset_mock()
+    mock_finalize.reset_mock()
 
     mock_db_result.scalar_one_or_none.return_value = SearchGroupNameEnum.LIVRES.value
     await generate_offer_page_playlists(db=mock_db, offer_id="x")
-    assert mock_similar.call_count == 2
+    assert mock_finalize.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -222,8 +243,8 @@ async def test_generate_offer_page_playlists_raises_404_when_offer_not_found(moc
 @pytest.mark.asyncio
 async def test_generate_offer_page_playlists_deduplicates_second_playlist_by_item_id(mocker):
     """
-    The 1st playlist ("Les fans aiment aussi") must run without any exclusion.
-    The 2nd playlist must be called with exclude_item_ids containing the item_ids
+    The 1st playlist ("Les fans aiment aussi") must be finalized without any exclusion.
+    The 2nd playlist must be finalized with exclude_item_ids containing the item_ids
     resolved from the 1st playlist's results, so no offer linked to those items
     can reappear in the 2nd playlist.
     """
@@ -237,11 +258,16 @@ async def test_generate_offer_page_playlists_deduplicates_second_playlist_by_ite
         model_origin="default",
         call_id="test-call-id",
     )
-    mock_similar = mocker.patch(
-        "controllers.pipeline_offer_page_playlists.generate_similar_offers",
+    mocker.patch(
+        "controllers.pipeline_offer_page_playlists.retrieve_similar_offer_candidates",
+        new_callable=mocker.AsyncMock,
+        return_value=mocker.sentinel.retrieval_result,
+    )
+    mock_finalize = mocker.patch(
+        "controllers.pipeline_offer_page_playlists.finalize_similar_offers",
         new_callable=mocker.AsyncMock,
     )
-    mock_similar.return_value = mocker.MagicMock(results=["offer-1", "offer-2"], params=dummy_metadata)
+    mock_finalize.return_value = mocker.MagicMock(results=["offer-1", "offer-2"], params=dummy_metadata)
 
     mock_resolve_item_ids = mocker.patch(
         "controllers.pipeline_offer_page_playlists._resolve_item_ids_for_offer_ids",
@@ -251,9 +277,9 @@ async def test_generate_offer_page_playlists_deduplicates_second_playlist_by_ite
 
     await generate_offer_page_playlists(db=mock_db, offer_id="test-offer-id")
 
-    assert mock_similar.call_count == 2
-    first_call_kwargs = mock_similar.call_args_list[0].kwargs
-    second_call_kwargs = mock_similar.call_args_list[1].kwargs
+    assert mock_finalize.call_count == 2
+    first_call_kwargs = mock_finalize.call_args_list[0].kwargs
+    second_call_kwargs = mock_finalize.call_args_list[1].kwargs
 
     # 1st playlist (LES_FANS_AIMENT_AUSSI) must not exclude anything.
     assert first_call_kwargs["exclude_item_ids"] is None
@@ -264,3 +290,35 @@ async def test_generate_offer_page_playlists_deduplicates_second_playlist_by_ite
     # item_ids are resolved once per playlist, based on that playlist's own results.
     assert mock_resolve_item_ids.call_count == 2
     mock_resolve_item_ids.assert_any_call(["offer-1", "offer-2"])
+
+
+# ---------------------------------------------------------------------------
+# _resolve_item_ids_for_offer_ids — cross-connection visibility regression test
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_resolve_item_ids_sees_data_committed_through_a_different_session(db_session, engine, mocker):
+    """
+    Regression test for a subtle test-isolation pitfall (see ``tests/conftest.py::db_session``
+    docstring): ``pipeline_offer_page_playlists`` opens its *own* ``AsyncSession`` objects via
+    ``AsyncSessionFactory``, each one borrowing a *different physical connection* from the pool
+    than ``db_session`` — required for the concurrent retrieval tasks in
+    :func:`generate_offer_page_playlists` to run safely in parallel.
+
+    If ``db_session`` ever goes back to the classic "open connection + begin transaction +
+    roll back on teardown" recipe, data seeded here via ``RecommendableOffersFactory``
+    would stay stuck in an uncommitted transaction only visible to ``db_session``'s own
+    connection — silently invisible to the separate connection used below, causing this
+    assertion to fail with an empty set instead of a clear error.
+    """
+    await RecommendableOffersFactory.create_async(offer_id="seeded-offer", item_id="seeded-item")
+
+    # Mirrors exactly what the `client` fixture does: a session factory bound to the
+    # test engine, opening its own (different) physical connection from the pool.
+    test_async_session_factory = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+    mocker.patch("controllers.pipeline_offer_page_playlists.AsyncSessionFactory", test_async_session_factory)
+
+    resolved_item_ids = await _resolve_item_ids_for_offer_ids(["seeded-offer"])
+
+    assert resolved_item_ids == {"seeded-item"}
