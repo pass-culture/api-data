@@ -1,4 +1,5 @@
 import uuid
+from dataclasses import dataclass
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +26,7 @@ from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.similar_offer import SimilarOfferModelChoices
 from schemas.similar_offer import SimilarOfferResponse
+from schemas.vertex_prediction_item import RecommendableItem
 from services.logger import call_id_context
 from services.logger import logger
 
@@ -32,58 +34,61 @@ from services.logger import logger
 SIMILAR_OFFERS_LIST_MAXIMUM_SIZE = 20
 
 
-async def generate_similar_offers(  # noqa: PLR0913, PLR0915
+@dataclass
+class SimilarOfferRetrievalResult:
+    """
+    Output of the "retrieval" phase (stages 1-3) of the ``generate_similar_offers`` pipeline.
+
+    Bundles everything the "finalize" phase (stages 3bis-8, see :func:`finalize_similar_offers`)
+    needs, so the two phases can be run with a gap in between — e.g. to let a
+    higher-priority playlist finish first and provide its ``exclude_item_ids`` before
+    finalizing this one (see ``pipeline_offer_page_playlists.generate_offer_page_playlists``).
+    """
+
+    call_id: str
+    offer_id: str
+    retrieval_model: SimilarOfferModelChoices
+    user_context: UserContext
+    unbooked_candidate_items: list[RecommendableItem]
+    categories: list[CategoryEnum] | None
+    subcategories: list[SubcategoryEnum] | None
+    search_group_names: list[SearchGroupNameEnum] | None
+    vertex_retrieval_status: str
+
+
+async def retrieve_similar_offer_candidates(  # noqa: PLR0913
     db: AsyncSession,
     offer_id: str,
-    retrieval_model: SimilarOfferModelChoices = SimilarOfferModelChoices.coreservation,
-    user_id: str | None = None,
-    categories: list[CategoryEnum] | None = None,
-    subcategories: list[SubcategoryEnum] | None = None,
-    search_group_names: list[SearchGroupNameEnum] | None = None,
-    latitude: float | None = None,
-    longitude: float | None = None,
-    exclude_item_ids: set[str] | None = None,
-) -> SimilarOfferResponse:
+    retrieval_model: SimilarOfferModelChoices,
+    user_id: str | None,
+    categories: list[CategoryEnum] | None,
+    subcategories: list[SubcategoryEnum] | None,
+    search_group_names: list[SearchGroupNameEnum] | None,
+    latitude: float | None,
+    longitude: float | None,
+) -> SimilarOfferRetrievalResult:
     """
-    Orchestrates the pipeline to generate a list of offers similar to a given offer.
+    Runs stages 1-3 of the ``generate_similar_offers`` pipeline: context building,
+    Vertex AI retrieval, and already-booked filtering.
 
-    This function is specifically designed for the "similar offers" use case, where the input is a single
-    offer ID rather than a user ID. It follows a similar flow to the main recommendation pipeline but is
-    optimized for item-to-item similarity rather than personalized user recommendations.
-
-    Pipeline Stages:
-    1. Context Building: Builds a minimal context based on the input offer and optional user/location data.
-    2. Retrieval: Calls Vertex AI to fetch candidate offers that are similar to the input offer,
-     applying any provided filters.
-    3. Filtering: Removes already-booked items if a user_id is provided.
-    4. Resolution: Maps ML items to actual offers, resolving spatial proximity if location data is provided.
-    5. Ranking: Re-orders the resolved offers using a dedicated Vertex AI scoring model.
-    6. Diversification & Truncation: Shuffles and interleaves categories, then caps the list to a maximum size.
-    7. Fallback (coreservation only): If the pipeline produces zero results, delegates entirely to
-     generate_playlist_recommendations, preserving the original category filters.
-    8. Logging: Pushes the context and results to storage for future analysis.
+    Extracted from ``generate_similar_offers`` so that this (network-bound) phase can be
+    run concurrently for a lower-priority playlist while a higher-priority playlist finishes
+    its own full pipeline — see :func:`finalize_similar_offers` and
+    ``pipeline_offer_page_playlists.generate_offer_page_playlists``.
 
     Args:
-        db (AsyncSession): The active asynchronous database session.
-        offer_id (str): The unique identifier of the offer to find similarities for.
-        user_id (str | None): Optional user ID for personalized filtering (e.g., excluding booked items).
-        categories (list[CategoryEnum] | None): Optional list of categories to filter the similar offers.
-        subcategories (list[SubcategoryEnum] | None): Optional list of subcategories to filter the similar offers.
-        search_group_names (list[SearchGroupNameEnum] | None):
-                        Optional list of search group names to filter the similar offers.
-        latitude (float | None): The user's current latitude (if geolocated).
-        longitude (float | None): The user's current longitude (if geolocated).
-        retrieval_model (SimilarOfferModelChoices):
-                        The retrieval model to use for similar offers (coreservation or graph).
-        exclude_item_ids (set[str] | None): Optional set of ``item_id`` values to exclude from the
-                        candidate pool (e.g. items already used by another playlist on the same page,
-                        such as the offer_page_playlists pipeline deduplicating across playlists).
-                        Applied before ranking/diversification/truncation so the final list size is
-                        not artificially reduced afterward. Not applied to the fallback path (see
-                        stage 7): ``generate_playlist_recommendations`` is a rare, legacy code path
-                        likely to be replaced/removed, so it is intentionally kept dedup-free.
+        db: The active asynchronous database session.
+        offer_id: The unique identifier of the offer to find similarities for.
+        retrieval_model: The retrieval model to use for similar offers (coreservation or graph).
+        user_id: Optional user ID for personalized filtering (e.g., excluding booked items).
+        categories: Optional list of categories to filter the similar offers.
+        subcategories: Optional list of subcategories to filter the similar offers.
+        search_group_names: Optional list of search group names to filter the similar offers.
+        latitude: The user's current latitude (if geolocated).
+        longitude: The user's current longitude (if geolocated).
+
     Returns:
-        SimilarOfferResponse: A structured payload containing the ordered list of similar offer IDs.
+        A :class:`SimilarOfferRetrievalResult` ready to be passed to :func:`finalize_similar_offers`.
     """
 
     # --- 1. Initialization & Context Building ---
@@ -193,15 +198,63 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
             extra={"user_id": effective_user_id},
         )
 
+    return SimilarOfferRetrievalResult(
+        call_id=call_id,
+        offer_id=offer_id,
+        retrieval_model=retrieval_model,
+        user_context=user_context,
+        unbooked_candidate_items=unbooked_candidate_items,
+        categories=categories,
+        subcategories=subcategories,
+        search_group_names=search_group_names,
+        vertex_retrieval_status=vertex_raw_predictions.status,
+    )
+
+
+async def finalize_similar_offers(
+    db: AsyncSession,
+    retrieval: SimilarOfferRetrievalResult,
+    exclude_item_ids: set[str] | None = None,
+) -> SimilarOfferResponse:
+    """
+    Runs stages 3bis-8 of the ``generate_similar_offers`` pipeline: cross-playlist
+    deduplication, resolution, ranking, diversification/truncation, fallback and logging.
+
+    Args:
+        db: The active asynchronous database session (same one used for the retrieval phase,
+            or a fresh one — both work since a single ``AsyncSession`` is only ever used
+            sequentially within one playlist's coroutine).
+        retrieval: The output of :func:`retrieve_similar_offer_candidates`.
+        exclude_item_ids: Optional set of ``item_id`` values to exclude from the
+                        candidate pool (e.g. items already used by another playlist on the same page,
+                        such as the offer_page_playlists pipeline deduplicating across playlists).
+                        Applied before ranking/diversification/truncation so the final list size is
+                        not artificially reduced afterward. Not applied to the fallback path (see
+                        stage 7): ``generate_playlist_recommendations`` is a rare, legacy code path
+                        likely to be replaced/removed, so it is intentionally kept dedup-free.
+
+    Returns:
+        SimilarOfferResponse: A structured payload containing the ordered list of similar offer IDs.
+    """
+    call_id = retrieval.call_id
+    offer_id = retrieval.offer_id
+    retrieval_model = retrieval.retrieval_model
+    user_context = retrieval.user_context
+    unbooked_candidate_items = retrieval.unbooked_candidate_items
+    categories = retrieval.categories
+    subcategories = retrieval.subcategories
+    search_group_names = retrieval.search_group_names
+    vertex_retrieval_status = retrieval.vertex_retrieval_status
+
+    call_id_context.set(call_id)
+
     # --- 3bis. Cross-playlist deduplication ---
     # Remove candidates whose item_id was already used by another playlist on the same page
     # (e.g. the offer_page_playlists pipeline, which generates playlists sequentially and
     # excludes item_ids already shown in a higher-priority playlist).
     if exclude_item_ids:
         candidate_items_before_dedup = len(unbooked_candidate_items)
-        unbooked_candidate_items = [
-            item for item in unbooked_candidate_items if item.item_id not in exclude_item_ids
-        ]
+        unbooked_candidate_items = [item for item in unbooked_candidate_items if item.item_id not in exclude_item_ids]
         logger.info(
             "🧹 Cross-playlist item_id deduplication applied.",
             extra={
@@ -255,15 +308,15 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
     # failure: when retrieval fails, vertex_raw_predictions.status is "error" (see VertexAPI), and we
     # must NOT delegate to the playlist pipeline — an honest empty response allows a future retry
     # instead of masking the failure behind unrelated playlist recommendations.
-    vertex_retrieval_failed = vertex_raw_predictions.status == "error"
+    vertex_retrieval_failed = vertex_retrieval_status == "error"
     is_coreservation_model = retrieval_model == SimilarOfferModelChoices.coreservation
     if is_coreservation_model and len(final_similar_offers) == 0 and not vertex_retrieval_failed:
         logger.warning(
             "⚠️ No similar offers found with coreservation model. Falling back to standard recommendation pipeline.",
             extra={
                 "offer_id": offer_id,
-                "latitude": latitude,
-                "longitude": longitude,
+                "latitude": user_context.latitude,
+                "longitude": user_context.longitude,
                 "categories": categories,
                 "subcategories": subcategories,
                 "search_group_names": search_group_names,
@@ -326,3 +379,76 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
             reco_origin=recommendation_origin, model_origin=settings.SIMILAR_OFFER_MODEL_CONTEXT, call_id=call_id
         ),
     )
+
+
+async def generate_similar_offers(  # noqa: PLR0913
+    db: AsyncSession,
+    offer_id: str,
+    retrieval_model: SimilarOfferModelChoices = SimilarOfferModelChoices.coreservation,
+    user_id: str | None = None,
+    categories: list[CategoryEnum] | None = None,
+    subcategories: list[SubcategoryEnum] | None = None,
+    search_group_names: list[SearchGroupNameEnum] | None = None,
+    latitude: float | None = None,
+    longitude: float | None = None,
+    exclude_item_ids: set[str] | None = None,
+) -> SimilarOfferResponse:
+    """
+    Orchestrates the pipeline to generate a list of offers similar to a given offer.
+
+    This function is specifically designed for the "similar offers" use case, where the input is a single
+    offer ID rather than a user ID. It follows a similar flow to the main recommendation pipeline but is
+    optimized for item-to-item similarity rather than personalized user recommendations.
+
+    This is a thin wrapper chaining :func:`retrieve_similar_offer_candidates` (stages 1-3) and
+    :func:`finalize_similar_offers` (stages 3bis-8) sequentially. Callers that need to overlap the
+    retrieval phase of one playlist with the full pipeline of another (e.g. the offer_page_playlists
+    pipeline, for partial parallelization while still deduplicating cross-playlist item_ids) should call
+    those two functions directly instead — see ``pipeline_offer_page_playlists.generate_offer_page_playlists``.
+
+    Pipeline Stages:
+    1. Context Building: Builds a minimal context based on the input offer and optional user/location data.
+    2. Retrieval: Calls Vertex AI to fetch candidate offers that are similar to the input offer,
+     applying any provided filters.
+    3. Filtering: Removes already-booked items if a user_id is provided.
+    4. Resolution: Maps ML items to actual offers, resolving spatial proximity if location data is provided.
+    5. Ranking: Re-orders the resolved offers using a dedicated Vertex AI scoring model.
+    6. Diversification & Truncation: Shuffles and interleaves categories, then caps the list to a maximum size.
+    7. Fallback (coreservation only): If the pipeline produces zero results, delegates entirely to
+     generate_playlist_recommendations, preserving the original category filters.
+    8. Logging: Pushes the context and results to storage for future analysis.
+
+    Args:
+        db (AsyncSession): The active asynchronous database session.
+        offer_id (str): The unique identifier of the offer to find similarities for.
+        user_id (str | None): Optional user ID for personalized filtering (e.g., excluding booked items).
+        categories (list[CategoryEnum] | None): Optional list of categories to filter the similar offers.
+        subcategories (list[SubcategoryEnum] | None): Optional list of subcategories to filter the similar offers.
+        search_group_names (list[SearchGroupNameEnum] | None):
+                        Optional list of search group names to filter the similar offers.
+        latitude (float | None): The user's current latitude (if geolocated).
+        longitude (float | None): The user's current longitude (if geolocated).
+        retrieval_model (SimilarOfferModelChoices):
+                        The retrieval model to use for similar offers (coreservation or graph).
+        exclude_item_ids (set[str] | None): Optional set of ``item_id`` values to exclude from the
+                        candidate pool (e.g. items already used by another playlist on the same page,
+                        such as the offer_page_playlists pipeline deduplicating across playlists).
+                        Applied before ranking/diversification/truncation so the final list size is
+                        not artificially reduced afterward. Not applied to the fallback path (see
+                        stage 7): ``generate_playlist_recommendations`` is a rare, legacy code path
+                        likely to be replaced/removed, so it is intentionally kept dedup-free.
+    Returns:
+        SimilarOfferResponse: A structured payload containing the ordered list of similar offer IDs.
+    """
+    retrieval = await retrieve_similar_offer_candidates(
+        db=db,
+        offer_id=offer_id,
+        retrieval_model=retrieval_model,
+        user_id=user_id,
+        categories=categories,
+        subcategories=subcategories,
+        search_group_names=search_group_names,
+        latitude=latitude,
+        longitude=longitude,
+    )
+    return await finalize_similar_offers(db=db, retrieval=retrieval, exclude_item_ids=exclude_item_ids)

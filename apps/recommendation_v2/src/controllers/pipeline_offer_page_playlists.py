@@ -1,6 +1,10 @@
+import asyncio
+
 from sqlalchemy import select
 
-from controllers.pipeline_similar_offer import generate_similar_offers
+from controllers.pipeline_similar_offer import SimilarOfferRetrievalResult
+from controllers.pipeline_similar_offer import finalize_similar_offers
+from controllers.pipeline_similar_offer import retrieve_similar_offer_candidates
 from models.offer import RecommendableOffers
 from schemas.categories import SearchGroupNameEnum
 from schemas.offer_page_playlists import OfferPagePlaylistsResponse
@@ -90,16 +94,60 @@ def build_similar_offer_playlist_configs(offer_search_group: SearchGroupNameEnum
     ]
 
 
-async def _generate_single_similar_offer_playlist(
+async def _retrieve_similar_offer_playlist_candidates(
     playlist_config: SimilarOfferPlaylistConfig,
     offer_id: str,
     user_id: str | None,
     latitude: float | None,
     longitude: float | None,
-    exclude_item_ids: set[str] | None = None,
+) -> SimilarOfferRetrievalResult:
+    """
+    Run only the retrieval phase (Vertex AI call + already-booked filter, see
+    ``pipeline_similar_offer.retrieve_similar_offer_candidates``) for a single playlist config.
+
+    This phase never depends on other playlists, so it can be scheduled concurrently for
+    *every* playlist right from the start of :func:`generate_offer_page_playlists` — even
+    though the ``exclude_item_ids`` deduplication itself has to happen later, sequentially,
+    once higher-priority playlists have produced their final results (see
+    :func:`_finalize_similar_offer_playlist`).
+
+    Opens its own dedicated ``AsyncSession`` (see :func:`_finalize_similar_offer_playlist`
+    for why sessions must not be shared/reused across concurrent coroutines).
+
+    Args:
+        playlist_config: Describes which category and retrieval model to use for this playlist.
+        offer_id: The unique identifier of the reference offer.
+        user_id: Optional user ID for personalized filtering.
+        latitude: The user's current GPS latitude.
+        longitude: The user's current GPS longitude.
+
+    Returns:
+        A :class:`SimilarOfferRetrievalResult`, ready to be finalized once this playlist's
+        turn comes up (see :func:`_finalize_similar_offer_playlist`).
+    """
+    async with AsyncSessionFactory() as db_session:
+        return await retrieve_similar_offer_candidates(
+            db=db_session,
+            offer_id=offer_id,
+            retrieval_model=playlist_config.retrieval_model,
+            user_id=user_id,
+            categories=None,
+            subcategories=None,
+            search_group_names=playlist_config.search_group_names,
+            latitude=latitude,
+            longitude=longitude,
+        )
+
+
+async def _finalize_similar_offer_playlist(
+    playlist_config: SimilarOfferPlaylistConfig,
+    retrieval: SimilarOfferRetrievalResult,
+    exclude_item_ids: set[str] | None,
 ) -> OfferPlaylistItem:
     """
-    Run the ``generate_similar_offers`` pipeline for a single playlist config.
+    Run the finalization phase (cross-playlist dedup + resolution + ranking +
+    diversification + fallback + logging, see ``pipeline_similar_offer.finalize_similar_offers``)
+    for a single playlist, from an already-fetched :class:`SimilarOfferRetrievalResult`.
 
     Each call opens its own dedicated ``AsyncSession`` because SQLAlchemy async
     sessions are **not** safe for concurrent use: sharing a single session across
@@ -108,12 +156,9 @@ async def _generate_single_similar_offer_playlist(
     at the same time.
 
     Args:
-        playlist_config: Describes which category, retrieval model and title
-                          to use for this playlist.
-        offer_id: The unique identifier of the reference offer.
-        user_id: Optional user ID for personalized filtering.
-        latitude: The user's current GPS latitude.
-        longitude: The user's current GPS longitude.
+        playlist_config: Describes which title and playlist_type to use for the response.
+        retrieval: The pre-fetched candidates for this playlist
+                   (see :func:`_retrieve_similar_offer_playlist_candidates`).
         exclude_item_ids: Optional set of ``item_id`` values already used by a
                           higher-priority playlist on the same page. Offers linked
                           to these items are excluded from the candidate pool
@@ -123,15 +168,10 @@ async def _generate_single_similar_offer_playlist(
     Returns:
         The generated :class:`OfferPlaylistItem`, ready to be included in the response.
     """
-    async with AsyncSessionFactory() as playlist_db_session:
-        similar_offers_response = await generate_similar_offers(
-            db=playlist_db_session,
-            offer_id=offer_id,
-            retrieval_model=playlist_config.retrieval_model,
-            user_id=user_id,
-            search_group_names=playlist_config.search_group_names,
-            latitude=latitude,
-            longitude=longitude,
+    async with AsyncSessionFactory() as db_session:
+        similar_offers_response = await finalize_similar_offers(
+            db=db_session,
+            retrieval=retrieval,
             exclude_item_ids=exclude_item_ids,
         )
 
@@ -149,7 +189,7 @@ async def _resolve_item_ids_for_offer_ids(offer_ids: list[str]) -> set[str]:
 
     Used to know which items were already shown by a higher-priority playlist,
     so the next playlist can exclude them from its own candidate pool. Opens its
-    own dedicated ``AsyncSession`` (see :func:`_generate_single_similar_offer_playlist`
+    own dedicated ``AsyncSession`` (see :func:`_finalize_similar_offer_playlist`
     for why sessions must not be shared/reused across sequential DB operations
     from different pipeline stages).
 
@@ -188,22 +228,31 @@ async def generate_offer_page_playlists(
     "recommendable" offers, so many valid ``offer_id`` values (non-recommendable
     or freshly created offers) would otherwise have no known category.
 
-    Each playlist is produced by a dedicated ``generate_similar_offers`` call,
-    each running with its **own** ``AsyncSession``.  SQLAlchemy async sessions
-    are not safe for concurrent use, so sharing a single session across
-    parallel coroutines (via ``asyncio.gather``) would trigger an
-    ``IllegalStateChangeError``.  Creating one session per task avoids this.
+    Each playlist is produced by dedicated ``AsyncSession``-scoped calls into the
+    ``pipeline_similar_offer`` module. SQLAlchemy async sessions are not safe for
+    concurrent use, so sharing a single session across parallel coroutines (via
+    ``asyncio.gather``) would trigger an ``IllegalStateChangeError``. Creating one
+    session per task avoids this.
 
-    Playlists are generated **sequentially**, in the order defined by
+    Playlists are **finalized sequentially**, in the order defined by
     :func:`build_similar_offer_playlist_configs` (the "Les fans aiment aussi"
-    two-tower/coreservation playlist always runs first). After each playlist is
-    generated, the ``item_id`` values of its results are resolved and excluded
-    from the candidate pool of the next playlist, so no offer linked to an
-    already-shown item reappears in a lower-priority playlist. This deduplication
-    is applied before ranking/diversification/truncation in the underlying
-    pipeline, but there is no guarantee on the resulting size of a deduplicated
-    playlist: if too few alternative candidates remain, it may end up with fewer
-    than the usual maximum number of results — this is an accepted trade-off.
+    two-tower/coreservation playlist always runs first), because deduplication
+    requires the ``item_id`` values of a higher-priority playlist's *final* results
+    before the next playlist's candidate pool can be filtered.
+
+    However, the (network-bound) **retrieval** phase of every playlist — the Vertex AI
+    call plus the already-booked filter, which never depend on other playlists — is
+    launched **concurrently for all playlists right away** (see
+    :func:`_retrieve_similar_offer_playlist_candidates`). By the time a lower-priority
+    playlist's turn comes up for finalization, its candidates are typically already
+    fetched, so only the (DB-bound) resolution/ranking/diversification stages remain
+    sequential. This overlaps the slowest part of the pipeline across playlists while
+    still guaranteeing an exact, non-approximate cross-playlist deduplication.
+
+    This deduplication is applied before ranking/diversification/truncation in the
+    underlying pipeline, but there is no guarantee on the resulting size of a
+    deduplicated playlist: if too few alternative candidates remain, it may end up with
+    fewer than the usual maximum number of results — this is an accepted trade-off.
 
     Args:
         offer_id: The unique identifier of the reference offer.
@@ -230,16 +279,32 @@ async def generate_offer_page_playlists(
         },
     )
 
+    # Launch the retrieval phase of every playlist concurrently, right away — it never
+    # depends on other playlists, so there is no reason to wait for anything here.
+    retrieval_tasks = [
+        asyncio.create_task(
+            _retrieve_similar_offer_playlist_candidates(
+                playlist_config=playlist_config,
+                offer_id=offer_id,
+                user_id=user_id,
+                latitude=latitude,
+                longitude=longitude,
+            )
+        )
+        for playlist_config in similar_offer_playlist_configs
+    ]
+
     playlist_items: list[OfferPlaylistItem] = []
     used_item_ids: set[str] = set()
 
-    for playlist_config in similar_offer_playlist_configs:
-        playlist_item = await _generate_single_similar_offer_playlist(
+    for playlist_config, retrieval_task in zip(similar_offer_playlist_configs, retrieval_tasks, strict=True):
+        # Await this playlist's pre-fetched candidates (already done/running concurrently
+        # since the loop started), then finalize sequentially: this step needs the
+        # exclusion set built from higher-priority playlists' final results.
+        retrieval_result = await retrieval_task
+        playlist_item = await _finalize_similar_offer_playlist(
             playlist_config=playlist_config,
-            offer_id=offer_id,
-            user_id=user_id,
-            latitude=latitude,
-            longitude=longitude,
+            retrieval=retrieval_result,
             exclude_item_ids=used_item_ids or None,
         )
         playlist_items.append(playlist_item)

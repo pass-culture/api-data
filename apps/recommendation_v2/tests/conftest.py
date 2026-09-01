@@ -291,28 +291,50 @@ def engine(postgres_container):
 @pytest_asyncio.fixture()
 async def db_session(engine):
     """
-    Provide an isolated async database session for a single test.
+    Provide an async database session for a single test.
 
-    The session is wrapped in a transaction that is always rolled back after the test,
-    keeping the database clean without the overhead of re-creating the schema.
+    Unlike the classic "open connection + begin transaction + roll back on teardown"
+    recipe, this session's commits are **real** (the session is bound directly to the
+    ``engine``, not to a pre-opened ``Connection`` already wrapped in an external
+    transaction — the latter turns ``Session.commit()`` into a no-op "subtransaction"
+    commit that is invisible to any other connection).
+
+    Why this matters
+    -----------------
+    ``pipeline_offer_page_playlists`` opens its *own* concurrent ``AsyncSession``
+    objects via ``AsyncSessionFactory`` (see the ``client`` fixture below), each one
+    borrowing a **different physical connection** from the same pool — required so
+    that concurrently-scheduled coroutines never share a single connection (asyncpg/
+    SQLAlchemy forbid concurrent operations on one connection).
+    PostgreSQL isolation guarantees that an uncommitted transaction on one connection
+    is *never* visible from another connection, no matter the isolation level. So any
+    fixture data seeded through ``db_session`` (e.g. via factories, which call
+    ``session.commit()``) must be genuinely committed, or it would silently stay
+    invisible to those parallel sessions — causing hard-to-debug empty results
+    instead of a clear failure.
+
+    Test isolation is instead guaranteed by truncating every table after the test
+    (see teardown below) rather than relying on a rolled-back transaction.
 
     Schema
     ------
-    engine ──► connection ──► transaction (rolled back on teardown)
-                                   └──► AsyncSession (yielded to test)
+    engine ──► AsyncSession (real commits, yielded to test)
+    teardown: TRUNCATE every table (all data, however committed, is wiped)
     """
-    connection = await engine.connect()
-    transaction = await connection.begin()
-
-    session = AsyncSession(bind=connection, expire_on_commit=False)
+    session_factory = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+    session = session_factory()
     context_token = factory_session.set(session)
 
     yield session
 
     factory_session.reset(context_token)
     await session.close()
-    await transaction.rollback()
-    await connection.close()
+
+    # Real commits (see docstring above) mean data is genuinely persisted, so a
+    # rollback is no longer enough to clean up: explicitly truncate every table.
+    async with engine.begin() as connection:
+        for table in reversed(Base.metadata.sorted_tables):
+            await connection.execute(table.delete())
 
 
 @pytest_asyncio.fixture()
@@ -320,13 +342,19 @@ async def client(db_session, engine):
     """
     Provide an async HTTP client pointed at the FastAPI application.
 
-    The application's database dependency is overridden with the test session so all
-    requests share the same rolled-back transaction, guaranteeing isolation.
+    The application's database dependency is overridden with the test session
+    (``db_session``). ``pipeline_offer_page_playlists`` creates its own sessions via
+    ``AsyncSessionFactory`` (bypassing the FastAPI dependency-injection layer) to
+    support parallel execution — we patch that factory to use a session factory
+    built on the test engine so those parallel tasks hit the testcontainer, not the
+    production database.
 
-    ``pipeline_offer_page_playlists`` creates its own sessions via ``AsyncSessionFactory``
-    (bypassing the FastAPI dependency-injection layer) to support parallel execution.
-    We patch that factory to use a session factory built on the test engine so that
-    those parallel tasks hit the testcontainer, not the production database.
+    Because ``db_session`` now commits for real (see its docstring), any data seeded
+    through it (e.g. via factories) is genuinely visible to the separate connections
+    opened by ``test_async_session_factory`` below — unlike with an uncommitted,
+    rolled-back outer transaction, which only the exact same physical connection can see.
+    Isolation between tests is guaranteed by ``db_session``'s teardown, which truncates
+    every table instead of rolling back.
     """
 
     async def override_get_database_session():
