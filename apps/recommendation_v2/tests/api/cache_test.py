@@ -182,6 +182,8 @@ async def test_cache_miss_runs_pipeline_and_stores_result(  # noqa: PLR0913
     patch_all_caches_enabled(mocker)
     mocker.patch(f"{redis_module}.fetch_cached_response", new_callable=AsyncMock, return_value=None)
     mock_store = mocker.patch(f"{redis_module}.store_endpoint_response", new_callable=AsyncMock)
+    non_empty_result = factory.build(params=cached_metadata, **{result_key: ["mocked-offer-1"]})
+    mocker.patch(pipeline, new_callable=AsyncMock, return_value=non_empty_result)
 
     response = await _request(client, method, url, body)
 
