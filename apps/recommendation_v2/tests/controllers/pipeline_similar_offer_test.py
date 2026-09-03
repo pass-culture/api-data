@@ -348,8 +348,8 @@ async def test_similar_offer_falls_back_to_playlist_recommendation_pipeline_when
     """
     reference_offer = await RecommendableOffersFactory.create_async(offer_id="offer-ref", item_id="item-ref")
 
-    # Force the similar-offer pipeline to produce zero results
-    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(predictions=[])
+    # Force the similar-offer pipeline to produce zero *legitimate* results (Vertex succeeded, no candidates).
+    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(predictions=[], status="success")
 
     # Prepare a predictable fallback response
     fallback_offer_ids = ["fallback-offer-1", "fallback-offer-2", "fallback-offer-3"]
@@ -376,6 +376,51 @@ async def test_similar_offer_falls_back_to_playlist_recommendation_pipeline_when
     assert response.params.reco_origin == "recommendation_fallback"
     assert response.params.model_origin == fallback_model_origin
     assert response.results == fallback_offer_ids
+
+
+@pytest.mark.asyncio
+async def test_similar_offer_does_not_fall_back_when_vertex_retrieval_fails(
+    db_session,
+    mock_vertex_retrieval,
+    mock_vertex_ranking,
+    mocker,
+):
+    """
+    Verifies that a Vertex retrieval failure (status='error') does NOT trigger the
+    playlist fallback, even though it also produces zero results.
+
+    The fallback exists to handle a genuine absence of similar offers (Vertex
+    responded with status='success' and 0 candidates), not to absorb an infra
+    failure. On failure the pipeline must return an honest empty response so the
+    caller can retry, instead of masking it with unrelated playlist recommendations.
+
+    Setup:
+    - Vertex retrieval returns status='error' with no predictions (as VertexAPI does
+      when it swallows an exception, see vertex_api.py fetch_retrieval_predictions).
+
+    Expected behaviour:
+    - generate_playlist_recommendations is never called.
+    - reco_origin remains 'similar_offer' (not 'recommendation_fallback').
+    - results is an empty list.
+    """
+    reference_offer = await RecommendableOffersFactory.create_async(offer_id="offer-ref", item_id="item-ref")
+
+    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(predictions=[], status="error")
+
+    mock_generate_playlist = mocker.patch(
+        "controllers.pipeline_similar_offer.generate_playlist_recommendations",
+        new_callable=mocker.AsyncMock,
+    )
+    mocker.patch("controllers.pipeline_similar_offer.log_past_offer_context_to_sink")
+
+    response = await generate_similar_offers(
+        db=db_session,
+        offer_id=reference_offer.offer_id,
+    )
+
+    mock_generate_playlist.assert_not_called()
+    assert response.params.reco_origin == "similar_offer"
+    assert response.results == []
 
 
 @pytest.mark.asyncio
