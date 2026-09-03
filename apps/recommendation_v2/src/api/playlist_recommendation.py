@@ -124,8 +124,10 @@ async def get_playlist(
     result = await generate_playlist_recommendations(
         db=db, user_id=user_id, latitude=latitude, longitude=longitude, params=params
     )
-    # Store the newly generated result in Cache
-    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
+    # Store the newly generated result in Cache.
+    # An empty playlist may come from a transient Vertex AI failure — never cache it,
+    # otherwise a temporary infra issue would be frozen in the cache for the whole TTL.
+    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED and result.playlist_recommended_offers:
         await redis_api.store_endpoint_response(
             namespace_prefix="playlist_recommendation",
             request_signature_data=request_signature_data,

@@ -163,8 +163,10 @@ async def get_similar_offers(  # noqa: PLR0913
         retrieval_model=retrieval_model,
     )
 
-    # Store the newly generated result in Cache
-    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
+    # Store the newly generated result in Cache.
+    # An empty result may come from a transient Vertex AI failure — never cache it,
+    # otherwise a temporary infra issue would be frozen in the cache for the whole TTL.
+    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED and result.results:
         await redis_api.store_endpoint_response(
             namespace_prefix="similar_offer",
             request_signature_data=request_signature_data,
