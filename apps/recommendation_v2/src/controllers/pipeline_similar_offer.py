@@ -32,7 +32,7 @@ from services.logger import logger
 SIMILAR_OFFERS_LIST_MAXIMUM_SIZE = 20
 
 
-async def generate_similar_offers(  # noqa: PLR0913
+async def generate_similar_offers(  # noqa: PLR0913, PLR0915
     db: AsyncSession,
     offer_id: str,
     retrieval_model: SimilarOfferModelChoices = SimilarOfferModelChoices.coreservation,
@@ -223,8 +223,13 @@ async def generate_similar_offers(  # noqa: PLR0913
     # --- 7. Fallback Phase (coreservation only) ---
     # If the full pipeline produced zero results, delegate entirely to generate_playlist_recommendations.
     # That function handles its own retrieval, ranking, diversification, and logging — no duplication needed.
+    # This fallback is meant for a genuine absence of similar offers, not for a transient Vertex AI
+    # failure: when retrieval fails, vertex_raw_predictions.status is "error" (see VertexAPI), and we
+    # must NOT delegate to the playlist pipeline — an honest empty response allows a future retry
+    # instead of masking the failure behind unrelated playlist recommendations.
+    vertex_retrieval_failed = vertex_raw_predictions.status == "error"
     is_coreservation_model = retrieval_model == SimilarOfferModelChoices.coreservation
-    if is_coreservation_model and len(final_similar_offers) == 0:
+    if is_coreservation_model and len(final_similar_offers) == 0 and not vertex_retrieval_failed:
         logger.warning(
             "⚠️ No similar offers found with coreservation model. Falling back to standard recommendation pipeline.",
             extra={

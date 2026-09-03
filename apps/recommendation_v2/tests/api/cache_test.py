@@ -182,6 +182,8 @@ async def test_cache_miss_runs_pipeline_and_stores_result(  # noqa: PLR0913
     patch_all_caches_enabled(mocker)
     mocker.patch(f"{redis_module}.fetch_cached_response", new_callable=AsyncMock, return_value=None)
     mock_store = mocker.patch(f"{redis_module}.store_endpoint_response", new_callable=AsyncMock)
+    non_empty_result = factory.build(params=cached_metadata, **{result_key: ["mocked-offer-1"]})
+    mocker.patch(pipeline, new_callable=AsyncMock, return_value=non_empty_result)
 
     response = await _request(client, method, url, body)
 
@@ -189,6 +191,41 @@ async def test_cache_miss_runs_pipeline_and_stores_result(  # noqa: PLR0913
     assert response.json()["from_cache"] is False
     mock_store.assert_called_once()
     assert mock_store.call_args.kwargs["namespace_prefix"] == namespace
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(_PARAMS, CACHE_ENDPOINTS)
+async def test_cache_miss_with_empty_result_does_not_store(  # noqa: PLR0913
+    client: AsyncClient,
+    mocker,
+    method,
+    url,
+    body,
+    redis_module,
+    pipeline,
+    factory,
+    cached_metadata,
+    result_key,
+    namespace,
+):
+    """
+    An empty result list must never be cached, even on a cache miss.
+
+    A transient Vertex AI failure surfaces as a pipeline result with an empty
+    offer/result list. Caching it would poison the cache with an empty response
+    for the entire TTL, masking the failure and preventing any retry.
+    """
+    patch_all_caches_enabled(mocker)
+    mocker.patch(f"{redis_module}.fetch_cached_response", new_callable=AsyncMock, return_value=None)
+    mock_store = mocker.patch(f"{redis_module}.store_endpoint_response", new_callable=AsyncMock)
+    empty_result = factory.build(params=cached_metadata, **{result_key: []})
+    mocker.patch(pipeline, new_callable=AsyncMock, return_value=empty_result)
+
+    response = await _request(client, method, url, body)
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()[result_key] == []
+    mock_store.assert_not_called()
 
 
 @pytest.mark.asyncio

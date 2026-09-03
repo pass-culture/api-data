@@ -163,8 +163,13 @@ async def get_similar_offers(  # noqa: PLR0913
         retrieval_model=retrieval_model,
     )
 
-    # Store the newly generated result in Cache
-    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
+    # Store the newly generated result in Cache.
+    # An empty result may come from a transient Vertex AI failure — never cache it,
+    # otherwise a temporary infra issue would be frozen in the cache for the whole TTL.
+    # A "recommendation_fallback" result comes from the playlist pipeline, not
+    # similar_offer, so it must not be cached under the similar_offer namespace either.
+    should_cache_result = bool(result.results) and result.params.reco_origin != "recommendation_fallback"
+    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED and should_cache_result:
         await redis_api.store_endpoint_response(
             namespace_prefix="similar_offer",
             request_signature_data=request_signature_data,
