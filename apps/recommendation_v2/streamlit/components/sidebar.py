@@ -272,6 +272,100 @@ def render_similar_offer_sidebar() -> tuple:
         )
 
 
+def render_offer_page_playlists_sidebar() -> tuple:
+    """
+    Displays the sidebar and gathers inputs from the user for offer_page_playlists.
+
+    Returns:
+    - tuple: (offer_id, search_group_name, user_id, params dict, max_offers_to_fetch,
+              run_fetch_boolean, api_base_url, proxies, api_token)
+    """
+    with st.sidebar:
+        st.header("1. Paramètres de la Requête")
+
+        api_base_url, proxies, api_token = _render_api_url_input()
+
+        st.divider()
+
+        # Offer identification
+        st.markdown("**Sélection de l'offre**")
+        offer_id_input = st.text_input(
+            "Identifiant de l'offre source",
+            value=st.session_state.get("opp_offer_id", SWAGGER_UI_EXAMPLE_OFFER_ID),
+            help="ID de l'offre (MongoID) affichée sur la page offre",
+            label_visibility="collapsed",
+            placeholder="26429343",
+        )
+        st.session_state.opp_offer_id = offer_id_input
+
+        _render_random_offer_button(session_key="opp_offer_id")
+
+        st.divider()
+
+        # search_group_name is required by the endpoint (supplied by the client, not resolved server-side)
+        st.markdown("**Catégorie de l'offre (search_group_name)**")
+        search_group_options = [e.value for e in SearchGroupNameEnum]
+        default_index = (
+            search_group_options.index(SearchGroupNameEnum.LIVRES.value)
+            if SearchGroupNameEnum.LIVRES.value in search_group_options
+            else 0
+        )
+        search_group_name = st.selectbox(
+            "Catégorie de l'offre (search_group_name)",
+            search_group_options,
+            index=default_index,
+            help="Catégorie de l'offre affichée, requise par l'endpoint offer_page_playlists.",
+            label_visibility="collapsed",
+        )
+
+        # Optional user identification
+        st.markdown("**Utilisateur (optionnel)**")
+        user_id_input = st.text_input(
+            "Identifiant utilisateur",
+            value=st.session_state.get("opp_user_id", ""),
+            help="UUID de l'utilisateur pour personnaliser les playlists (optionnel)",
+            label_visibility="collapsed",
+            placeholder="Laisser vide pour ignorer",
+        )
+        st.session_state.opp_user_id = user_id_input
+
+        _render_random_user_buttons(session_key="opp_user_id")
+
+        st.divider()
+
+        offer_id = st.session_state.opp_offer_id
+        user_id = st.session_state.opp_user_id or None
+
+        # Geolocation selection
+        latitude, longitude = _render_geolocation_inputs()
+
+        # Display and action
+        st.subheader("Options d'Affichage")
+        max_offers_to_fetch = st.number_input(
+            "Nombre d'offres maximum à récupérer par playlist", min_value=1, max_value=20, value=20
+        )
+
+        run_btn = st.button("🚀 Obtenir les Playlists", type="primary")
+
+        # Mapping properties
+        params = {}
+        if latitude is not None and longitude is not None:
+            params["latitude"] = latitude
+            params["longitude"] = longitude
+
+        return (
+            offer_id,
+            search_group_name,
+            user_id,
+            params,
+            max_offers_to_fetch,
+            run_btn,
+            api_base_url,
+            proxies,
+            api_token,
+        )
+
+
 def _render_random_user_buttons(session_key: str = "user_id"):
     """Renders buttons to fetch a random 'warm' or 'cold start' user."""
     col1, col2 = st.columns(2)
@@ -295,13 +389,13 @@ def _render_random_user_buttons(session_key: str = "user_id"):
                     st.toast("Aucun utilisateur cold start trouvé", icon="❌")
 
 
-def _render_random_offer_button():
+def _render_random_offer_button(session_key: str = "similar_offer_id"):
     """Renders a button to fetch a random offer from the database."""
-    if st.button("🎲 Offre aléatoire", use_container_width=True):
+    if st.button("🎲 Offre aléatoire", use_container_width=True, key=f"btn_random_offer_{session_key}"):
         with st.spinner("Recherche d'une offre aléatoire..."):
             oid = get_random_offer()
             if oid:
-                st.session_state.similar_offer_id = oid
+                st.session_state[session_key] = oid
                 st.rerun()
             else:
                 st.toast("Aucune offre trouvée", icon="❌")
