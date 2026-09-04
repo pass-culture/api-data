@@ -2,6 +2,8 @@ import math
 from typing import TYPE_CHECKING
 
 import h3
+from geoalchemy2 import Geography
+from sqlalchemy import cast
 from sqlalchemy import func
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -49,13 +51,33 @@ async def get_iris_id_from_coordinates(db: AsyncSession, latitude: float | None,
     # --- 2. Construct Spatial Point ---
     # WARNING: PostGIS ST_MakePoint requires coordinates in (Longitude, Latitude) order (X, Y).
     user_location_point = func.ST_MakePoint(longitude, latitude)
+    # Cast to geography(POINT, 4326) to match the centroid column type and use its GiST index.
+    user_geo_point = cast(func.ST_SetSRID(user_location_point, 4326), Geography)
 
     # --- 3. Execute Spatial Intersection Query ---
-    # ST_Contains checks if the polygon ('shape') completely envelops the 'point'
-    intersecting_iris_query = select(IrisFrance.id).where(func.ST_Contains(IrisFrance.shape, user_location_point))
+    # ST_Contains checks if the polygon ('shape') completely envelops the 'point'.
+    # Falls back to nearest centroid for points on polygon boundaries or just outside IRIS coverage.
+    intersecting_iris_query = (
+        select(IrisFrance.id)
+        .where(func.ST_Contains(IrisFrance.shape, user_location_point))
+        .limit(1)
+    )
 
     result = await db.execute(intersecting_iris_query)
     iris_db_id = result.scalars().first()
+    # --- 4. Fallback: Nearest IRIS by Centroid Distance ---
+    # If the point falls outside all IRIS polygons, find the closest IRIS by centroid.
+    # This handles edge cases like international waters or polygon boundary issues.
+    if iris_db_id is None:
+        # Fallback: find the nearest IRIS by centroid distance.
+        # Uses the idx_iris_france_centroid GiST index for efficient KNN lookup.
+        nearest_iris_query = (
+            select(IrisFrance.id)
+            .order_by(func.ST_Distance(IrisFrance.centroid, user_geo_point))
+            .limit(1)
+        )
+        result = await db.execute(nearest_iris_query)
+        iris_db_id = result.scalars().first()
 
     return iris_db_id
 

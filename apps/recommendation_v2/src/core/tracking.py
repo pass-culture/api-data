@@ -11,6 +11,7 @@ from schemas.tracking_payload import TrackingLogPayload
 from schemas.tracking_payload import TrackingModelParams
 from schemas.tracking_payload import TrackingOfferExtraData
 from schemas.tracking_payload import TrackingRequestExtraData
+from schemas.tracking_payload import TrackingUserExtraData
 from services.logger import logger
 
 
@@ -88,7 +89,7 @@ def log_past_offer_context_to_sink(  # noqa: PLR0913
             user_is_geolocated=user_context.is_geolocated,
             user_latitude=None,
             user_longitude=None,
-            user_extra_data={},
+            user_extra_data=TrackingUserExtraData(user_geolocation_source=user_context.geolocation_source),
             # --- Offer Data & Features ---
             offer_id=offer.offer_id,
             offer_item_id=offer.item_id,
