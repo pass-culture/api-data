@@ -57,7 +57,9 @@ async def get_iris_id_from_coordinates(db: AsyncSession, latitude: float | None,
     result = await db.execute(intersecting_iris_query)
     iris_db_id = result.scalars().first()
 
-    return iris_db_id
+    # IrisFrance.id is an integer column in the database, but the rest of the
+    # codebase (UserContext, tracking payloads, schemas) treats iris_id as a str.
+    return str(iris_db_id) if iris_db_id is not None else None
 
 
 def build_haversine_distance_expression(latitude: float, longitude: float, venue_model: type[Venue]) -> ColumnElement:
