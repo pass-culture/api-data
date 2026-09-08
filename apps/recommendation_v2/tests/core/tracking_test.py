@@ -48,7 +48,13 @@ def _invoke(offers, params=None, call_id="call-abc"):
 
 def test_tracking_payload_all_field_names_are_snake_case():
     """All field names must be snake_case — other conventions break the BigQuery sink routing."""
-    models = [TrackingLogPayload, TrackingLabels, TrackingRequestExtraData, TrackingOfferExtraData, TrackingUserExtraData]
+    models = [
+        TrackingLogPayload,
+        TrackingLabels,
+        TrackingRequestExtraData,
+        TrackingOfferExtraData,
+        TrackingUserExtraData,
+    ]
     violations = [
         f"{model.__name__}.{field}" for model in models for field in model.model_fields if not _SNAKE_CASE.match(field)
     ]

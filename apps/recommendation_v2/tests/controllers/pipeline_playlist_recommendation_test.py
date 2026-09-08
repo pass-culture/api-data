@@ -4,6 +4,7 @@ import pytest
 from config import settings
 from controllers.pipeline_playlist_recommendation import PLAYLIST_RECOMMENDATION_MAXIMUM_SIZE
 from controllers.pipeline_playlist_recommendation import generate_playlist_recommendations
+from core.user_context import GeoLocationSource
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.playlist_recommendation import RecommendationResponse
@@ -602,6 +603,7 @@ async def test_pipeline_uses_subscription_centroid_when_gps_missing(
 
     assert user_context.latitude == bordeaux_lat
     assert user_context.longitude == bordeaux_lon
-    assert user_context.geolocation_source == "subscription_department", (
-        "geolocation_source must be 'subscription_department' when GPS is absent but subscription centroid is available."
+    assert user_context.geolocation_source == GeoLocationSource.SUBSCRIPTION_DEPARTMENT.value, (
+        "geolocation_source must be 'subscription_department' "
+        "when GPS is absent but subscription centroid is available."
     )

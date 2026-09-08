@@ -65,29 +65,44 @@ def resolve_effective_geolocation(
         to use downstream, and the source that was used to resolve them (``None`` if no location
         could be determined at all).
     """
+    # --- 1. GPS coordinates provided directly by the client (highest priority) ---
     if latitude is not None and longitude is not None:
+        logger.debug(
+            "📍 Using GPS coordinates provided by the client.",
+            extra={**(log_extra or {}), "latitude": latitude, "longitude": longitude},
+        )
         return latitude, longitude, GeoLocationSource.GPS
 
-    if (
-        database_user_record
-        and database_user_record.user_subscription_latitude
-        and database_user_record.user_subscription_longitude
-    ):
-        subscription_latitude = database_user_record.user_subscription_latitude
-        subscription_longitude = database_user_record.user_subscription_longitude
-        logger.debug(
-            "📍 User GPS missing — falling back to subscription department centroid.",
-            extra={**(log_extra or {}), "latitude": subscription_latitude, "longitude": subscription_longitude},
-        )
-        return subscription_latitude, subscription_longitude, GeoLocationSource.SUBSCRIPTION_DEPARTMENT
+    # --- 2. Fallback to the user's subscription department centroid ---
+    if database_user_record is not None:
+        subscription_department_latitude = database_user_record.user_subscription_latitude
+        subscription_department_longitude = database_user_record.user_subscription_longitude
+        user_has_subscription_coordinates = subscription_department_latitude and subscription_department_longitude
+        if user_has_subscription_coordinates:
+            logger.debug(
+                "📍 User GPS missing — falling back to subscription department centroid.",
+                extra={
+                    **(log_extra or {}),
+                    "latitude": subscription_department_latitude,
+                    "longitude": subscription_department_longitude,
+                },
+            )
+            return (
+                subscription_department_latitude,
+                subscription_department_longitude,
+                GeoLocationSource.SUBSCRIPTION_DEPARTMENT,
+            )
 
-    if fallback_venue_latitude and fallback_venue_longitude:
+    # --- 3. Fallback to the reference offer's venue location (similar-offer pipeline only) ---
+    reference_offer_venue_coordinates_available = fallback_venue_latitude and fallback_venue_longitude
+    if reference_offer_venue_coordinates_available:
         logger.debug(
             "📍 User location missing — falling back to offer's venue location.",
             extra={**(log_extra or {}), "latitude": fallback_venue_latitude, "longitude": fallback_venue_longitude},
         )
         return fallback_venue_latitude, fallback_venue_longitude, GeoLocationSource.OFFER_VENUE
 
+    # --- 4. No location could be determined from any source ---
     return None, None, None
 
 
@@ -117,25 +132,23 @@ async def get_iris_id_from_coordinates(db: AsyncSession, latitude: float | None,
     # WARNING: PostGIS ST_MakePoint requires coordinates in (Longitude, Latitude) order (X, Y).
     user_location_point = func.ST_MakePoint(longitude, latitude)
 
-    # --- 3. Execute Spatial Intersection Query ---
+    # --- 3. Try to Find an IRIS Polygon Containing the Point ---
     # ST_Contains checks if the polygon ('shape') completely envelops the 'point'.
-    # Falls back to nearest centroid for points on polygon boundaries or just outside IRIS coverage.
     intersecting_iris_query = (
         select(IrisFrance.id).where(func.ST_Contains(IrisFrance.shape, user_location_point)).limit(1)
     )
-
     result = await db.execute(intersecting_iris_query)
     iris_db_id = result.scalars().first()
-    # --- 4. Fallback: Nearest IRIS by Centroid Distance ---
-    # If the point falls outside all IRIS polygons, find the closest IRIS by centroid.
-    # This handles edge cases like international waters or polygon boundary issues.
-    if iris_db_id is None:
-        # Cast to geography(POINT, 4326) to match the centroid column type and use its GiST index.
-        user_geo_point = cast(func.ST_SetSRID(user_location_point, 4326), Geography)
 
-        # Fallback: find the nearest IRIS by centroid distance.
-        # Uses the idx_iris_france_centroid GiST index for efficient KNN lookup.
-        nearest_iris_query = select(IrisFrance.id).order_by(IrisFrance.centroid.op("<->")(user_geo_point)).limit(1)
+    # --- 4. Fallback: No Containing Polygon Found ---
+    # Happens for points just outside IRIS coverage (e.g. on a polygon boundary).
+    # In that case, use the nearest IRIS by centroid distance instead (KNN search,
+    # relies on the idx_iris_france_centroid GiST index for performance).
+    if iris_db_id is None:
+        user_geography_point = cast(func.ST_SetSRID(user_location_point, 4326), Geography)
+        nearest_iris_query = (
+            select(IrisFrance.id).order_by(IrisFrance.centroid.op("<->")(user_geography_point)).limit(1)
+        )
         result = await db.execute(nearest_iris_query)
         iris_db_id = result.scalars().first()
 

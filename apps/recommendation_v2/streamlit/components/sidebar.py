@@ -129,9 +129,19 @@ def _render_api_version_selector(remote_v1_url: str, remote_v2_url: str) -> None
 
 
 def _render_user_metadata_toggle(user_id: str) -> None:
-    """Render a toggle that fetches and displays EnrichedUser metadata from the DB."""
-    show = st.toggle("🔍 Afficher les métadonnées utilisateur", key="show_user_metadata")
-    if not show:
+    """
+    Renders a toggle that, when enabled, fetches and displays the full EnrichedUser
+    database record for the currently selected user_id as a table.
+
+    Primarily used to debug the geolocation fallback logic (e.g. checking whether
+    a user has a subscription latitude/longitude registered) directly from the
+    Streamlit sidebar, without querying BigQuery manually.
+
+    Args:
+        user_id (str): The currently selected user's UUID, read from session state.
+    """
+    should_display_user_metadata = st.toggle("🔍 Afficher les métadonnées utilisateur", key="show_user_metadata")
+    if not should_display_user_metadata:
         return
 
     if not user_id:
@@ -139,13 +149,14 @@ def _render_user_metadata_toggle(user_id: str) -> None:
         return
 
     with st.spinner("Chargement des métadonnées..."):
-        metadata = get_user_metadata(user_id)
+        user_metadata = get_user_metadata(user_id)
 
-    if metadata is None:
+    if user_metadata is None:
         st.warning(f"Utilisateur `{user_id}` introuvable dans la base de données.")
         return
 
-    labels = {
+    # Human-readable French labels for each raw EnrichedUser field name
+    field_label_by_key = {
         "user_id": "User ID",
         "booking_cnt": "Réservations",
         "consult_offer": "Consultations",
@@ -158,8 +169,11 @@ def _render_user_metadata_toggle(user_id: str) -> None:
         "user_subscription_longitude": "Longitude (département)",
     }
 
-    rows = [{"Champ": labels.get(k, k), "Valeur": str(v) if v is not None else "—"} for k, v in metadata.items()]
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    metadata_table_rows = [
+        {"Champ": field_label_by_key.get(field_key, field_key), "Valeur": str(value) if value is not None else "—"}
+        for field_key, value in user_metadata.items()
+    ]
+    st.dataframe(pd.DataFrame(metadata_table_rows), use_container_width=True, hide_index=True)
 
 
 def render_playlist_recommendation_sidebar() -> tuple:
