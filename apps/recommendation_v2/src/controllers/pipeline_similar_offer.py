@@ -7,6 +7,7 @@ from config import settings
 from controllers.pipeline_playlist_recommendation import generate_playlist_recommendations
 from core.diversification import apply_offer_diversification
 from core.geo import get_iris_id_from_coordinates
+from core.geo import resolve_effective_geolocation
 from core.offer_resolution import resolve_closest_venues_from_items
 from core.ranking import rank_and_sort_offers_with_vertex
 from core.retrieval import build_similar_offer_retrieval_payload
@@ -14,7 +15,6 @@ from core.retrieval import fetch_graph_predictions_from_vertex
 from core.retrieval import fetch_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
 from core.tracking import log_past_offer_context_to_sink
-from core.user_context import GeoLocationSource
 from core.user_context import UNAUTHENTICATED_USER_ID
 from core.user_context import UserContext
 from models.offer import RecommendableOffers
@@ -33,7 +33,7 @@ from services.logger import logger
 SIMILAR_OFFERS_LIST_MAXIMUM_SIZE = 20
 
 
-async def generate_similar_offers(  # noqa: PLR0913, PLR0915
+async def generate_similar_offers(  # noqa: PLR0913
     db: AsyncSession,
     offer_id: str,
     retrieval_model: SimilarOfferModelChoices = SimilarOfferModelChoices.coreservation,
@@ -104,30 +104,15 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
     db_user = await db.get(EnrichedUser, effective_user_id)
 
     # 1.3. Determine geolocation context
-    user_location_missing = latitude is None or longitude is None
-    offer_has_location = reference_offer and reference_offer.venue_latitude and reference_offer.venue_longitude
-    effective_latitude = latitude
-    effective_longitude = longitude
-    geolocation_source: GeoLocationSource = "none"
-
-    if not user_location_missing:
-        geolocation_source = "gps"
-    elif db_user and db_user.user_subscription_latitude and db_user.user_subscription_longitude:
-        effective_latitude = db_user.user_subscription_latitude
-        effective_longitude = db_user.user_subscription_longitude
-        geolocation_source = "subscription_department"
-        logger.debug(
-            "📍 User GPS missing — falling back to subscription department centroid.",
-            extra={"offer_id": offer_id, "user_id": effective_user_id, "latitude": effective_latitude, "longitude": effective_longitude},
-        )
-    elif reference_offer and offer_has_location:
-        effective_latitude = reference_offer.venue_latitude
-        effective_longitude = reference_offer.venue_longitude
-        geolocation_source = "offer_venue"
-        logger.debug(
-            "📍 User location missing — falling back to offer's venue location.",
-            extra={"offer_id": offer_id, "latitude": effective_latitude, "longitude": effective_longitude},
-        )
+    # Priority: GPS > user's subscription department centroid > reference offer's venue location
+    effective_latitude, effective_longitude, geolocation_source = resolve_effective_geolocation(
+        latitude=latitude,
+        longitude=longitude,
+        database_user_record=db_user,
+        fallback_venue_latitude=reference_offer.venue_latitude if reference_offer else None,
+        fallback_venue_longitude=reference_offer.venue_longitude if reference_offer else None,
+        log_extra={"offer_id": offer_id, "user_id": effective_user_id},
+    )
 
     iris_id = await get_iris_id_from_coordinates(db, effective_latitude, effective_longitude)
     # If latitude and longitude are None, get_iris_id_from_coordinates returns None

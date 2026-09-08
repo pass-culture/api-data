@@ -10,11 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 from sqlalchemy.sql import ColumnElement
 
+from core.user_context import GeoLocationSource
 from models.iris import IrisFrance
 from models.offer import RecommendableOffers
+from models.user import EnrichedUser
 from models.venue import Venue
 from services.h3 import calculate_h3_k_rings_to_cover_search_radius
 from services.h3 import get_h3_index_from_coordinates
+from services.logger import logger
 from utils.benchmark import log_execution_time
 
 
@@ -24,6 +27,68 @@ if TYPE_CHECKING:
 H3_SEARCH_RADIUS_IN_KM = 50.0
 EARTH_RADIUS_METERS = 6371000
 MAX_DISTANCE_METERS_FOR_OFFER_RETRIEVAL = H3_SEARCH_RADIUS_IN_KM * 1000.0
+
+
+def resolve_effective_geolocation(
+    *,
+    latitude: float | None,
+    longitude: float | None,
+    database_user_record: EnrichedUser | None,
+    fallback_venue_latitude: float | None = None,
+    fallback_venue_longitude: float | None = None,
+    log_extra: dict | None = None,
+) -> tuple[float | None, float | None, GeoLocationSource | None]:
+    """
+    Resolves the effective GPS coordinates to use for a recommendation request, applying a
+    shared fallback strategy used by both the playlist and similar-offer pipelines.
+
+    Priority order:
+    1. **GPS**: coordinates provided directly by the client.
+    2. **Subscription department centroid**: the user's registered department centroid,
+       used when GPS is unavailable but the user is known.
+    3. **Offer venue location** (optional): the venue location of a reference offer,
+       used only by the similar-offer pipeline as a last resort (pass `fallback_venue_latitude`
+       / `fallback_venue_longitude` to enable it; leave unset for the playlist pipeline).
+    4. **None**: no location could be determined.
+
+    Args:
+        latitude (float | None): GPS latitude provided by the client.
+        longitude (float | None): GPS longitude provided by the client.
+        database_user_record (EnrichedUser | None): The user's DB record, used for the
+            subscription department fallback.
+        fallback_venue_latitude (float | None): Optional last-resort latitude (e.g. offer's venue).
+        fallback_venue_longitude (float | None): Optional last-resort longitude (e.g. offer's venue).
+        log_extra (dict | None): Extra fields merged into the fallback debug log (e.g. user_id, offer_id).
+
+    Returns:
+        tuple[float | None, float | None, GeoLocationSource | None]: The effective (latitude, longitude)
+        to use downstream, and the source that was used to resolve them (``None`` if no location
+        could be determined at all).
+    """
+    if latitude is not None and longitude is not None:
+        return latitude, longitude, GeoLocationSource.GPS
+
+    if (
+        database_user_record
+        and database_user_record.user_subscription_latitude
+        and database_user_record.user_subscription_longitude
+    ):
+        subscription_latitude = database_user_record.user_subscription_latitude
+        subscription_longitude = database_user_record.user_subscription_longitude
+        logger.debug(
+            "📍 User GPS missing — falling back to subscription department centroid.",
+            extra={**(log_extra or {}), "latitude": subscription_latitude, "longitude": subscription_longitude},
+        )
+        return subscription_latitude, subscription_longitude, GeoLocationSource.SUBSCRIPTION_DEPARTMENT
+
+    if fallback_venue_latitude and fallback_venue_longitude:
+        logger.debug(
+            "📍 User location missing — falling back to offer's venue location.",
+            extra={**(log_extra or {}), "latitude": fallback_venue_latitude, "longitude": fallback_venue_longitude},
+        )
+        return fallback_venue_latitude, fallback_venue_longitude, GeoLocationSource.OFFER_VENUE
+
+    return None, None, None
 
 
 async def get_iris_id_from_coordinates(db: AsyncSession, latitude: float | None, longitude: float | None) -> str | None:
@@ -58,9 +123,7 @@ async def get_iris_id_from_coordinates(db: AsyncSession, latitude: float | None,
     # ST_Contains checks if the polygon ('shape') completely envelops the 'point'.
     # Falls back to nearest centroid for points on polygon boundaries or just outside IRIS coverage.
     intersecting_iris_query = (
-        select(IrisFrance.id)
-        .where(func.ST_Contains(IrisFrance.shape, user_location_point))
-        .limit(1)
+        select(IrisFrance.id).where(func.ST_Contains(IrisFrance.shape, user_location_point)).limit(1)
     )
 
     result = await db.execute(intersecting_iris_query)
@@ -72,9 +135,7 @@ async def get_iris_id_from_coordinates(db: AsyncSession, latitude: float | None,
         # Fallback: find the nearest IRIS by centroid distance.
         # Uses the idx_iris_france_centroid GiST index for efficient KNN lookup.
         nearest_iris_query = (
-            select(IrisFrance.id)
-            .order_by(func.ST_Distance(IrisFrance.centroid, user_geo_point))
-            .limit(1)
+            select(IrisFrance.id).order_by(func.ST_Distance(IrisFrance.centroid, user_geo_point)).limit(1)
         )
         result = await db.execute(nearest_iris_query)
         iris_db_id = result.scalars().first()
