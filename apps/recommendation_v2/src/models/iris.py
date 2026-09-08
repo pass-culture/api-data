@@ -10,7 +10,7 @@ from models.base import Base
 
 
 class IrisFrance(Base):
-    __tablename__ = "iris_france"
+    __tablename__ = "iris_france_mv"
 
     id: sa_orm.Mapped[str] = sa_orm.mapped_column(String(256), primary_key=True)
 
