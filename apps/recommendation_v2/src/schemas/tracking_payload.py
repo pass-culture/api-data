@@ -37,7 +37,7 @@ class TrackingRequestExtraData(BaseModel):
 class TrackingUserExtraData(BaseModel):
     """User-level context stored in user_extra_data — typed alternative to a plain dict."""
 
-    user_geolocation_source: GeoLocationSource
+    user_geolocation_source: GeoLocationSource | None
 
 
 class TrackingOfferExtraData(BaseModel):

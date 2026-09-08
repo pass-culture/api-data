@@ -1,3 +1,4 @@
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from unittest.mock import MagicMock
 
@@ -5,6 +6,7 @@ import pytest
 
 from core.geo import calculate_haversine_distance_in_meters
 from core.geo import get_iris_id_from_coordinates
+from core.geo import resolve_effective_geolocation
 
 
 # ---------------------------------------------------------------------------
@@ -96,3 +98,76 @@ async def test_get_iris_id_returns_none_when_both_queries_miss():
 
     assert result is None
     assert db.execute.call_count == 2
+
+
+# ---------------------------------------------------------------------------
+# resolve_effective_geolocation
+# ---------------------------------------------------------------------------
+
+
+def _user(latitude: float | None = None, longitude: float | None = None) -> SimpleNamespace:
+    """Minimal stand-in for an EnrichedUser record, exposing only the fields read by the resolver."""
+    return SimpleNamespace(user_subscription_latitude=latitude, user_subscription_longitude=longitude)
+
+
+def test_resolve_geolocation_prioritizes_gps_when_present():
+    """GPS coordinates always win, even if the user also has a subscription centroid."""
+    latitude, longitude, source = resolve_effective_geolocation(
+        latitude=48.86,
+        longitude=2.35,
+        database_user_record=_user(44.84, -0.58),
+        fallback_venue_latitude=43.30,
+        fallback_venue_longitude=5.37,
+    )
+
+    assert (latitude, longitude, source) == (48.86, 2.35, "gps")
+
+
+def test_resolve_geolocation_falls_back_to_subscription_department_when_gps_missing():
+    """Subscription centroid takes priority over the venue fallback when GPS is absent."""
+    latitude, longitude, source = resolve_effective_geolocation(
+        latitude=None,
+        longitude=None,
+        database_user_record=_user(44.84, -0.58),
+        fallback_venue_latitude=43.30,
+        fallback_venue_longitude=5.37,
+    )
+
+    assert (latitude, longitude, source) == (44.84, -0.58, "subscription_department")
+
+
+def test_resolve_geolocation_falls_back_to_offer_venue_when_no_user_or_subscription_coords():
+    """The venue fallback is used only when neither GPS nor a subscription centroid are available."""
+    latitude, longitude, source = resolve_effective_geolocation(
+        latitude=None,
+        longitude=None,
+        database_user_record=None,
+        fallback_venue_latitude=43.30,
+        fallback_venue_longitude=5.37,
+    )
+
+    assert (latitude, longitude, source) == (43.30, 5.37, "offer_venue")
+
+
+def test_resolve_geolocation_returns_none_when_no_source_available():
+    """No GPS, no known user, no venue fallback → geolocation_source is None."""
+    latitude, longitude, source = resolve_effective_geolocation(
+        latitude=None,
+        longitude=None,
+        database_user_record=None,
+    )
+
+    assert (latitude, longitude, source) == (None, None, None)
+
+
+def test_resolve_geolocation_ignores_partial_subscription_coordinates():
+    """A user with only one of the two subscription coordinates set should not trigger the fallback."""
+    latitude, longitude, source = resolve_effective_geolocation(
+        latitude=None,
+        longitude=None,
+        database_user_record=_user(44.84, None),
+        fallback_venue_latitude=43.30,
+        fallback_venue_longitude=5.37,
+    )
+
+    assert (latitude, longitude, source) == (43.30, 5.37, "offer_venue")

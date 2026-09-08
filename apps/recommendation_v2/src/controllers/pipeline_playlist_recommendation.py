@@ -5,13 +5,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from core.diversification import apply_offer_diversification
 from core.geo import get_iris_id_from_coordinates
+from core.geo import resolve_effective_geolocation
 from core.offer_resolution import resolve_closest_venues_from_items
 from core.ranking import rank_and_sort_offers_with_vertex
 from core.retrieval import build_all_playlist_recommendation_retrieval_payloads
 from core.retrieval import fetch_all_playlist_recommendation_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
 from core.tracking import log_past_offer_context_to_sink
-from core.user_context import GeoLocationSource
 from core.user_context import UNAUTHENTICATED_USER_ID
 from core.user_context import UserContext
 from models.user import EnrichedUser
@@ -60,20 +60,12 @@ async def generate_playlist_recommendations(
 
     db_user = await db.get(EnrichedUser, user_id)
 
-    # Fallback to subscription department centroid when GPS is absent
-    effective_latitude = latitude
-    effective_longitude = longitude
-    geolocation_source: GeoLocationSource = "none"
-    if latitude is not None and longitude is not None:
-        geolocation_source = "gps"
-    elif db_user and db_user.user_subscription_latitude and db_user.user_subscription_longitude:
-        effective_latitude = db_user.user_subscription_latitude
-        effective_longitude = db_user.user_subscription_longitude
-        geolocation_source = "subscription_department"
-        logger.debug(
-            "📍 User GPS missing — falling back to subscription department centroid.",
-            extra={"user_id": user_id, "latitude": effective_latitude, "longitude": effective_longitude},
-        )
+    effective_latitude, effective_longitude, geolocation_source = resolve_effective_geolocation(
+        latitude=latitude,
+        longitude=longitude,
+        database_user_record=db_user,
+        log_extra={"user_id": user_id},
+    )
 
     iris_id = await get_iris_id_from_coordinates(db, effective_latitude, effective_longitude)
 
