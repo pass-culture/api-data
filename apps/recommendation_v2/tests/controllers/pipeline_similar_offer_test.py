@@ -2,6 +2,7 @@ import pytest
 
 from controllers.pipeline_similar_offer import SIMILAR_OFFERS_LIST_MAXIMUM_SIZE
 from controllers.pipeline_similar_offer import generate_similar_offers
+from core.user_context import GeoLocationSource
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.playlist_recommendation import RecommendationResponse
@@ -593,6 +594,6 @@ async def test_similar_offer_sets_geolocation_source_offer_venue_when_no_user_an
 
     assert user_context.latitude == offer_lat
     assert user_context.longitude == offer_lon
-    assert user_context.geolocation_source == "offer_venue", (
+    assert user_context.geolocation_source == GeoLocationSource.OFFER_VENUE.value, (
         "geolocation_source must be 'offer_venue' when GPS and subscription coords are both absent."
     )
