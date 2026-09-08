@@ -24,7 +24,7 @@ async def test_nearby_coordinates_in_same_h3_cell_share_cache_key(client: AsyncC
     )
 
     # Cache-key logic (H3): the two calls share the same normalized location.
-    assert fetch_spy.call_count == 2  # noqa: PLR2004
+    assert fetch_spy.call_count == 2
     first_sig = fetch_spy.call_args_list[0].kwargs["request_signature_data"]
     second_sig = fetch_spy.call_args_list[1].kwargs["request_signature_data"]
     assert first_sig["location_h3"] is not None
@@ -55,7 +55,7 @@ async def test_distant_coordinates_produce_different_cache_keys(client: AsyncCli
     )
 
     # Cache-key logic (H3): the two calls normalize to different locations.
-    assert fetch_spy.call_count == 2  # noqa: PLR2004
+    assert fetch_spy.call_count == 2
     first_sig = fetch_spy.call_args_list[0].kwargs["request_signature_data"]
     second_sig = fetch_spy.call_args_list[1].kwargs["request_signature_data"]
     assert first_sig["location_h3"] is not None
@@ -89,7 +89,7 @@ async def test_category_order_in_body_does_not_affect_cache_key(client: AsyncCli
     )
 
     # Both signatures must carry the same params dict after deep-normalization.
-    assert fetch_spy.call_count == 2  # noqa: PLR2004
+    assert fetch_spy.call_count == 2
 
     # Real cache behavior: first call misses, reordered second call hits.
     assert first_response.status_code == status.HTTP_200_OK
