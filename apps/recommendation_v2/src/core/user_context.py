@@ -1,8 +1,17 @@
 from dataclasses import dataclass
 from datetime import UTC
 from datetime import datetime
+from enum import StrEnum
 
 from models.user import EnrichedUser
+
+
+class GeoLocationSource(StrEnum):
+    """How the effective (latitude, longitude) used for a request were resolved."""
+
+    GPS = "gps"
+    SUBSCRIPTION_DEPARTMENT = "subscription_department"
+    OFFER_VENUE = "offer_venue"
 
 
 DEFAULT_FALLBACK_USER_AGE = 18
@@ -69,6 +78,7 @@ class UserContext:
     latitude: float | None = None
     longitude: float | None = None
     iris_id: str | None = None
+    geolocation_source: GeoLocationSource | None = None
 
     @property
     def is_cold_start(self) -> bool:
@@ -106,6 +116,7 @@ class UserContext:
         latitude: float | None = None,
         longitude: float | None = None,
         iris_id: str | None = None,
+        geolocation_source: GeoLocationSource | None = None,
     ) -> "UserContext":
         """
         Factory method to build a UserContext from an SQLAlchemy model instance.
@@ -119,6 +130,8 @@ class UserContext:
             latitude (float | None): GPS latitude provided by the client.
             longitude (float | None): GPS longitude provided by the client.
             iris_id (str | None): The resolved geographical IRIS zone ID.
+            geolocation_source (GeoLocationSource | None): How the effective coordinates were resolved,
+                or None if no location could be determined.
 
         Returns:
             UserContext: A fully initialized context object.
@@ -131,6 +144,7 @@ class UserContext:
                 is_authenticated=False,
                 latitude=latitude,
                 longitude=longitude,
+                geolocation_source=geolocation_source,
             )
 
         # --- 2. Apply Credit Business Logic ---
@@ -155,4 +169,5 @@ class UserContext:
             latitude=latitude,
             longitude=longitude,
             iris_id=iris_id,
+            geolocation_source=geolocation_source,
         )
