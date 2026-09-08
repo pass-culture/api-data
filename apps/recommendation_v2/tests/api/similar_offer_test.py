@@ -43,7 +43,7 @@ async def test_category_order_does_not_affect_cache_key(
     second_response = await client.get("/similar_offers/offer-categories?categories=LIVRE&categories=CINEMA")
 
     # Both calls must have been intercepted.
-    assert fetch_spy.call_count == 2  # noqa: PLR2004
+    assert fetch_spy.call_count == 2
 
     # Real cache behavior: first call misses, reordered second call hits.
     assert first_response.status_code == status.HTTP_200_OK
@@ -66,7 +66,7 @@ async def test_user_id_query_param_affects_cache_key(client: AsyncClient, redis_
     second_response = await client.get("/similar_offers/offer-userid?user_id=user-B")
 
     # Cache-key logic: user_id is part of the signature.
-    assert fetch_spy.call_count == 2  # noqa: PLR2004
+    assert fetch_spy.call_count == 2
     first_sig = fetch_spy.call_args_list[0].kwargs["request_signature_data"]
     second_sig = fetch_spy.call_args_list[1].kwargs["request_signature_data"]
     assert first_sig["user_id"] != second_sig["user_id"]
@@ -107,7 +107,7 @@ async def test_nearby_coordinates_in_same_h3_cell_share_cache_key(
     second_response = await client.get("/similar_offers/offer-nearby?latitude=48.8568&longitude=2.3524")
 
     # Cache-key logic (H3): the two calls share the same normalized location.
-    assert fetch_spy.call_count == 2  # noqa: PLR2004
+    assert fetch_spy.call_count == 2
     first_sig = fetch_spy.call_args_list[0].kwargs["request_signature_data"]
     second_sig = fetch_spy.call_args_list[1].kwargs["request_signature_data"]
     assert first_sig["location_h3"] is not None
@@ -135,7 +135,7 @@ async def test_distant_coordinates_produce_different_cache_key(client: AsyncClie
     second_response = await client.get("/similar_offers/offer-distant?latitude=48.8048&longitude=2.1203")
 
     # Cache-key logic (H3): the two calls normalize to different locations.
-    assert fetch_spy.call_count == 2  # noqa: PLR2004
+    assert fetch_spy.call_count == 2
     first_sig = fetch_spy.call_args_list[0].kwargs["request_signature_data"]
     second_sig = fetch_spy.call_args_list[1].kwargs["request_signature_data"]
     assert first_sig["location_h3"] != second_sig["location_h3"]
@@ -194,7 +194,7 @@ async def test_retrieval_model_query_param_affects_cache_key(client: AsyncClient
     second_response = await client.get("/similar_offers/offer-retrieval?retrieval_model=graph")
 
     # Cache-key logic: retrieval_model is part of the signature.
-    assert fetch_spy.call_count == 2  # noqa: PLR2004
+    assert fetch_spy.call_count == 2
     first_sig = fetch_spy.call_args_list[0].kwargs["request_signature_data"]
     second_sig = fetch_spy.call_args_list[1].kwargs["request_signature_data"]
     assert first_sig["retrieval_model"] != second_sig["retrieval_model"]
