@@ -1,7 +1,7 @@
 [project]
 name = "api-compliance"
 version = "0.1.0"
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.14,<3.15"
 dependencies = [
     "fastapi~=0.115",
     "fastapi-versioning~=0.10",
