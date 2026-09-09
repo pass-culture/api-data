@@ -29,7 +29,7 @@ class BuildSimilarOfferPlaylistConfigsTest:
     def test_livres_returns_two_same_type_playlists_with_different_models(self):
         configs = build_similar_offer_playlist_configs(SearchGroupNameEnum.LIVRES)
 
-        assert len(configs) == 2  # noqa: PLR2004
+        assert len(configs) == 2
         coreservation, graph = configs
 
         assert coreservation.playlist_type == OfferPlaylistTypeEnum.SAME_TYPE_CORESERVATION
@@ -45,7 +45,7 @@ class BuildSimilarOfferPlaylistConfigsTest:
     def test_musique_returns_two_same_type_playlists_with_different_models(self):
         configs = build_similar_offer_playlist_configs(SearchGroupNameEnum.MUSIQUE)
 
-        assert len(configs) == 2  # noqa: PLR2004
+        assert len(configs) == 2
         assert configs[0].retrieval_model == SimilarOfferModelChoices.coreservation
         assert configs[1].retrieval_model == SimilarOfferModelChoices.graph
         for playlist_config in configs:
@@ -54,7 +54,7 @@ class BuildSimilarOfferPlaylistConfigsTest:
     def test_cinema_returns_same_type_and_cross_type_playlists(self):
         configs = build_similar_offer_playlist_configs(SearchGroupNameEnum.CINEMA)
 
-        assert len(configs) == 2  # noqa: PLR2004
+        assert len(configs) == 2
         same_type, cross_type = configs
 
         assert same_type.playlist_type == OfferPlaylistTypeEnum.SAME_TYPE
@@ -89,7 +89,7 @@ class BuildSimilarOfferPlaylistConfigsTest:
         """NONE → same_type(NONE) + cross_type(all non-NONE categories)."""
         configs = build_similar_offer_playlist_configs(SearchGroupNameEnum.NONE)
 
-        assert len(configs) == 2  # noqa: PLR2004
+        assert len(configs) == 2
         same_type, cross_type = configs
 
         assert same_type.playlist_type == OfferPlaylistTypeEnum.SAME_TYPE
@@ -141,7 +141,7 @@ async def test_generate_offer_page_playlists_returns_correct_structure(mocker):
 
     assert isinstance(result, OfferPagePlaylistsResponse)
     assert result.offer_id == "test-offer-id"
-    assert len(result.playlists) == 2  # CINEMA → same_type + cross_type  # noqa: PLR2004
+    assert len(result.playlists) == 2  # CINEMA → same_type + cross_type
 
     same_type = result.playlists[0]
     assert same_type.title == OfferPlaylistTitleEnum.LES_FANS_AIMENT_AUSSI
@@ -173,11 +173,11 @@ async def test_generate_offer_page_playlists_runs_pipelines_in_parallel(mocker):
     mock_similar.return_value = mocker.MagicMock(results=[], params=dummy_metadata)
 
     await generate_offer_page_playlists(offer_id="x", search_group_name=SearchGroupNameEnum.CINEMA)
-    assert mock_similar.call_count == 2  # noqa: PLR2004
+    assert mock_similar.call_count == 2
     mock_similar.reset_mock()
 
     await generate_offer_page_playlists(offer_id="x", search_group_name=SearchGroupNameEnum.LIVRES)
-    assert mock_similar.call_count == 2  # noqa: PLR2004
+    assert mock_similar.call_count == 2
 
 
 @pytest.mark.asyncio
@@ -200,7 +200,7 @@ async def test_generate_offer_page_playlists_with_none_search_group_name(mocker)
         search_group_name=SearchGroupNameEnum.NONE,
     )
 
-    assert len(result.playlists) == 2  # noqa: PLR2004
+    assert len(result.playlists) == 2
     assert result.playlists[0].playlist_type == OfferPlaylistTypeEnum.SAME_TYPE
     assert result.playlists[1].playlist_type == OfferPlaylistTypeEnum.CROSS_TYPE
-    assert mock_similar.call_count == 2  # noqa: PLR2004
+    assert mock_similar.call_count == 2

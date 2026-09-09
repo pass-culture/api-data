@@ -97,7 +97,7 @@ async def test_offer_page_playlists_different_offer_ids_have_different_cache_key
     await client.get("/offer_page_playlists/offer-A", params={"search_group_name": SearchGroupNameEnum.CINEMA.value})
     await client.get("/offer_page_playlists/offer-B", params={"search_group_name": SearchGroupNameEnum.CINEMA.value})
 
-    assert fetch_spy.call_count == 2  # noqa: PLR2004
+    assert fetch_spy.call_count == 2
 
     first_sig = fetch_spy.call_args_list[0].kwargs["request_signature_data"]
     second_sig = fetch_spy.call_args_list[1].kwargs["request_signature_data"]
@@ -118,7 +118,7 @@ async def test_offer_page_playlists_user_id_affects_cache_key(client: AsyncClien
         params={"user_id": "user-B", "search_group_name": SearchGroupNameEnum.CINEMA.value},
     )
 
-    assert fetch_spy.call_count == 2  # noqa: PLR2004
+    assert fetch_spy.call_count == 2
 
     first_sig = fetch_spy.call_args_list[0].kwargs["request_signature_data"]
     second_sig = fetch_spy.call_args_list[1].kwargs["request_signature_data"]
@@ -142,7 +142,7 @@ async def test_offer_page_playlists_search_group_name_affects_cache_key(client: 
         params={"search_group_name": SearchGroupNameEnum.LIVRES.value},
     )
 
-    assert fetch_spy.call_count == 2  # noqa: PLR2004
+    assert fetch_spy.call_count == 2
 
     first_sig = fetch_spy.call_args_list[0].kwargs["request_signature_data"]
     second_sig = fetch_spy.call_args_list[1].kwargs["request_signature_data"]
