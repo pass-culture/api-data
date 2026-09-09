@@ -7,5 +7,5 @@ from models.base import Base
 class NonRecommendableItems(Base):
     __tablename__ = "non_recommendable_items_mv"
 
+    user_id: sa_orm.Mapped[str] = sa_orm.mapped_column(String(256), primary_key=True, index=True)
     item_id: sa_orm.Mapped[str] = sa_orm.mapped_column(String(256), primary_key=True)
-    user_id: sa_orm.Mapped[str] = sa_orm.mapped_column(String(256), primary_key=True)
