@@ -42,6 +42,12 @@ def build_similar_offer_playlist_configs(offer_search_group: SearchGroupNameEnum
     - **NONE / search_group_name not supplied**: same pattern as any standard category,
       using ``SearchGroupNameEnum.NONE`` as the "same type" category.
 
+    .. warning::
+        This function is the single source of truth for the playlist composition
+        rules, also summarized in ``docs/offer_page_playlists.md``. If you change
+        this function (add/remove a category rule, change a title, a retrieval
+        model, etc.), update that documentation file in the same change.
+
     Args:
         offer_search_group: The ``search_group_name`` of the reference offer.
                             Use ``SearchGroupNameEnum.NONE`` when the offer is
