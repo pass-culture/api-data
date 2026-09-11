@@ -120,6 +120,11 @@ class RedisAPI:
         """
         Checks if a cached response exists for the given signature and returns an instantiated model.
 
+        ⚠️  A/B Test isolation: `settings.AB_TEST_VARIANT_LABEL` is automatically injected into the
+        signature before hashing. This guarantees that two Cloud Run revisions running different
+        A/B variants never share cached responses, even for identical requests — preventing silent
+        cross-variant cache poisoning. No endpoint needs to add this field manually.
+
         Args:
             namespace_prefix: A string representing the domain/feature.
             request_signature_data: A dictionary containing all the unique request parameters.
@@ -131,8 +136,11 @@ class RedisAPI:
         if not settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
             return None
 
+        # Inject ab_test_variant_label to isolate cache entries per A/B variant.
+        versioned_signature = {**request_signature_data, "_ab_test_variant_label": settings.AB_TEST_VARIANT_LABEL}
+
         cache_key = RedisAPI.generate_cache_key(
-            namespace_prefix=namespace_prefix, request_signature_data=request_signature_data
+            namespace_prefix=namespace_prefix, request_signature_data=versioned_signature
         )
 
         cached_data = await redis_cache_service.get_cached_value(cache_key=cache_key)
@@ -157,6 +165,10 @@ class RedisAPI:
         """
         Serializes and stores a successful endpoint response into the Redis cache.
 
+        ⚠️  A/B Test isolation: `settings.AB_TEST_VARIANT_LABEL` is automatically injected into the
+        signature before hashing — matching the logic in `fetch_cached_response`. This ensures the
+        stored key is always consistent with the lookup key for the same variant.
+
         Args:
             namespace_prefix: A string representing the domain/feature.
             request_signature_data: A dictionary containing all the unique request parameters.
@@ -165,8 +177,10 @@ class RedisAPI:
         if not settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
             return
 
+        versioned_signature = {**request_signature_data, "_ab_test_variant_label": settings.AB_TEST_VARIANT_LABEL}
+
         cache_key = RedisAPI.generate_cache_key(
-            namespace_prefix=namespace_prefix, request_signature_data=request_signature_data
+            namespace_prefix=namespace_prefix, request_signature_data=versioned_signature
         )
 
         serialized_payload = response_model_instance.model_dump(mode="json")

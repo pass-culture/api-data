@@ -47,12 +47,16 @@ class RecommendationMetadata(BaseModel):
     """
     Metadata describing how the recommendation was generated.
     Useful for client-side analytics, A/B testing, and debugging.
+
+    Data contract note: field names are consumed as-is by the backend.
+    Do NOT add or rename fields without coordinating with the backend team.
     """
 
     reco_origin: str
     model_origin: str
     call_id: str
     unique_call_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    ab_test: str | None = None
 
 
 class RecommendationResponse(BaseModel):

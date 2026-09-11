@@ -276,7 +276,11 @@ async def test_store_calls_set_with_serialized_payload_and_ttl(mocker):
 
     mock_set.assert_called_once()
     kwargs = mock_set.call_args.kwargs
-    assert kwargs["cache_key"] == RedisAPI.generate_cache_key("playlist_recommendation", {"user_id": "x"})
+    expected_key = RedisAPI.generate_cache_key(
+        "playlist_recommendation",
+        {"user_id": "x", "_ab_test_variant_label": _settings.AB_TEST_VARIANT_LABEL},
+    )
+    assert kwargs["cache_key"] == expected_key
     assert kwargs["value_to_cache"] == model.model_dump(mode="json")
     assert isinstance(kwargs["time_to_live_in_seconds"], int)
     assert kwargs["time_to_live_in_seconds"] > 0

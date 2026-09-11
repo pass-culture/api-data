@@ -20,7 +20,7 @@ from tests.factories.schemas import UserContextFactory
 _SNAKE_CASE = re.compile(r"^[a-z][a-z0-9_]*$")
 
 # Fields in TrackingLogPayload with no PastOfferContext column (GCP/API metadata only)
-_TRACKING_ONLY_FIELDS = {"labels", "recommendation_api_version"}
+_TRACKING_ONLY_FIELDS = {"labels", "recommendation_api_version", "ab_test_variant_label"}
 
 # Test date parametrization
 CREATION_DATE = datetime(2024, 1, 15, 10, 30, 0, tzinfo=UTC)

@@ -31,6 +31,7 @@ class TrackingRequestExtraData(BaseModel):
     model_params: TrackingModelParams | None
     params_in: dict[str, Any] | None
     offer_origin_ids: str | None
+    ab_test_variant_label: str
 
 
 class TrackingOfferExtraData(BaseModel):
@@ -98,3 +99,4 @@ class TrackingLogPayload(BaseModel):
     # --- Extra Model & Ranking Scores ---
     offer_extra_data: TrackingOfferExtraData
     recommendation_api_version: int
+    ab_test_variant_label: str

@@ -63,6 +63,7 @@ def log_past_offer_context_to_sink(  # noqa: PLR0913
         model_params=TrackingModelParams(description=model_description),
         params_in=params.model_dump(by_alias=True, exclude_none=True) if params else None,
         offer_origin_ids=input_offer_id,
+        ab_test_variant_label=settings.AB_TEST_VARIANT_LABEL,
     )
 
     # --- 2. Iterate and Log Each Offer ---
@@ -120,6 +121,7 @@ def log_past_offer_context_to_sink(  # noqa: PLR0913
                 offer_ranking_model_version=offer.ranking_model_version,
             ),
             recommendation_api_version=settings.RECOMMENDATION_API_VERSION,
+            ab_test_variant_label=settings.AB_TEST_VARIANT_LABEL,
         )
 
         # 2. Local Development Noise Control:

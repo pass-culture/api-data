@@ -76,6 +76,7 @@ async def get_playlist(
             "longitude": longitude,
             "is_geolocated": latitude is not None and longitude is not None,
             "params": params.model_dump(mode="json"),
+            "ab_test_variant_label": settings.AB_TEST_VARIANT_LABEL,
         },
     )
 

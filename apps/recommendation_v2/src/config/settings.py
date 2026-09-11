@@ -107,6 +107,13 @@ SWAGGER_UI_EXAMPLE_OFFER_ID: str = os.environ.get("SWAGGER_UI_EXAMPLE_OFFER_ID",
 SIMILAR_OFFER_MODEL_CONTEXT: str = os.environ.get("SIMILAR_OFFER_MODEL_CONTEXT", "default")
 PLAYLIST_RECOMMENDATION_MODEL_CONTEXT: str = os.environ.get("RECO_MODEL_CONTEXT", "default")
 
+# --- 7b. Deployment Version ---
+# Stable label identifying the A/B test variant served by this Cloud Run revision.
+# Convention: "main" for baseline, "<ab-test-name>" for variants (e.g. "ab71-graph-music").
+# Injected automatically into the HTTP cache key, API response and BigQuery tracking sink.
+# See docs/ab_testing.md for the full A/B testing strategy and conventions.
+AB_TEST_VARIANT_LABEL: str = os.environ.get("AB_TEST_VARIANT_LABEL", "main")
+
 # --- 8. Tracking Configuration ---
 ENABLE_TRACKING_LOGS: bool = bool(int(os.environ.get("ENABLE_TRACKING_LOGS", "1")))
 
