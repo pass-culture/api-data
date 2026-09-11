@@ -120,6 +120,7 @@ async def test_generate_offer_page_playlists_returns_correct_structure(mocker):
         reco_origin="similar_offer",
         model_origin="default",
         call_id="test-call-id",
+        ab_test="test-variant",
     )
 
     mock_similar = mocker.patch(
@@ -147,10 +148,12 @@ async def test_generate_offer_page_playlists_returns_correct_structure(mocker):
     assert same_type.title == OfferPlaylistTitleEnum.LES_FANS_AIMENT_AUSSI
     assert same_type.playlist_type == OfferPlaylistTypeEnum.SAME_TYPE
     assert same_type.results == ["offer-1", "offer-2"]
+    assert same_type.params.ab_test == "test-variant"
 
     cross_type = result.playlists[1]
     assert cross_type.title == OfferPlaylistTitleEnum.CA_PEUT_AUSSI_TE_PLAIRE
     assert cross_type.playlist_type == OfferPlaylistTypeEnum.CROSS_TYPE
+    assert cross_type.params.ab_test == "test-variant"
 
 
 @pytest.mark.asyncio

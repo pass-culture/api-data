@@ -14,6 +14,7 @@ import pytest
 from fastapi import status
 from httpx import AsyncClient
 
+from config import settings
 from connectors.redis_api import RedisAPI
 from schemas.categories import SearchGroupNameEnum
 
@@ -44,7 +45,7 @@ async def test_offer_page_playlists_returns_200_with_correct_structure(client: A
 
 @pytest.mark.asyncio
 async def test_offer_page_playlists_each_playlist_has_required_fields(client: AsyncClient):
-    """Each playlist item must carry title, playlist_type, results and params.call_id."""
+    """Each playlist item must carry title, playlist_type, results and params (call_id, ab_test)."""
     response = await client.get(
         "/offer_page_playlists/test-offer-id",
         params={"search_group_name": SearchGroupNameEnum.CINEMA.value},
@@ -57,6 +58,8 @@ async def test_offer_page_playlists_each_playlist_has_required_fields(client: As
         assert "results" in playlist
         assert "params" in playlist
         assert "call_id" in playlist["params"]
+        assert "ab_test" in playlist["params"]
+        assert playlist["params"]["ab_test"] == settings.AB_TEST_VARIANT_LABEL
 
 
 # ---------------------------------------------------------------------------
@@ -83,6 +86,8 @@ async def test_offer_page_playlists_cache_hit_sets_from_cache(client: AsyncClien
 
     assert second.status_code == status.HTTP_200_OK
     assert second.json()["from_cache"] is True
+    for playlist in second.json()["playlists"]:
+        assert playlist["params"]["ab_test"] == settings.AB_TEST_VARIANT_LABEL
 
 
 @pytest.mark.asyncio

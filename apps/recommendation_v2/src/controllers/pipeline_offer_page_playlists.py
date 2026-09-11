@@ -64,13 +64,13 @@ def build_similar_offer_playlist_configs(offer_search_group: SearchGroupNameEnum
                 title=OfferPlaylistTitleEnum.LES_FANS_AIMENT_AUSSI,
                 playlist_type=OfferPlaylistTypeEnum.SAME_TYPE_CORESERVATION,
                 retrieval_model=SimilarOfferModelChoices.coreservation,
-                search_group_names=[offer_search_group],  # type: ignore[list-item]
+                search_group_names=[offer_search_group],
             ),
             SimilarOfferPlaylistConfig(
                 title=OfferPlaylistTitleEnum.DANS_LA_MEME_CATEGORIE,
                 playlist_type=OfferPlaylistTypeEnum.SAME_TYPE_GRAPH,
                 retrieval_model=SimilarOfferModelChoices.graph,
-                search_group_names=[offer_search_group],  # type: ignore[list-item]
+                search_group_names=[offer_search_group],
             ),
         ]
 
