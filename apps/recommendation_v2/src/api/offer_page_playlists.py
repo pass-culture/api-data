@@ -137,7 +137,12 @@ async def get_offer_page_playlists(
     )
 
     # --- Store result in cache ---
-    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
+    # A transient Vertex AI failure may surface as one or more empty playlists —
+    # never cache the response in that case, otherwise the failure would be frozen
+    # in the cache for the whole TTL. Mirrors the guard used by playlist_recommendation
+    # and similar_offer.
+    should_cache_result = any(playlist.results for playlist in result.playlists)
+    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED and should_cache_result:
         await redis_api.store_endpoint_response(
             namespace_prefix="offer_page_playlists",
             request_signature_data=request_signature_data,
