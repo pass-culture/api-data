@@ -2,10 +2,10 @@ import asyncio
 
 from controllers.pipeline_similar_offer import generate_similar_offers
 from schemas.categories import SearchGroupNameEnum
+from schemas.offer_page_playlists import AnalyticsPlaylistTypeEnum
 from schemas.offer_page_playlists import OfferPagePlaylistsResponse
 from schemas.offer_page_playlists import OfferPlaylistItem
 from schemas.offer_page_playlists import OfferPlaylistTitleEnum
-from schemas.offer_page_playlists import OfferPlaylistTypeEnum
 from schemas.offer_page_playlists import SimilarOfferPlaylistConfig
 from schemas.similar_offer import SimilarOfferModelChoices
 from services.db import AsyncSessionFactory
@@ -59,16 +59,27 @@ def build_similar_offer_playlist_configs(offer_search_group: SearchGroupNameEnum
     """
     if offer_search_group in SEARCH_GROUPS_WITH_DUAL_SAME_TYPE_PLAYLISTS:
         # Books & Music: two same-type playlists with different retrieval models.
+        # Legacy analytics mapping (from the old client-side implementation):
+        # the "books" tag was only ever used for LIVRES (the legacy component
+        # unconditionally forced search_group_names=[LIVRES] and retrieval_model=graph,
+        # regardless of the actual offer category — it never covered MUSIQUE).
+        # The coreservation playlist always used the generic "same category" tag,
+        # for both LIVRES and MUSIQUE, exactly like any other category.
+        graph_analytics_playlist_type = (
+            AnalyticsPlaylistTypeEnum.BOOKS_SAME_CATEGORY
+            if offer_search_group == SearchGroupNameEnum.LIVRES
+            else AnalyticsPlaylistTypeEnum.SAME_CATEGORY
+        )
         return [
             SimilarOfferPlaylistConfig(
                 title=OfferPlaylistTitleEnum.LES_FANS_AIMENT_AUSSI,
-                playlist_type=OfferPlaylistTypeEnum.SAME_TYPE_CORESERVATION,
+                analytics_playlist_type=AnalyticsPlaylistTypeEnum.SAME_CATEGORY,
                 retrieval_model=SimilarOfferModelChoices.coreservation,
                 search_group_names=[offer_search_group],
             ),
             SimilarOfferPlaylistConfig(
                 title=OfferPlaylistTitleEnum.DANS_LA_MEME_CATEGORIE,
-                playlist_type=OfferPlaylistTypeEnum.SAME_TYPE_GRAPH,
+                analytics_playlist_type=graph_analytics_playlist_type,
                 retrieval_model=SimilarOfferModelChoices.graph,
                 search_group_names=[offer_search_group],
             ),
@@ -82,13 +93,13 @@ def build_similar_offer_playlist_configs(offer_search_group: SearchGroupNameEnum
     return [
         SimilarOfferPlaylistConfig(
             title=OfferPlaylistTitleEnum.LES_FANS_AIMENT_AUSSI,
-            playlist_type=OfferPlaylistTypeEnum.SAME_TYPE,
+            analytics_playlist_type=AnalyticsPlaylistTypeEnum.SAME_CATEGORY,
             retrieval_model=SimilarOfferModelChoices.coreservation,
             search_group_names=[offer_search_group],
         ),
         SimilarOfferPlaylistConfig(
             title=OfferPlaylistTitleEnum.CA_PEUT_AUSSI_TE_PLAIRE,
-            playlist_type=OfferPlaylistTypeEnum.CROSS_TYPE,
+            analytics_playlist_type=AnalyticsPlaylistTypeEnum.OTHER_CATEGORIES,
             retrieval_model=SimilarOfferModelChoices.coreservation,
             search_group_names=cross_type_search_groups,
         ),
@@ -135,7 +146,7 @@ async def _generate_single_similar_offer_playlist(
 
     return OfferPlaylistItem(
         title=playlist_config.title,
-        playlist_type=playlist_config.playlist_type,
+        analytics_playlist_type=playlist_config.analytics_playlist_type,
         results=similar_offers_response.results,
         params=similar_offers_response.params,
     )
@@ -189,7 +200,9 @@ async def generate_offer_page_playlists(
             "offer_id": offer_id,
             "offer_search_group": search_group_name,
             "playlist_count": len(similar_offer_playlist_configs),
-            "playlist_types": [playlist_config.playlist_type for playlist_config in similar_offer_playlist_configs],
+            "playlist_types": [
+                playlist_config.analytics_playlist_type for playlist_config in similar_offer_playlist_configs
+            ],
         },
     )
 
@@ -211,7 +224,7 @@ async def generate_offer_page_playlists(
         extra={
             "offer_id": offer_id,
             "playlists": [
-                {"title": playlist.title, "type": playlist.playlist_type, "count": len(playlist.results)}
+                {"title": playlist.title, "type": playlist.analytics_playlist_type, "count": len(playlist.results)}
                 for playlist in playlist_items
             ],
         },

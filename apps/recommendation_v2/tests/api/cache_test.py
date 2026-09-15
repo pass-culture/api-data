@@ -6,9 +6,9 @@ import pytest
 from httpx import AsyncClient
 from pydantic import BaseModel
 
+from schemas.offer_page_playlists import AnalyticsPlaylistTypeEnum
 from schemas.offer_page_playlists import OfferPlaylistItem
 from schemas.offer_page_playlists import OfferPlaylistTitleEnum
-from schemas.offer_page_playlists import OfferPlaylistTypeEnum
 from schemas.playlist_recommendation import RecommendationMetadata
 
 from tests.conftest import patch_all_caches_disabled
@@ -63,7 +63,7 @@ def _build_offer_page_playlists_response(
 ) -> BaseModel:
     playlist = OfferPlaylistItem(
         title=OfferPlaylistTitleEnum.LES_FANS_AIMENT_AUSSI,
-        playlist_type=OfferPlaylistTypeEnum.SAME_TYPE,
+        analytics_playlist_type=AnalyticsPlaylistTypeEnum.SAME_CATEGORY,
         results=results,
         params=metadata,
     )

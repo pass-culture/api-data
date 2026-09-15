@@ -130,7 +130,7 @@ def fetch_and_display_offer_page_playlists(  # noqa: PLR0913
     # Render each titled playlist in the order returned by the backend
     for playlist in playlists:
         title = playlist.get("title", "Playlist")
-        playlist_type = playlist.get("playlist_type", "N/A")
+        analytics_playlist_type = playlist.get("analytics_playlist_type", "N/A")
         offer_ids = playlist.get("results", [])
         playlist_params = playlist.get("params", {}) or {}
         reco_origin = playlist_params.get("reco_origin", "N/A")
@@ -141,7 +141,7 @@ def fetch_and_display_offer_page_playlists(  # noqa: PLR0913
             f"""
             <div style="display: flex; gap: 24px; align-items: center; background-color: #eef2ff;
             padding: 10px 16px; border-radius: 8px; border: 1px solid #c7d2fe; margin-bottom: 8px; color: #1f2937;">
-                <div style="font-size: 15px;"><b>🏷️ Type :</b> {playlist_type}</div>
+                <div style="font-size: 15px;"><b>🏷️ Type :</b> {analytics_playlist_type}</div>
                 <div style="font-size: 14px;"><b>⚙️ Origine :</b> {str(reco_origin).capitalize()}</div>
                 <div style="font-size: 14px;"><b>🧠 Modèle :</b> {str(model_origin).capitalize()}</div>
             </div>

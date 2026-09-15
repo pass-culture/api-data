@@ -11,9 +11,9 @@ import pytest
 from controllers.pipeline_offer_page_playlists import build_similar_offer_playlist_configs
 from controllers.pipeline_offer_page_playlists import generate_offer_page_playlists
 from schemas.categories import SearchGroupNameEnum
+from schemas.offer_page_playlists import AnalyticsPlaylistTypeEnum
 from schemas.offer_page_playlists import OfferPagePlaylistsResponse
 from schemas.offer_page_playlists import OfferPlaylistTitleEnum
-from schemas.offer_page_playlists import OfferPlaylistTypeEnum
 from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.similar_offer import SimilarOfferModelChoices
 
@@ -32,12 +32,12 @@ class BuildSimilarOfferPlaylistConfigsTest:
         assert len(configs) == 2
         coreservation, graph = configs
 
-        assert coreservation.playlist_type == OfferPlaylistTypeEnum.SAME_TYPE_CORESERVATION
+        assert coreservation.analytics_playlist_type == AnalyticsPlaylistTypeEnum.SAME_CATEGORY
         assert coreservation.retrieval_model == SimilarOfferModelChoices.coreservation
         assert coreservation.search_group_names == [SearchGroupNameEnum.LIVRES]
         assert coreservation.title == OfferPlaylistTitleEnum.LES_FANS_AIMENT_AUSSI
 
-        assert graph.playlist_type == OfferPlaylistTypeEnum.SAME_TYPE_GRAPH
+        assert graph.analytics_playlist_type == AnalyticsPlaylistTypeEnum.BOOKS_SAME_CATEGORY
         assert graph.retrieval_model == SimilarOfferModelChoices.graph
         assert graph.search_group_names == [SearchGroupNameEnum.LIVRES]
         assert graph.title == OfferPlaylistTitleEnum.DANS_LA_MEME_CATEGORIE
@@ -47,7 +47,9 @@ class BuildSimilarOfferPlaylistConfigsTest:
 
         assert len(configs) == 2
         assert configs[0].retrieval_model == SimilarOfferModelChoices.coreservation
+        assert configs[0].analytics_playlist_type == AnalyticsPlaylistTypeEnum.SAME_CATEGORY
         assert configs[1].retrieval_model == SimilarOfferModelChoices.graph
+        assert configs[1].analytics_playlist_type == AnalyticsPlaylistTypeEnum.SAME_CATEGORY
         for playlist_config in configs:
             assert playlist_config.search_group_names == [SearchGroupNameEnum.MUSIQUE]
 
@@ -57,12 +59,12 @@ class BuildSimilarOfferPlaylistConfigsTest:
         assert len(configs) == 2
         same_type, cross_type = configs
 
-        assert same_type.playlist_type == OfferPlaylistTypeEnum.SAME_TYPE
+        assert same_type.analytics_playlist_type == AnalyticsPlaylistTypeEnum.SAME_CATEGORY
         assert same_type.search_group_names == [SearchGroupNameEnum.CINEMA]
         assert same_type.retrieval_model == SimilarOfferModelChoices.coreservation
         assert same_type.title == OfferPlaylistTitleEnum.LES_FANS_AIMENT_AUSSI
 
-        assert cross_type.playlist_type == OfferPlaylistTypeEnum.CROSS_TYPE
+        assert cross_type.analytics_playlist_type == AnalyticsPlaylistTypeEnum.OTHER_CATEGORIES
         assert cross_type.title == OfferPlaylistTitleEnum.CA_PEUT_AUSSI_TE_PLAIRE
         assert cross_type.retrieval_model == SimilarOfferModelChoices.coreservation
         # Cross-type must NOT contain the offer's own category or NONE.
@@ -92,11 +94,11 @@ class BuildSimilarOfferPlaylistConfigsTest:
         assert len(configs) == 2
         same_type, cross_type = configs
 
-        assert same_type.playlist_type == OfferPlaylistTypeEnum.SAME_TYPE
+        assert same_type.analytics_playlist_type == AnalyticsPlaylistTypeEnum.SAME_CATEGORY
         assert same_type.search_group_names == [SearchGroupNameEnum.NONE]
         assert same_type.title == OfferPlaylistTitleEnum.LES_FANS_AIMENT_AUSSI
 
-        assert cross_type.playlist_type == OfferPlaylistTypeEnum.CROSS_TYPE
+        assert cross_type.analytics_playlist_type == AnalyticsPlaylistTypeEnum.OTHER_CATEGORIES
         assert cross_type.title == OfferPlaylistTitleEnum.CA_PEUT_AUSSI_TE_PLAIRE
         # Cross-type must contain all non-NONE categories.
         assert SearchGroupNameEnum.NONE not in cross_type.search_group_names
@@ -113,7 +115,7 @@ class BuildSimilarOfferPlaylistConfigsTest:
 async def test_generate_offer_page_playlists_returns_correct_structure(mocker):
     """
     Verify that the controller returns an OfferPagePlaylistsResponse with one
-    OfferPlaylistItem per playlist config, preserving titles and types.
+    OfferPlaylistItem per playlist config, preserving titles and analytics types.
     """
 
     dummy_metadata = RecommendationMetadata(
@@ -146,13 +148,13 @@ async def test_generate_offer_page_playlists_returns_correct_structure(mocker):
 
     same_type = result.playlists[0]
     assert same_type.title == OfferPlaylistTitleEnum.LES_FANS_AIMENT_AUSSI
-    assert same_type.playlist_type == OfferPlaylistTypeEnum.SAME_TYPE
+    assert same_type.analytics_playlist_type == AnalyticsPlaylistTypeEnum.SAME_CATEGORY
     assert same_type.results == ["offer-1", "offer-2"]
     assert same_type.params.ab_test == "test-variant"
 
     cross_type = result.playlists[1]
     assert cross_type.title == OfferPlaylistTitleEnum.CA_PEUT_AUSSI_TE_PLAIRE
-    assert cross_type.playlist_type == OfferPlaylistTypeEnum.CROSS_TYPE
+    assert cross_type.analytics_playlist_type == AnalyticsPlaylistTypeEnum.OTHER_CATEGORIES
     assert cross_type.params.ab_test == "test-variant"
 
 
@@ -204,6 +206,6 @@ async def test_generate_offer_page_playlists_with_none_search_group_name(mocker)
     )
 
     assert len(result.playlists) == 2
-    assert result.playlists[0].playlist_type == OfferPlaylistTypeEnum.SAME_TYPE
-    assert result.playlists[1].playlist_type == OfferPlaylistTypeEnum.CROSS_TYPE
+    assert result.playlists[0].analytics_playlist_type == AnalyticsPlaylistTypeEnum.SAME_CATEGORY
+    assert result.playlists[1].analytics_playlist_type == AnalyticsPlaylistTypeEnum.OTHER_CATEGORIES
     assert mock_similar.call_count == 2

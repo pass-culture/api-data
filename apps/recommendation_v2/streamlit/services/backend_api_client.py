@@ -94,7 +94,7 @@ def fetch_offer_page_playlists(
 
     Unlike the other endpoints, this one returns *multiple* titled playlists in a
     single response instead of a flat list of offer IDs, so the raw playlist dicts
-    are returned as-is (each with 'title', 'playlist_type', 'results', 'params').
+    are returned as-is (each with 'title', 'analytics_playlist_type', 'results', 'params').
 
     Args:
         api_url: Full endpoint URL.
@@ -103,7 +103,7 @@ def fetch_offer_page_playlists(
         api_token: Optional API token injected as query param `?token=`.
 
     Returns:
-        Tuple of (playlists list of {title, playlist_type, results, params}, from_cache bool).
+        Tuple of (playlists list of {title, analytics_playlist_type, results, params}, from_cache bool).
     """
     response = requests.get(api_url, params=_inject_token(params, api_token), proxies=proxies)
     response.raise_for_status()

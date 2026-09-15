@@ -8,35 +8,30 @@ from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.similar_offer import SimilarOfferModelChoices
 
 
-class OfferPlaylistTypeEnum(StrEnum):
+class AnalyticsPlaylistTypeEnum(StrEnum):
     """
-    Identifies the composition strategy used to build a given playlist.
+    Legacy-compatible playlist type identifier, kept for Firebase analytics continuity.
 
-    The exact mapping between an offer's ``search_group_name`` and the list of
-    playlists (title + type + retrieval model) actually returned is defined in
-    ``build_similar_offer_playlist_configs`` (``controllers/pipeline_offer_page_playlists.py``).
-    See ``docs/offer_page_playlists.md`` for the full, human-readable rules table.
-    That function is the single source of truth — if it changes, update the docs too.
+    This value was never sent to the backend: before the ``/offer_page_playlists``
+    endpoint existed, the client itself decided which "similar offer" playlists to
+    build (filters, category, retrieval model) and tagged the resulting analytics
+    events with one of these 3 values (``similar_offer_playlist_type`` Firebase event
+    property). Now that the backend decides which playlists to generate and return,
+    it must reproduce these same legacy values so existing Firebase dashboards/funnels
+    keep working unchanged.
 
     Values:
-        SAME_TYPE: Offers from the same category as the reference offer,
-            retrieved with the coreservation model. Used for most categories
-            (all except LIVRES/MUSIQUE) as the "Les fans aiment aussi" playlist.
-        CROSS_TYPE: Offers from all categories *other than* the reference offer's
-            category, retrieved with the coreservation model. Used as the
-            "Ça peut aussi te plaire" playlist for most categories.
-        SAME_TYPE_CORESERVATION: Same category as the reference offer, retrieved
-            with the coreservation model. Used specifically for LIVRES/MUSIQUE as
-            the "Les fans aiment aussi" playlist.
-        SAME_TYPE_GRAPH: Same category as the reference offer, retrieved with the
-            graph model. Used specifically for LIVRES/MUSIQUE as the
-            "Dans la même catégorie" playlist.
+        BOOKS_SAME_CATEGORY: Same-category playlist retrieved with the graph
+            model, for LIVRES offers only.
+        SAME_CATEGORY: Same-category playlist for any other case: standard
+            categories, the LIVRES/MUSIQUE coreservation playlist, and the
+            MUSIQUE graph playlist (no dedicated legacy tag exists for music).
+        OTHER_CATEGORIES: Cross-category playlist.
     """
 
-    SAME_TYPE = "same_type"
-    CROSS_TYPE = "cross_type"
-    SAME_TYPE_CORESERVATION = "same_type_coreservation"
-    SAME_TYPE_GRAPH = "same_type_graph"
+    BOOKS_SAME_CATEGORY = "booksSameCategorySimilarOffers"
+    SAME_CATEGORY = "sameCategorySimilarOffers"
+    OTHER_CATEGORIES = "otherCategoriesSimilarOffers"
 
 
 class OfferPlaylistTitleEnum(StrEnum):
@@ -68,10 +63,12 @@ class OfferPlaylistTitleEnum(StrEnum):
 
 @dataclass(frozen=True)
 class SimilarOfferPlaylistConfig:
-    """Internal description of a single "similar offer" playlist to generate."""
+    """
+    Internal description of a single "similar offer" playlist to generate.
+    """
 
     title: OfferPlaylistTitleEnum
-    playlist_type: OfferPlaylistTypeEnum
+    analytics_playlist_type: AnalyticsPlaylistTypeEnum
     retrieval_model: SimilarOfferModelChoices
     search_group_names: list[SearchGroupNameEnum]
 
@@ -82,15 +79,16 @@ class OfferPlaylistItem(BaseModel):
 
     Attributes:
         title: The human-readable label displayed to the user (e.g. "Les fans aiment aussi").
-        playlist_type: Internal identifier for the playlist composition strategy
-                       (e.g. "same_type", "cross_type", "same_type_graph").
+        analytics_playlist_type: Legacy-compatible playlist type used for Firebase
+                       analytics (e.g. "sameCategorySimilarOffers"). See
+                       ``AnalyticsPlaylistTypeEnum`` for details.
         results: Ordered list of offer IDs to display.
         params: Metadata describing how this playlist was generated
                 (model, call_id, reco_origin…).
     """
 
     title: OfferPlaylistTitleEnum
-    playlist_type: OfferPlaylistTypeEnum
+    analytics_playlist_type: AnalyticsPlaylistTypeEnum
     results: list[str]
     params: RecommendationMetadata
 

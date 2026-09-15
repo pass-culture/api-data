@@ -155,7 +155,7 @@ async def get_offer_page_playlists(
             "offer_id": offer_id,
             "playlists_count": len(result.playlists),
             "playlists": [
-                {"title": playlist.title, "type": playlist.playlist_type, "count": len(playlist.results)}
+                {"title": playlist.title, "type": playlist.analytics_playlist_type, "count": len(playlist.results)}
                 for playlist in result.playlists
             ],
         },

@@ -45,7 +45,7 @@ async def test_offer_page_playlists_returns_200_with_correct_structure(client: A
 
 @pytest.mark.asyncio
 async def test_offer_page_playlists_each_playlist_has_required_fields(client: AsyncClient):
-    """Each playlist item must carry title, playlist_type, results and params (call_id, ab_test)."""
+    """Each playlist item must carry title, analytics_playlist_type, results and params (call_id, ab_test)."""
     response = await client.get(
         "/offer_page_playlists/test-offer-id",
         params={"search_group_name": SearchGroupNameEnum.CINEMA.value},
@@ -54,7 +54,7 @@ async def test_offer_page_playlists_each_playlist_has_required_fields(client: As
 
     for playlist in response.json()["playlists"]:
         assert "title" in playlist
-        assert "playlist_type" in playlist
+        assert "analytics_playlist_type" in playlist
         assert "results" in playlist
         assert "params" in playlist
         assert "call_id" in playlist["params"]
@@ -166,8 +166,8 @@ async def test_offer_page_playlists_search_group_name_drives_playlist_compositio
     )
 
     assert response.status_code == status.HTTP_200_OK
-    playlist_types = [p["playlist_type"] for p in response.json()["playlists"]]
-    assert playlist_types == ["same_type_coreservation", "same_type_graph"]
+    analytics_playlist_types = [p["analytics_playlist_type"] for p in response.json()["playlists"]]
+    assert analytics_playlist_types == ["sameCategorySimilarOffers", "booksSameCategorySimilarOffers"]
 
 
 @pytest.mark.asyncio
