@@ -3,10 +3,15 @@ Unit tests for pipeline_offer_page_playlists controller.
 
 These tests cover:
 - build_similar_offer_playlist_configs: the playlist composition rules.
-- generate_offer_page_playlists: the parallel orchestration of sub-pipelines.
+- generate_offer_page_playlists: resolving search_group_name from DB, 404 on missing offer, and parallel sub-pipelines.
 """
 
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
+
 import pytest
+from fastapi import HTTPException
+from fastapi import status
 
 from controllers.pipeline_offer_page_playlists import build_similar_offer_playlist_configs
 from controllers.pipeline_offer_page_playlists import generate_offer_page_playlists
@@ -114,16 +119,20 @@ class BuildSimilarOfferPlaylistConfigsTest:
 @pytest.mark.asyncio
 async def test_generate_offer_page_playlists_returns_correct_structure(mocker):
     """
-    Verify that the controller returns an OfferPagePlaylistsResponse with one
-    OfferPlaylistItem per playlist config, preserving titles and analytics types.
+    Verify that the controller resolves category from DB and returns an OfferPagePlaylistsResponse
+    with one OfferPlaylistItem per playlist config, preserving titles and analytics types.
     """
-
     dummy_metadata = RecommendationMetadata(
         reco_origin="similar_offer",
         model_origin="default",
         call_id="test-call-id",
         ab_test="test-variant",
     )
+
+    mock_db = AsyncMock()
+    mock_db_result = MagicMock()
+    mock_db_result.scalar_one_or_none.return_value = SearchGroupNameEnum.CINEMA.value
+    mock_db.execute.return_value = mock_db_result
 
     mock_similar = mocker.patch(
         "controllers.pipeline_offer_page_playlists.generate_similar_offers",
@@ -135,8 +144,8 @@ async def test_generate_offer_page_playlists_returns_correct_structure(mocker):
     )
 
     result = await generate_offer_page_playlists(
+        db=mock_db,
         offer_id="test-offer-id",
-        search_group_name=SearchGroupNameEnum.CINEMA,
         user_id=None,
         latitude=48.8566,
         longitude=2.3522,
@@ -165,7 +174,6 @@ async def test_generate_offer_page_playlists_runs_pipelines_in_parallel(mocker):
     CINEMA → 2 configs → 2 calls.
     LIVRES → 2 configs → 2 calls.
     """
-
     dummy_metadata = RecommendationMetadata(
         reco_origin="similar_offer",
         model_origin="default",
@@ -177,35 +185,30 @@ async def test_generate_offer_page_playlists_runs_pipelines_in_parallel(mocker):
     )
     mock_similar.return_value = mocker.MagicMock(results=[], params=dummy_metadata)
 
-    await generate_offer_page_playlists(offer_id="x", search_group_name=SearchGroupNameEnum.CINEMA)
+    mock_db = AsyncMock()
+    mock_db_result = MagicMock()
+    mock_db_result.scalar_one_or_none.return_value = SearchGroupNameEnum.CINEMA.value
+    mock_db.execute.return_value = mock_db_result
+
+    await generate_offer_page_playlists(db=mock_db, offer_id="x")
     assert mock_similar.call_count == 2
     mock_similar.reset_mock()
 
-    await generate_offer_page_playlists(offer_id="x", search_group_name=SearchGroupNameEnum.LIVRES)
+    mock_db_result.scalar_one_or_none.return_value = SearchGroupNameEnum.LIVRES.value
+    await generate_offer_page_playlists(db=mock_db, offer_id="x")
     assert mock_similar.call_count == 2
 
 
 @pytest.mark.asyncio
-async def test_generate_offer_page_playlists_with_none_search_group_name(mocker):
-    """When search_group_name is NONE → same_type(NONE) + cross_type."""
+async def test_generate_offer_page_playlists_raises_404_when_offer_not_found(mocker):
+    """When the offer is not in offer_metadata_mv, raises HTTPException with 404 status."""
+    mock_db = AsyncMock()
+    mock_db_result = MagicMock()
+    mock_db_result.scalar_one_or_none.return_value = None
+    mock_db.execute.return_value = mock_db_result
 
-    dummy_metadata = RecommendationMetadata(
-        reco_origin="similar_offer",
-        model_origin="default",
-        call_id="test-call-id",
-    )
-    mock_similar = mocker.patch(
-        "controllers.pipeline_offer_page_playlists.generate_similar_offers",
-        new_callable=mocker.AsyncMock,
-    )
-    mock_similar.return_value = mocker.MagicMock(results=[], params=dummy_metadata)
+    with pytest.raises(HTTPException) as exc_info:
+        await generate_offer_page_playlists(db=mock_db, offer_id="non-existent-offer")
 
-    result = await generate_offer_page_playlists(
-        offer_id="unknown-offer-id",
-        search_group_name=SearchGroupNameEnum.NONE,
-    )
-
-    assert len(result.playlists) == 2
-    assert result.playlists[0].analytics_playlist_type == AnalyticsPlaylistTypeEnum.SAME_CATEGORY
-    assert result.playlists[1].analytics_playlist_type == AnalyticsPlaylistTypeEnum.OTHER_CATEGORIES
-    assert mock_similar.call_count == 2
+    assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
+    assert "non-existent-offer" in exc_info.value.detail

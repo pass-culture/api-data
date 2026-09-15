@@ -5,13 +5,14 @@ from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import Path
 from fastapi import Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
 from connectors.redis_api import redis_api
 from controllers.pipeline_offer_page_playlists import generate_offer_page_playlists
-from schemas.categories import SearchGroupNameEnum
 from schemas.location import LocationParams
 from schemas.offer_page_playlists import OfferPagePlaylistsResponse
+from services.db import get_database_session
 from services.h3 import get_h3_index_from_coordinates
 from services.logger import logger
 from utils.benchmark import log_execution_time
@@ -28,19 +29,13 @@ router = APIRouter()
 )
 @log_execution_time
 async def get_offer_page_playlists(
+    db: Annotated[AsyncSession, Depends(get_database_session)],
     location: Annotated[LocationParams, Depends()],
     offer_id: Annotated[
         str,
         Path(
             description="The unique identifier of the displayed offer.",
             json_schema_extra={"example": settings.SWAGGER_UI_EXAMPLE_OFFER_ID},
-        ),
-    ],
-    search_group_name: Annotated[
-        SearchGroupNameEnum,
-        Query(
-            description=("The `search_group_name` (category) of the reference offer. Must be supplied by the client."),
-            json_schema_extra={"example": SearchGroupNameEnum.LIVRES},
         ),
     ],
     user_id: Annotated[
@@ -54,7 +49,7 @@ async def get_offer_page_playlists(
     ---
 
     The API decides autonomously which playlists to include (number, title, filters, model)
-    based on the offer's ``search_group_name`` supplied as a query parameter.
+    based on the offer's ``search_group_name`` retrieved from the database (`offer_metadata_mv`).
     The client must render playlists in the order provided.
 
     **Path parameters**
@@ -63,7 +58,6 @@ async def get_offer_page_playlists(
 
     **Query parameters**
 
-    - `search_group_name` *(required)*: Category of the reference offer.
     - `user_id` *(optional)*: User ID used for personalised filtering.
     - **Location context** *(optional)*:
       - `latitude` / `longitude`: GPS coordinates of the user.
@@ -81,7 +75,6 @@ async def get_offer_page_playlists(
         extra={
             "offer_id": offer_id,
             "user_id": user_id,
-            "search_group_name": search_group_name,
             "latitude": latitude,
             "longitude": longitude,
         },
@@ -93,12 +86,9 @@ async def get_offer_page_playlists(
     h3_index = get_h3_index_from_coordinates(latitude, longitude, resolution=cache_h3_resolution)
 
     # Build the request signature used to derive the Redis cache key.
-    # search_group_name is now client-supplied (not resolved from the offer_id),
-    # so it must be part of the cache key.
     request_signature_data = {
         "offer_id": offer_id,
         "user_id": user_id,
-        "search_group_name": search_group_name,
         "location_h3": h3_index,
     }
 
@@ -129,8 +119,8 @@ async def get_offer_page_playlists(
 
     # --- Core pipeline ---
     result = await generate_offer_page_playlists(
+        db=db,
         offer_id=offer_id,
-        search_group_name=search_group_name,
         user_id=user_id,
         latitude=latitude,
         longitude=longitude,

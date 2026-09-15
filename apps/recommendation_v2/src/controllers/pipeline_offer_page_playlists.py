@@ -1,6 +1,12 @@
 import asyncio
 
+from fastapi import HTTPException
+from fastapi import status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from controllers.pipeline_similar_offer import generate_similar_offers
+from models.offer import OfferMetadata
 from schemas.categories import SearchGroupNameEnum
 from schemas.offer_page_playlists import AnalyticsPlaylistTypeEnum
 from schemas.offer_page_playlists import OfferPagePlaylistsResponse
@@ -153,21 +159,14 @@ async def _generate_single_similar_offer_playlist(
 
 
 async def generate_offer_page_playlists(
+    db: AsyncSession,
     offer_id: str,
-    search_group_name: SearchGroupNameEnum,
     user_id: str | None = None,
     latitude: float | None = None,
     longitude: float | None = None,
 ) -> OfferPagePlaylistsResponse:
     """
     Build all recommendation playlists for an offer detail page in parallel.
-
-    The ``search_group_name`` of the reference offer must be supplied by the
-    caller (e.g. the client, which already knows the category of the offer
-    it is displaying). It is **not** resolved from the database:
-    the ``recommendable_offers_raw_mv`` table only contains ~32M
-    "recommendable" offers, so many valid ``offer_id`` values (non-recommendable
-    or freshly created offers) would otherwise have no known category.
 
     Each playlist is produced by a dedicated ``generate_similar_offers`` call,
     each running with its **own** ``AsyncSession``.  SQLAlchemy async sessions
@@ -180,9 +179,8 @@ async def generate_offer_page_playlists(
     the sum of all pipelines.
 
     Args:
+        db: The async database session used to fetch offer metadata.
         offer_id: The unique identifier of the reference offer.
-        search_group_name: The ``search_group_name`` of the reference offer,
-                            supplied by the caller.
         user_id: Optional user ID for personalized filtering
                  (e.g., excluding already-booked items).
         latitude: The user's current GPS latitude.
@@ -191,7 +189,27 @@ async def generate_offer_page_playlists(
     Returns:
         :class:`OfferPagePlaylistsResponse` containing all generated playlists
         in the order defined by :func:`build_similar_offer_playlist_configs`.
+
+    Raises:
+        HTTPException: HTTP 404 if the offer is not found in ``offer_metadata_mv``.
     """
+    offer_metadata_record = await db.execute(
+        select(OfferMetadata.search_group_name).where(OfferMetadata.offer_id == offer_id).limit(1)
+    )
+    search_group_name_str = offer_metadata_record.scalar_one_or_none()
+
+    if search_group_name_str is None:
+        logger.warning(
+            "Offer not found in offer metadata table.",
+            extra={"offer_id": offer_id},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Offer '{offer_id}' not found.",
+        )
+
+    search_group_name = SearchGroupNameEnum(search_group_name_str)
+
     similar_offer_playlist_configs = build_similar_offer_playlist_configs(search_group_name)
 
     logger.info(

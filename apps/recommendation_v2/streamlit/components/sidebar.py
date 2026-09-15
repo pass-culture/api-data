@@ -277,7 +277,7 @@ def render_offer_page_playlists_sidebar() -> tuple:
     Displays the sidebar and gathers inputs from the user for offer_page_playlists.
 
     Returns:
-    - tuple: (offer_id, search_group_name, user_id, params dict, max_offers_to_fetch,
+    - tuple: (offer_id, user_id, params dict, max_offers_to_fetch,
               run_fetch_boolean, api_base_url, proxies, api_token)
     """
     with st.sidebar:
@@ -301,22 +301,6 @@ def render_offer_page_playlists_sidebar() -> tuple:
         _render_random_offer_button(session_key="opp_offer_id")
 
         st.divider()
-
-        # search_group_name is required by the endpoint (supplied by the client, not resolved server-side)
-        st.markdown("**Catégorie de l'offre (search_group_name)**")
-        search_group_options = [e.value for e in SearchGroupNameEnum]
-        default_index = (
-            search_group_options.index(SearchGroupNameEnum.LIVRES.value)
-            if SearchGroupNameEnum.LIVRES.value in search_group_options
-            else 0
-        )
-        search_group_name = st.selectbox(
-            "Catégorie de l'offre (search_group_name)",
-            search_group_options,
-            index=default_index,
-            help="Catégorie de l'offre affichée, requise par l'endpoint offer_page_playlists.",
-            label_visibility="collapsed",
-        )
 
         # Optional user identification
         st.markdown("**Utilisateur (optionnel)**")
@@ -355,7 +339,6 @@ def render_offer_page_playlists_sidebar() -> tuple:
 
         return (
             offer_id,
-            search_group_name,
             user_id,
             params,
             max_offers_to_fetch,

@@ -40,7 +40,6 @@ def main():
     # Collect parameters from the sidebar
     (
         offer_id,
-        search_group_name,
         user_id,
         params,
         max_offers_to_fetch,
@@ -59,7 +58,7 @@ def main():
     if run_fetch and offer_id:
         st.markdown("---")
         fetch_and_display_offer_page_playlists(
-            offer_id, search_group_name, user_id, params, max_offers_to_fetch, api_base_url, proxies, api_token
+            offer_id, user_id, params, max_offers_to_fetch, api_base_url, proxies, api_token
         )
     elif run_fetch and not offer_id:
         st.error("Veuillez renseigner un ID d'offre dans la barre latérale.")
@@ -67,7 +66,6 @@ def main():
 
 def fetch_and_display_offer_page_playlists(  # noqa: PLR0913
     offer_id: str,
-    search_group_name: str,
     user_id: str | None,
     params: dict,
     max_offers: int,
@@ -82,7 +80,6 @@ def fetch_and_display_offer_page_playlists(  # noqa: PLR0913
 
     # Build query params
     query_params = {**params}
-    query_params["search_group_name"] = search_group_name
     if user_id:
         query_params["user_id"] = user_id
 

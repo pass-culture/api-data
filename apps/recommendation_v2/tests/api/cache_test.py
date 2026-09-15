@@ -118,7 +118,7 @@ CACHE_ENDPOINTS = [
     ),
     pytest.param(
         "GET",
-        "/offer_page_playlists/offer-ref?search_group_name=LIVRES",
+        "/offer_page_playlists/offer-ref",
         None,
         "api.offer_page_playlists.redis_api",
         "api.offer_page_playlists.generate_offer_page_playlists",
@@ -342,6 +342,8 @@ async def test_no_cache_interaction_when_disabled(  # noqa: PLR0913
     patch_all_caches_disabled(mocker)
     mock_fetch = mocker.patch(f"{redis_module}.fetch_cached_response", new_callable=AsyncMock)
     mock_store = mocker.patch(f"{redis_module}.store_endpoint_response", new_callable=AsyncMock)
+    non_empty_result = build_response(factory, cached_metadata, result_key, ["mocked-offer-1"])
+    mocker.patch(pipeline, new_callable=AsyncMock, return_value=non_empty_result)
 
     response = await _request(client, method, url, body)
 
