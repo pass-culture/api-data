@@ -19,11 +19,11 @@ on:
           - dev
           - staging
           - production
-      no_traffic:
-        description: "Deploy without routing traffic (useful to prepare A/B testing)"
+      traffic_percent:
+        description: "Percentage of traffic to route to the new revision after smoke tests (0–100). Make sure to set to 0 for preparation purposes"
         required: true
-        default: true
-        type: boolean
+        default: "0"
+        type: string
 
 env:
   DOCKER_REGISTRY_PROJECT_ID: "passculture-infra-prod"
@@ -35,30 +35,30 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       env_name: ${{ steps.set-variable.outputs.env_name }}
-      no_traffic: ${{ steps.set-variable.outputs.no_traffic }}
+      traffic_percent: ${{ steps.set-variable.outputs.traffic_percent }}
     steps:
       - name: "Set environment variable"
         id: "set-variable"
         env:
           REF: ${{ github.ref }}
           ENV: ${{ inputs.environment }}
-          NO_TRAFFIC: ${{ inputs.no_traffic }}
+          TRAFFIC_PERCENT: ${{ inputs.traffic_percent || '100' }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "env_name=$ENV" | tee -a "$GITHUB_OUTPUT"
-            echo "no_traffic=$NO_TRAFFIC" | tee -a "$GITHUB_OUTPUT"
+            echo "traffic_percent=$TRAFFIC_PERCENT" | tee -a "$GITHUB_OUTPUT"
           elif [ "$REF" = "refs/heads/main" ]; then
             echo "env_name=dev" | tee -a "$GITHUB_OUTPUT"
-            echo "no_traffic=true" | tee -a "$GITHUB_OUTPUT"
+            echo "traffic_percent=$TRAFFIC_PERCENT" | tee -a "$GITHUB_OUTPUT"
           elif [ "$REF" = "refs/heads/staging" ]; then
             echo "env_name=staging" | tee -a "$GITHUB_OUTPUT"
-            echo "no_traffic=true" | tee -a "$GITHUB_OUTPUT"
+            echo "traffic_percent=$TRAFFIC_PERCENT" | tee -a "$GITHUB_OUTPUT"
           elif [ "$REF" = "refs/heads/production" ]; then
             echo "env_name=production" | tee -a "$GITHUB_OUTPUT"
-            echo "no_traffic=true" | tee -a "$GITHUB_OUTPUT"
+            echo "traffic_percent=$TRAFFIC_PERCENT" | tee -a "$GITHUB_OUTPUT"
           else
             echo "env_name=dev" | tee -a "$GITHUB_OUTPUT"
-            echo "no_traffic=true" | tee -a "$GITHUB_OUTPUT"
+            echo "traffic_percent=$TRAFFIC_PERCENT" | tee -a "$GITHUB_OUTPUT"
           fi
 
   build-and-push-docker-image:
@@ -131,9 +131,11 @@ jobs:
       contents: 'read'
       id-token: 'write'
     outputs:
-      # URL of the freshly deployed revision, reachable via its "test" tag even when
-      # no_traffic=true. Consumed by the smoke-test job.
-      url: ${{ steps.resolve_tag_url.outputs.url }}
+      # URL of the freshly deployed revision, reachable only via its "test" tag
+      # since it's deployed with no_traffic=true. Consumed by the smoke-test job.
+      url: ${{ steps.resolve_revision_and_tag_url.outputs.url }}
+      # Full revision name (e.g. apireco-dev-v2-abc1234-xyz). Consumed by promote-traffic.
+      revision: ${{ steps.resolve_revision_and_tag_url.outputs.revision }}
     env:
       DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
       ENV_SHORT_NAME: ${{ vars.ENV_SHORT_NAME }}
@@ -193,7 +195,9 @@ jobs:
         image: "${{ steps.vars.outputs.DOCKER_REPO }}/api-data/recommendation_v2:${{ steps.sha.outputs.short_sha }}"
         region: "${{ env.DOCKER_REGISTRY_REGION }}"
         project_id: ${{ env.DATA_GCP_PROJECT }}
-        no_traffic: ${{ needs.setup-job.outputs.no_traffic }}
+        # Always deploy without traffic: this pipeline only ever routes traffic
+        # explicitly via the promote-traffic job, after smoke tests pass.
+        no_traffic: true
         tag: ${{ env.TAG_NAME }}
         env_vars_update_strategy: overwrite
         secrets_update_strategy: overwrite
@@ -218,20 +222,21 @@ jobs:
           SQL_HOST=cloudsql-recommendation-${{ steps.sha.outputs.secret_env_name }}-ew1_private_ip:latest
 
     - uses: 'google-github-actions/setup-gcloud@v2'
-    - id: resolve_tag_url
-      name:  "Resolve test-tagged revision URL for smoke testing"
+    - name: "Compute revision name and Resolve test-tagged revision URL for smoke testing"
+      id: resolve_revision_and_tag_url
       run: |
-        URL=$(gcloud run services describe "apireco-${ENV_SHORT_NAME}" \
+        TRAFFIC=$(gcloud run services describe "apireco-${ENV_SHORT_NAME}" \
           --region "${DOCKER_REGISTRY_REGION}" \
           --project "${DATA_GCP_PROJECT}" \
-          --format='json(status.traffic)' \
-          | jq -r --arg tag "$TAG_NAME" '.status.traffic[] | select(.tag==$tag) | .url')
-        if [ -z "$URL" ] || [ "$URL" = "null" ]; then
-          echo "❌ Could not resolve the '${TAG_NAME}'-tagged URL for apireco-${ENV_SHORT_NAME}"
+          --format='json(status.traffic)')
+        URL=$(echo "$TRAFFIC" | jq -r --arg tag "$TAG_NAME" '.status.traffic[] | select(.tag==$tag) | .url')
+        REV=$(echo "$TRAFFIC" | jq -r --arg tag "$TAG_NAME" '.status.traffic[] | select(.tag==$tag) | .revisionName')
+        if [ -z "$URL" ] || [ "$URL" = "null" ] || [ -z "$REV" ] || [ "$REV" = "null" ]; then
+          echo "❌ Could not resolve the '${TAG_NAME}'-tagged revision for apireco-${ENV_SHORT_NAME}"
           exit 1
         fi
-        echo "Resolved tagged URL: $URL"
-        echo "url=$URL" >> "$GITHUB_OUTPUT"
+        echo "url=$URL"       >> "$GITHUB_OUTPUT"
+        echo "revision=$REV"  >> "$GITHUB_OUTPUT"
 
   smoke-test:
     name: "Smoke test"
@@ -246,10 +251,50 @@ jobs:
     secrets:
       WORKLOAD_IDENTITY_PRD: ${{ secrets.WORKLOAD_IDENTITY_PRD }}
 
+  promote-traffic:
+    runs-on: ubuntu-latest
+    needs: [setup-job, deploy-api, smoke-test]
+    # traffic_percent=0 means "prepare only": keep the revision tagged but off
+    # live traffic, so skip the traffic shift entirely.
+    if: needs.setup-job.outputs.traffic_percent != '0'
+    environment: ${{ needs.setup-job.outputs.env_name }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
+      ENV_SHORT_NAME: ${{ vars.ENV_SHORT_NAME }}
+    steps:
+      - name: "Connect to Secret Manager"
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
+      - name: "Get secrets for Cloud Run"
+        id: 'secrets'
+        uses: 'google-github-actions/get-secretmanager-secrets@v2'
+        with:
+          secrets: |-
+            ARTIFACT_REGISTRY_SERVICE_ACCOUNT:passculture-metier-ehp/passculture-main-artifact-registry-service-account
+            ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER:passculture-metier-ehp/infra-prod-gcp-workload-identity-provider
+      - name: "Authenticate with Google Cloud for traffic shift"
+        uses: 'google-github-actions/auth@v2'
+        with:
+          workload_identity_provider: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
+      - uses: 'google-github-actions/setup-gcloud@v2'
+      - name: "Shift ${{ needs.setup-job.outputs.traffic_percent }}% traffic to the validated revision"
+        run: |
+          gcloud run services update-traffic "apireco-${ENV_SHORT_NAME}" \
+            --region "${DOCKER_REGISTRY_REGION}" \
+            --project "${DATA_GCP_PROJECT}" \
+            --to-revisions "${{ needs.deploy-api.outputs.revision }}=${{ needs.setup-job.outputs.traffic_percent }}" \
+            --update-tags live="${{ needs.deploy-api.outputs.revision }}"
+
   slack-notification:
     runs-on: ubuntu-latest
     environment: ${{ needs.setup-job.outputs.env_name }}
-    needs: [setup-job, deploy-api, smoke-test]
+    needs: [setup-job, deploy-api, smoke-test, promote-traffic]
     permissions:
       id-token: write
     if: always()
@@ -266,6 +311,25 @@ jobs:
           secrets: |-
             SLACK_BOT_TOKEN:passculture-metier-ehp/passculture-ci-slack-bot-token
       - uses: technote-space/workflow-conclusion-action@v3
+      - name: "Compute traffic promotion status"
+        id: "traffic"
+        if: always()
+        env:
+          SMOKE_RESULT: ${{ needs.smoke-test.result }}
+          PROMOTE_RESULT: ${{ needs.promote-traffic.result }}
+          TRAFFIC_PERCENT: ${{ needs.setup-job.outputs.traffic_percent }}
+        run: |
+          if [ "$PROMOTE_RESULT" = "success" ]; then
+            echo "status=:white_check_mark: ${TRAFFIC_PERCENT}% du trafic basculé vers la nouvelle révision" >> "$GITHUB_OUTPUT"
+          elif [ "$PROMOTE_RESULT" = "skipped" ] && [ "$TRAFFIC_PERCENT" = "0" ]; then
+            echo "status=:construction: Révision préparée, aucun trafic basculé (traffic_percent=0)" >> "$GITHUB_OUTPUT"
+          elif [ "$SMOKE_RESULT" = "failure" ]; then
+            echo "status=:no_entry: Trafic non basculé (smoke tests en échec)" >> "$GITHUB_OUTPUT"
+          elif [ "$PROMOTE_RESULT" = "failure" ]; then
+            echo "status=:warning: Trafic non basculé — validation manuelle refusée ou expirée" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=:no_entry: Trafic non basculé (déploiement en échec)" >> "$GITHUB_OUTPUT"
+          fi
       - name: "Post to a Slack channel"
         if: always()
         uses: slackapi/slack-github-action@v1.23.0
@@ -284,7 +348,14 @@ jobs:
                   "author_icon": "https://github.com/${{github.actor}}.png",
                   "title": "API Reco V2 Deployment",
                   "title_link": "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}",
-                  "text": "Le déploiement de `l'API reco v2 sur ${{ needs.setup-job.outputs.env_name }}` est ${{ env.WORKFLOW_CONCLUSION == 'failure' && 'échoué :boom:' || 'réussi :muscle:' }}"
+                  "text": "Le déploiement de `l'API reco v2 sur ${{ needs.setup-job.outputs.env_name }}` est ${{ env.WORKFLOW_CONCLUSION == 'failure' && 'échoué :boom:' || 'réussi :muscle:' }}",
+                  "fields": [
+                    {
+                      "title": "Traffic",
+                      "value": "${{ steps.traffic.outputs.status }}",
+                      "short": false
+                    }
+                  ]
                 }
               ],
               "unfurl_links": false,
