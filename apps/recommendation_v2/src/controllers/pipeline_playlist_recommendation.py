@@ -21,7 +21,7 @@ from services.logger import call_id_context
 from services.logger import logger
 
 
-PLAYLIST_RECOMMENDATION_MAXIMUM_SIZE = 60
+PLAYLIST_RECOMMENDATION_MAXIMUM_SIZE = 20
 
 
 async def generate_playlist_recommendations(
