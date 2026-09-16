@@ -26,3 +26,10 @@ class RecommendableOffers(Base):
     venue_id: sa_orm.Mapped[int] = sa_orm.mapped_column(Integer)
     venue_latitude: sa_orm.Mapped[float] = sa_orm.mapped_column(Float)
     venue_longitude: sa_orm.Mapped[float] = sa_orm.mapped_column(Float)
+
+
+class OfferMetadata(Base):
+    __tablename__ = "offer_metadata_mv"
+
+    offer_id: sa_orm.Mapped[str] = sa_orm.mapped_column(String(256), primary_key=True)
+    search_group_name: sa_orm.Mapped[str] = sa_orm.mapped_column(String(256))

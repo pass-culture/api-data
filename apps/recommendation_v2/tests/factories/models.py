@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.iris import IrisFrance
 from models.items import NonRecommendableItems
+from models.offer import OfferMetadata
 from models.offer import RecommendableOffers
 from models.past_offer_context import PastOfferContext
 from models.similar_artists import SimilarArtist
@@ -177,3 +178,7 @@ class PastOfferContextFactory(BaseModelFactory[PastOfferContext]):
 
 class SimilarArtistFactory(BaseModelFactory[SimilarArtist]):
     __model__ = SimilarArtist
+
+
+class OfferMetadataFactory(BaseModelFactory[OfferMetadata]):
+    __model__ = OfferMetadata
