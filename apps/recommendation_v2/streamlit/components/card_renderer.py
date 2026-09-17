@@ -19,7 +19,12 @@ env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
 
 
 def show_recommendations(
-    offer_ids: list, max_offers_to_fetch: int, latitude: float | None, longitude: float | None, title: str
+    offer_ids: list,
+    max_offers_to_fetch: int,
+    latitude: float | None,
+    longitude: float | None,
+    title: str,
+    duplicate_offer_ids: set | None = None,
 ):
     """
     Renders the retrieved offers dynamically directly onto the Streamlit UI.
@@ -30,7 +35,11 @@ def show_recommendations(
     - latitude (float, optional)
     - longitude (float, optional)
     - title (str): Title string for the subheader.
+    - duplicate_offer_ids (set, optional): Offer IDs that also appear in at least
+      one other playlist. Cards matching these IDs are visually highlighted so
+      cross-playlist duplicates are easy to spot.
     """
+    duplicate_offer_ids = duplicate_offer_ids or set()
     fetched_offers = []
     offers_to_fetch = offer_ids[:max_offers_to_fetch]
     total_to_fetch = len(offers_to_fetch)
@@ -90,7 +99,8 @@ def show_recommendations(
                 has_strict_offers = True
 
             # 2. Variable formatting for Jinja injection
-            context = _build_jinja_render_context(offer_payload, rank_index=idx)
+            is_duplicate = oid in duplicate_offer_ids
+            context = _build_jinja_render_context(offer_payload, rank_index=idx, is_duplicate=is_duplicate)
 
             # Render individual card
             card_html = template_html.render(context)
@@ -98,6 +108,8 @@ def show_recommendations(
             # Inject animation behavior strictly for the last generated component chunk
             is_last = idx == len(offers_to_fetch) - 1
             wrapper_class = "offer-card animate-new" if is_last else "offer-card"
+            if is_duplicate:
+                wrapper_class += " offer-card-duplicate"
 
             cards_html_list.append(f'<div class="{wrapper_class}">{card_html}</div>')
 
@@ -277,7 +289,7 @@ def _evaluate_geolocation_constraints(
     return offer
 
 
-def _build_jinja_render_context(offer: dict, rank_index: int) -> dict:
+def _build_jinja_render_context(offer: dict, rank_index: int, *, is_duplicate: bool = False) -> dict:
     """Prepares formatted visual data dictionaries to feed into Jinja rendering."""
     THOUSAND_LIKES_THRESHOLD = 1000
     MAX_DESCRIPTION_LENGTH = 60
@@ -329,4 +341,5 @@ def _build_jinja_render_context(offer: dict, rank_index: int) -> dict:
         "safe_desc": safe_desc,
         "short_desc": short_desc,
         "has_ellipsis": has_ellipsis,
+        "is_duplicate": is_duplicate,
     }

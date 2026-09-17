@@ -124,6 +124,12 @@ def fetch_and_display_offer_page_playlists(  # noqa: PLR0913
 
     st.success("Récupération des détails effectuée.")
 
+    # Detect offers present in several playlists (e.g. playlist 1 & 2)
+    # so they can be visually highlighted in each carousel.
+    offer_id_to_playlist_titles = _build_offer_id_to_playlist_titles_map(playlists)
+    duplicate_offer_ids = {offer_id for offer_id, titles in offer_id_to_playlist_titles.items() if len(titles) > 1}
+    _render_cross_playlist_duplicates_summary(playlists, offer_id_to_playlist_titles)
+
     # Render each titled playlist in the order returned by the backend
     for playlist in playlists:
         title = playlist.get("title", "Playlist")
@@ -156,7 +162,63 @@ def fetch_and_display_offer_page_playlists(  # noqa: PLR0913
             latitude=params.get("latitude"),
             longitude=params.get("longitude"),
             title=title,
+            duplicate_offer_ids=duplicate_offer_ids,
         )
+
+
+def _build_offer_id_to_playlist_titles_map(playlists: list) -> dict[str, list[str]]:
+    """
+    Builds a table mapping each `offer_id` to the list of playlist titles
+    in which it appears.
+
+    Allows checking at a glance whether an offer is present in several
+    playlists (e.g. in both the 1st and 2nd playlist).
+    """
+    offer_id_to_playlist_titles: dict[str, list[str]] = {}
+    for playlist in playlists:
+        title = playlist.get("title", "Playlist")
+        for offer_id in playlist.get("results", []):
+            oid = offer_id if isinstance(offer_id, str) else offer_id.get("offer_id", str(offer_id))
+            offer_id_to_playlist_titles.setdefault(oid, []).append(title)
+    return offer_id_to_playlist_titles
+
+
+def _render_cross_playlist_duplicates_summary(playlists: list, offer_id_to_playlist_titles: dict[str, list[str]]):
+    """
+    Displays a summary box showing the number of offers common between
+    the 1st and 2nd playlist (and more generally across all returned
+    playlists), along with the details of the offers concerned.
+    """
+    duplicate_offer_ids = [offer_id for offer_id, titles in offer_id_to_playlist_titles.items() if len(titles) > 1]
+
+    if len(playlists) < 2:
+        return
+
+    first_playlist_title = playlists[0].get("title", "Playlist 1")
+    second_playlist_title = playlists[1].get("title", "Playlist 2")
+    first_offer_ids = {
+        offer_id if isinstance(offer_id, str) else offer_id.get("offer_id", str(offer_id))
+        for offer_id in playlists[0].get("results", [])
+    }
+    second_offer_ids = {
+        offer_id if isinstance(offer_id, str) else offer_id.get("offer_id", str(offer_id))
+        for offer_id in playlists[1].get("results", [])
+    }
+    common_first_second = first_offer_ids & second_offer_ids
+
+    if not duplicate_offer_ids:
+        st.info("✅ Aucune offre en doublon entre les playlists retournées.")
+        return
+
+    with st.expander(
+        f"⚠️ {len(duplicate_offer_ids)} offre(s) présente(s) dans plusieurs playlists "
+        f"(dont {len(common_first_second)} en commun entre « {first_playlist_title} » "
+        f"et « {second_playlist_title} »)",
+        expanded=True,
+    ):
+        for offer_id in duplicate_offer_ids:
+            titles = offer_id_to_playlist_titles[offer_id]
+            st.markdown(f"- `{offer_id}` → présente dans : {', '.join(titles)}")
 
 
 if __name__ == "__main__":
