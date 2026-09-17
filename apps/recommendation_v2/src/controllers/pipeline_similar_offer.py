@@ -7,6 +7,7 @@ from config import settings
 from controllers.pipeline_playlist_recommendation import generate_playlist_recommendations
 from core.diversification import apply_offer_diversification
 from core.geo import get_iris_id_from_coordinates
+from core.geo import resolve_effective_geolocation
 from core.offer_resolution import resolve_closest_venues_from_items
 from core.ranking import rank_and_sort_offers_with_vertex
 from core.retrieval import build_similar_offer_retrieval_payload
@@ -32,7 +33,7 @@ from services.logger import logger
 SIMILAR_OFFERS_LIST_MAXIMUM_SIZE = 20
 
 
-async def generate_similar_offers(  # noqa: PLR0913, PLR0915
+async def generate_similar_offers(  # noqa: PLR0913
     db: AsyncSession,
     offer_id: str,
     retrieval_model: SimilarOfferModelChoices = SimilarOfferModelChoices.coreservation,
@@ -98,31 +99,31 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
     else:
         reference_item_id = reference_offer.item_id
 
-    # 1.2. Determine geolocation context
-    user_location_missing = latitude is None or longitude is None
-    offer_has_location = reference_offer and reference_offer.venue_latitude and reference_offer.venue_longitude
-
-    if user_location_missing and reference_offer and offer_has_location:
-        # Fallback to the offer's venue location if user location is not provided
-        latitude = reference_offer.venue_latitude
-        longitude = reference_offer.venue_longitude
-        logger.debug(
-            "📍 User location missing — falling back to offer's venue location.",
-            extra={"offer_id": offer_id, "latitude": latitude, "longitude": longitude},
-        )
-
-    # 1.3. Build user context (use provided user_id or default to unauthenticated)
+    # 1.2. Fetch user record (needed for subscription location fallback below)
     effective_user_id = user_id if user_id else UNAUTHENTICATED_USER_ID
     db_user = await db.get(EnrichedUser, effective_user_id)
-    iris_id = await get_iris_id_from_coordinates(db, latitude, longitude)
+
+    # 1.3. Determine geolocation context
+    # Priority: GPS > user's subscription department centroid > reference offer's venue location
+    effective_latitude, effective_longitude, geolocation_source = resolve_effective_geolocation(
+        latitude=latitude,
+        longitude=longitude,
+        database_user_record=db_user,
+        fallback_venue_latitude=reference_offer.venue_latitude if reference_offer else None,
+        fallback_venue_longitude=reference_offer.venue_longitude if reference_offer else None,
+        log_extra={"offer_id": offer_id, "user_id": effective_user_id},
+    )
+
+    iris_id = await get_iris_id_from_coordinates(db, effective_latitude, effective_longitude)
     # If latitude and longitude are None, get_iris_id_from_coordinates returns None
 
     user_context = UserContext.build_from_database_record(
         user_id=effective_user_id,
         database_user_record=db_user,
-        latitude=latitude,
-        longitude=longitude,
+        latitude=effective_latitude,
+        longitude=effective_longitude,
         iris_id=iris_id,
+        geolocation_source=geolocation_source,
     )
 
     logger.info(

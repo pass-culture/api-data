@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from core.diversification import apply_offer_diversification
 from core.geo import get_iris_id_from_coordinates
+from core.geo import resolve_effective_geolocation
 from core.offer_resolution import resolve_closest_venues_from_items
 from core.ranking import rank_and_sort_offers_with_vertex
 from core.retrieval import build_all_playlist_recommendation_retrieval_payloads
@@ -58,14 +59,23 @@ async def generate_playlist_recommendations(
     call_id_context.set(call_id)
 
     db_user = await db.get(EnrichedUser, user_id)
-    iris_id = await get_iris_id_from_coordinates(db, latitude, longitude)
+
+    effective_latitude, effective_longitude, geolocation_source = resolve_effective_geolocation(
+        latitude=latitude,
+        longitude=longitude,
+        database_user_record=db_user,
+        log_extra={"user_id": user_id},
+    )
+
+    iris_id = await get_iris_id_from_coordinates(db, effective_latitude, effective_longitude)
 
     user_context = UserContext.build_from_database_record(
         user_id=user_id,
         database_user_record=db_user,
-        latitude=latitude,
-        longitude=longitude,
+        latitude=effective_latitude,
+        longitude=effective_longitude,
         iris_id=iris_id,
+        geolocation_source=geolocation_source,
     )
 
     logger.info(

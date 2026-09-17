@@ -4,6 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from core.user_context import GeoLocationSource
 from schemas.vertex_prediction_item import ItemOrigin
 
 
@@ -32,6 +33,12 @@ class TrackingRequestExtraData(BaseModel):
     params_in: dict[str, Any] | None
     offer_origin_ids: str | None
     ab_test_variant_label: str
+
+
+class TrackingUserExtraData(BaseModel):
+    """User-level context stored in user_extra_data — typed alternative to a plain dict."""
+
+    user_geolocation_source: GeoLocationSource | None
 
 
 class TrackingOfferExtraData(BaseModel):
@@ -78,7 +85,7 @@ class TrackingLogPayload(BaseModel):
     user_is_geolocated: bool
     user_latitude: float | None
     user_longitude: float | None
-    user_extra_data: dict[str, Any]
+    user_extra_data: TrackingUserExtraData
 
     # --- Offer Data & Features ---
     offer_id: str
