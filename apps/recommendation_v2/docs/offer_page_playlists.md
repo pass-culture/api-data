@@ -13,8 +13,8 @@ Two same-type playlists with different retrieval models:
 
 | Order | Title | Retrieval model | Scope | Analytics type (`analytics_playlist_type`) |
 | --- | --- | --- | --- | --- |
-| 1 | "Les fans aiment aussi" | Coreservation | Same category | `sameCategorySimilarOffers` |
-| 2 | "Dans la même catégorie" | Graph | Same category | `booksSameCategorySimilarOffers` for `LIVRES`, `sameCategorySimilarOffers` for `MUSIQUE` |
+| 1 | "Les fans aiment aussi" | Coreservation | Same category | `sameCategorySimilarOffersTwoTower` |
+| 2 | "Dans la même catégorie" | Graph | Same category | `sameCategorySimilarOffersGraph` |
 
 ### All other categories
 
@@ -22,13 +22,13 @@ One same-type playlist and one cross-type playlist:
 
 | Order | Title | Retrieval model | Scope | Analytics type (`analytics_playlist_type`) |
 | --- | --- | --- | --- | --- |
-| 1 | "Les fans aiment aussi" | Coreservation | Same category | `sameCategorySimilarOffers` |
-| 2 | "Ça peut aussi te plaire" | Coreservation | All other categories | `otherCategoriesSimilarOffers` |
+| 1 | "Les fans aiment aussi" | Coreservation | Same category | `sameCategorySimilarOffersTwoTower` |
+| 2 | "Ça peut aussi te plaire" | Coreservation | All other categories | `otherCategoriesSimilarOffersTwoTower` |
 
 ## Legacy analytics mapping (`analytics_playlist_type`)
 
-Each playlist item exposed by the API carries an `analytics_playlist_type` value (`AnalyticsPlaylistTypeEnum`, `src/schemas/offer_page_playlists.py`), reproducing the legacy analytics tag so existing Firebase dashboards/funnels keep working unchanged:
+Each playlist item exposed by the API carries an `analytics_playlist_type` value (`AnalyticsPlaylistTypeEnum`, `src/schemas/offer_page_playlists.py`), encoding both the playlist scope (same/other category) and the retrieval model ("two tower" i.e. coreservation, or graph):
 
-- `sameCategorySimilarOffers`: same-category playlist, for every case except the `LIVRES` graph playlist.
-- `booksSameCategorySimilarOffers`: same-category playlist retrieved with the graph model, for `LIVRES` offers only.
-- `otherCategoriesSimilarOffers`: cross-category playlist.
+- `sameCategorySimilarOffersTwoTower`: same-category playlist retrieved with the "two tower" (coreservation) model.
+- `sameCategorySimilarOffersGraph`: same-category playlist retrieved with the graph model.
+- `otherCategoriesSimilarOffersTwoTower`: cross-category playlist retrieved with the "two tower" (coreservation) model.
