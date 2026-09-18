@@ -63,7 +63,7 @@ def _build_offer_page_playlists_response(
 ) -> BaseModel:
     playlist = OfferPlaylistItem(
         title=OfferPlaylistTitleEnum.LES_FANS_AIMENT_AUSSI,
-        analytics_playlist_type=AnalyticsPlaylistTypeEnum.SAME_CATEGORY,
+        analytics_playlist_type=AnalyticsPlaylistTypeEnum.SAME_CATEGORY_TWO_TOWER,
         results=results,
         params=metadata,
     )

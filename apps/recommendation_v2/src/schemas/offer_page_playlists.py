@@ -10,28 +10,27 @@ from schemas.similar_offer import SimilarOfferModelChoices
 
 class AnalyticsPlaylistTypeEnum(StrEnum):
     """
-    Legacy-compatible playlist type identifier, kept for Firebase analytics continuity.
+    Playlist type identifier sent to Firebase analytics.
 
-    This value was never sent to the backend: before the ``/offer_page_playlists``
+    Originally a legacy-compatible value (before the ``/offer_page_playlists``
     endpoint existed, the client itself decided which "similar offer" playlists to
-    build (filters, category, retrieval model) and tagged the resulting analytics
-    events with one of these 3 values (``similar_offer_playlist_type`` Firebase event
-    property). Now that the backend decides which playlists to generate and return,
-    it must reproduce these same legacy values so existing Firebase dashboards/funnels
-    keep working unchanged.
+    build and tagged the resulting analytics events with the
+    ``similar_offer_playlist_type`` Firebase event property). It now also encodes
+    which retrieval model produced the playlist ("two tower" i.e. coreservation,
+    or "graph"), so analytics can distinguish playlists by both scope
+    (same/other category) and retrieval strategy.
 
     Values:
-        BOOKS_SAME_CATEGORY: Same-category playlist retrieved with the graph
-            model, for LIVRES offers only.
-        SAME_CATEGORY: Same-category playlist for any other case: standard
-            categories, the LIVRES/MUSIQUE coreservation playlist, and the
-            MUSIQUE graph playlist (no dedicated legacy tag exists for music).
-        OTHER_CATEGORIES: Cross-category playlist.
+        SAME_CATEGORY_TWO_TOWER: Same-category playlist retrieved with the
+            "two tower" (coreservation) model.
+        SAME_CATEGORY_GRAPH: Same-category playlist retrieved with the graph model.
+        OTHER_CATEGORIES_TWO_TOWER: Cross-category playlist retrieved with the
+            "two tower" (coreservation) model.
     """
 
-    BOOKS_SAME_CATEGORY = "booksSameCategorySimilarOffers"
-    SAME_CATEGORY = "sameCategorySimilarOffers"
-    OTHER_CATEGORIES = "otherCategoriesSimilarOffers"
+    SAME_CATEGORY_TWO_TOWER = "sameCategorySimilarOffersTwoTower"
+    SAME_CATEGORY_GRAPH = "sameCategorySimilarOffersGraph"
+    OTHER_CATEGORIES_TWO_TOWER = "otherCategoriesSimilarOffersTwoTower"
 
 
 class OfferPlaylistTitleEnum(StrEnum):
@@ -79,9 +78,9 @@ class OfferPlaylistItem(BaseModel):
 
     Attributes:
         title: The human-readable label displayed to the user (e.g. "Les fans aiment aussi").
-        analytics_playlist_type: Legacy-compatible playlist type used for Firebase
-                       analytics (e.g. "sameCategorySimilarOffers"). See
-                       ``AnalyticsPlaylistTypeEnum`` for details.
+        analytics_playlist_type: Playlist type used for Firebase analytics, encoding
+                       both scope and retrieval model (e.g. "sameCategorySimilarOffersTwoTower").
+                       See ``AnalyticsPlaylistTypeEnum`` for details.
         results: Ordered list of offer IDs to display.
         params: Metadata describing how this playlist was generated
                 (model, call_id, reco_origin…).

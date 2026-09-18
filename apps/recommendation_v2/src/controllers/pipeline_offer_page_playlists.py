@@ -65,27 +65,18 @@ def build_similar_offer_playlist_configs(offer_search_group: SearchGroupNameEnum
     """
     if offer_search_group in SEARCH_GROUPS_WITH_DUAL_SAME_TYPE_PLAYLISTS:
         # Books & Music: two same-type playlists with different retrieval models.
-        # Legacy analytics mapping (from the old client-side implementation):
-        # the "books" tag was only ever used for LIVRES (the legacy component
-        # unconditionally forced search_group_names=[LIVRES] and retrieval_model=graph,
-        # regardless of the actual offer category — it never covered MUSIQUE).
-        # The coreservation playlist always used the generic "same category" tag,
-        # for both LIVRES and MUSIQUE, exactly like any other category.
-        graph_analytics_playlist_type = (
-            AnalyticsPlaylistTypeEnum.BOOKS_SAME_CATEGORY
-            if offer_search_group == SearchGroupNameEnum.LIVRES
-            else AnalyticsPlaylistTypeEnum.SAME_CATEGORY
-        )
+        # Each is tagged with the analytics type matching its retrieval model,
+        # for both LIVRES and MUSIQUE.
         return [
             SimilarOfferPlaylistConfig(
                 title=OfferPlaylistTitleEnum.LES_FANS_AIMENT_AUSSI,
-                analytics_playlist_type=AnalyticsPlaylistTypeEnum.SAME_CATEGORY,
+                analytics_playlist_type=AnalyticsPlaylistTypeEnum.SAME_CATEGORY_TWO_TOWER,
                 retrieval_model=SimilarOfferModelChoices.coreservation,
                 search_group_names=[offer_search_group],
             ),
             SimilarOfferPlaylistConfig(
                 title=OfferPlaylistTitleEnum.DANS_LA_MEME_CATEGORIE,
-                analytics_playlist_type=graph_analytics_playlist_type,
+                analytics_playlist_type=AnalyticsPlaylistTypeEnum.SAME_CATEGORY_GRAPH,
                 retrieval_model=SimilarOfferModelChoices.graph,
                 search_group_names=[offer_search_group],
             ),
@@ -99,13 +90,13 @@ def build_similar_offer_playlist_configs(offer_search_group: SearchGroupNameEnum
     return [
         SimilarOfferPlaylistConfig(
             title=OfferPlaylistTitleEnum.LES_FANS_AIMENT_AUSSI,
-            analytics_playlist_type=AnalyticsPlaylistTypeEnum.SAME_CATEGORY,
+            analytics_playlist_type=AnalyticsPlaylistTypeEnum.SAME_CATEGORY_TWO_TOWER,
             retrieval_model=SimilarOfferModelChoices.coreservation,
             search_group_names=[offer_search_group],
         ),
         SimilarOfferPlaylistConfig(
             title=OfferPlaylistTitleEnum.CA_PEUT_AUSSI_TE_PLAIRE,
-            analytics_playlist_type=AnalyticsPlaylistTypeEnum.OTHER_CATEGORIES,
+            analytics_playlist_type=AnalyticsPlaylistTypeEnum.OTHER_CATEGORIES_TWO_TOWER,
             retrieval_model=SimilarOfferModelChoices.coreservation,
             search_group_names=cross_type_search_groups,
         ),

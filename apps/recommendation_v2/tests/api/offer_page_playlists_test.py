@@ -88,7 +88,7 @@ async def test_offer_page_playlists_db_search_group_name_drives_playlist_composi
 
     assert response.status_code == status.HTTP_200_OK
     analytics_playlist_types = [p["analytics_playlist_type"] for p in response.json()["playlists"]]
-    assert analytics_playlist_types == ["sameCategorySimilarOffers", "booksSameCategorySimilarOffers"]
+    assert analytics_playlist_types == ["sameCategorySimilarOffersTwoTower", "sameCategorySimilarOffersGraph"]
 
 
 # ---------------------------------------------------------------------------
