@@ -1,4 +1,7 @@
 <div class="offer-rank-badge">#{{ rank_number }}</div>
+{% if is_duplicate %}
+    <div class="duplicate-badge" title="Cette offre apparaît dans plusieurs playlists">🔁 Doublon</div>
+{% endif %}
 <img class="card-img" src="{{ image_url }}" alt="Image offre">
 <div class="card-content">
     <div class="like-badge"><span class="like-icon">👍</span>{{ likes_text }}</div>

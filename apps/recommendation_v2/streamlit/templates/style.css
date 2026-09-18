@@ -37,6 +37,23 @@
 .offer-card.animate-new {
     animation: fadeInSlideUp 0.5s ease-out forwards;
 }
+.offer-card.offer-card-duplicate {
+    outline: 2px solid #f59e0b;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.35);
+}
+.duplicate-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #f59e0b;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 4px 7px;
+    border-radius: 6px;
+    z-index: 10;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
 .offer-rank-badge {
     position: absolute;
     top: 10px;
