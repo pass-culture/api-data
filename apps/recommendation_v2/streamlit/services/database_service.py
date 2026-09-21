@@ -101,3 +101,71 @@ def get_random_offer() -> str:
         return loop.run_until_complete(_get_offer_async())
     finally:
         loop.close()
+
+
+def get_user_metadata(user_id: str) -> dict | None:
+    """
+    Fetches all EnrichedUser database fields for a given user_id.
+
+    Used by the Streamlit sidebar debug toggle to inspect a user's raw record
+    (e.g. subscription latitude/longitude used as a geolocation fallback)
+    without having to query BigQuery manually.
+
+    Example:
+        >>> get_user_metadata("1234-uuid")
+        {
+            "user_id": "1234-uuid",
+            "booking_cnt": 3,
+            "user_subscription_latitude": 44.84,
+            "user_subscription_longitude": -0.58,
+            ...
+        }
+        >>> get_user_metadata("unknown-user")
+        None
+
+    Parameters:
+    - user_id (str): The UUID of the user to look up.
+
+    Returns:
+    - dict | None: A dictionary mapping each EnrichedUser field name to its value,
+                  or None if no user matches the given user_id.
+    """
+
+    async def _fetch_enriched_user_record_async() -> EnrichedUser | None:
+        # Using a temporary engine with NullPool to avoid Streamlit event loop errors
+        temp_engine = create_async_engine(settings.DATABASE_URL, poolclass=pool.NullPool)
+        temp_session_factory = async_sessionmaker(temp_engine, expire_on_commit=False)
+
+        async with temp_session_factory() as session:
+            enriched_user_record = await session.get(EnrichedUser, user_id)
+
+        await temp_engine.dispose()
+        return enriched_user_record
+
+    # Manually handle the event loop to ensure isolation per Streamlit call
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        enriched_user_record = loop.run_until_complete(_fetch_enriched_user_record_async())
+    finally:
+        loop.close()
+
+    if enriched_user_record is None:
+        return None
+
+    return {
+        "user_id": enriched_user_record.user_id,
+        "booking_cnt": enriched_user_record.booking_cnt,
+        "consult_offer": enriched_user_record.consult_offer,
+        "has_added_offer_to_favorites": enriched_user_record.has_added_offer_to_favorites,
+        "user_theoretical_remaining_credit": enriched_user_record.user_theoretical_remaining_credit,
+        "user_deposit_initial_amount": enriched_user_record.user_deposit_initial_amount,
+        "user_birth_date": str(enriched_user_record.user_birth_date) if enriched_user_record.user_birth_date else None,
+        "user_deposit_creation_date": (
+            str(enriched_user_record.user_deposit_creation_date)
+            if enriched_user_record.user_deposit_creation_date
+            else None
+        ),
+        "user_subscription_latitude": enriched_user_record.user_subscription_latitude,
+        "user_subscription_longitude": enriched_user_record.user_subscription_longitude,
+    }

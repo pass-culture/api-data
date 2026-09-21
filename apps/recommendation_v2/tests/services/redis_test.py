@@ -1,4 +1,6 @@
 import asyncio
+from unittest.mock import AsyncMock
+from unittest.mock import MagicMock
 from unittest.mock import patch
 
 import pytest
@@ -84,13 +86,12 @@ async def test_connect_disables_cache_when_redis_url_is_empty(redis_service):
 
 
 @pytest.mark.asyncio
-async def test_connect_sets_live_client_and_starts_monitor(redis_service):
-    """connect() must set a live redis_client and start the background monitor task on success."""
+async def test_connect_sets_live_client(redis_service):
+    """connect() must set a live redis_client on success."""
     service = RedisCacheService()
     await service.connect()
 
     assert service.redis_client is not None
-    assert service._monitor_task is not None
     await service.disconnect()
 
 
@@ -102,29 +103,6 @@ async def test_connect_disables_cache_on_connection_failure(redis_service):
     await service.connect()
 
     assert service.redis_client is None
-
-
-# ---------------------------------------------------------------------------
-# RedisCacheService.disconnect
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_disconnect_cancels_and_clears_monitor_task(redis_service):
-    """
-    disconnect() must cancel the background monitor task and set the reference to None.
-
-    The redis_service fixture awaits _monitor_ready before yielding, so the background
-    task has already completed its first iteration and is suspended on asyncio.sleep(600s)
-    when the test starts. cancel() therefore hits a predictable await point. The task
-    reference is saved before disconnect() clears it so we can assert task.cancelled().
-    """
-    task = redis_service._monitor_task  # save reference before disconnect clears it
-
-    await redis_service.disconnect()
-
-    assert redis_service._monitor_task is None
-    assert task.cancelled()
 
 
 # ---------------------------------------------------------------------------
@@ -163,69 +141,110 @@ async def test_get_returns_none_for_missing_key(redis_service):
 
 
 # ---------------------------------------------------------------------------
-# RedisCacheService._monitor_connections
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_monitor_connections_logs_connected_clients_count(redis_service):
-    """
-    The monitor loop must query Redis for client metrics and log the result at INFO level.
-
-    The redis_service fixture awaits _monitor_ready before yielding, so the fixture's
-    background task has already completed its first iteration and is suspended on
-    asyncio.sleep(600s). Redis has been flushed (lock included), so the service under
-    test can acquire the lock immediately.
-
-    wait_for drives service._monitor_connections() through one info+log cycle; the loop
-    then hits asyncio.sleep(600s) and the 0.5 s timeout fires — TimeoutError is expected.
-    """
-    service = RedisCacheService()
-    service.redis_client = redis_service.redis_client
-
-    with patch("services.redis.logger") as mock_logger, pytest.raises(asyncio.TimeoutError):
-        await asyncio.wait_for(service._monitor_connections(), timeout=0.5)
-
-    mock_logger.info.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_monitor_connections_logs_debug_and_does_not_crash_on_info_error(redis_service):
-    """
-    An exception from redis_client.info() must be swallowed and logged at DEBUG level.
-
-    The redis_service fixture awaits _monitor_ready before yielding, so the fixture's
-    background task has already completed its first iteration and is suspended on
-    asyncio.sleep(600s). Redis has been flushed (lock included). patch.object injects a
-    failure on the shared client instance, so the monitor loop catches the exception and
-    logs at DEBUG instead of INFO.
-    """
-    service = RedisCacheService()
-    service.redis_client = redis_service.redis_client
-
-    with (
-        patch.object(service.redis_client, "info", side_effect=Exception("Redis unavailable")),
-        patch("services.redis.logger") as mock_logger,
-        pytest.raises(asyncio.TimeoutError),
-    ):
-        await asyncio.wait_for(service._monitor_connections(), timeout=0.5)
-
-    mock_logger.debug.assert_called_once()
-    mock_logger.info.assert_not_called()
-
-
-# ---------------------------------------------------------------------------
 # RedisCacheService.disconnect — connection teardown
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
 async def test_disconnect_closes_connection(redis_service):
-    """After disconnect(), the monitor task reference must be cleared."""
+    """After disconnect(), the redis_client must be closeable without error."""
     service = RedisCacheService()
     await service.connect()
     assert service.redis_client is not None
 
     await service.disconnect()
 
-    assert service._monitor_task is None
+
+# ---------------------------------------------------------------------------
+# RedisCacheService — timeout behaviour
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_cached_value_returns_none_on_timeout(redis_service):
+    """get_cached_value must return None and log a warning when Redis exceeds the configured timeout."""
+    service = RedisCacheService()
+    service.redis_client = redis_service.redis_client
+
+    async def slow_get(*args, **kwargs):
+        await asyncio.sleep(10)
+
+    with (
+        patch.object(service.redis_client, "get", side_effect=slow_get),
+        patch("services.redis.logger") as mock_logger,
+        patch.object(_settings, "REDIS_TIMEOUT_SECONDS", 0.05),
+    ):
+        result = await service.get_cached_value(cache_key="slow-key")
+
+    assert result is None
+    mock_logger.warning.assert_called_once()
+    warning_call_kwargs = mock_logger.warning.call_args
+    assert "timeout" in warning_call_kwargs[0][0].lower()
+
+
+@pytest.mark.asyncio
+async def test_set_cached_value_swallows_timeout(redis_service):
+    """set_cached_value must not raise and must log a warning when Redis exceeds the timeout."""
+    service = RedisCacheService()
+    service.redis_client = redis_service.redis_client
+
+    async def slow_set(*args, **kwargs):
+        await asyncio.sleep(10)
+
+    with (
+        patch.object(service.redis_client, "set", side_effect=slow_set),
+        patch("services.redis.logger") as mock_logger,
+        patch.object(_settings, "REDIS_TIMEOUT_SECONDS", 0.05),
+    ):
+        await service.set_cached_value(cache_key="slow-key", value_to_cache={"x": 1}, time_to_live_in_seconds=60)
+
+    mock_logger.warning.assert_called_once()
+    assert "timeout" in mock_logger.warning.call_args[0][0].lower()
+
+
+@pytest.mark.asyncio
+async def test_mget_cached_values_returns_all_none_on_timeout(redis_service):
+    """mget_cached_values must return a list of None values and log a warning on timeout."""
+    service = RedisCacheService()
+    service.redis_client = redis_service.redis_client
+
+    async def slow_mget(*args, **kwargs):
+        await asyncio.sleep(10)
+
+    with (
+        patch.object(service.redis_client, "mget", side_effect=slow_mget),
+        patch("services.redis.logger") as mock_logger,
+        patch.object(_settings, "REDIS_TIMEOUT_SECONDS", 0.05),
+    ):
+        result = await service.mget_cached_values(cache_keys=["k1", "k2", "k3"])
+
+    assert result == [None, None, None]
+    mock_logger.warning.assert_called_once()
+    assert "timeout" in mock_logger.warning.call_args[0][0].lower()
+
+
+@pytest.mark.asyncio
+async def test_mset_cached_values_swallows_timeout(redis_service):
+    """mset_cached_values must not raise and must log a warning when the pipeline execute() exceeds the timeout."""
+    service = RedisCacheService()
+    service.redis_client = redis_service.redis_client
+
+    async def slow_execute(*args, **kwargs):
+        await asyncio.sleep(10)
+
+    # Patch the pipeline's execute coroutine to simulate a slow Redis response.
+    mock_pipe = AsyncMock()
+    mock_pipe.__aenter__ = AsyncMock(return_value=mock_pipe)
+    mock_pipe.__aexit__ = AsyncMock(return_value=False)
+    mock_pipe.set = MagicMock()
+    mock_pipe.execute = slow_execute
+
+    with (
+        patch.object(service.redis_client, "pipeline", return_value=mock_pipe),
+        patch("services.redis.logger") as mock_logger,
+        patch.object(_settings, "REDIS_TIMEOUT_SECONDS", 0.05),
+    ):
+        await service.mset_cached_values(key_value_pairs={"k1": {"a": 1}, "k2": {"b": 2}}, time_to_live_in_seconds=60)
+
+    mock_logger.warning.assert_called_once()
+    assert "timeout" in mock_logger.warning.call_args[0][0].lower()

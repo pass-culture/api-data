@@ -58,9 +58,39 @@ class RedisAPI:
         return int(time_difference.total_seconds())
 
     @staticmethod
+    def _deep_normalize(value: Any) -> Any:
+        """
+        Recursively normalizes a value to ensure deterministic JSON serialization.
+
+        - Dicts: keys are sorted alphabetically at every nesting level.
+        - Lists: elements are sorted by their canonical JSON representation so that
+          ``["CINEMA", "LIVRE"]`` and ``["LIVRE", "CINEMA"]`` hash to the same key.
+          This means callers (endpoint handlers, schemas) never need to sort lists
+          manually before building a request_signature_data dict.
+        - Scalars (str, int, float, bool, None): returned as-is.
+
+        Args:
+            value: Any JSON-serializable value.
+
+        Returns:
+            A normalized, deeply-sorted copy of the value.
+        """
+        if isinstance(value, dict):
+            return {k: RedisAPI._deep_normalize(v) for k, v in sorted(value.items())}
+        if isinstance(value, list):
+            normalized_items = [RedisAPI._deep_normalize(item) for item in value]
+            return sorted(normalized_items, key=lambda x: json.dumps(x, sort_keys=True, default=str))
+        return value
+
+    @staticmethod
     def generate_cache_key(namespace_prefix: str, request_signature_data: dict[str, Any]) -> str:
         """
         Generates a standardized and unique cache key using an MD5 hash.
+
+        The signature is deeply normalized before serialization:
+        dict keys are sorted at every level and list elements are sorted by their
+        canonical JSON representation. This guarantees that two requests carrying the
+        same data in a different insertion order always produce the same key.
 
         Args:
             namespace_prefix: A string representing the domain/feature (e.g., 'playlist_recommendation').
@@ -69,7 +99,9 @@ class RedisAPI:
         Returns:
             str: The final unique cache key.
         """
-        serialized_signature = json.dumps(request_signature_data, sort_keys=True)
+        normalized_signature = RedisAPI._deep_normalize(request_signature_data)
+
+        serialized_signature = json.dumps(normalized_signature)
 
         signature_hash = hashlib.md5(serialized_signature.encode("utf-8")).hexdigest()
 
@@ -88,6 +120,11 @@ class RedisAPI:
         """
         Checks if a cached response exists for the given signature and returns an instantiated model.
 
+        ⚠️  A/B Test isolation: `settings.AB_TEST_VARIANT_LABEL` is automatically injected into the
+        signature before hashing. This guarantees that two Cloud Run revisions running different
+        A/B variants never share cached responses, even for identical requests — preventing silent
+        cross-variant cache poisoning. No endpoint needs to add this field manually.
+
         Args:
             namespace_prefix: A string representing the domain/feature.
             request_signature_data: A dictionary containing all the unique request parameters.
@@ -99,8 +136,11 @@ class RedisAPI:
         if not settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
             return None
 
+        # Inject ab_test_variant_label to isolate cache entries per A/B variant.
+        versioned_signature = {**request_signature_data, "_ab_test_variant_label": settings.AB_TEST_VARIANT_LABEL}
+
         cache_key = RedisAPI.generate_cache_key(
-            namespace_prefix=namespace_prefix, request_signature_data=request_signature_data
+            namespace_prefix=namespace_prefix, request_signature_data=versioned_signature
         )
 
         cached_data = await redis_cache_service.get_cached_value(cache_key=cache_key)
@@ -125,6 +165,10 @@ class RedisAPI:
         """
         Serializes and stores a successful endpoint response into the Redis cache.
 
+        ⚠️  A/B Test isolation: `settings.AB_TEST_VARIANT_LABEL` is automatically injected into the
+        signature before hashing — matching the logic in `fetch_cached_response`. This ensures the
+        stored key is always consistent with the lookup key for the same variant.
+
         Args:
             namespace_prefix: A string representing the domain/feature.
             request_signature_data: A dictionary containing all the unique request parameters.
@@ -133,8 +177,10 @@ class RedisAPI:
         if not settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
             return
 
+        versioned_signature = {**request_signature_data, "_ab_test_variant_label": settings.AB_TEST_VARIANT_LABEL}
+
         cache_key = RedisAPI.generate_cache_key(
-            namespace_prefix=namespace_prefix, request_signature_data=request_signature_data
+            namespace_prefix=namespace_prefix, request_signature_data=versioned_signature
         )
 
         serialized_payload = response_model_instance.model_dump(mode="json")

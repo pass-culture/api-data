@@ -18,6 +18,7 @@ from fastapi.security import APIKeyQuery
 from sqlalchemy.exc import SQLAlchemyError
 
 from api.health_check import router as health_check_router
+from api.offer_page_playlists import router as offer_page_playlists_router
 from api.playlist_recommendation import router as playlist_router
 from api.similar_artists import router as similar_artists_router
 from api.similar_offer import router as similar_offer_router
@@ -107,6 +108,7 @@ def show_api_config() -> None:
         "RECOMMENDATION_API_VERSION": settings.RECOMMENDATION_API_VERSION,
         "FASTAPI_SERVER_PORT": settings.FASTAPI_SERVER_PORT,
         "LOG_LEVEL": logging.getLevelName(settings.LOG_LEVEL),
+        "AB_TEST_VARIANT_LABEL": settings.AB_TEST_VARIANT_LABEL,
         # Google Cloud & Vertex AI
         "GCP_PROJECT": settings.GCP_PROJECT,
         "VERTEX_RETRIEVAL_ENDPOINT_NAME": settings.VERTEX_RETRIEVAL_ENDPOINT_NAME,
@@ -202,6 +204,7 @@ api_token_dependencies = [Depends(verify_api_token)] if not settings.IS_LOCAL el
 
 app.include_router(health_check_router, tags=["Health"])
 app.include_router(similar_offer_router, tags=["Similar Offers"], dependencies=api_token_dependencies)
+app.include_router(offer_page_playlists_router, tags=["Offer Page Playlists"], dependencies=api_token_dependencies)
 app.include_router(playlist_router, tags=["Recommendations"], dependencies=api_token_dependencies)
 app.include_router(similar_artists_router, tags=["Similar Artists"], dependencies=api_token_dependencies)
 if __name__ == "__main__":  # pragma: no cover

@@ -18,11 +18,18 @@ class RecommendableOffers(Base):
 
     booking_number: sa_orm.Mapped[int] = sa_orm.mapped_column(Integer)
     default_max_distance: sa_orm.Mapped[int] = sa_orm.mapped_column(Integer)
-    item_id: sa_orm.Mapped[str] = sa_orm.mapped_column(String(256))
+    item_id: sa_orm.Mapped[str] = sa_orm.mapped_column(String(256), index=True)
     offer_creation_date: sa_orm.Mapped[datetime] = sa_orm.mapped_column(DateTime)
-    offer_id: sa_orm.Mapped[str] = sa_orm.mapped_column(String(256))
+    offer_id: sa_orm.Mapped[str] = sa_orm.mapped_column(String(256), index=True)
     stock_beginning_date: sa_orm.Mapped[datetime | None] = sa_orm.mapped_column(DateTime)
     venue_geo = Column(Geography(geometry_type="POINT", srid=4326))
-    venue_id: sa_orm.Mapped[int] = sa_orm.mapped_column(Integer)
+    venue_id: sa_orm.Mapped[int] = sa_orm.mapped_column(Integer, index=True)
     venue_latitude: sa_orm.Mapped[float] = sa_orm.mapped_column(Float)
     venue_longitude: sa_orm.Mapped[float] = sa_orm.mapped_column(Float)
+
+
+class OfferMetadata(Base):
+    __tablename__ = "offer_metadata_mv"
+
+    offer_id: sa_orm.Mapped[str] = sa_orm.mapped_column(String(256), primary_key=True)
+    search_group_name: sa_orm.Mapped[str] = sa_orm.mapped_column(String(256))

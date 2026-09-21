@@ -9,9 +9,11 @@ from datetime import datetime
 from datetime import time
 
 import folium
+import pandas as pd
 from geopy.geocoders import Nominatim
 from services.database_service import get_random_offer
 from services.database_service import get_random_user
+from services.database_service import get_user_metadata
 from streamlit_folium import st_folium
 
 import streamlit as st
@@ -126,6 +128,54 @@ def _render_api_version_selector(remote_v1_url: str, remote_v2_url: str) -> None
     st.session_state.api_base_url = remote_v1_url if selected_version == V1_LABEL else remote_v2_url
 
 
+def _render_user_metadata_toggle(user_id: str) -> None:
+    """
+    Renders a toggle that, when enabled, fetches and displays the full EnrichedUser
+    database record for the currently selected user_id as a table.
+
+    Primarily used to debug the geolocation fallback logic (e.g. checking whether
+    a user has a subscription latitude/longitude registered) directly from the
+    Streamlit sidebar, without querying BigQuery manually.
+
+    Args:
+        user_id (str): The currently selected user's UUID, read from session state.
+    """
+    should_display_user_metadata = st.toggle("🔍 Afficher les métadonnées utilisateur", key="show_user_metadata")
+    if not should_display_user_metadata:
+        return
+
+    if not user_id:
+        st.info("Aucun identifiant utilisateur renseigné.")
+        return
+
+    with st.spinner("Chargement des métadonnées..."):
+        user_metadata = get_user_metadata(user_id)
+
+    if user_metadata is None:
+        st.warning(f"Utilisateur `{user_id}` introuvable dans la base de données.")
+        return
+
+    # Human-readable French labels for each raw EnrichedUser field name
+    field_label_by_key = {
+        "user_id": "User ID",
+        "booking_cnt": "Réservations",
+        "consult_offer": "Consultations",
+        "has_added_offer_to_favorites": "Favoris",
+        "user_theoretical_remaining_credit": "Crédit restant (€)",
+        "user_deposit_initial_amount": "Dépôt initial (€)",
+        "user_birth_date": "Date de naissance",
+        "user_deposit_creation_date": "Date de dépôt",
+        "user_subscription_latitude": "Latitude (département)",
+        "user_subscription_longitude": "Longitude (département)",
+    }
+
+    metadata_table_rows = [
+        {"Champ": field_label_by_key.get(field_key, field_key), "Valeur": str(value) if value is not None else "—"}
+        for field_key, value in user_metadata.items()
+    ]
+    st.dataframe(pd.DataFrame(metadata_table_rows), use_container_width=True, hide_index=True)
+
+
 def render_playlist_recommendation_sidebar() -> tuple:
     """
     Displays the sidebar and gathers inputs from the user for the playlist recommendation.
@@ -152,6 +202,8 @@ def render_playlist_recommendation_sidebar() -> tuple:
         st.session_state.user_id = user_id_input
 
         _render_random_user_buttons()
+
+        _render_user_metadata_toggle(st.session_state.user_id)
 
         st.divider()
 
@@ -272,6 +324,83 @@ def render_similar_offer_sidebar() -> tuple:
         )
 
 
+def render_offer_page_playlists_sidebar() -> tuple:
+    """
+    Displays the sidebar and gathers inputs from the user for offer_page_playlists.
+
+    Returns:
+    - tuple: (offer_id, user_id, params dict, max_offers_to_fetch,
+              run_fetch_boolean, api_base_url, proxies, api_token)
+    """
+    with st.sidebar:
+        st.header("1. Paramètres de la Requête")
+
+        api_base_url, proxies, api_token = _render_api_url_input()
+
+        st.divider()
+
+        # Offer identification
+        st.markdown("**Sélection de l'offre**")
+        offer_id_input = st.text_input(
+            "Identifiant de l'offre source",
+            value=st.session_state.get("opp_offer_id", SWAGGER_UI_EXAMPLE_OFFER_ID),
+            help="ID de l'offre (MongoID) affichée sur la page offre",
+            label_visibility="collapsed",
+            placeholder="26429343",
+        )
+        st.session_state.opp_offer_id = offer_id_input
+
+        _render_random_offer_button(session_key="opp_offer_id")
+
+        st.divider()
+
+        # Optional user identification
+        st.markdown("**Utilisateur (optionnel)**")
+        user_id_input = st.text_input(
+            "Identifiant utilisateur",
+            value=st.session_state.get("opp_user_id", ""),
+            help="UUID de l'utilisateur pour personnaliser les playlists (optionnel)",
+            label_visibility="collapsed",
+            placeholder="Laisser vide pour ignorer",
+        )
+        st.session_state.opp_user_id = user_id_input
+
+        _render_random_user_buttons(session_key="opp_user_id")
+
+        st.divider()
+
+        offer_id = st.session_state.opp_offer_id
+        user_id = st.session_state.opp_user_id or None
+
+        # Geolocation selection
+        latitude, longitude = _render_geolocation_inputs()
+
+        # Display and action
+        st.subheader("Options d'Affichage")
+        max_offers_to_fetch = st.number_input(
+            "Nombre d'offres maximum à récupérer par playlist", min_value=1, max_value=20, value=20
+        )
+
+        run_btn = st.button("🚀 Obtenir les Playlists", type="primary")
+
+        # Mapping properties
+        params = {}
+        if latitude is not None and longitude is not None:
+            params["latitude"] = latitude
+            params["longitude"] = longitude
+
+        return (
+            offer_id,
+            user_id,
+            params,
+            max_offers_to_fetch,
+            run_btn,
+            api_base_url,
+            proxies,
+            api_token,
+        )
+
+
 def _render_random_user_buttons(session_key: str = "user_id"):
     """Renders buttons to fetch a random 'warm' or 'cold start' user."""
     col1, col2 = st.columns(2)
@@ -295,13 +424,13 @@ def _render_random_user_buttons(session_key: str = "user_id"):
                     st.toast("Aucun utilisateur cold start trouvé", icon="❌")
 
 
-def _render_random_offer_button():
+def _render_random_offer_button(session_key: str = "similar_offer_id"):
     """Renders a button to fetch a random offer from the database."""
-    if st.button("🎲 Offre aléatoire", use_container_width=True):
+    if st.button("🎲 Offre aléatoire", use_container_width=True, key=f"btn_random_offer_{session_key}"):
         with st.spinner("Recherche d'une offre aléatoire..."):
             oid = get_random_offer()
             if oid:
-                st.session_state.similar_offer_id = oid
+                st.session_state[session_key] = oid
                 st.rerun()
             else:
                 st.toast("Aucune offre trouvée", icon="❌")

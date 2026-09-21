@@ -28,48 +28,6 @@ class RedisCacheService:
         without cache disruption.
         """
         self.redis_client: redis.Redis | None = None
-        self._monitor_task: asyncio.Task | None = None
-        self._monitor_ready: asyncio.Event = asyncio.Event()
-
-    async def _monitor_connections(self) -> None:
-        """
-        Background task that periodically logs the number of active clients
-        connected to the Redis server.
-
-        Uses a distributed Redis lock (SET NX) to ensure that only one worker
-        across all instances logs the metrics at any given interval, preventing
-        log flooding in multi-worker / multi-instance deployments.
-        """
-        _MONITOR_LOCK_KEY = "redis_monitor_leader_lock"
-
-        while True:
-            try:
-                if self.redis_client is not None:
-                    # Try to acquire the distributed leader lock.
-                    # NX = only set if key does not exist (atomic).
-                    # EX = TTL slightly shorter than the interval so it expires
-                    #      before the next cycle, allowing leader rotation.
-                    ttl = max(1, settings.REDIS_MONITOR_INTERVAL_SECONDS - 1)
-                    acquired = await self.redis_client.set(
-                        name=_MONITOR_LOCK_KEY,
-                        value=1,
-                        nx=True,
-                        ex=ttl,
-                    )
-
-                    if acquired:
-                        # Only the leader logs the metrics
-                        info = await self.redis_client.info(section="clients")
-                        connected_clients = info.get("connected_clients", "unknown")
-                        logger.info(
-                            "📊 Redis Monitor: active global connections",
-                            extra={"connected_clients": connected_clients},
-                        )
-            except Exception as e:
-                logger.debug("Could not retrieve Redis connection info", extra={"error": str(e)})
-
-            self._monitor_ready.set()  # signal that the first iteration has completed
-            await asyncio.sleep(settings.REDIS_MONITOR_INTERVAL_SECONDS)
 
     async def connect(self) -> None:
         """
@@ -97,8 +55,6 @@ class RedisCacheService:
 
                 logger.info("Redis cache enabled and successfully connected.")
 
-                self._monitor_task = asyncio.create_task(self._monitor_connections())
-
             except Exception as connection_error:
                 logger.error(
                     "Failed to connect to Redis during initialization. Cache disabled.",
@@ -112,11 +68,6 @@ class RedisCacheService:
         Safely closes the Redis connection.
         Should be called during the application shutdown lifecycle.
         """
-        if self._monitor_task is not None:
-            self._monitor_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._monitor_task
-            self._monitor_task = None
 
         if self.redis_client is not None:
             try:
@@ -145,11 +96,19 @@ class RedisCacheService:
             return None
 
         try:
-            cached_data_string = await self.redis_client.get(name=cache_key)
+            cached_data_string = await asyncio.wait_for(
+                self.redis_client.get(name=cache_key),
+                timeout=settings.REDIS_TIMEOUT_SECONDS,
+            )
 
             if cached_data_string is not None:
                 return json.loads(cached_data_string)
 
+        except TimeoutError:
+            logger.warning(
+                "⏱️ Redis timeout on get_cached_value — treating as cache miss.",
+                extra={"cache_key": cache_key, "timeout_seconds": settings.REDIS_TIMEOUT_SECONDS},
+            )
         except Exception as redis_get_error:
             logger.warning(
                 "Failed to retrieve value from Redis",
@@ -173,8 +132,16 @@ class RedisCacheService:
         try:
             serialized_value = json.dumps(value_to_cache)
 
-            await self.redis_client.set(name=cache_key, value=serialized_value, ex=time_to_live_in_seconds)
+            await asyncio.wait_for(
+                self.redis_client.set(name=cache_key, value=serialized_value, ex=time_to_live_in_seconds),
+                timeout=settings.REDIS_TIMEOUT_SECONDS,
+            )
 
+        except TimeoutError:
+            logger.warning(
+                "⏱️ Redis timeout on set_cached_value — skipping cache write.",
+                extra={"cache_key": cache_key, "timeout_seconds": settings.REDIS_TIMEOUT_SECONDS},
+            )
         except Exception as redis_set_error:
             logger.warning(
                 "Failed to store value in Redis",
@@ -196,9 +163,17 @@ class RedisCacheService:
             return [None] * len(cache_keys)
 
         try:
-            raw_values = await self.redis_client.mget(cache_keys)
+            raw_values = await asyncio.wait_for(
+                self.redis_client.mget(cache_keys),
+                timeout=settings.REDIS_TIMEOUT_SECONDS,
+            )
             return [json.loads(v) if v is not None else None for v in raw_values]
 
+        except TimeoutError:
+            logger.warning(
+                "⏱️ Redis timeout on mget_cached_values — treating all keys as cache miss.",
+                extra={"keys_count": len(cache_keys), "timeout_seconds": settings.REDIS_TIMEOUT_SECONDS},
+            )
         except Exception as redis_mget_error:
             logger.warning(
                 "Failed to mget values from Redis",
@@ -208,7 +183,7 @@ class RedisCacheService:
                     "traceback": traceback.format_exc(),
                 },
             )
-            return [None] * len(cache_keys)
+        return [None] * len(cache_keys)
 
     async def mset_cached_values(self, key_value_pairs: dict[str, Any], time_to_live_in_seconds: int) -> None:
         """
@@ -228,8 +203,13 @@ class RedisCacheService:
             async with self.redis_client.pipeline(transaction=False) as pipe:
                 for key, value in key_value_pairs.items():
                     pipe.set(name=key, value=json.dumps(value), ex=time_to_live_in_seconds)
-                await pipe.execute()
+                await asyncio.wait_for(pipe.execute(), timeout=settings.REDIS_TIMEOUT_SECONDS)
 
+        except TimeoutError:
+            logger.warning(
+                "⏱️ Redis timeout on mset_cached_values — skipping batch cache write.",
+                extra={"keys_count": len(key_value_pairs), "timeout_seconds": settings.REDIS_TIMEOUT_SECONDS},
+            )
         except Exception as redis_mset_error:
             logger.warning(
                 "Failed to mset values in Redis",
