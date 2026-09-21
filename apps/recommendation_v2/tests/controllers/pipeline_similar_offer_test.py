@@ -2,6 +2,7 @@ import pytest
 
 from controllers.pipeline_similar_offer import SIMILAR_OFFERS_LIST_MAXIMUM_SIZE
 from controllers.pipeline_similar_offer import generate_similar_offers
+from core.user_context import GeoLocationSource
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.playlist_recommendation import RecommendationResponse
@@ -348,8 +349,8 @@ async def test_similar_offer_falls_back_to_playlist_recommendation_pipeline_when
     """
     reference_offer = await RecommendableOffersFactory.create_async(offer_id="offer-ref", item_id="item-ref")
 
-    # Force the similar-offer pipeline to produce zero results
-    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(predictions=[])
+    # Force the similar-offer pipeline to produce zero *legitimate* results (Vertex succeeded, no candidates).
+    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(predictions=[], status="success")
 
     # Prepare a predictable fallback response
     fallback_offer_ids = ["fallback-offer-1", "fallback-offer-2", "fallback-offer-3"]
@@ -376,6 +377,51 @@ async def test_similar_offer_falls_back_to_playlist_recommendation_pipeline_when
     assert response.params.reco_origin == "recommendation_fallback"
     assert response.params.model_origin == fallback_model_origin
     assert response.results == fallback_offer_ids
+
+
+@pytest.mark.asyncio
+async def test_similar_offer_does_not_fall_back_when_vertex_retrieval_fails(
+    db_session,
+    mock_vertex_retrieval,
+    mock_vertex_ranking,
+    mocker,
+):
+    """
+    Verifies that a Vertex retrieval failure (status='error') does NOT trigger the
+    playlist fallback, even though it also produces zero results.
+
+    The fallback exists to handle a genuine absence of similar offers (Vertex
+    responded with status='success' and 0 candidates), not to absorb an infra
+    failure. On failure the pipeline must return an honest empty response so the
+    caller can retry, instead of masking it with unrelated playlist recommendations.
+
+    Setup:
+    - Vertex retrieval returns status='error' with no predictions (as VertexAPI does
+      when it swallows an exception, see vertex_api.py fetch_retrieval_predictions).
+
+    Expected behaviour:
+    - generate_playlist_recommendations is never called.
+    - reco_origin remains 'similar_offer' (not 'recommendation_fallback').
+    - results is an empty list.
+    """
+    reference_offer = await RecommendableOffersFactory.create_async(offer_id="offer-ref", item_id="item-ref")
+
+    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(predictions=[], status="error")
+
+    mock_generate_playlist = mocker.patch(
+        "controllers.pipeline_similar_offer.generate_playlist_recommendations",
+        new_callable=mocker.AsyncMock,
+    )
+    mocker.patch("controllers.pipeline_similar_offer.log_past_offer_context_to_sink")
+
+    response = await generate_similar_offers(
+        db=db_session,
+        offer_id=reference_offer.offer_id,
+    )
+
+    mock_generate_playlist.assert_not_called()
+    assert response.params.reco_origin == "similar_offer"
+    assert response.results == []
 
 
 @pytest.mark.asyncio
@@ -431,3 +477,123 @@ async def test_similar_offer_does_not_fall_back_when_retrieval_model_is_graph(
     mock_generate_playlist.assert_not_called()
     assert response.params.reco_origin == "graph"
     assert response.results == []
+
+
+@pytest.mark.asyncio
+async def test_similar_offer_uses_subscription_centroid_when_gps_missing(
+    db_session,
+    mock_vertex_retrieval,
+    mock_vertex_ranking,
+    mocker,
+):
+    """
+    Verifies that the pipeline falls back to the user's subscription department centroid
+    when no GPS coordinates are provided, and that geolocation_source is set accordingly.
+
+    The subscription fallback takes priority over the offer's venue location.
+
+    Setup:
+    - The user has user_subscription_latitude and user_subscription_longitude set.
+    - The reference offer also has a venue location (lower-priority fallback).
+    - No GPS coordinates are passed.
+
+    Expected behaviour:
+    - user_context forwarded to resolve_closest_venues_from_items uses the
+      subscription centroid, NOT the offer venue.
+    - user_context.geolocation_source is "subscription_department".
+    """
+    bordeaux_lat, bordeaux_lon = 44.84, -0.58  # approximate Gironde department centroid
+    marseille_lat, marseille_lon = 43.30, 5.37
+
+    user = await EnrichedUserFactory.create_warm(
+        user_subscription_latitude=bordeaux_lat,
+        user_subscription_longitude=bordeaux_lon,
+    )
+    reference_offer = await RecommendableOffersFactory.create_async(
+        offer_id="offer-ref",
+        item_id="item-ref",
+        venue_latitude=marseille_lat,
+        venue_longitude=marseille_lon,
+    )
+
+    items = [RecommendableItemFactory.build(is_geolocated=False, total_offers=1) for _ in range(5)]
+    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(predictions=items)
+    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: offers
+
+    mock_resolve = mocker.patch(
+        "controllers.pipeline_similar_offer.resolve_closest_venues_from_items",
+        new_callable=mocker.AsyncMock,
+        return_value=[],
+    )
+    mocker.patch("controllers.pipeline_similar_offer.log_past_offer_context_to_sink")
+
+    await generate_similar_offers(
+        db=db_session,
+        offer_id=reference_offer.offer_id,
+        user_id=str(user.user_id),
+        latitude=None,
+        longitude=None,
+    )
+
+    call_args = mock_resolve.call_args
+    user_context = call_args.kwargs.get("user_context") or call_args[1].get("user_context") or call_args[0][2]
+
+    assert user_context.latitude == bordeaux_lat
+    assert user_context.longitude == bordeaux_lon
+    assert user_context.geolocation_source == "subscription_department", (
+        "Subscription centroid must take priority over offer venue when GPS is absent."
+    )
+
+
+@pytest.mark.asyncio
+async def test_similar_offer_sets_geolocation_source_offer_venue_when_no_user_and_no_gps(
+    db_session,
+    mock_vertex_retrieval,
+    mock_vertex_ranking,
+    mocker,
+):
+    """
+    Verifies that geolocation_source is set to 'offer_venue' when neither a user
+    (with subscription coords) nor GPS coordinates are available, but the reference
+    offer has a known venue location.
+
+    Expected behaviour:
+    - user_context.geolocation_source is "offer_venue".
+    - user_context carries the offer's venue coordinates as the effective location.
+    """
+    offer_lat, offer_lon = PARIS_LATITUDE, PARIS_LONGITUDE
+
+    reference_offer = await RecommendableOffersFactory.create_async(
+        offer_id="offer-with-venue",
+        item_id="item-with-venue",
+        venue_latitude=offer_lat,
+        venue_longitude=offer_lon,
+    )
+
+    items = [RecommendableItemFactory.build(is_geolocated=False, total_offers=1) for _ in range(5)]
+    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(predictions=items)
+    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: offers
+
+    mock_resolve = mocker.patch(
+        "controllers.pipeline_similar_offer.resolve_closest_venues_from_items",
+        new_callable=mocker.AsyncMock,
+        return_value=[],
+    )
+    mocker.patch("controllers.pipeline_similar_offer.log_past_offer_context_to_sink")
+
+    await generate_similar_offers(
+        db=db_session,
+        offer_id=reference_offer.offer_id,
+        user_id=None,
+        latitude=None,
+        longitude=None,
+    )
+
+    call_args = mock_resolve.call_args
+    user_context = call_args.kwargs.get("user_context") or call_args[1].get("user_context") or call_args[0][2]
+
+    assert user_context.latitude == offer_lat
+    assert user_context.longitude == offer_lon
+    assert user_context.geolocation_source == GeoLocationSource.OFFER_VENUE.value, (
+        "geolocation_source must be 'offer_venue' when GPS and subscription coords are both absent."
+    )

@@ -102,6 +102,7 @@ async def get_similar_offers(  # noqa: PLR0913
             "categories": [c.value for c in categories] if categories else None,
             "subcategories": [s.value for s in subcategories] if subcategories else None,
             "search_group_names": [s.value for s in search_group_names] if search_group_names else None,
+            "ab_test_variant_label": settings.AB_TEST_VARIANT_LABEL,
         },
     )
 
@@ -109,13 +110,19 @@ async def get_similar_offers(  # noqa: PLR0913
     cache_h3_resolution = settings.ENDPOINT_RESPONSE_CACHE_H3_RESOLUTION
     h3_index = get_h3_index_from_coordinates(latitude, longitude, resolution=cache_h3_resolution)
 
+    # Build the request signature used to derive the Redis cache key.
+    # Dict key order and list element order do NOT matter here:
+    # RedisAPI.generate_cache_key applies _deep_normalize, which recursively sorts
+    # all dict keys and all list values before hashing. Two semantically identical
+    # requests (e.g. categories=["CINEMA","LIVRE"] vs categories=["LIVRE","CINEMA"])
+    # will therefore always resolve to the same cache key.
     request_signature_data = {
         "offer_id": offer_id,
         "user_id": user_id,
         "location_h3": h3_index,
-        "categories": sorted([c.value for c in categories]) if categories else None,
-        "subcategories": sorted([s.value for s in subcategories]) if subcategories else None,
-        "search_group_names": sorted([s.value for s in search_group_names]) if search_group_names else None,
+        "categories": [c.value for c in categories] if categories else None,
+        "subcategories": [s.value for s in subcategories] if subcategories else None,
+        "search_group_names": [s.value for s in search_group_names] if search_group_names else None,
         "retrieval_model": retrieval_model,
     }
 
@@ -157,8 +164,13 @@ async def get_similar_offers(  # noqa: PLR0913
         retrieval_model=retrieval_model,
     )
 
-    # Store the newly generated result in Cache
-    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
+    # Store the newly generated result in Cache.
+    # An empty result may come from a transient Vertex AI failure — never cache it,
+    # otherwise a temporary infra issue would be frozen in the cache for the whole TTL.
+    # A "recommendation_fallback" result comes from the playlist pipeline, not
+    # similar_offer, so it must not be cached under the similar_offer namespace either.
+    should_cache_result = bool(result.results) and result.params.reco_origin != "recommendation_fallback"
+    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED and should_cache_result:
         await redis_api.store_endpoint_response(
             namespace_prefix="similar_offer",
             request_signature_data=request_signature_data,

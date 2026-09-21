@@ -76,6 +76,7 @@ async def get_playlist(
             "longitude": longitude,
             "is_geolocated": latitude is not None and longitude is not None,
             "params": params.model_dump(mode="json"),
+            "ab_test_variant_label": settings.AB_TEST_VARIANT_LABEL,
         },
     )
 
@@ -83,6 +84,12 @@ async def get_playlist(
     cache_h3_resolution = settings.ENDPOINT_RESPONSE_CACHE_H3_RESOLUTION
     h3_index = get_h3_index_from_coordinates(latitude, longitude, resolution=cache_h3_resolution)
 
+    # Build the request signature used to derive the Redis cache key.
+    # Dict key order and list element order do NOT matter here:
+    # RedisAPI.generate_cache_key applies _deep_normalize, which recursively sorts
+    # all dict keys and all list values before hashing. Two semantically identical
+    # requests (e.g. categories=["CINEMA","LIVRE"] vs categories=["LIVRE","CINEMA"])
+    # will therefore always resolve to the same cache key.
     request_signature_data = {
         "user_id": user_id,
         "location_h3": h3_index,
@@ -118,8 +125,10 @@ async def get_playlist(
     result = await generate_playlist_recommendations(
         db=db, user_id=user_id, latitude=latitude, longitude=longitude, params=params
     )
-    # Store the newly generated result in Cache
-    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED:
+    # Store the newly generated result in Cache.
+    # An empty playlist may come from a transient Vertex AI failure — never cache it,
+    # otherwise a temporary infra issue would be frozen in the cache for the whole TTL.
+    if settings.ENDPOINT_RESPONSE_CACHE_ENABLED and result.playlist_recommended_offers:
         await redis_api.store_endpoint_response(
             namespace_prefix="playlist_recommendation",
             request_signature_data=request_signature_data,

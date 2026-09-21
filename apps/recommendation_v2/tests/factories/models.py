@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.iris import IrisFrance
 from models.items import NonRecommendableItems
+from models.offer import OfferMetadata
 from models.offer import RecommendableOffers
 from models.past_offer_context import PastOfferContext
 from models.similar_artists import SimilarArtist
@@ -95,7 +96,10 @@ class EnrichedUserFactory(BaseModelFactory[EnrichedUser]):
             max_age: Maximum age in years (exclusive).
 
         Returns:
-            A timezone-aware ``datetime`` in UTC representing the birth date.
+            A timezone-naive ``datetime`` (UTC wall-clock) representing the birth
+            date. The ``user_birth_date`` column is stored as
+            ``TIMESTAMP WITHOUT TIME ZONE`` in the database, so the value must be
+            naive to avoid asyncpg raising a ``DataError`` on insert.
         """
         days_in_year = 365.25
 
@@ -104,7 +108,7 @@ class EnrichedUserFactory(BaseModelFactory[EnrichedUser]):
             int(max_age * days_in_year) - 1,
         )
 
-        return datetime.now(UTC) - timedelta(days=random_age_in_days)
+        return (datetime.now(UTC) - timedelta(days=random_age_in_days)).replace(tzinfo=None)
 
     @classmethod
     async def create_cold_start(cls, **kwargs: Any) -> EnrichedUser:
@@ -177,3 +181,7 @@ class PastOfferContextFactory(BaseModelFactory[PastOfferContext]):
 
 class SimilarArtistFactory(BaseModelFactory[SimilarArtist]):
     __model__ = SimilarArtist
+
+
+class OfferMetadataFactory(BaseModelFactory[OfferMetadata]):
+    __model__ = OfferMetadata

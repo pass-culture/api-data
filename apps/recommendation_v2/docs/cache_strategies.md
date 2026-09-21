@@ -204,7 +204,6 @@ ttl = RedisAPI.calculate_seconds_until_next_database_population_time()
 | `REDIS_CACHE_RESET_HOUR` | Hour [0-23] of daily cache expiry | `5` | `5` |
 | `REDIS_AUTH_STRING` | Redis authentication token (optional) | `""` | — |
 | `REDIS_CA_CERT_PATH` | Path to PEM certificate for Redis TLS | `""` | — |
-| `REDIS_MONITOR_INTERVAL_SECONDS` | Background monitor polling interval (seconds) | `600` | `600` |
 | `ENDPOINT_RESPONSE_CACHE_ENABLED` | Enables the HTTP endpoint response cache | `0` | `1` |
 | `ENDPOINT_RESPONSE_CACHE_H3_RESOLUTION` | H3 resolution for the location signature | `8` | `8` |
 | `OFFER_RESOLUTION_CACHE_ENABLED` | Enables the offer resolution cache | `0` | `1` |

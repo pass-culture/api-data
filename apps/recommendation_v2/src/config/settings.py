@@ -107,6 +107,13 @@ SWAGGER_UI_EXAMPLE_OFFER_ID: str = os.environ.get("SWAGGER_UI_EXAMPLE_OFFER_ID",
 SIMILAR_OFFER_MODEL_CONTEXT: str = os.environ.get("SIMILAR_OFFER_MODEL_CONTEXT", "default")
 PLAYLIST_RECOMMENDATION_MODEL_CONTEXT: str = os.environ.get("RECO_MODEL_CONTEXT", "default")
 
+# --- 7b. Deployment Version ---
+# Stable label identifying the A/B test variant served by this Cloud Run revision.
+# Convention: "main" for baseline, "<ab-test-name>" for variants (e.g. "ab71-graph-music").
+# Injected automatically into the HTTP cache key, API response and BigQuery tracking sink.
+# See docs/ab_testing.md for the full A/B testing strategy and conventions.
+AB_TEST_VARIANT_LABEL: str = os.environ.get("AB_TEST_VARIANT_LABEL", "main")
+
 # --- 8. Tracking Configuration ---
 ENABLE_TRACKING_LOGS: bool = bool(int(os.environ.get("ENABLE_TRACKING_LOGS", "1")))
 
@@ -129,9 +136,9 @@ if GEOSPATIAL_RETRIEVAL_H3_RESOLUTION not in VALID_H3_RESOLUTIONS:  # pragma: no
 REDIS_CACHE_ENABLED: bool = bool(int(os.environ.get("REDIS_CACHE_ENABLED", "0" if IS_LOCAL else "1")))
 REDIS_URL: str = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 REDIS_CACHE_RESET_HOUR: int = int(os.environ.get("REDIS_CACHE_RESET_HOUR", "5"))
-REDIS_MONITOR_INTERVAL_SECONDS: int = int(os.environ.get("REDIS_MONITOR_INTERVAL_SECONDS", "600"))
 REDIS_CA_CERT_PATH: str = os.environ.get("REDIS_CA_CERT_PATH", "")  # Path to PEM file for Redis TLS
 REDIS_AUTH_STRING: str = os.environ.get("REDIS_AUTH_STRING", "")  # Optional auth string for Redis
+REDIS_TIMEOUT_SECONDS: float = float(os.environ.get("REDIS_TIMEOUT_SECONDS", "0.3"))
 
 # Cache Strategy Flags
 # Each flag controls an independent caching strategy.
