@@ -8,6 +8,9 @@ class ItemOrigin(StrEnum):
     USER_BASED = "user_based"
     TOPS = "tops"
     GRAPH = "graph"
+    # AB TEST — item retrieved from the semantic item-to-item endpoint (RFF).
+    # See docs/ab_testing.md and controllers/pipeline_similar_offer.py.
+    SEMANTIC = "semantic"
 
 
 class RecommendableItem(BaseModel):

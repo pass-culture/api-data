@@ -86,6 +86,12 @@ VERTEX_GRAPH_ENDPOINT_NAME: str = os.environ.get("VERTEX_GRAPH_ENDPOINT_NAME", "
 
 VERTEX_RANKING_ENDPOINT_NAME: str = os.environ.get("VERTEX_RANKING_ENDPOINT_NAME", "recommendation_user_ranking_stg")
 
+# Semantic item-to-item retrieval endpoint (RFF), served by the "semantic" flavor of the
+# retrieval_vector job (jobs/ml_jobs/retrieval_vector). model_type="semantic_search".
+# See apps/recommendation_v2/docs/ab_testing.md — used only by the
+# "category tops + semantic retrieval" A/B test variant of the similar_offer fallback.
+VERTEX_SEMANTIC_ENDPOINT_NAME: str = os.environ.get("VERTEX_SEMANTIC_ENDPOINT_NAME", "semantic_item_retrieval_stg")
+
 VERTEX_PREDICTION_TIMEOUT: float = float(os.environ.get("VERTEX_PREDICTION_TIMEOUT", "10.0" if IS_LOCAL else "2.0"))
 
 # Human-readable descriptions logged to BigQuery via the tracking sink.
@@ -97,6 +103,10 @@ VERTEX_SIMILAR_OFFER_MODEL_DESCRIPTION: str = os.environ.get(
 )
 VERTEX_RECOMMENDATION_MODEL_DESCRIPTION: str = os.environ.get(
     "VERTEX_RECOMMENDATION_MODEL_DESCRIPTION", "Recommendation Configuration (default)"
+)
+VERTEX_SEMANTIC_RETRIEVAL_MODEL_DESCRIPTION: str = os.environ.get(
+    "VERTEX_SEMANTIC_RETRIEVAL_MODEL_DESCRIPTION",
+    "AB TEST — similar_offer fallback: category tops + semantic retrieval (RFF).",
 )
 
 # --- 6. Swagger UI for API Testing ---

@@ -1,18 +1,21 @@
+import asyncio
 import uuid
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
-from controllers.pipeline_playlist_recommendation import generate_playlist_recommendations
 from core.diversification import apply_offer_diversification
 from core.geo import get_iris_id_from_coordinates
 from core.geo import resolve_effective_geolocation
 from core.offer_resolution import resolve_closest_venues_from_items
 from core.ranking import rank_and_sort_offers_with_vertex
+from core.retrieval import build_semantic_retrieval_payload
 from core.retrieval import build_similar_offer_retrieval_payload
+from core.retrieval import deduplicate_candidate_items_by_item_id
 from core.retrieval import fetch_graph_predictions_from_vertex
 from core.retrieval import fetch_retrieval_predictions_from_vertex
+from core.retrieval import fetch_semantic_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
 from core.tracking import log_past_offer_context_to_sink
 from core.user_context import UNAUTHENTICATED_USER_ID
@@ -22,7 +25,6 @@ from models.user import EnrichedUser
 from schemas.categories import CategoryEnum
 from schemas.categories import SearchGroupNameEnum
 from schemas.categories import SubcategoryEnum
-from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.similar_offer import SimilarOfferModelChoices
 from schemas.similar_offer import SimilarOfferResponse
@@ -33,7 +35,7 @@ from services.logger import logger
 SIMILAR_OFFERS_LIST_MAXIMUM_SIZE = 20
 
 
-async def generate_similar_offers(  # noqa: PLR0913
+async def generate_similar_offers(  # noqa: PLR0913, PLR0915
     db: AsyncSession,
     offer_id: str,
     retrieval_model: SimilarOfferModelChoices = SimilarOfferModelChoices.coreservation,
@@ -59,8 +61,9 @@ async def generate_similar_offers(  # noqa: PLR0913
     4. Resolution: Maps ML items to actual offers, resolving spatial proximity if location data is provided.
     5. Ranking: Re-orders the resolved offers using a dedicated Vertex AI scoring model.
     6. Diversification & Truncation: Shuffles and interleaves categories, then caps the list to a maximum size.
-    7. Fallback (coreservation only): If the pipeline produces zero results, delegates entirely to
-     generate_playlist_recommendations, preserving the original category filters.
+    7. Fallback (coreservation only): If the pipeline produces zero results, builds a replacement playlist
+     from category-restricted tops + semantic (RFF) retrieval, then re-runs the same filter/resolve/rank/
+     diversify steps (see AB TEST HACK block below).
     8. Logging: Pushes the context and results to storage for future analysis.
 
     Args:
@@ -222,58 +225,139 @@ async def generate_similar_offers(  # noqa: PLR0913
     )
 
     # --- 7. Fallback Phase (coreservation only) ---
-    # If the full pipeline produced zero results, delegate entirely to generate_playlist_recommendations.
-    # That function handles its own retrieval, ranking, diversification, and logging — no duplication needed.
     # This fallback is meant for a genuine absence of similar offers, not for a transient Vertex AI
     # failure: when retrieval fails, vertex_raw_predictions.status is "error" (see VertexAPI), and we
-    # must NOT delegate to the playlist pipeline — an honest empty response allows a future retry
-    # instead of masking the failure behind unrelated playlist recommendations.
+    # must NOT trigger a fallback playlist — an honest empty response allows a future retry
+    # instead of masking the failure behind unrelated recommendations.
     vertex_retrieval_failed = vertex_raw_predictions.status == "error"
     is_coreservation_model = retrieval_model == SimilarOfferModelChoices.coreservation
     if is_coreservation_model and len(final_similar_offers) == 0 and not vertex_retrieval_failed:
-        logger.warning(
-            "⚠️ No similar offers found with coreservation model. Falling back to standard recommendation pipeline.",
+        # --- HACK for AB testing ---
+        # Context: On an offer page, when the "similar offers" (coreservation) pipeline produces zero
+        # results (e.g. new/niche offer with no comparable items after venue resolution/diversification),
+        # the frontend still needs a playlist to display. Today's baseline ("version A") fully delegates
+        # to generate_playlist_recommendations, which mixes personalized recommendation (if the user has
+        # history) with three generic multi-category "tops" retrievals (top ever by booking_number,
+        # trending by recent creation/release velocity) — i.e. the exact same "Tops" content already shown
+        # elsewhere in the app, regardless of the original offer's category. The DS team's hypothesis is
+        # that this generic "Tops" content pollutes offer-page playlists and hurts booking/consultation.
+        #
+        # This AB test ("version B") recomposes the fallback playlist instead:
+        #   - "tops de la catégorie": tops restricted to the same category/subcategory/search_group_name
+        #     filters as the original similar_offer request (instead of the unfiltered, cross-category tops
+        #     used by generate_playlist_recommendations), via the existing build_similar_offer_retrieval_payload
+        #     helper (item_id=None => model_type="tops", vector_column_name="booking_number_desc").
+        #   - "retrieval sémantique (RFF)": item-to-item neighbors of the reference offer from the new
+        #     semantic retrieval endpoint (jobs/ml_jobs/retrieval_vector "semantic" flavor, LanceDB item
+        #     embeddings produced by the item_embedding microservice), fetched in parallel via
+        #     build_semantic_retrieval_payload / fetch_semantic_predictions_from_vertex.
+        # Both candidate pools are merged, deduplicated, then routed through the SAME
+        # filter/resolve/rank/diversify pipeline as the main similar_offer flow (steps 3-6 above), so the
+        # comparison between A and B isolates the *source* of the fallback candidates, not the downstream
+        # ranking/diversification logic.
+        #
+        # Trigger condition: identical to version A — coreservation model, zero final offers after the
+        # main pipeline, and no transient Vertex AI error (unchanged, not part of the AB test itself).
+        #
+        # Why keep the semantic call even when reference_item_id is None (offer not found in DB)?
+        # build_semantic_retrieval_payload sends an empty `items` list in that case, which the semantic
+        # endpoint returns as zero predictions (no anchor to search neighbors from) — the category-tops
+        # leg still provides candidates, so the playlist degrades gracefully instead of crashing.
+        #
+        # Offer resolution cache: NOT isolated per variant. This test only changes which items are
+        # retrieved (category tops + semantic neighbors vs. generic tops + personalized), not how a
+        # given item_id is resolved to its closest venue (core/offer_resolution.py is untouched).
+        logger.debug(
+            "⚠️ 🧪 [A/B TEST] AB test hack triggered: => similar_offer fallback replaced with "
+            "category tops + semantic retrieval (RFF), replacing the generic playlist_recommendation "
+            "fallback (tops ever/trending across all categories).",
             extra={
+                "call_id": call_id,
                 "offer_id": offer_id,
-                "latitude": latitude,
-                "longitude": longitude,
-                "categories": categories,
-                "subcategories": subcategories,
-                "search_group_names": search_group_names,
+                "item_id": reference_item_id,
+                "original_fallback": "generate_playlist_recommendations (cross-category tops + personalized)",
+                "new_fallback": "category_tops + semantic_retrieval",
+                "categories": [c.value for c in categories] if categories else None,
+                "subcategories": [s.value for s in subcategories] if subcategories else None,
+                "search_group_names": [s.value for s in search_group_names] if search_group_names else None,
             },
         )
-        fallback_params = PlaylistRequestParams(
+
+        category_tops_payload = build_similar_offer_retrieval_payload(
+            user_context=user_context,
+            call_id=call_id,
+            item_id=None,
             categories=categories,
             subcategories=subcategories,
             search_group_names=search_group_names,
         )
-        fallback_response = await generate_playlist_recommendations(
-            db=db,
+        semantic_payload = build_semantic_retrieval_payload(
+            call_id=call_id,
             user_id=user_context.user_id,
-            latitude=user_context.latitude,
-            longitude=user_context.longitude,
-            params=fallback_params,
+            item_id=reference_item_id,
+            categories=categories,
+            subcategories=subcategories,
+            search_group_names=search_group_names,
+        )
+
+        category_tops_result, semantic_result = await asyncio.gather(
+            fetch_retrieval_predictions_from_vertex(category_tops_payload),
+            fetch_semantic_predictions_from_vertex(semantic_payload),
+        )
+
+        fallback_candidate_items = deduplicate_candidate_items_by_item_id(
+            category_tops_result.predictions + semantic_result.predictions
         )
 
         logger.info(
-            "↩️ Fallback to playlist_recommendation pipeline completed.",
+            "📦 [A/B TEST] Fallback candidates retrieved (category tops + semantic).",
             extra={
-                "fallback_call_id": fallback_response.params.call_id,
-                "fallback_results_count": len(
-                    fallback_response.playlist_recommended_offers[:SIMILAR_OFFERS_LIST_MAXIMUM_SIZE]
-                ),
+                "category_tops_count": len(category_tops_result.predictions),
+                "semantic_count": len(semantic_result.predictions),
+                "after_dedup": len(fallback_candidate_items),
             },
         )
 
+        if user_context.is_authenticated:
+            fallback_candidate_items = await filter_out_already_booked_items(
+                db=db, candidate_items=fallback_candidate_items, user_id=user_context.user_id
+            )
+
+        fallback_resolved_offers = await resolve_closest_venues_from_items(
+            db=db, candidate_items=fallback_candidate_items, user_context=user_context
+        )
+        fallback_ranked_offers = await rank_and_sort_offers_with_vertex(fallback_resolved_offers, user_context)
+        fallback_diversified_offers = apply_offer_diversification(
+            fallback_ranked_offers, should_shuffle_initial_list=False
+        )
+        final_fallback_offers = fallback_diversified_offers[:SIMILAR_OFFERS_LIST_MAXIMUM_SIZE]
+
+        logger.info(
+            "↩️ [A/B TEST] Fallback (category tops + semantic) completed.",
+            extra={"fallback_results_count": len(final_fallback_offers)},
+        )
+
+        log_past_offer_context_to_sink(
+            user_context=user_context,
+            final_playlist=final_fallback_offers,
+            params=None,
+            call_id=call_id,
+            reco_origin="similar_offer_fallback_category_tops_semantic",
+            context_name="similar_offer",
+            model_description=settings.VERTEX_SEMANTIC_RETRIEVAL_MODEL_DESCRIPTION,
+            input_offer_id=offer_id,
+        )
+
         return SimilarOfferResponse(
-            results=fallback_response.playlist_recommended_offers[:SIMILAR_OFFERS_LIST_MAXIMUM_SIZE],
+            results=[offer.offer_id for offer in final_fallback_offers],
             params=RecommendationMetadata(
-                reco_origin="recommendation_fallback",
-                model_origin=fallback_response.params.model_origin,
+                reco_origin="similar_offer_fallback_category_tops_semantic",
+                model_origin=settings.SIMILAR_OFFER_MODEL_CONTEXT,
                 call_id=call_id,
                 ab_test=settings.AB_TEST_VARIANT_LABEL,
             ),
         )
+        # --- End of HACK for AB testing ---
 
     # --- 8. Logging Phase ---
     recommendation_origin = "similar_offer" if retrieval_model == SimilarOfferModelChoices.coreservation else "graph"

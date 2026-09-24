@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from connectors import graph_api_client
 from connectors import retrieval_api_client
+from connectors import semantic_retrieval_api_client
 from connectors.vertex_api import VertexPredictionResult
 from core.user_context import UserContext
 from models.items import NonRecommendableItems
@@ -448,6 +449,78 @@ def build_similar_offer_retrieval_payload(
         prediction_payload["model_type"] = "similar_offer"
 
     return prediction_payload
+
+
+# ==============================================================================
+# SIMILAR OFFER — AB TEST FALLBACK: SEMANTIC RETRIEVAL (RFF)
+# ==============================================================================
+
+# Kept small: this feeds the similar_offer zero-result fallback playlist (capped at
+# SIMILAR_OFFERS_LIST_MAXIMUM_SIZE downstream), not a full-size retrieval pool.
+SEMANTIC_FALLBACK_RETRIEVAL_SIZE = 50
+
+
+def build_semantic_retrieval_payload(
+    call_id: str,
+    user_id: str,
+    item_id: str | None,
+    categories: list[CategoryEnum] | None = None,
+    subcategories: list[SubcategoryEnum] | None = None,
+    search_group_names: list[SearchGroupNameEnum] | None = None,
+) -> dict[str, Any]:
+    """
+    Builds the prediction payload for the semantic item-to-item retrieval endpoint (RFF).
+
+    AB TEST: used only by the "category tops + semantic retrieval" variant of the
+    similar_offer fallback (see controllers/pipeline_similar_offer.py). This endpoint is
+    served by the "semantic" flavor of jobs/ml_jobs/retrieval_vector — a LanceDB table of
+    item embeddings produced by the item_embedding microservice, distinct from the
+    two-tower ("coreservation") and graph endpoints.
+
+    Args:
+        call_id (str): Tracker call id.
+        user_id (str): The requesting user's id (or the unauthenticated sentinel).
+        item_id (str | None): ID of the reference item to find semantic neighbors for.
+            If None (reference offer not found in DB), no anchor item is sent — the
+            endpoint's `items` list is left empty and callers should expect no results.
+        categories (list[CategoryEnum] | None): Filter by categories.
+        subcategories (list[SubcategoryEnum] | None): Filter by subcategories.
+        search_group_names (list[SearchGroupNameEnum] | None): Filter by search groups.
+
+    Returns:
+        dict[str, Any]: The prediction payload for the semantic_search model_type.
+    """
+    prediction_payload: dict[str, Any] = {
+        "call_id": call_id,
+        "user_id": user_id,
+        "model_type": "semantic_search",
+        "items": [item_id] if item_id else [],
+        "debug": 1,
+        "size": SEMANTIC_FALLBACK_RETRIEVAL_SIZE,
+    }
+
+    if categories or subcategories or search_group_names:
+        prediction_payload["params"] = _build_similar_offer_search_filters(
+            categories=categories,
+            subcategories=subcategories,
+            search_group_names=search_group_names,
+        )
+
+    return prediction_payload
+
+
+@log_execution_time
+async def fetch_semantic_predictions_from_vertex(prediction_payload: dict[str, Any]) -> VertexPredictionResult:
+    """
+    Calls the semantic item-to-item retrieval endpoint (RFF) to fetch candidate item IDs.
+
+    AB TEST: see build_semantic_retrieval_payload.
+    """
+    prediction_result = await semantic_retrieval_api_client.fetch_retrieval_predictions(
+        feature_payloads=[prediction_payload]
+    )
+
+    return prediction_result
 
 
 # ==============================================================================

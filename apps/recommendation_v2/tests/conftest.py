@@ -205,6 +205,8 @@ def mock_vertex_retrieval(mocker):
       → returns a ``VertexPredictionResult``.
     - ``fetch_graph_predictions_from_vertex`` (similar-offer pipeline, ``retrieval_model=graph`` path)
       → returns a ``VertexPredictionResult``.
+    - ``fetch_semantic_predictions_from_vertex`` (similar-offer pipeline, AB TEST fallback path
+      — category tops + semantic retrieval, see docs/ab_testing.md) → returns a ``VertexPredictionResult``.
     """
     mock_retrieval_playlist = mocker.patch(
         "controllers.pipeline_playlist_recommendation.fetch_all_playlist_recommendation_retrieval_predictions_from_vertex",
@@ -218,11 +220,16 @@ def mock_vertex_retrieval(mocker):
         "controllers.pipeline_similar_offer.fetch_graph_predictions_from_vertex",
         new_callable=mocker.AsyncMock,
     )
+    mock_retrieval_semantic = mocker.patch(
+        "controllers.pipeline_similar_offer.fetch_semantic_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+    )
     mock_retrieval_playlist.return_value = RecommendableItemFactory.batch(10)
     mock_retrieval_similar.return_value = VertexPredictionResultFactory.build()
     mock_retrieval_graph.return_value = VertexPredictionResultFactory.build()
+    mock_retrieval_semantic.return_value = VertexPredictionResultFactory.build(predictions=[])
 
-    return mock_retrieval_playlist, mock_retrieval_similar, mock_retrieval_graph
+    return mock_retrieval_playlist, mock_retrieval_similar, mock_retrieval_graph, mock_retrieval_semantic
 
 
 @pytest.fixture(autouse=True)

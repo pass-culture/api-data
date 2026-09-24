@@ -75,6 +75,8 @@ class VertexAPI:
             "recommendation": ItemOrigin.USER_BASED,
             "similar_offer": ItemOrigin.USER_BASED,
             "tops": ItemOrigin.TOPS,
+            # AB TEST — model_type used against the semantic retrieval endpoint (RFF).
+            "semantic_search": ItemOrigin.SEMANTIC,
         }
 
         if model_type not in model_type_to_item_origin:
@@ -122,6 +124,18 @@ class VertexAPI:
                 self.endpoint_name
             )
 
+            # AB TEST — the semantic retrieval endpoint (RFF, model_type="semantic_search") is backed by a
+            # LanceDB table with a much narrower schema than the two-tower/graph "items" table: it only
+            # exposes item_id, item_name, item_description, search_text, category, subcategory_id (+ _distance
+            # in debug mode). Fields like booking_number*, stock_price, gtl_*, is_geolocated, total_offers,
+            # example_offer_id/venue_* and offer_creation_date/stock_beginning_date simply do not exist there.
+            # We therefore read every non-guaranteed field defensively via .get(...) with a safe default instead
+            # of raw_prediction[...], so this shared parser keeps working for the new endpoint without changing
+            # behavior for the existing two-tower/graph endpoints (which always populate these fields).
+            # is_geolocated defaults to True and total_offers to 2 (i.e. "not 1") so that semantic-origin items
+            # are always routed through the standard multi-venue DB resolution (core/offer_resolution.py),
+            # which resolves the closest physical venue by item_id regardless of the item's true geolocation
+            # status — the safest choice given we have no geo metadata from this endpoint.
             parsed_predictions = []
             for raw_prediction in response.predictions:
                 parsed_item = RecommendableItem(
@@ -135,22 +149,22 @@ class VertexAPI:
                     item_cluster_id=raw_prediction.get("cluster_id", None),
                     item_topic_id=raw_prediction.get("topic_id", None),
                     semantic_emb_mean=raw_prediction.get("semantic_emb_mean", None),
-                    is_geolocated=bool(raw_prediction["is_geolocated"]),
-                    booking_number=raw_prediction["booking_number"],
-                    booking_number_last_7_days=raw_prediction["booking_number_last_7_days"],
-                    booking_number_last_14_days=raw_prediction["booking_number_last_14_days"],
-                    booking_number_last_28_days=raw_prediction["booking_number_last_28_days"],
-                    stock_price=raw_prediction["stock_price"],
+                    is_geolocated=bool(raw_prediction.get("is_geolocated", True)),
+                    booking_number=raw_prediction.get("booking_number", 0),
+                    booking_number_last_7_days=raw_prediction.get("booking_number_last_7_days", 0),
+                    booking_number_last_14_days=raw_prediction.get("booking_number_last_14_days", 0),
+                    booking_number_last_28_days=raw_prediction.get("booking_number_last_28_days", 0),
+                    stock_price=raw_prediction.get("stock_price", 0.0),
                     category=raw_prediction["category"],
                     subcategory_id=raw_prediction["subcategory_id"],
-                    search_group_name=raw_prediction["search_group_name"],
-                    offer_creation_date=raw_prediction["offer_creation_date"],
-                    stock_beginning_date=raw_prediction["stock_beginning_date"],
-                    gtl_id=raw_prediction["gtl_id"],
-                    gtl_l3=raw_prediction["gtl_l3"],
-                    gtl_l4=raw_prediction["gtl_l4"],
-                    total_offers=raw_prediction["total_offers"],
-                    example_offer_id=raw_prediction.get("example_offer_id", None),
+                    search_group_name=raw_prediction.get("search_group_name", raw_prediction["category"]),
+                    offer_creation_date=raw_prediction.get("offer_creation_date", None),
+                    stock_beginning_date=raw_prediction.get("stock_beginning_date", None),
+                    gtl_id=raw_prediction.get("gtl_id", None),
+                    gtl_l3=raw_prediction.get("gtl_l3", None),
+                    gtl_l4=raw_prediction.get("gtl_l4", None),
+                    total_offers=raw_prediction.get("total_offers", 2),
+                    example_offer_id=raw_prediction.get("example_offer_id", ""),
                     example_venue_latitude=raw_prediction.get("example_venue_latitude", None),
                     example_venue_longitude=raw_prediction.get("example_venue_longitude", None),
                 )
