@@ -2,7 +2,11 @@ import pytest
 
 from controllers.pipeline_similar_offer import SIMILAR_OFFERS_LIST_MAXIMUM_SIZE
 from controllers.pipeline_similar_offer import generate_similar_offers
+from core.retrieval import AVAILABLE_MOVIE_SUBCATEGORIES
+from core.retrieval import MOVIE_LIKE_CATEGORIES
 from core.user_context import GeoLocationSource
+from schemas.categories import CategoryEnum
+from schemas.categories import SubcategoryEnum
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.playlist_recommendation import RecommendationResponse
@@ -25,6 +29,7 @@ def _make_enriched_offer(
     offer_id: str,
     search_group_name: str = "LIVRES",
     item_score: float = 1.0,
+    item_rank: int = 1,
 ) -> EnrichedRecommendableOffer:
     return EnrichedRecommendableOffer(
         offer_id=offer_id,
@@ -36,7 +41,7 @@ def _make_enriched_offer(
         venue_longitude=None,
         offer_user_distance=None,
         item_score=item_score,
-        item_rank=1,
+        item_rank=item_rank,
         item_origin=ItemOrigin.TOPS,
         retrieval_vector_column=None,
         semantic_emb_mean=None,
@@ -597,3 +602,196 @@ async def test_similar_offer_sets_geolocation_source_offer_venue_when_no_user_an
     assert user_context.geolocation_source == GeoLocationSource.OFFER_VENUE.value, (
         "geolocation_source must be 'offer_venue' when GPS and subscription coords are both absent."
     )
+
+
+# ---------------------------------------------------------------------------
+# AB test "ab-test-algo-cine-rrf" — cinema RRF retrieval
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_similar_offer_uses_cinema_rrf_when_cinema_categories_and_coreservation_model(
+    db_session,
+    mock_vertex_retrieval,
+    mock_vertex_ranking,
+    mocker,
+):
+    """
+    A coreservation request with categories=[CINEMA, FILM] must trigger the cinema RRF HACK:
+    - the standard single-endpoint retrieval (fetch_retrieval_predictions_from_vertex) must NOT
+      be called from the controller,
+    - fetch_similar_offer_cinema_rrf_retrieval_predictions_from_vertex must be called instead,
+    - the Vertex AI ranking model (rank_and_sort_offers_with_vertex) must NOT be called,
+    - the final results must be ordered by the RRF-fused item_rank (ascending) instead.
+    """
+    reference_offer = await RecommendableOffersFactory.create_async(offer_id="offer-ref", item_id="item-ref")
+
+    mock_cinema_rrf_retrieval = mocker.patch(
+        "controllers.pipeline_similar_offer.fetch_similar_offer_cinema_rrf_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=VertexPredictionResultFactory.build(
+            status="success", predictions=RecommendableItemFactory.batch(3)
+        ),
+    )
+
+    # Resolved out of RRF order on purpose, to prove the ranking step re-sorts by item_rank
+    # rather than trusting the order resolve_closest_venues_from_items happens to return.
+    offer_rank_1 = _make_enriched_offer("offer-A", item_rank=1)
+    offer_rank_2 = _make_enriched_offer("offer-B", item_rank=2)
+    offer_rank_3 = _make_enriched_offer("offer-C", item_rank=3)
+    mocker.patch(
+        "controllers.pipeline_similar_offer.resolve_closest_venues_from_items",
+        new_callable=mocker.AsyncMock,
+        return_value=[offer_rank_3, offer_rank_1, offer_rank_2],
+    )
+    mocker.patch("controllers.pipeline_similar_offer.log_past_offer_context_to_sink")
+
+    response = await generate_similar_offers(
+        db=db_session,
+        offer_id=reference_offer.offer_id,
+        retrieval_model=SimilarOfferModelChoices.coreservation,
+        categories=MOVIE_LIKE_CATEGORIES,
+    )
+
+    mock_cinema_rrf_retrieval.assert_called_once()
+    mock_vertex_retrieval[1].assert_not_called()
+    mock_vertex_ranking[1].assert_not_called()
+    assert response.results == ["offer-A", "offer-B", "offer-C"]
+
+
+@pytest.mark.asyncio
+async def test_similar_offer_skips_cinema_rrf_when_categories_not_cinema(
+    db_session,
+    mock_vertex_retrieval,
+    mock_vertex_ranking,
+    mocker,
+):
+    """A request that does not exactly match {CINEMA, FILM} must go through the standard pipeline."""
+    reference_offer = await RecommendableOffersFactory.create_async(offer_id="offer-ref", item_id="item-ref")
+
+    mock_cinema_rrf_retrieval = mocker.patch(
+        "controllers.pipeline_similar_offer.fetch_similar_offer_cinema_rrf_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+    )
+    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(
+        predictions=RecommendableItemFactory.batch(3)
+    )
+    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: offers
+    mocker.patch("controllers.pipeline_similar_offer.log_past_offer_context_to_sink")
+
+    await generate_similar_offers(
+        db=db_session,
+        offer_id=reference_offer.offer_id,
+        retrieval_model=SimilarOfferModelChoices.coreservation,
+        categories=[CategoryEnum.CINEMA],
+    )
+
+    mock_cinema_rrf_retrieval.assert_not_called()
+    mock_vertex_retrieval[1].assert_called_once()
+    mock_vertex_ranking[1].assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_similar_offer_skips_cinema_rrf_when_retrieval_model_is_graph(
+    db_session,
+    mock_vertex_retrieval,
+    mock_vertex_ranking,
+    mocker,
+):
+    """Cinema categories with retrieval_model=graph must use the standard graph path, not RRF."""
+    reference_offer = await RecommendableOffersFactory.create_async(offer_id="offer-ref", item_id="item-ref")
+
+    mock_cinema_rrf_retrieval = mocker.patch(
+        "controllers.pipeline_similar_offer.fetch_similar_offer_cinema_rrf_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+    )
+    mock_vertex_retrieval[2].return_value = VertexPredictionResultFactory.build(
+        predictions=RecommendableItemFactory.batch(3)
+    )
+    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: offers
+    mocker.patch("controllers.pipeline_similar_offer.log_past_offer_context_to_sink")
+
+    await generate_similar_offers(
+        db=db_session,
+        offer_id=reference_offer.offer_id,
+        retrieval_model=SimilarOfferModelChoices.graph,
+        categories=MOVIE_LIKE_CATEGORIES,
+    )
+
+    mock_cinema_rrf_retrieval.assert_not_called()
+    mock_vertex_retrieval[2].assert_called_once()
+    mock_vertex_ranking[1].assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_similar_offer_cinema_rrf_subcategory_mismatch_does_not_trigger(
+    db_session,
+    mock_vertex_retrieval,
+    mock_vertex_ranking,
+    mocker,
+):
+    """Cinema categories with an unrelated subcategory filter must not trigger the RRF variant."""
+    reference_offer = await RecommendableOffersFactory.create_async(offer_id="offer-ref", item_id="item-ref")
+
+    mock_cinema_rrf_retrieval = mocker.patch(
+        "controllers.pipeline_similar_offer.fetch_similar_offer_cinema_rrf_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+    )
+    mock_vertex_retrieval[1].return_value = VertexPredictionResultFactory.build(
+        predictions=RecommendableItemFactory.batch(3)
+    )
+    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: offers
+    mocker.patch("controllers.pipeline_similar_offer.log_past_offer_context_to_sink")
+
+    await generate_similar_offers(
+        db=db_session,
+        offer_id=reference_offer.offer_id,
+        retrieval_model=SimilarOfferModelChoices.coreservation,
+        categories=MOVIE_LIKE_CATEGORIES,
+        subcategories=[SubcategoryEnum.ABO_CONCERT],
+    )
+
+    mock_cinema_rrf_retrieval.assert_not_called()
+    mock_vertex_retrieval[1].assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_similar_offer_cinema_rrf_falls_back_when_zero_results(
+    db_session,
+    mock_vertex_retrieval,
+    mock_vertex_ranking,
+    mocker,
+):
+    """
+    The cinema RRF path is nested under retrieval_model==coreservation, so the existing
+    zero-results fallback to generate_playlist_recommendations must still fire for it.
+    """
+    reference_offer = await RecommendableOffersFactory.create_async(offer_id="offer-ref", item_id="item-ref")
+
+    mocker.patch(
+        "controllers.pipeline_similar_offer.fetch_similar_offer_cinema_rrf_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=VertexPredictionResultFactory.build(status="success", predictions=[]),
+    )
+
+    fallback_offer_ids = ["fallback-offer-1"]
+    mock_generate_playlist = mocker.patch(
+        "controllers.pipeline_similar_offer.generate_playlist_recommendations",
+        new_callable=mocker.AsyncMock,
+        return_value=RecommendationResponse(
+            playlist_recommended_offers=fallback_offer_ids,
+            params=RecommendationMetadata(reco_origin="algo", model_origin="fallback-model", call_id="fallback-id"),
+        ),
+    )
+
+    response = await generate_similar_offers(
+        db=db_session,
+        offer_id=reference_offer.offer_id,
+        retrieval_model=SimilarOfferModelChoices.coreservation,
+        categories=MOVIE_LIKE_CATEGORIES,
+        subcategories=AVAILABLE_MOVIE_SUBCATEGORIES,
+    )
+
+    mock_generate_playlist.assert_called_once()
+    assert response.params.reco_origin == "recommendation_fallback"
+    assert response.results == fallback_offer_ids

@@ -13,7 +13,9 @@ from core.ranking import rank_and_sort_offers_with_vertex
 from core.retrieval import build_similar_offer_retrieval_payload
 from core.retrieval import fetch_graph_predictions_from_vertex
 from core.retrieval import fetch_retrieval_predictions_from_vertex
+from core.retrieval import fetch_similar_offer_cinema_rrf_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
+from core.retrieval import is_cinema_request
 from core.tracking import log_past_offer_context_to_sink
 from core.user_context import UNAUTHENTICATED_USER_ID
 from core.user_context import UserContext
@@ -33,7 +35,7 @@ from services.logger import logger
 SIMILAR_OFFERS_LIST_MAXIMUM_SIZE = 20
 
 
-async def generate_similar_offers(  # noqa: PLR0913
+async def generate_similar_offers(  # noqa: PLR0913, PLR0915
     db: AsyncSession,
     offer_id: str,
     retrieval_model: SimilarOfferModelChoices = SimilarOfferModelChoices.coreservation,
@@ -54,10 +56,13 @@ async def generate_similar_offers(  # noqa: PLR0913
     Pipeline Stages:
     1. Context Building: Builds a minimal context based on the input offer and optional user/location data.
     2. Retrieval: Calls Vertex AI to fetch candidate offers that are similar to the input offer,
-     applying any provided filters.
+     applying any provided filters. AB test "ab-test-algo-cine-rrf": for cinema requests using the
+     coreservation model, this instead fuses semantic_item_retrieval + coreservation via RRF
+     (see is_cinema_request / fetch_similar_offer_cinema_rrf_retrieval_predictions_from_vertex).
     3. Filtering: Removes already-booked items if a user_id is provided.
     4. Resolution: Maps ML items to actual offers, resolving spatial proximity if location data is provided.
-    5. Ranking: Re-orders the resolved offers using a dedicated Vertex AI scoring model.
+    5. Ranking: Re-orders the resolved offers using a dedicated Vertex AI scoring model. Skipped for
+     the cinema RRF AB test variant, whose RRF-fused item_rank is the final ranking instead.
     6. Diversification & Truncation: Shuffles and interleaves categories, then caps the list to a maximum size.
     7. Fallback (coreservation only): If the pipeline produces zero results, delegates entirely to
      generate_playlist_recommendations, preserving the original category filters.
@@ -147,18 +152,75 @@ async def generate_similar_offers(  # noqa: PLR0913
             "has_filters": any([categories, subcategories, search_group_names]),
         },
     )
-    retrieval_payload = build_similar_offer_retrieval_payload(
-        user_context=user_context,
-        call_id=call_id,
-        item_id=reference_item_id,
-        categories=categories,
-        subcategories=subcategories,
-        search_group_names=search_group_names,
+    # --- HACK for AB testing ---
+    # Context: "ab-test-algo-cine-rrf" (see docs/ab_test_algo_cine_rrf.md). similar_offer/{offer_id}
+    # normally retrieves candidates from a single Vertex endpoint chosen by `retrieval_model`:
+    # coreservation -> retrieval_api_client (model_type="similar_offer", item-anchored on the
+    # reference offer's item_id), or graph -> graph_api_client. Both use the same payload from
+    # build_similar_offer_retrieval_payload.
+    #
+    # For cinema-scoped requests using the coreservation model, this test instead fetches from two
+    # Vertex AI endpoints in parallel using that SAME item-anchored payload —
+    # "semantic_item_retrieval" (content-based) and the standard coreservation "similar_offer"
+    # endpoint — up to CINEMA_RRF_RETRIEVAL_SIZE_PER_ENDPOINT (500) items each, fused via
+    # Reciprocal Rank Fusion (core/rrf.py). This tests whether combining a content-based and a
+    # collaborative co-occurrence signal produces better cinema "similar offers" than coreservation
+    # alone. The RRF-fused order is the *final* ranking for this variant — see the second HACK
+    # block below (step 5), which skips the Vertex ranking-model rerank so RRF order is preserved
+    # end to end.
+    #
+    # Trigger condition: fires only when retrieval_model == coreservation (graph is untouched) AND
+    # is_cinema_request(categories, subcategories) — categories must be exactly {CINEMA, FILM} and
+    # subcategories, if provided, must be exactly the movie-screening subcategories
+    # (core/retrieval.py). Nesting under coreservation keeps the existing Stage 7 zero-results
+    # fallback to generate_playlist_recommendations active unchanged, since that fallback already
+    # only fires for is_coreservation_model == True.
+    #
+    # Downstream stages shared by both variants: booked-item filtering, offer resolution,
+    # diversification, truncation, tracking, and the Stage 7 fallback. Only retrieval (this block)
+    # and ranking (step 5 below) differ for cinema.
+    #
+    # Offer resolution cache: NOT isolated for this test. The variant changes which items are
+    # retrieved, not how a given item resolves to a venue, so resolving the same item_id to the
+    # same venue is identical across variants (see docs/ab_testing.md, section 6).
+    is_cinema_similar_offer_request = retrieval_model == SimilarOfferModelChoices.coreservation and is_cinema_request(
+        categories, subcategories
     )
-    if retrieval_model == SimilarOfferModelChoices.graph:
-        vertex_raw_predictions = await fetch_graph_predictions_from_vertex(prediction_payload=retrieval_payload)
+    if is_cinema_similar_offer_request:
+        logger.debug(
+            "🎬🧪 [A/B TEST] AB test hack triggered: => using cinema RRF retrieval "
+            "(semantic_item_retrieval + coreservation, fused via RRF) instead of the standard "
+            "single-endpoint retrieval.",
+            extra={
+                "call_id": call_id,
+                "offer_id": offer_id,
+                "item_id": reference_item_id,
+                "requested_categories": [c.value for c in categories or []],
+                "requested_subcategories": [s.value for s in subcategories or []],
+            },
+        )
+        vertex_raw_predictions = await fetch_similar_offer_cinema_rrf_retrieval_predictions_from_vertex(
+            user_context=user_context,
+            call_id=call_id,
+            item_id=reference_item_id,
+            categories=categories,
+            subcategories=subcategories,
+            search_group_names=search_group_names,
+        )
     else:
-        vertex_raw_predictions = await fetch_retrieval_predictions_from_vertex(prediction_payload=retrieval_payload)
+        retrieval_payload = build_similar_offer_retrieval_payload(
+            user_context=user_context,
+            call_id=call_id,
+            item_id=reference_item_id,
+            categories=categories,
+            subcategories=subcategories,
+            search_group_names=search_group_names,
+        )
+        if retrieval_model == SimilarOfferModelChoices.graph:
+            vertex_raw_predictions = await fetch_graph_predictions_from_vertex(prediction_payload=retrieval_payload)
+        else:
+            vertex_raw_predictions = await fetch_retrieval_predictions_from_vertex(prediction_payload=retrieval_payload)
+    # --- End of HACK for AB testing ---
 
     logger.info(
         "📦 Raw candidates retrieved from Vertex AI.",
@@ -198,12 +260,34 @@ async def generate_similar_offers(  # noqa: PLR0913
     )
 
     # --- 5. Ranking Phase ---
-    # Re-order the filtered offers using a dedicated scoring model
-    ranked_offers = await rank_and_sort_offers_with_vertex(resolved_offers, user_context)
+    # --- HACK for AB testing ---
+    # Context: "ab-test-algo-cine-rrf" — see the retrieval HACK block above for full context;
+    # `is_cinema_similar_offer_request` is computed there and reused here.
+    #
+    # For cinema requests, the RRF fusion computed during retrieval already *is* the ranking under
+    # test — calling the Vertex ranking model afterwards would overwrite it with an unrelated
+    # model's opinion. So the rerank is skipped and resolved offers are sorted by `item_rank`,
+    # which reciprocal_rank_fusion (core/rrf.py) already set to the fused rank (1 = best).
+    if is_cinema_similar_offer_request:
+        logger.debug(
+            "🎬🧪 [A/B TEST] AB test hack triggered: => skipping Vertex AI ranking-model rerank, "
+            "sorting by RRF-fused item_rank instead.",
+            extra={"call_id": call_id, "resolved_offers_count": len(resolved_offers)},
+        )
+        ranked_offers = sorted(
+            resolved_offers, key=lambda offer: offer.item_rank if offer.item_rank is not None else float("inf")
+        )
+    else:
+        # Re-order the filtered offers using a dedicated scoring model
+        ranked_offers = await rank_and_sort_offers_with_vertex(resolved_offers, user_context)
+    # --- End of HACK for AB testing ---
 
     logger.info(
-        "🏆 Offers ranked by Vertex AI scoring model.",
-        extra={"ranked_offers_count": len(ranked_offers)},
+        "🏆 Offers ranked.",
+        extra={
+            "ranked_offers_count": len(ranked_offers),
+            "is_cinema_similar_offer_request": is_cinema_similar_offer_request,
+        },
     )
 
     # --- 6. Diversification & Truncation Phase ---

@@ -205,6 +205,11 @@ def mock_vertex_retrieval(mocker):
       → returns a ``VertexPredictionResult``.
     - ``fetch_graph_predictions_from_vertex`` (similar-offer pipeline, ``retrieval_model=graph`` path)
       → returns a ``VertexPredictionResult``.
+    - ``core.retrieval.fetch_retrieval_predictions_from_vertex`` and
+      ``core.retrieval.fetch_semantic_item_retrieval_predictions_from_vertex`` (cinema RRF AB test,
+      called from *inside* core/retrieval.py's fetch_similar_offer_cinema_rrf_retrieval_predictions_from_vertex
+      — patching the controller-level import above does NOT cover this call, since it's a separate
+      module-local reference) → each returns a ``VertexPredictionResult``.
     """
     mock_retrieval_playlist = mocker.patch(
         "controllers.pipeline_playlist_recommendation.fetch_all_playlist_recommendation_retrieval_predictions_from_vertex",
@@ -218,11 +223,27 @@ def mock_vertex_retrieval(mocker):
         "controllers.pipeline_similar_offer.fetch_graph_predictions_from_vertex",
         new_callable=mocker.AsyncMock,
     )
+    mock_retrieval_core_coreservation = mocker.patch(
+        "core.retrieval.fetch_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+    )
+    mock_retrieval_semantic = mocker.patch(
+        "core.retrieval.fetch_semantic_item_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+    )
     mock_retrieval_playlist.return_value = RecommendableItemFactory.batch(10)
     mock_retrieval_similar.return_value = VertexPredictionResultFactory.build()
     mock_retrieval_graph.return_value = VertexPredictionResultFactory.build()
+    mock_retrieval_core_coreservation.return_value = VertexPredictionResultFactory.build()
+    mock_retrieval_semantic.return_value = VertexPredictionResultFactory.build()
 
-    return mock_retrieval_playlist, mock_retrieval_similar, mock_retrieval_graph
+    return (
+        mock_retrieval_playlist,
+        mock_retrieval_similar,
+        mock_retrieval_graph,
+        mock_retrieval_core_coreservation,
+        mock_retrieval_semantic,
+    )
 
 
 @pytest.fixture(autouse=True)
