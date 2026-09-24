@@ -200,7 +200,7 @@ async def generate_playlist_recommendations(
     # ranking under test — calling the Vertex AI ranking model afterwards would overwrite it with
     # an unrelated model's opinion, which is not what this test measures. So for cinema, the
     # ranking-model rerank is skipped entirely and resolved offers are instead sorted by
-    # `item_rank`, which merge_candidate_items_with_reciprocal_rank_fusion (core/retrieval.py)
+    # `item_rank`, which reciprocal_rank_fusion (core/rrf.py, called from core/retrieval.py)
     # already set to the fused RRF rank (1 = best). This mirrors the existing no-predictions
     # fallback sort in rank_and_sort_offers_with_vertex, applied here unconditionally for cinema.
     #
