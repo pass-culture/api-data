@@ -3,12 +3,18 @@ from datetime import datetime
 
 import pytest
 
+from core.retrieval import AVAILABLE_MOVIE_SUBCATEGORIES
+from core.retrieval import MOVIE_LIKE_CATEGORIES
 from core.retrieval import _build_playlist_recommendation_search_filters
 from core.retrieval import _build_similar_offer_search_filters
+from core.retrieval import build_cinema_recommendation_user_retrieval_payload
+from core.retrieval import build_cinema_semantic_item_retrieval_payload
 from core.retrieval import build_playlist_recommendation_retrieval_payload
 from core.retrieval import build_similar_offer_retrieval_payload
 from core.retrieval import fetch_all_playlist_recommendation_retrieval_predictions_from_vertex
+from core.retrieval import fetch_cinema_rrf_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
+from core.retrieval import merge_candidate_items_with_reciprocal_rank_fusion
 from core.user_context import UserContext
 from schemas.categories import CategoryEnum
 from schemas.categories import SearchGroupNameEnum
@@ -319,3 +325,138 @@ async def test_fetch_all_predictions_deduplicates_items_across_endpoints(mocker)
     assert result_item_ids == ["item-A", "item-B", "item-C", "item-D", "item-E"], (
         "First-occurrence order must be preserved across endpoints."
     )
+
+
+# ---------------------------------------------------------------------------
+# build_cinema_semantic_item_retrieval_payload / build_cinema_recommendation_user_retrieval_payload
+# ---------------------------------------------------------------------------
+
+
+def test_cinema_payloads_use_size_500_and_recommendation_model_type():
+    user = UserContextFactory.build(user_id="u", is_authenticated=True)
+    semantic_payload = build_cinema_semantic_item_retrieval_payload(user, "call-1", PlaylistRequestParams())
+    recommendation_payload = build_cinema_recommendation_user_retrieval_payload(user, "call-1", PlaylistRequestParams())
+
+    for payload in (semantic_payload, recommendation_payload):
+        assert payload["size"] == 500
+        assert payload["model_type"] == "recommendation"
+        assert payload["call_id"] == "call-1"
+        assert payload["user_id"] == "u"
+
+
+def test_cinema_payloads_restrict_filters_to_movie_subcategories_regardless_of_requested_categories():
+    """
+    Even if the client requested other categories/subcategories, the cinema retrieval payloads must
+    only ever filter on MOVIE_LIKE_CATEGORIES / AVAILABLE_MOVIE_SUBCATEGORIES — this narrows the
+    broad CINEMA/FILM categories down to actual movie-screening subcategories.
+    """
+    user = UserContextFactory.build(user_id="u", is_authenticated=True)
+    params = PlaylistRequestParams(categories=[CategoryEnum.LIVRE], subcategories=[SubcategoryEnum.ABO_CONCERT])
+
+    payload = build_cinema_semantic_item_retrieval_payload(user, "call-1", params)
+    conditions = payload["params"]["$and"]
+
+    assert {"category": {"$in": MOVIE_LIKE_CATEGORIES}} in conditions
+    assert {"subcategory_id": {"$in": AVAILABLE_MOVIE_SUBCATEGORIES}} in conditions
+
+
+def test_cinema_payload_builders_do_not_mutate_caller_params():
+    """The original PlaylistRequestParams instance must stay untouched — it is still what's tracked to BigQuery."""
+    user = UserContextFactory.build(user_id="u", is_authenticated=True)
+    params = PlaylistRequestParams(categories=[CategoryEnum.LIVRE])
+
+    build_cinema_semantic_item_retrieval_payload(user, "call-1", params)
+
+    assert params.categories == [CategoryEnum.LIVRE]
+
+
+# ---------------------------------------------------------------------------
+# merge_candidate_items_with_reciprocal_rank_fusion
+# ---------------------------------------------------------------------------
+
+
+def test_rrf_merge_orders_items_appearing_in_both_lists_first():
+    """
+    Semantic list:       [X, Y] (X rank 1, Y rank 2)
+    Recommendation list: [Y, Z] (Y rank 1, Z rank 2)
+    Y appears in both lists and should be fused to the top, ahead of X and Z.
+    """
+    item_x = RecommendableItemFactory.build(item_id="X")
+    item_y_semantic = RecommendableItemFactory.build(item_id="Y")
+    item_y_recommendation = RecommendableItemFactory.build(item_id="Y")
+    item_z = RecommendableItemFactory.build(item_id="Z")
+
+    result = merge_candidate_items_with_reciprocal_rank_fusion(
+        semantic_items=[item_x, item_y_semantic], recommendation_items=[item_y_recommendation, item_z], k=60
+    )
+
+    assert [item.item_id for item in result] == ["Y", "X", "Z"]
+
+
+def test_rrf_merge_deduplicates_by_item_id():
+    item_a_semantic = RecommendableItemFactory.build(item_id="A")
+    item_a_recommendation = RecommendableItemFactory.build(item_id="A")
+
+    result = merge_candidate_items_with_reciprocal_rank_fusion(
+        semantic_items=[item_a_semantic], recommendation_items=[item_a_recommendation]
+    )
+
+    assert len(result) == 1
+    assert result[0].item_id == "A"
+
+
+def test_rrf_merge_overwrites_item_rank_with_fused_rank():
+    item_x = RecommendableItemFactory.build(item_id="X", item_rank=999)
+    item_y = RecommendableItemFactory.build(item_id="Y", item_rank=999)
+
+    result = merge_candidate_items_with_reciprocal_rank_fusion(semantic_items=[item_x, item_y], recommendation_items=[])
+
+    assert [item.item_rank for item in result] == [1, 2]
+
+
+def test_rrf_merge_empty_lists_returns_empty():
+    assert merge_candidate_items_with_reciprocal_rank_fusion(semantic_items=[], recommendation_items=[]) == []
+
+
+def test_rrf_merge_respects_custom_weights():
+    """A source weighted to 0 must not influence the fused order at all."""
+    item_x = RecommendableItemFactory.build(item_id="X")  # rank 1 in semantic (weighted out)
+    item_y = RecommendableItemFactory.build(item_id="Y")  # rank 1 in recommendation
+
+    result = merge_candidate_items_with_reciprocal_rank_fusion(
+        semantic_items=[item_x], recommendation_items=[item_y], semantic_weight=0.0, recommendation_weight=1.0
+    )
+
+    assert result[0].item_id == "Y"
+    assert result[1].item_score == 0.0
+
+
+# ---------------------------------------------------------------------------
+# fetch_cinema_rrf_retrieval_predictions_from_vertex
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_fetch_cinema_rrf_retrieval_calls_both_endpoints_and_fuses_results(mocker):
+    item_semantic_only = RecommendableItemFactory.build(item_id="item-semantic-only")
+    item_shared = RecommendableItemFactory.build(item_id="item-shared")
+    item_recommendation_only = RecommendableItemFactory.build(item_id="item-recommendation-only")
+
+    mocker.patch(
+        "core.retrieval.fetch_semantic_item_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=VertexPredictionResultFactory.build(predictions=[item_semantic_only, item_shared]),
+    )
+    mocker.patch(
+        "core.retrieval.fetch_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=VertexPredictionResultFactory.build(predictions=[item_shared, item_recommendation_only]),
+    )
+
+    user = UserContextFactory.build(user_id="u", is_authenticated=True)
+    result = await fetch_cinema_rrf_retrieval_predictions_from_vertex(user, "call-1", PlaylistRequestParams())
+
+    result_item_ids = {item.item_id for item in result}
+    assert result_item_ids == {"item-semantic-only", "item-shared", "item-recommendation-only"}
+    # The item present in both sources should be fused to the top (rank 1).
+    assert result[0].item_id == "item-shared"

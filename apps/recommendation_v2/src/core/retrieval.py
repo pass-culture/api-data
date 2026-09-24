@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from connectors import graph_api_client
 from connectors import retrieval_api_client
+from connectors import semantic_item_retrieval_api_client
 from connectors.vertex_api import VertexPredictionResult
 from core.user_context import UserContext
 from models.items import NonRecommendableItems
@@ -23,6 +24,23 @@ PLAYLIST_RECOMMENDATION_RETRIEVAL_SIZE_PER_ENDPOINT = 150
 
 # ISO v1: OfferRetrievalEndpoint uses size=100.
 SIMILAR_OFFER_RETRIEVAL_SIZE = 100
+
+# AB test "ab-test-algo-cine-rrf": categories/subcategories that identify a cinema playlist request,
+# and the retrieval size / RRF constant used by the fused cinema retrieval. See the
+# "PLAYLIST RECOMMENDATION — CINEMA RRF (AB TEST)" section below.
+MOVIE_LIKE_CATEGORIES: list[CategoryEnum] = [CategoryEnum.CINEMA, CategoryEnum.FILM]
+AVAILABLE_MOVIE_SUBCATEGORIES: list[SubcategoryEnum] = [
+    SubcategoryEnum.CINE_VENTE_DISTANCE,
+    SubcategoryEnum.EVENEMENT_CINE,
+    SubcategoryEnum.FESTIVAL_CINE,
+    SubcategoryEnum.SEANCE_CINE,
+]
+CINEMA_RRF_RETRIEVAL_SIZE_PER_ENDPOINT = 500
+CINEMA_RRF_K_CONSTANT = 60  # Standard RRF smoothing constant (see Cormack et al., 2009).
+# Equal weights by default: the A/B test's purpose is to let the results show which signal
+# performs better, not to presume one is already more reliable than the other.
+CINEMA_RRF_SEMANTIC_WEIGHT = 1.0
+CINEMA_RRF_RECOMMENDATION_WEIGHT = 1.0
 
 # ==============================================================================
 # PLAYLIST RECOMMENDATION
@@ -356,6 +374,190 @@ async def fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
     )
 
     return deduplicated
+
+
+# ==============================================================================
+# PLAYLIST RECOMMENDATION — CINEMA RRF (AB TEST "ab-test-algo-cine-rrf")
+# ==============================================================================
+#
+# For cinema playlist requests, retrieval is sourced from two Vertex AI endpoints instead of
+# the standard 4-payload ISO v1 strategy: a content-based "semantic_item_retrieval" endpoint
+# and the standard collaborative-filtering "recommendation_user_retrieval" endpoint. Each
+# returns up to CINEMA_RRF_RETRIEVAL_SIZE_PER_ENDPOINT (500) items, and the two ranked lists
+# are fused with Reciprocal Rank Fusion instead of a plain dedup/concat merge. The RRF-fused
+# order becomes the *final* ranking for this variant — the downstream Vertex AI ranking-model
+# rerank is skipped for cinema (see the second HACK block in pipeline_playlist_recommendation.py).
+# The dispatch between this strategy and the standard one lives in
+# controllers/pipeline_playlist_recommendation.py, wrapped in "HACK for AB testing" blocks.
+
+
+def _build_cinema_search_filters(user_context: UserContext, params: PlaylistRequestParams) -> dict[str, Any]:
+    """
+    Builds the Vertex AI search filters for the cinema RRF retrieval, narrowing the request
+    down to the actual movie-screening subcategories (see AVAILABLE_MOVIE_SUBCATEGORIES),
+    regardless of whichever categories/subcategories the client originally requested.
+
+    This does not mutate the caller's `params` — it only affects the two cinema retrieval
+    payloads built below. The original, unmodified `params` is still what gets logged to the
+    tracking sink, so BigQuery reflects what the client actually asked for.
+    """
+    cinema_params = params.model_copy(
+        update={"categories": MOVIE_LIKE_CATEGORIES, "subcategories": AVAILABLE_MOVIE_SUBCATEGORIES}
+    )
+    return _build_playlist_recommendation_search_filters(user_context, cinema_params)
+
+
+def build_cinema_semantic_item_retrieval_payload(
+    user_context: UserContext, call_id: str, params: PlaylistRequestParams
+) -> dict[str, Any]:
+    """Builds the payload sent to the semantic_item_retrieval (content-based) endpoint."""
+    search_filters = _build_cinema_search_filters(user_context, params)
+
+    return {
+        "call_id": call_id,
+        "user_id": user_context.user_id,
+        "params": search_filters,
+        "debug": 1,
+        "prefilter": 1,
+        "size": CINEMA_RRF_RETRIEVAL_SIZE_PER_ENDPOINT,
+        "model_type": "recommendation",
+    }
+
+
+def build_cinema_recommendation_user_retrieval_payload(
+    user_context: UserContext, call_id: str, params: PlaylistRequestParams
+) -> dict[str, Any]:
+    """Builds the payload sent to the standard recommendation_user_retrieval (collaborative) endpoint."""
+    search_filters = _build_cinema_search_filters(user_context, params)
+
+    return {
+        "call_id": call_id,
+        "user_id": user_context.user_id,
+        "params": search_filters,
+        "debug": 1,
+        "prefilter": 1,
+        "size": CINEMA_RRF_RETRIEVAL_SIZE_PER_ENDPOINT,
+        "model_type": "recommendation",
+    }
+
+
+@log_execution_time
+async def fetch_semantic_item_retrieval_predictions_from_vertex(
+    prediction_payload: dict[str, Any],
+) -> VertexPredictionResult:
+    """Calls the semantic_item_retrieval Vertex AI endpoint to retrieve content-based candidate items."""
+    return await semantic_item_retrieval_api_client.fetch_retrieval_predictions(feature_payloads=[prediction_payload])
+
+
+def merge_candidate_items_with_reciprocal_rank_fusion(
+    semantic_items: list[RecommendableItem],
+    recommendation_items: list[RecommendableItem],
+    k: int = CINEMA_RRF_K_CONSTANT,
+    semantic_weight: float = CINEMA_RRF_SEMANTIC_WEIGHT,
+    recommendation_weight: float = CINEMA_RRF_RECOMMENDATION_WEIGHT,
+) -> list[RecommendableItem]:
+    """
+    Fuses the semantic (content-based) and recommendation (collaborative) candidate lists into a
+    single ranked, deduplicated list using (weighted) Reciprocal Rank Fusion.
+
+    For each item, RRF sums weight / (k + rank) across every source list it appears in (rank is
+    1-indexed per list; a source an item is absent from contributes 0). Items are then sorted by
+    descending fused score. This naturally rewards items that rank highly in both sources, without
+    requiring the raw retrieval scores of each source to be comparable (they generally aren't,
+    since they come from different models).
+
+    Weights default to equal (1.0 / 1.0): the test's purpose is to let this A/B test itself
+    evaluate which signal performs better, not to presume one is already more reliable than the
+    other — see the classic unweighted RRF formulation (Cormack et al., 2009). Adapted from the
+    weighted RRF used in data-gcp/jobs/ml_jobs/artist_linkage/cli/create_similar_artist_parquet.py.
+
+    Args:
+        semantic_items (list[RecommendableItem]): Ranked, best-first predictions from the
+            semantic_item_retrieval (content-based) endpoint.
+        recommendation_items (list[RecommendableItem]): Ranked, best-first predictions from the
+            recommendation_user_retrieval (collaborative-filtering) endpoint.
+        k (int): RRF smoothing constant. Higher values flatten the influence of top ranks
+            relative to lower ones. Defaults to the standard value of 60.
+        semantic_weight (float): Weight applied to the semantic list's contribution.
+        recommendation_weight (float): Weight applied to the recommendation list's contribution.
+
+    Returns:
+        list[RecommendableItem]: A deduplicated list of items ordered by descending fused score,
+            with `item_rank`/`item_score` overwritten to reflect the fused rank (1-indexed) and score.
+
+    Example (equal weights, k=60):
+        semantic_items:       [Item("X"), Item("Y")]   (X rank 1, Y rank 2)
+        recommendation_items: [Item("Y"), Item("Z")]   (Y rank 1, Z rank 2)
+        RRF scores: X = 1/61, Y = 1/62 + 1/61, Z = 1/62
+        Output order: Y, X, Z
+    """
+    fused_scores: dict[str, float] = {}
+    item_by_id: dict[str, RecommendableItem] = {}
+
+    for rank, item in enumerate(semantic_items, start=1):
+        fused_scores[item.item_id] = fused_scores.get(item.item_id, 0.0) + semantic_weight / (k + rank)
+        item_by_id.setdefault(item.item_id, item)
+
+    for rank, item in enumerate(recommendation_items, start=1):
+        fused_scores[item.item_id] = fused_scores.get(item.item_id, 0.0) + recommendation_weight / (k + rank)
+        # If the item was already seen in semantic_items, keep that instance (arbitrary but
+        # deterministic provenance); otherwise this is the first time we see it.
+        item_by_id.setdefault(item.item_id, item)
+
+    fused_item_ids = sorted(fused_scores, key=lambda item_id: fused_scores[item_id], reverse=True)
+
+    fused_items: list[RecommendableItem] = []
+    for fused_rank, item_id in enumerate(fused_item_ids, start=1):
+        item = item_by_id[item_id]
+        item.item_rank = fused_rank
+        item.item_score = fused_scores[item_id]
+        fused_items.append(item)
+
+    logger.debug(
+        "🔀🧪 [A/B TEST] Cinema candidates fused with Reciprocal Rank Fusion.",
+        extra={
+            "semantic_count": len(semantic_items),
+            "recommendation_count": len(recommendation_items),
+            "fused_count": len(fused_items),
+            "rrf_k": k,
+            "semantic_weight": semantic_weight,
+            "recommendation_weight": recommendation_weight,
+        },
+    )
+
+    return fused_items
+
+
+@log_execution_time
+async def fetch_cinema_rrf_retrieval_predictions_from_vertex(
+    user_context: UserContext, call_id: str, params: PlaylistRequestParams
+) -> list[RecommendableItem]:
+    """
+    Fetches candidates for a cinema playlist from both the semantic and collaborative
+    retrieval endpoints in parallel, then fuses them into a single ranked list via RRF.
+    """
+    semantic_payload = build_cinema_semantic_item_retrieval_payload(user_context, call_id, params)
+    recommendation_payload = build_cinema_recommendation_user_retrieval_payload(user_context, call_id, params)
+
+    semantic_result, recommendation_result = await asyncio.gather(
+        fetch_semantic_item_retrieval_predictions_from_vertex(semantic_payload),
+        fetch_retrieval_predictions_from_vertex(recommendation_payload),
+    )
+
+    fused_items = merge_candidate_items_with_reciprocal_rank_fusion(
+        semantic_items=semantic_result.predictions, recommendation_items=recommendation_result.predictions
+    )
+
+    logger.debug(
+        "🎬🧪 [A/B TEST] Cinema RRF retrieval complete.",
+        extra={
+            "semantic_count": len(semantic_result.predictions),
+            "recommendation_count": len(recommendation_result.predictions),
+            "fused_count": len(fused_items),
+        },
+    )
+
+    return fused_items
 
 
 # ==============================================================================
