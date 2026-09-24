@@ -4,9 +4,12 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import settings
 from connectors import graph_api_client
 from connectors import retrieval_api_client
+from connectors import semantic_item_retrieval_api_client
 from connectors.vertex_api import VertexPredictionResult
+from core.rrf import reciprocal_rank_fusion
 from core.user_context import UserContext
 from models.items import NonRecommendableItems
 from schemas.categories import CategoryEnum
@@ -397,13 +400,14 @@ def _build_similar_offer_search_filters(
     return {"$and": and_conditions}
 
 
-def build_similar_offer_retrieval_payload(
+def build_similar_offer_retrieval_payload(  # noqa: PLR0913
     user_context: UserContext,
     call_id: str,
     item_id: str | None,
     categories: list[CategoryEnum] | None = None,
     subcategories: list[SubcategoryEnum] | None = None,
     search_group_names: list[SearchGroupNameEnum] | None = None,
+    size: int = SIMILAR_OFFER_RETRIEVAL_SIZE,
 ) -> dict[str, Any]:
     """
     Constructs the prediction payload for similar offer recommendations.
@@ -415,6 +419,9 @@ def build_similar_offer_retrieval_payload(
         categories (list[CategoryEnum] | None): Filter by categories.
         subcategories (list[SubcategoryEnum] | None): Filter by subcategories.
         search_group_names (list[SearchGroupNameEnum] | None): Filter by search groups.
+        size (int): Number of candidates to request. Defaults to SIMILAR_OFFER_RETRIEVAL_SIZE.
+            Overridden by the cinema RRF AB test to CINEMA_RRF_RETRIEVAL_SIZE_PER_ENDPOINT — see
+            fetch_similar_offer_cinema_rrf_retrieval_predictions_from_vertex below.
 
     Returns:
         dict[str, Any]: The prediction payload required by Vertex API to retrieve similar items.
@@ -427,7 +434,7 @@ def build_similar_offer_retrieval_payload(
         # A bit misleading but we keep it for consistency with the Vertex API.
         "debug": 1,
         "prefilter": 1,
-        "size": SIMILAR_OFFER_RETRIEVAL_SIZE,
+        "size": size,
         "search_after": None,
     }
 
@@ -448,6 +455,121 @@ def build_similar_offer_retrieval_payload(
         prediction_payload["model_type"] = "similar_offer"
 
     return prediction_payload
+
+
+# ==============================================================================
+# SIMILAR OFFER — CINEMA RRF (AB TEST "ab-test-algo-cine-rrf")
+# ==============================================================================
+#
+# For cinema similar_offer requests using the coreservation model, retrieval is sourced from two
+# Vertex AI endpoints instead of the standard single-endpoint dispatch: a content-based
+# "semantic_item_retrieval" endpoint and the standard coreservation "similar_offer" endpoint. Both
+# use the exact same item-anchored payload (built by build_similar_offer_retrieval_payload above)
+# — they only differ by which Vertex client the payload is posted to. Each returns up to
+# CINEMA_RRF_RETRIEVAL_SIZE_PER_ENDPOINT items, and the two ranked lists are fused with Reciprocal
+# Rank Fusion (see core/rrf.py) instead of a single-source result. The dispatch between this
+# strategy and the standard one lives in controllers/pipeline_similar_offer.py, wrapped in
+# "HACK for AB testing" blocks. See docs/ab_test_algo_cine_rrf.md for the full pipeline flow.
+
+# Categories/subcategories that identify a cinema request.
+MOVIE_LIKE_CATEGORIES: list[CategoryEnum] = [CategoryEnum.CINEMA, CategoryEnum.FILM]
+AVAILABLE_MOVIE_SUBCATEGORIES: list[SubcategoryEnum] = [
+    SubcategoryEnum.CINE_VENTE_DISTANCE,
+    SubcategoryEnum.EVENEMENT_CINE,
+    SubcategoryEnum.FESTIVAL_CINE,
+    SubcategoryEnum.SEANCE_CINE,
+]
+CINEMA_RRF_RETRIEVAL_SIZE_PER_ENDPOINT = 500
+
+
+def is_cinema_request(
+    categories: list[CategoryEnum] | None,
+    subcategories: list[SubcategoryEnum] | None,
+) -> bool:
+    """
+    True when a request identifies a cinema request for the cinema RRF AB test.
+
+    Both conditions must hold:
+    - `categories` is exactly {CINEMA, FILM} (MOVIE_LIKE_CATEGORIES).
+    - `subcategories` is either unset (None) or exactly the movie-screening subcategories
+      (AVAILABLE_MOVIE_SUBCATEGORIES).
+
+    The subcategories check exists so a request that sets categories=[CINEMA, FILM] but asks for
+    unrelated subcategories does NOT trigger the variant — silently overriding the caller's own
+    subcategory filter would be surprising and is not what this test is meant to measure.
+    """
+    if categories is None or set(categories) != set(MOVIE_LIKE_CATEGORIES):
+        return False
+
+    return subcategories is None or set(subcategories) == set(AVAILABLE_MOVIE_SUBCATEGORIES)
+
+
+@log_execution_time
+async def fetch_semantic_item_retrieval_predictions_from_vertex(
+    prediction_payload: dict[str, Any],
+) -> VertexPredictionResult:
+    """Calls the semantic_item_retrieval Vertex AI endpoint to retrieve content-based candidate items."""
+    return await semantic_item_retrieval_api_client.fetch_retrieval_predictions(feature_payloads=[prediction_payload])
+
+
+@log_execution_time
+async def fetch_similar_offer_cinema_rrf_retrieval_predictions_from_vertex(
+    user_context: UserContext,
+    call_id: str,
+    item_id: str | None,
+    categories: list[CategoryEnum] | None,
+    subcategories: list[SubcategoryEnum] | None,
+    search_group_names: list[SearchGroupNameEnum] | None,
+) -> VertexPredictionResult:
+    """
+    Fetches similar-offer candidates for a cinema request from both the semantic and coreservation
+    endpoints in parallel (same item-anchored payload, posted to two different Vertex clients),
+    then fuses them via RRF (core.rrf.reciprocal_rank_fusion), using the k/weights configured for
+    this AB test (settings.CINEMA_RRF_K / CINEMA_RRF_SEMANTIC_WEIGHT / CINEMA_RRF_RECOMMENDATION_WEIGHT).
+
+    Returns a VertexPredictionResult (not a bare list) so the caller's status/predictions handling
+    (booked-item filter, zero-results fallback) keeps working unchanged.
+    """
+    payload = build_similar_offer_retrieval_payload(
+        user_context=user_context,
+        call_id=call_id,
+        item_id=item_id,
+        categories=categories,
+        subcategories=subcategories,
+        search_group_names=search_group_names,
+        size=CINEMA_RRF_RETRIEVAL_SIZE_PER_ENDPOINT,
+    )
+
+    semantic_result, coreservation_result = await asyncio.gather(
+        fetch_semantic_item_retrieval_predictions_from_vertex(payload),
+        fetch_retrieval_predictions_from_vertex(payload),
+    )
+
+    fused_items = reciprocal_rank_fusion(
+        semantic_items=semantic_result.predictions,
+        recommendation_items=coreservation_result.predictions,
+        k=settings.CINEMA_RRF_K,
+        semantic_weight=settings.CINEMA_RRF_SEMANTIC_WEIGHT,
+        recommendation_weight=settings.CINEMA_RRF_RECOMMENDATION_WEIGHT,
+    )
+
+    # "error" only if BOTH sources failed — if one source has real data, the fused pool is still
+    # usable, so the zero-results-vs-genuine-failure distinction downstream stays meaningful.
+    both_failed = semantic_result.status == "error" and coreservation_result.status == "error"
+
+    logger.debug(
+        "🎬🧪 [A/B TEST] Cinema RRF retrieval complete (similar_offer).",
+        extra={
+            "semantic_count": len(semantic_result.predictions),
+            "coreservation_count": len(coreservation_result.predictions),
+            "fused_count": len(fused_items),
+            "rrf_k": settings.CINEMA_RRF_K,
+            "rrf_semantic_weight": settings.CINEMA_RRF_SEMANTIC_WEIGHT,
+            "rrf_recommendation_weight": settings.CINEMA_RRF_RECOMMENDATION_WEIGHT,
+        },
+    )
+
+    return VertexPredictionResult(status="error" if both_failed else "success", predictions=fused_items)
 
 
 # ==============================================================================
