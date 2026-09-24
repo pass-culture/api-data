@@ -8,11 +8,11 @@ from core.geo import get_iris_id_from_coordinates
 from core.geo import resolve_effective_geolocation
 from core.offer_resolution import resolve_closest_venues_from_items
 from core.ranking import rank_and_sort_offers_with_vertex
-from core.retrieval import MOVIE_LIKE_CATEGORIES
 from core.retrieval import build_all_playlist_recommendation_retrieval_payloads
 from core.retrieval import fetch_all_playlist_recommendation_retrieval_predictions_from_vertex
 from core.retrieval import fetch_cinema_rrf_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
+from core.retrieval import is_cinema_playlist_request
 from core.tracking import log_past_offer_context_to_sink
 from core.user_context import UNAUTHENTICATED_USER_ID
 from core.user_context import UserContext
@@ -108,11 +108,13 @@ async def generate_playlist_recommendations(
     # order is the *final* ranking for this variant — see the second HACK block below (step 4),
     # which skips the Vertex ranking-model rerank for cinema so RRF order is preserved end to end.
     #
-    # Trigger condition: fires only when the client explicitly requests cinema items, i.e.
-    # params.categories is exactly {CINEMA, FILM} (MOVIE_LIKE_CATEGORIES). The cinema retrieval
-    # itself further narrows to actual movie-screening subcategories internally
-    # (AVAILABLE_MOVIE_SUBCATEGORIES in core/retrieval.py) — this does not mutate `params`, so the
-    # client's original request is still what gets logged to the tracking sink below.
+    # Trigger condition: fires only when the client explicitly requests cinema items — see
+    # is_cinema_playlist_request (core/retrieval.py) for the exact predicate: categories must be
+    # exactly {CINEMA, FILM} (MOVIE_LIKE_CATEGORIES) AND subcategories, if provided at all, must be
+    # exactly the movie-screening subcategories (AVAILABLE_MOVIE_SUBCATEGORIES). The cinema
+    # retrieval itself further narrows subcategories internally when building its Vertex payloads —
+    # this does not mutate `params`, so the client's original request is still what gets logged to
+    # the tracking sink below.
     #
     # Downstream stages shared by both variants: booked-item filtering, offer resolution,
     # diversification, truncation to PLAYLIST_RECOMMENDATION_MAXIMUM_SIZE. Only the retrieval/
@@ -121,8 +123,8 @@ async def generate_playlist_recommendations(
     # Offer resolution cache: NOT isolated for this test. The variant changes which items are
     # retrieved, not how a given item resolves to a venue, so resolving the same item_id to the
     # same venue is identical across variants (see docs/ab_testing.md, section 6).
-    is_cinema_playlist_request = params.categories is not None and set(params.categories) == set(MOVIE_LIKE_CATEGORIES)
-    if is_cinema_playlist_request:
+    is_cinema_request = is_cinema_playlist_request(params)
+    if is_cinema_request:
         logger.debug(
             "🎬🧪 [A/B TEST] AB test hack triggered: => using cinema RRF retrieval "
             "(semantic_item_retrieval + recommendation_user_retrieval, fused via RRF) "
@@ -132,6 +134,7 @@ async def generate_playlist_recommendations(
                 "original_retrieval_strategy": "build_all_playlist_recommendation_retrieval_payloads",
                 "new_retrieval_strategy": "fetch_cinema_rrf_retrieval_predictions_from_vertex",
                 "requested_categories": [c.value for c in params.categories or []],
+                "requested_subcategories": [s.value for s in params.subcategories or []],
             },
         )
         raw_candidate_items = await fetch_cinema_rrf_retrieval_predictions_from_vertex(
@@ -194,7 +197,7 @@ async def generate_playlist_recommendations(
     # --- 4. Ranking Phase ---
     # --- HACK for AB testing ---
     # Context: "ab-test-algo-cine-rrf" (see the retrieval HACK block above for full context and
-    # trigger condition — `is_cinema_playlist_request` is computed there and reused here).
+    # trigger condition — `is_cinema_request` is computed there and reused here).
     #
     # For cinema playlists, the Reciprocal Rank Fusion computed during retrieval already *is* the
     # ranking under test — calling the Vertex AI ranking model afterwards would overwrite it with
@@ -205,7 +208,7 @@ async def generate_playlist_recommendations(
     # fallback sort in rank_and_sort_offers_with_vertex, applied here unconditionally for cinema.
     #
     # Diversification (step 5 below) still runs afterwards for both variants, unchanged.
-    if is_cinema_playlist_request:
+    if is_cinema_request:
         logger.debug(
             "🎬🧪 [A/B TEST] AB test hack triggered: => skipping Vertex AI ranking-model rerank, "
             "sorting by RRF-fused item_rank instead.",
@@ -221,7 +224,7 @@ async def generate_playlist_recommendations(
 
     logger.info(
         "🏆 Offers ranked.",
-        extra={"ranked_offers_count": len(ranked_offers), "is_cinema_playlist_request": is_cinema_playlist_request},
+        extra={"ranked_offers_count": len(ranked_offers), "is_cinema_playlist_request": is_cinema_request},
     )
 
     # --- 5. Diversification & Truncation Phase ---

@@ -4,6 +4,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import settings
 from connectors import graph_api_client
 from connectors import retrieval_api_client
 from connectors import semantic_item_retrieval_api_client
@@ -387,6 +388,25 @@ async def fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
 # lives in controllers/pipeline_playlist_recommendation.py, wrapped in "HACK for AB testing" blocks.
 
 
+def is_cinema_playlist_request(params: PlaylistRequestParams) -> bool:
+    """
+    True when the client's request identifies a cinema playlist for the cinema RRF AB test.
+
+    Both conditions must hold:
+    - `categories` is exactly {CINEMA, FILM} (MOVIE_LIKE_CATEGORIES).
+    - `subcategories` is either unset (None) or exactly the movie-screening subcategories
+      (AVAILABLE_MOVIE_SUBCATEGORIES).
+
+    The subcategories check exists so a request that sets categories=[CINEMA, FILM] but asks for
+    unrelated subcategories does NOT trigger the variant — silently overriding the client's own
+    subcategory filter would be surprising and is not what this test is meant to measure.
+    """
+    if params.categories is None or set(params.categories) != set(MOVIE_LIKE_CATEGORIES):
+        return False
+
+    return params.subcategories is None or set(params.subcategories) == set(AVAILABLE_MOVIE_SUBCATEGORIES)
+
+
 def _build_cinema_search_filters(user_context: UserContext, params: PlaylistRequestParams) -> dict[str, Any]:
     """
     Builds the Vertex AI search filters for the cinema RRF retrieval, narrowing the request
@@ -452,7 +472,8 @@ async def fetch_cinema_rrf_retrieval_predictions_from_vertex(
     """
     Fetches candidates for a cinema playlist from both the semantic and collaborative
     retrieval endpoints in parallel, then fuses them into a single ranked list via RRF
-    (core.rrf.reciprocal_rank_fusion, with default k/weights).
+    (core.rrf.reciprocal_rank_fusion), using the k/weights configured for this AB test
+    (settings.CINEMA_RRF_K / CINEMA_RRF_SEMANTIC_WEIGHT / CINEMA_RRF_RECOMMENDATION_WEIGHT).
     """
     semantic_payload = build_cinema_semantic_item_retrieval_payload(user_context, call_id, params)
     recommendation_payload = build_cinema_recommendation_user_retrieval_payload(user_context, call_id, params)
@@ -463,7 +484,11 @@ async def fetch_cinema_rrf_retrieval_predictions_from_vertex(
     )
 
     fused_items = reciprocal_rank_fusion(
-        semantic_items=semantic_result.predictions, recommendation_items=recommendation_result.predictions
+        semantic_items=semantic_result.predictions,
+        recommendation_items=recommendation_result.predictions,
+        k=settings.CINEMA_RRF_K,
+        semantic_weight=settings.CINEMA_RRF_SEMANTIC_WEIGHT,
+        recommendation_weight=settings.CINEMA_RRF_RECOMMENDATION_WEIGHT,
     )
 
     logger.debug(
@@ -472,6 +497,9 @@ async def fetch_cinema_rrf_retrieval_predictions_from_vertex(
             "semantic_count": len(semantic_result.predictions),
             "recommendation_count": len(recommendation_result.predictions),
             "fused_count": len(fused_items),
+            "rrf_k": settings.CINEMA_RRF_K,
+            "rrf_semantic_weight": settings.CINEMA_RRF_SEMANTIC_WEIGHT,
+            "rrf_recommendation_weight": settings.CINEMA_RRF_RECOMMENDATION_WEIGHT,
         },
     )
 

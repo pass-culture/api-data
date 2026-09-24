@@ -104,6 +104,15 @@ VERTEX_RECOMMENDATION_MODEL_DESCRIPTION: str = os.environ.get(
     "VERTEX_RECOMMENDATION_MODEL_DESCRIPTION", "Recommendation Configuration (default)"
 )
 
+# AB-test: cinema RRF retrieval fusion (see docs/ab_test_algo_cine_rrf.md, ab-test-algo-cine-rrf).
+# Tunable without a redeploy (per Cloud Run revision), so the test's parameters can be adjusted
+# independently of the baseline revision. core/rrf.py's own defaults (DEFAULT_K/DEFAULT_WEIGHT)
+# are the algorithm's generic defaults, used when no caller overrides them; these settings are
+# what the cinema AB test actually passes in (see core/retrieval.py).
+CINEMA_RRF_K: int = int(os.environ.get("CINEMA_RRF_K", "60"))
+CINEMA_RRF_SEMANTIC_WEIGHT: float = float(os.environ.get("CINEMA_RRF_SEMANTIC_WEIGHT", "1.5"))
+CINEMA_RRF_RECOMMENDATION_WEIGHT: float = float(os.environ.get("CINEMA_RRF_RECOMMENDATION_WEIGHT", "1.0"))
+
 # --- 6. Swagger UI for API Testing ---
 SWAGGER_UI_EXAMPLE_USER_ID: str = os.environ.get("SWAGGER_UI_EXAMPLE_USER_ID", "")
 SWAGGER_UI_EXAMPLE_OFFER_ID: str = os.environ.get("SWAGGER_UI_EXAMPLE_OFFER_ID", "")
