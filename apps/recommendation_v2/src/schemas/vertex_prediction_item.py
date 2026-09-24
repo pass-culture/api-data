@@ -8,6 +8,7 @@ class ItemOrigin(StrEnum):
     USER_BASED = "user_based"
     TOPS = "tops"
     GRAPH = "graph"
+    SEMANTIC = "semantic"
 
 
 class RecommendableItem(BaseModel):

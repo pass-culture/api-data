@@ -84,6 +84,11 @@ VERTEX_RETRIEVAL_ENDPOINT_NAME: str = os.environ.get(
 
 VERTEX_GRAPH_ENDPOINT_NAME: str = os.environ.get("VERTEX_GRAPH_ENDPOINT_NAME", "recommendation_graph_retrieval_stg")
 
+# AB-test: cinema RRF retrieval fusion (see docs/ab_testing.md, ab-test-algo-cine-rrf).
+VERTEX_SEMANTIC_ITEM_RETRIEVAL_ENDPOINT_NAME: str = os.environ.get(
+    "VERTEX_SEMANTIC_ITEM_RETRIEVAL_ENDPOINT_NAME", "semantic_item_retrieval_stg"
+)
+
 VERTEX_RANKING_ENDPOINT_NAME: str = os.environ.get("VERTEX_RANKING_ENDPOINT_NAME", "recommendation_user_ranking_stg")
 
 VERTEX_PREDICTION_TIMEOUT: float = float(os.environ.get("VERTEX_PREDICTION_TIMEOUT", "10.0" if IS_LOCAL else "2.0"))
