@@ -4,12 +4,9 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from config import settings
 from connectors import graph_api_client
 from connectors import retrieval_api_client
-from connectors import semantic_item_retrieval_api_client
 from connectors.vertex_api import VertexPredictionResult
-from core.rrf import reciprocal_rank_fusion
 from core.user_context import UserContext
 from models.items import NonRecommendableItems
 from schemas.categories import CategoryEnum
@@ -26,18 +23,6 @@ PLAYLIST_RECOMMENDATION_RETRIEVAL_SIZE_PER_ENDPOINT = 150
 
 # ISO v1: OfferRetrievalEndpoint uses size=100.
 SIMILAR_OFFER_RETRIEVAL_SIZE = 100
-
-# AB test "ab-test-algo-cine-rrf": categories/subcategories that identify a cinema playlist request,
-# and the retrieval size / RRF constant used by the fused cinema retrieval. See the
-# "PLAYLIST RECOMMENDATION — CINEMA RRF (AB TEST)" section below.
-MOVIE_LIKE_CATEGORIES: list[CategoryEnum] = [CategoryEnum.CINEMA, CategoryEnum.FILM]
-AVAILABLE_MOVIE_SUBCATEGORIES: list[SubcategoryEnum] = [
-    SubcategoryEnum.CINE_VENTE_DISTANCE,
-    SubcategoryEnum.EVENEMENT_CINE,
-    SubcategoryEnum.FESTIVAL_CINE,
-    SubcategoryEnum.SEANCE_CINE,
-]
-CINEMA_RRF_RETRIEVAL_SIZE_PER_ENDPOINT = 500
 
 # ==============================================================================
 # PLAYLIST RECOMMENDATION
@@ -371,139 +356,6 @@ async def fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
     )
 
     return deduplicated
-
-
-# ==============================================================================
-# PLAYLIST RECOMMENDATION — CINEMA RRF (AB TEST "ab-test-algo-cine-rrf")
-# ==============================================================================
-#
-# For cinema playlist requests, retrieval is sourced from two Vertex AI endpoints instead of
-# the standard 4-payload ISO v1 strategy: a content-based "semantic_item_retrieval" endpoint
-# and the standard collaborative-filtering "recommendation_user_retrieval" endpoint. Each
-# returns up to CINEMA_RRF_RETRIEVAL_SIZE_PER_ENDPOINT (500) items, and the two ranked lists
-# are fused with Reciprocal Rank Fusion (see core/rrf.py) instead of a plain dedup/concat merge.
-# The RRF-fused order becomes the *final* ranking for this variant — the downstream Vertex AI
-# ranking-model rerank is skipped for cinema (see the second HACK block in
-# pipeline_playlist_recommendation.py). The dispatch between this strategy and the standard one
-# lives in controllers/pipeline_playlist_recommendation.py, wrapped in "HACK for AB testing" blocks.
-
-
-def is_cinema_playlist_request(params: PlaylistRequestParams) -> bool:
-    """
-    True when the client's request identifies a cinema playlist for the cinema RRF AB test.
-
-    Both conditions must hold:
-    - `categories` is exactly {CINEMA, FILM} (MOVIE_LIKE_CATEGORIES).
-    - `subcategories` is either unset (None) or exactly the movie-screening subcategories
-      (AVAILABLE_MOVIE_SUBCATEGORIES).
-
-    The subcategories check exists so a request that sets categories=[CINEMA, FILM] but asks for
-    unrelated subcategories does NOT trigger the variant — silently overriding the client's own
-    subcategory filter would be surprising and is not what this test is meant to measure.
-    """
-    if params.categories is None or set(params.categories) != set(MOVIE_LIKE_CATEGORIES):
-        return False
-
-    return params.subcategories is None or set(params.subcategories) == set(AVAILABLE_MOVIE_SUBCATEGORIES)
-
-
-def _build_cinema_search_filters(user_context: UserContext, params: PlaylistRequestParams) -> dict[str, Any]:
-    """
-    Builds the Vertex AI search filters for the cinema RRF retrieval, narrowing the request
-    down to the actual movie-screening subcategories (see AVAILABLE_MOVIE_SUBCATEGORIES),
-    regardless of whichever categories/subcategories the client originally requested.
-
-    This does not mutate the caller's `params` — it only affects the two cinema retrieval
-    payloads built below. The original, unmodified `params` is still what gets logged to the
-    tracking sink, so BigQuery reflects what the client actually asked for.
-    """
-    cinema_params = params.model_copy(
-        update={"categories": MOVIE_LIKE_CATEGORIES, "subcategories": AVAILABLE_MOVIE_SUBCATEGORIES}
-    )
-    return _build_playlist_recommendation_search_filters(user_context, cinema_params)
-
-
-def build_cinema_semantic_item_retrieval_payload(
-    user_context: UserContext, call_id: str, params: PlaylistRequestParams
-) -> dict[str, Any]:
-    """Builds the payload sent to the semantic_item_retrieval (content-based) endpoint."""
-    search_filters = _build_cinema_search_filters(user_context, params)
-
-    return {
-        "call_id": call_id,
-        "user_id": user_context.user_id,
-        "params": search_filters,
-        "debug": 1,
-        "prefilter": 1,
-        "size": CINEMA_RRF_RETRIEVAL_SIZE_PER_ENDPOINT,
-        "model_type": "recommendation",
-    }
-
-
-def build_cinema_recommendation_user_retrieval_payload(
-    user_context: UserContext, call_id: str, params: PlaylistRequestParams
-) -> dict[str, Any]:
-    """Builds the payload sent to the standard recommendation_user_retrieval (collaborative) endpoint."""
-    search_filters = _build_cinema_search_filters(user_context, params)
-
-    return {
-        "call_id": call_id,
-        "user_id": user_context.user_id,
-        "params": search_filters,
-        "debug": 1,
-        "prefilter": 1,
-        "size": CINEMA_RRF_RETRIEVAL_SIZE_PER_ENDPOINT,
-        "model_type": "recommendation",
-    }
-
-
-@log_execution_time
-async def fetch_semantic_item_retrieval_predictions_from_vertex(
-    prediction_payload: dict[str, Any],
-) -> VertexPredictionResult:
-    """Calls the semantic_item_retrieval Vertex AI endpoint to retrieve content-based candidate items."""
-    return await semantic_item_retrieval_api_client.fetch_retrieval_predictions(feature_payloads=[prediction_payload])
-
-
-@log_execution_time
-async def fetch_cinema_rrf_retrieval_predictions_from_vertex(
-    user_context: UserContext, call_id: str, params: PlaylistRequestParams
-) -> list[RecommendableItem]:
-    """
-    Fetches candidates for a cinema playlist from both the semantic and collaborative
-    retrieval endpoints in parallel, then fuses them into a single ranked list via RRF
-    (core.rrf.reciprocal_rank_fusion), using the k/weights configured for this AB test
-    (settings.CINEMA_RRF_K / CINEMA_RRF_SEMANTIC_WEIGHT / CINEMA_RRF_RECOMMENDATION_WEIGHT).
-    """
-    semantic_payload = build_cinema_semantic_item_retrieval_payload(user_context, call_id, params)
-    recommendation_payload = build_cinema_recommendation_user_retrieval_payload(user_context, call_id, params)
-
-    semantic_result, recommendation_result = await asyncio.gather(
-        fetch_semantic_item_retrieval_predictions_from_vertex(semantic_payload),
-        fetch_retrieval_predictions_from_vertex(recommendation_payload),
-    )
-
-    fused_items = reciprocal_rank_fusion(
-        semantic_items=semantic_result.predictions,
-        recommendation_items=recommendation_result.predictions,
-        k=settings.CINEMA_RRF_K,
-        semantic_weight=settings.CINEMA_RRF_SEMANTIC_WEIGHT,
-        recommendation_weight=settings.CINEMA_RRF_RECOMMENDATION_WEIGHT,
-    )
-
-    logger.debug(
-        "🎬🧪 [A/B TEST] Cinema RRF retrieval complete.",
-        extra={
-            "semantic_count": len(semantic_result.predictions),
-            "recommendation_count": len(recommendation_result.predictions),
-            "fused_count": len(fused_items),
-            "rrf_k": settings.CINEMA_RRF_K,
-            "rrf_semantic_weight": settings.CINEMA_RRF_SEMANTIC_WEIGHT,
-            "rrf_recommendation_weight": settings.CINEMA_RRF_RECOMMENDATION_WEIGHT,
-        },
-    )
-
-    return fused_items
 
 
 # ==============================================================================

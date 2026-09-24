@@ -10,9 +10,7 @@ from core.offer_resolution import resolve_closest_venues_from_items
 from core.ranking import rank_and_sort_offers_with_vertex
 from core.retrieval import build_all_playlist_recommendation_retrieval_payloads
 from core.retrieval import fetch_all_playlist_recommendation_retrieval_predictions_from_vertex
-from core.retrieval import fetch_cinema_rrf_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
-from core.retrieval import is_cinema_playlist_request
 from core.tracking import log_past_offer_context_to_sink
 from core.user_context import UNAUTHENTICATED_USER_ID
 from core.user_context import UserContext
@@ -94,70 +92,22 @@ async def generate_playlist_recommendations(
     )
 
     # --- 2. Retrieval Phase ---
-    # --- HACK for AB testing ---
-    # Context: "ab-test-algo-cine-rrf". The playlist_recommendation endpoint normally retrieves
-    # candidates from 4 payloads sent to a single Vertex endpoint (personalized + 3 tops variants,
-    # see build_all_playlist_recommendation_retrieval_payloads), merged by plain dedup.
-    #
-    # For cinema playlists, this test replaces that retrieval strategy entirely: candidates are
-    # instead sourced from two Vertex AI endpoints — "semantic_item_retrieval" (content-based) and
-    # "recommendation_user_retrieval" (collaborative filtering) — fetching 500 items from each, and
-    # fusing the two ranked lists with Reciprocal Rank Fusion (see core/retrieval.py) instead of a
-    # plain concat/dedup. This tests whether combining a content-based and a collaborative signal
-    # produces better cinema recommendations than the standard 4-source strategy. The RRF-fused
-    # order is the *final* ranking for this variant — see the second HACK block below (step 4),
-    # which skips the Vertex ranking-model rerank for cinema so RRF order is preserved end to end.
-    #
-    # Trigger condition: fires only when the client explicitly requests cinema items — see
-    # is_cinema_playlist_request (core/retrieval.py) for the exact predicate: categories must be
-    # exactly {CINEMA, FILM} (MOVIE_LIKE_CATEGORIES) AND subcategories, if provided at all, must be
-    # exactly the movie-screening subcategories (AVAILABLE_MOVIE_SUBCATEGORIES). The cinema
-    # retrieval itself further narrows subcategories internally when building its Vertex payloads —
-    # this does not mutate `params`, so the client's original request is still what gets logged to
-    # the tracking sink below.
-    #
-    # Downstream stages shared by both variants: booked-item filtering, offer resolution,
-    # diversification, truncation to PLAYLIST_RECOMMENDATION_MAXIMUM_SIZE. Only the retrieval/
-    # candidate-merge step (this block) and the ranking step (step 4 below) differ for cinema.
-    #
-    # Offer resolution cache: NOT isolated for this test. The variant changes which items are
-    # retrieved, not how a given item resolves to a venue, so resolving the same item_id to the
-    # same venue is identical across variants (see docs/ab_testing.md, section 6).
-    is_cinema_request = is_cinema_playlist_request(params)
-    if is_cinema_request:
-        logger.debug(
-            "🎬🧪 [A/B TEST] AB test hack triggered: => using cinema RRF retrieval "
-            "(semantic_item_retrieval + recommendation_user_retrieval, fused via RRF) "
-            "instead of the standard 4-payload retrieval.",
-            extra={
-                "call_id": call_id,
-                "original_retrieval_strategy": "build_all_playlist_recommendation_retrieval_payloads",
-                "new_retrieval_strategy": "fetch_cinema_rrf_retrieval_predictions_from_vertex",
-                "requested_categories": [c.value for c in params.categories or []],
-                "requested_subcategories": [s.value for s in params.subcategories or []],
-            },
-        )
-        raw_candidate_items = await fetch_cinema_rrf_retrieval_predictions_from_vertex(
-            user_context=user_context, call_id=call_id, params=params
-        )
-    else:
-        # Build all retrieval payloads (1 for cold start, 4 for warm start) and fetch them in parallel
-        retrieval_payloads = build_all_playlist_recommendation_retrieval_payloads(
-            user_context=user_context, call_id=call_id, params=params
-        )
+    # Build all retrieval payloads (1 for cold start, 4 for warm start) and fetch them in parallel
+    retrieval_payloads = build_all_playlist_recommendation_retrieval_payloads(
+        user_context=user_context, call_id=call_id, params=params
+    )
 
-        logger.info(
-            "📡 Sending retrieval payloads to Vertex AI.",
-            extra={
-                "payload_count": len(retrieval_payloads),
-                "is_cold_start": user_context.is_cold_start,
-            },
-        )
+    logger.info(
+        "📡 Sending retrieval payloads to Vertex AI.",
+        extra={
+            "payload_count": len(retrieval_payloads),
+            "is_cold_start": user_context.is_cold_start,
+        },
+    )
 
-        raw_candidate_items = await fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
-            retrieval_payloads=retrieval_payloads
-        )
-    # --- End of HACK for AB testing ---
+    raw_candidate_items = await fetch_all_playlist_recommendation_retrieval_predictions_from_vertex(
+        retrieval_payloads=retrieval_payloads
+    )
 
     logger.info(
         "📦 Raw candidates retrieved from Vertex AI.",
@@ -195,36 +145,12 @@ async def generate_playlist_recommendations(
     )
 
     # --- 4. Ranking Phase ---
-    # --- HACK for AB testing ---
-    # Context: "ab-test-algo-cine-rrf" (see the retrieval HACK block above for full context and
-    # trigger condition — `is_cinema_request` is computed there and reused here).
-    #
-    # For cinema playlists, the Reciprocal Rank Fusion computed during retrieval already *is* the
-    # ranking under test — calling the Vertex AI ranking model afterwards would overwrite it with
-    # an unrelated model's opinion, which is not what this test measures. So for cinema, the
-    # ranking-model rerank is skipped entirely and resolved offers are instead sorted by
-    # `item_rank`, which reciprocal_rank_fusion (core/rrf.py, called from core/retrieval.py)
-    # already set to the fused RRF rank (1 = best). This mirrors the existing no-predictions
-    # fallback sort in rank_and_sort_offers_with_vertex, applied here unconditionally for cinema.
-    #
-    # Diversification (step 5 below) still runs afterwards for both variants, unchanged.
-    if is_cinema_request:
-        logger.debug(
-            "🎬🧪 [A/B TEST] AB test hack triggered: => skipping Vertex AI ranking-model rerank, "
-            "sorting by RRF-fused item_rank instead.",
-            extra={"call_id": call_id, "resolved_offers_count": len(resolved_offers)},
-        )
-        ranked_offers = sorted(
-            resolved_offers, key=lambda offer: offer.item_rank if offer.item_rank is not None else float("inf")
-        )
-    else:
-        # Re-order the filtered offers using a dedicated scoring model
-        ranked_offers = await rank_and_sort_offers_with_vertex(resolved_offers, user_context)
-    # --- End of HACK for AB testing ---
+    # Re-order the filtered offers using a dedicated scoring model
+    ranked_offers = await rank_and_sort_offers_with_vertex(resolved_offers, user_context)
 
     logger.info(
-        "🏆 Offers ranked.",
-        extra={"ranked_offers_count": len(ranked_offers), "is_cinema_playlist_request": is_cinema_request},
+        "🏆 Offers ranked by Vertex AI scoring model.",
+        extra={"ranked_offers_count": len(ranked_offers)},
     )
 
     # --- 5. Diversification & Truncation Phase ---
