@@ -5,6 +5,7 @@ from config import settings
 from controllers.pipeline_playlist_recommendation import PLAYLIST_RECOMMENDATION_MAXIMUM_SIZE
 from controllers.pipeline_playlist_recommendation import generate_playlist_recommendations
 from core.user_context import GeoLocationSource
+from schemas.categories import CategoryEnum
 from schemas.enriched_offer import EnrichedRecommendableOffer
 from schemas.playlist_recommendation import PlaylistRequestParams
 from schemas.playlist_recommendation import RecommendationResponse
@@ -23,6 +24,7 @@ def _make_enriched_offer(
     offer_id: str,
     search_group_name: str = "LIVRES",
     item_score: float = 1.0,
+    item_rank: int = 1,
 ) -> EnrichedRecommendableOffer:
     """
     Creates a minimal EnrichedRecommendableOffer for use in unit tests.
@@ -34,6 +36,7 @@ def _make_enriched_offer(
         offer_id: Unique identifier for the offer.
         search_group_name: Category group used for diversification checks.
         item_score: Relevance score assigned to the item.
+        item_rank: Retrieval/fusion rank assigned to the item (1 = best).
 
     Returns:
         A fully-initialised EnrichedRecommendableOffer instance.
@@ -48,7 +51,7 @@ def _make_enriched_offer(
         venue_longitude=None,
         offer_user_distance=None,
         item_score=item_score,
-        item_rank=1,
+        item_rank=item_rank,
         item_origin=ItemOrigin.TOPS,
         retrieval_vector_column=None,
         semantic_emb_mean=None,
@@ -607,3 +610,93 @@ async def test_pipeline_uses_subscription_centroid_when_gps_missing(
         "geolocation_source must be 'subscription_department' "
         "when GPS is absent but subscription centroid is available."
     )
+
+
+# ---------------------------------------------------------------------------
+# AB test "ab-test-algo-cine-rrf" — cinema RRF retrieval
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_pipeline_cinema_request_uses_rrf_retrieval_and_skips_ranking_model(
+    db_session,
+    mock_vertex_retrieval,
+    mock_vertex_ranking,
+    mocker,
+):
+    """
+    A playlist request with categories=[CINEMA, FILM] must trigger the cinema RRF HACK:
+    - the standard 4-payload retrieval (fetch_all_playlist_recommendation_retrieval_predictions_from_vertex)
+      must NOT be called,
+    - fetch_cinema_rrf_retrieval_predictions_from_vertex must be called instead,
+    - the Vertex AI ranking model (rank_and_sort_offers_with_vertex) must NOT be called,
+    - the final playlist must be ordered by the RRF-fused item_rank (ascending) instead.
+    """
+    user = await EnrichedUserFactory.create_warm()
+
+    cinema_items = [
+        RecommendableItemFactory.build(item_id="item-A", is_geolocated=False, total_offers=1),
+        RecommendableItemFactory.build(item_id="item-B", is_geolocated=False, total_offers=1),
+        RecommendableItemFactory.build(item_id="item-C", is_geolocated=False, total_offers=1),
+    ]
+    mock_cinema_rrf_retrieval = mocker.patch(
+        "controllers.pipeline_playlist_recommendation.fetch_cinema_rrf_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=cinema_items,
+    )
+
+    # Resolved out of RRF order on purpose, to prove the ranking step re-sorts by item_rank
+    # rather than trusting the order resolve_closest_venues_from_items happens to return.
+    offer_rank_1 = _make_enriched_offer("offer-A", item_rank=1)
+    offer_rank_2 = _make_enriched_offer("offer-B", item_rank=2)
+    offer_rank_3 = _make_enriched_offer("offer-C", item_rank=3)
+    mocker.patch(
+        "controllers.pipeline_playlist_recommendation.resolve_closest_venues_from_items",
+        new_callable=mocker.AsyncMock,
+        return_value=[offer_rank_3, offer_rank_1, offer_rank_2],
+    )
+    mocker.patch("controllers.pipeline_playlist_recommendation.log_past_offer_context_to_sink")
+
+    response = await generate_playlist_recommendations(
+        db=db_session,
+        user_id=str(user.user_id),
+        latitude=None,
+        longitude=None,
+        params=PlaylistRequestParams(categories=[CategoryEnum.CINEMA, CategoryEnum.FILM]),
+    )
+
+    mock_cinema_rrf_retrieval.assert_called_once()
+    mock_vertex_retrieval[0].assert_not_called()
+    mock_vertex_ranking[0].assert_not_called()
+    assert response.playlist_recommended_offers == ["offer-A", "offer-B", "offer-C"]
+
+
+@pytest.mark.asyncio
+async def test_pipeline_non_cinema_request_uses_standard_retrieval_and_ranking(
+    db_session,
+    mock_vertex_retrieval,
+    mock_vertex_ranking,
+    mocker,
+):
+    """A request that does not exactly match {CINEMA, FILM} must go through the standard pipeline."""
+    user = await EnrichedUserFactory.create_warm()
+
+    mock_cinema_rrf_retrieval = mocker.patch(
+        "controllers.pipeline_playlist_recommendation.fetch_cinema_rrf_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+    )
+    mock_vertex_retrieval[0].return_value = RecommendableItemFactory.batch(5)
+    mock_vertex_ranking[0].side_effect = lambda offers, _ctx: offers
+    mocker.patch("controllers.pipeline_playlist_recommendation.log_past_offer_context_to_sink")
+
+    await generate_playlist_recommendations(
+        db=db_session,
+        user_id=str(user.user_id),
+        latitude=None,
+        longitude=None,
+        params=PlaylistRequestParams(categories=[CategoryEnum.CINEMA]),
+    )
+
+    mock_cinema_rrf_retrieval.assert_not_called()
+    mock_vertex_retrieval[0].assert_called_once()
+    mock_vertex_ranking[0].assert_called_once()
