@@ -5,12 +5,6 @@ the `similar_offer` endpoint. For the general A/B testing conventions (branch na
 `HACK for AB testing` blocks, cache isolation, BigQuery traceability), see
 [`docs/ab_testing.md`](./ab_testing.md).
 
-> This test was originally implemented on `playlist_recommendation` and moved here:
-> `playlist_recommendation`'s retrieval is a 4-payload merge (not a single item-anchored call) and
-> never issues a user-personalized request from `similar_offer`'s context, so it didn't fit the
-> test well. `similar_offer` is anchored on a reference item, which pairs naturally with a
-> content-based (semantic) retrieval signal.
-
 ## Business context
 
 For `GET /similar_offers/{offer_id}` requests using the `coreservation` retrieval model, scoped to

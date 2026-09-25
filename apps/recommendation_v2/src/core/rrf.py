@@ -2,11 +2,9 @@
 Reciprocal Rank Fusion (RRF) for merging two ranked retrieval lists.
 
 Generic, dependency-free logic — no Vertex AI, HTTP, or DB dependency — so it is
-unit-testable in isolation. Adapted from the RRF implementation in
-data-gcp/jobs/ml_jobs/artist_linkage/cli/create_similar_artist_parquet.py, using classic
-unweighted RRF (k=60, equal weights) as the default rather than that reference's asymmetric
-weighting, since callers of this module generally want to let the two signals be compared
-on equal footing rather than assume one is more reliable upfront.
+unit-testable in isolation. Defaults to classic unweighted RRF (k=60, semantic_weight=1.5, recommendation_weight=1.0),
+letting callers compare the two signals and give a relative importance to semantic over collaborative signals
+to reduce importance of top-booked items from dominating the fused list.
 """
 
 from schemas.vertex_prediction_item import RecommendableItem
