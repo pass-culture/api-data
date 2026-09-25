@@ -84,6 +84,11 @@ VERTEX_RETRIEVAL_ENDPOINT_NAME: str = os.environ.get(
 
 VERTEX_GRAPH_ENDPOINT_NAME: str = os.environ.get("VERTEX_GRAPH_ENDPOINT_NAME", "recommendation_graph_retrieval_stg")
 
+# AB-test: cinema RRF retrieval fusion (see docs/ab_testing.md, ab-test-algo-cine-rrf).
+VERTEX_SEMANTIC_ITEM_RETRIEVAL_ENDPOINT_NAME: str = os.environ.get(
+    "VERTEX_SEMANTIC_ITEM_RETRIEVAL_ENDPOINT_NAME", "semantic_item_retrieval_stg"
+)
+
 VERTEX_RANKING_ENDPOINT_NAME: str = os.environ.get("VERTEX_RANKING_ENDPOINT_NAME", "recommendation_user_ranking_stg")
 
 VERTEX_PREDICTION_TIMEOUT: float = float(os.environ.get("VERTEX_PREDICTION_TIMEOUT", "10.0" if IS_LOCAL else "2.0"))
@@ -98,6 +103,15 @@ VERTEX_SIMILAR_OFFER_MODEL_DESCRIPTION: str = os.environ.get(
 VERTEX_RECOMMENDATION_MODEL_DESCRIPTION: str = os.environ.get(
     "VERTEX_RECOMMENDATION_MODEL_DESCRIPTION", "Recommendation Configuration (default)"
 )
+
+# AB-test: cinema RRF retrieval fusion (see docs/ab_test_algo_cine_rrf.md, ab-test-algo-cine-rrf).
+# Tunable without a redeploy (per Cloud Run revision), so the test's parameters can be adjusted
+# independently of the baseline revision. core/rrf.py's own defaults (DEFAULT_K/DEFAULT_WEIGHT)
+# are the algorithm's generic defaults, used when no caller overrides them; these settings are
+# what the cinema AB test actually passes in (see core/retrieval.py).
+CINEMA_RRF_K: int = int(os.environ.get("CINEMA_RRF_K", "60"))
+CINEMA_RRF_SEMANTIC_WEIGHT: float = float(os.environ.get("CINEMA_RRF_SEMANTIC_WEIGHT", "1.5"))
+CINEMA_RRF_RECOMMENDATION_WEIGHT: float = float(os.environ.get("CINEMA_RRF_RECOMMENDATION_WEIGHT", "1.0"))
 
 # --- 6. Swagger UI for API Testing ---
 SWAGGER_UI_EXAMPLE_USER_ID: str = os.environ.get("SWAGGER_UI_EXAMPLE_USER_ID", "")

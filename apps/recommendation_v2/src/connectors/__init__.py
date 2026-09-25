@@ -5,3 +5,4 @@ from connectors.vertex_api import VertexAPI
 retrieval_api_client = VertexAPI(endpoint_name=settings.VERTEX_RETRIEVAL_ENDPOINT_NAME)
 graph_api_client = VertexAPI(endpoint_name=settings.VERTEX_GRAPH_ENDPOINT_NAME)
 ranking_api_client = VertexAPI(endpoint_name=settings.VERTEX_RANKING_ENDPOINT_NAME)
+semantic_item_retrieval_api_client = VertexAPI(endpoint_name=settings.VERTEX_SEMANTIC_ITEM_RETRIEVAL_ENDPOINT_NAME)
