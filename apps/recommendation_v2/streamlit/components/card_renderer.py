@@ -299,10 +299,11 @@ def _build_jinja_render_context(offer: dict, rank_index: int, *, is_duplicate: b
 
     category = str(offer.get("subcategoryId", "LIVRES")).capitalize()
 
-    images = offer.get("images", {})
-    image_url = (
-        images.get("recto", {}).get("url") if images else "https://via.placeholder.com/300x450?text=Image+Indisponible"
-    )
+    images = offer.get("images") or {}
+
+    # Retrieving the image: 'recto' by default, otherwise 'poster' for cinema sessions
+    image_data = images.get("recto") or images.get("poster") or {}
+    image_url = image_data.get("url") or "https://via.placeholder.com/300x450?text=Image+Indisponible"
 
     rank_number = rank_index + 1
     likes_count = 620 + (rank_index * 315)
