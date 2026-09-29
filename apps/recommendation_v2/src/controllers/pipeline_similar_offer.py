@@ -35,7 +35,7 @@ from services.logger import logger
 SIMILAR_OFFERS_LIST_MAXIMUM_SIZE = 20
 
 
-async def generate_similar_offers(  # noqa: PLR0913, PLR0915
+async def generate_similar_offers(  # noqa: PLR0912, PLR0913, PLR0915
     db: AsyncSession,
     offer_id: str,
     retrieval_model: SimilarOfferModelChoices = SimilarOfferModelChoices.coreservation,
@@ -360,7 +360,16 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
         )
 
     # --- 8. Logging Phase ---
-    recommendation_origin = "similar_offer" if retrieval_model == SimilarOfferModelChoices.coreservation else "graph"
+    if is_cinema_similar_offer_request:
+        # evaluate this first because
+        # Cinema RRF requests are nested under retrieval_model == coreservation (see the trigger
+        # condition above), so this check must come first — otherwise they'd fall into the
+        # coreservation branch below and be mistagged as "similar_offer".
+        recommendation_origin = "cinema"
+    elif retrieval_model == SimilarOfferModelChoices.coreservation:
+        recommendation_origin = "similar_offer"
+    else:
+        recommendation_origin = "graph"
     model_description = (
         settings.VERTEX_SIMILAR_OFFER_MODEL_DESCRIPTION
         if retrieval_model == SimilarOfferModelChoices.coreservation

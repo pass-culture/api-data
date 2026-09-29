@@ -657,6 +657,7 @@ async def test_similar_offer_uses_cinema_rrf_when_cinema_categories_and_coreserv
     mock_vertex_retrieval[1].assert_not_called()
     mock_vertex_ranking[1].assert_not_called()
     assert response.results == ["offer-A", "offer-B", "offer-C"]
+    assert response.params.reco_origin == "cinema"
 
 
 @pytest.mark.asyncio
