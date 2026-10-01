@@ -34,8 +34,6 @@ class RecommendableItem(BaseModel):
     # --- ML & Ranking Scores ---
     item_rank: int
     item_score: float | None
-    item_cluster_id: str | None
-    item_topic_id: str | None
     semantic_emb_mean: float | None
 
     # --- Popularity & Engagement Metrics ---

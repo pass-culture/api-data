@@ -132,8 +132,6 @@ class VertexAPI:
                     retrieval_vector_column=retrieval_vector_column,
                     retrieval_model_name=retrieval_model_name,
                     retrieval_model_version=retrieval_model_version,
-                    item_cluster_id=raw_prediction.get("cluster_id", None),
-                    item_topic_id=raw_prediction.get("topic_id", None),
                     semantic_emb_mean=raw_prediction.get("semantic_emb_mean", None),
                     is_geolocated=bool(raw_prediction["is_geolocated"]),
                     booking_number=raw_prediction["booking_number"],

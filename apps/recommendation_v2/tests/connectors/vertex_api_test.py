@@ -20,8 +20,6 @@ def _make_raw_retrieval_prediction(**overrides) -> dict:
         "item_id": "item-1",
         "idx": 0,
         "_distance": 0.5,
-        "cluster_id": "cluster-1",
-        "topic_id": "topic-1",
         "semantic_emb_mean": 0.3,
         "is_geolocated": 1,
         "booking_number": 10,
@@ -66,15 +64,13 @@ async def test_fetch_retrieval_maps_renamed_grpc_fields(vertex_api, feature_payl
     """
     rank = 3
     dist = 0.75
-    raw = _make_raw_retrieval_prediction(idx=rank, _distance=dist, cluster_id="clu-1", topic_id="top-1")
+    raw = _make_raw_retrieval_prediction(idx=rank, _distance=dist)
     vertex_api.vertex_infrastructure_service.execute_grpc_prediction.return_value = _grpc_response([raw])
 
     item = (await vertex_api.fetch_retrieval_predictions(feature_payloads=feature_payloads)).predictions[0]
 
     assert item.item_rank == rank  # idx → item_rank
     assert item.item_score == dist  # _distance → item_score
-    assert item.item_cluster_id == "clu-1"  # cluster_id → item_cluster_id
-    assert item.item_topic_id == "top-1"  # topic_id → item_topic_id
     assert item.item_origin == expected_item_origin
 
 
