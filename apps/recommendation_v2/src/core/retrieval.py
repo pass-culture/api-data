@@ -123,7 +123,7 @@ def build_playlist_recommendation_retrieval_payload(
         prediction_payload["model_type"] = "tops"
         # TODO find out which vector column(s) fit best for cold start scenario.
         prediction_payload["vector_column_name"] = (
-            "booking_number_desc"  # "booking_creation_trend_desc", "booking_release_trend_desc"
+            "booking_trend_desc"  # "booking_number_desc","booking_creation_trend_desc", "booking_release_trend_desc"
         )
         prediction_payload["re_rank"] = 0
     else:
@@ -237,6 +237,24 @@ def _build_creation_trend_tops_retrieval_payload(
     }
 
 
+def _build_booking_trend_tops_retrieval_payload(
+    user_context: UserContext, call_id: str, params: PlaylistRequestParams
+) -> dict[str, Any]:
+    """
+    Builds the tops retrieval payload ranked by recent booking trend.
+
+    ISO v1: BookingTrendRetrievalEndpoint — model_type="tops", vector_column_name="booking_trend_desc".
+    """
+    base = _build_base_playlist_recommendation_payload(user_context, call_id, params)
+
+    return {
+        **base,
+        "model_type": "tops",
+        "vector_column_name": "booking_trend_desc",
+        "re_rank": 0,
+    }
+
+
 def build_all_playlist_recommendation_retrieval_payloads(
     user_context: UserContext, call_id: str, params: PlaylistRequestParams
 ) -> list[dict[str, Any]]:
@@ -244,20 +262,18 @@ def build_all_playlist_recommendation_retrieval_payloads(
     Returns all retrieval payloads to be sent to Vertex AI in parallel.
 
     Mirrors the v1 multi-endpoint strategy:
-    - Cold start (no user history): 1 payload  → tops by booking number only.
-    - Warm start (user has history): 4 payloads → tops * 3 + personalized recommendation.
+    - Cold start (no user history): 1 payload  → tops by booking trend only.
+    - Warm start (user has history): 2 payloads → tops * 1 + personalized recommendation.
 
     Warm start payload breakdown (each fetches 150 items):
     ┌───┬────────────────────────────┬────────────────────────────────────┐
     │ # │ Model Type                 │ vector_column_name                 │
     ├───┼────────────────────────────┼────────────────────────────────────┤
     │ 1 │ recommendation (personal.) │ N/A  (user embedding)              │
-    │ 2 │ tops                       │ booking_number_desc                │
-    │ 3 │ tops                       │ booking_release_trend_desc         │
-    │ 4 │ tops                       │ booking_creation_trend_desc        │
+    │ 2 │ tops                       │ booking_trend__desc                │
     └───┴────────────────────────────┴────────────────────────────────────┘
 
-    Maximum candidate pool before deduplication: 4 * 150 = 600 items.
+    Maximum candidate pool before deduplication: 2 * 150 = 300 items.
 
     Args:
         user_context (UserContext): The contextual data of the current user.
@@ -269,17 +285,15 @@ def build_all_playlist_recommendation_retrieval_payloads(
 
     Example:
         >>> payloads = build_all_playlist_recommendation_retrieval_payloads(user_context, call_id, params)
-        >>> len(payloads)  # 4 for warm start, 1 for cold start
-        4
+        >>> len(payloads)  # 2 for warm start, 1 for cold start
+        2
     """
     if user_context.is_cold_start:
-        return [_build_booking_number_tops_retrieval_payload(user_context, call_id, params)]
+        return [_build_booking_trend_tops_retrieval_payload(user_context, call_id, params)]
 
     return [
         _build_personalized_recommendation_retrieval_payload(user_context, call_id, params),
-        _build_booking_number_tops_retrieval_payload(user_context, call_id, params),
-        _build_release_trend_tops_retrieval_payload(user_context, call_id, params),
-        _build_creation_trend_tops_retrieval_payload(user_context, call_id, params),
+        _build_booking_trend_tops_retrieval_payload(user_context, call_id, params),
     ]
 
 

@@ -197,7 +197,7 @@ def test_playlist_payload_cold_start_uses_tops_model():
     user = UserContext(user_id="u", is_authenticated=False)
     payload = build_playlist_recommendation_retrieval_payload(user, "call-1", PlaylistRequestParams())
     assert payload["model_type"] == "tops"
-    assert payload["vector_column_name"] == "booking_number_desc"
+    assert payload["vector_column_name"] == "booking_trend_desc"
     assert payload["re_rank"] == 0
 
 

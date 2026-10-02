@@ -112,7 +112,7 @@ PLAYLIST_RECOMMENDATION_MODEL_CONTEXT: str = os.environ.get("RECO_MODEL_CONTEXT"
 # Convention: "main" for baseline, "<ab-test-name>" for variants (e.g. "ab71-graph-music").
 # Injected automatically into the HTTP cache key, API response and BigQuery tracking sink.
 # See docs/ab_testing.md for the full A/B testing strategy and conventions.
-AB_TEST_VARIANT_LABEL: str = os.environ.get("AB_TEST_VARIANT_LABEL", "main")
+AB_TEST_VARIANT_LABEL: str = os.environ.get("AB_TEST_VARIANT_LABEL", "ab-test-user-reco-tops-booking-trend-desc")
 
 # --- 8. Tracking Configuration ---
 ENABLE_TRACKING_LOGS: bool = bool(int(os.environ.get("ENABLE_TRACKING_LOGS", "1")))
