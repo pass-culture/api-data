@@ -20,7 +20,7 @@ dependencies = [
     "redis~=7.4",
     "sqlalchemy~=2.0",
     "starlette~=0.50",
-    "types-protobuf~=6.32",
+    "types-protobuf~=7.35",
     "uvicorn~=0.40",
 ]
 
