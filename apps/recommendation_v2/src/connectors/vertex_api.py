@@ -94,6 +94,13 @@ class VertexAPI:
         if is_graph_endpoint and item_origin != ItemOrigin.TOPS:
             return ItemOrigin.GRAPH
 
+        # Same pattern for the semantic (content-based) item retrieval endpoint, used by the
+        # cinema RRF AB test (see core/retrieval.py). Payloads still use model_type="recommendation",
+        # only the physical endpoint differs, so we disambiguate provenance the same way as GRAPH above.
+        is_semantic_endpoint = self.endpoint_name == settings.VERTEX_SEMANTIC_ITEM_RETRIEVAL_ENDPOINT_NAME
+        if is_semantic_endpoint and item_origin != ItemOrigin.TOPS:
+            return ItemOrigin.SEMANTIC
+
         return item_origin
 
     async def fetch_retrieval_predictions(self, feature_payloads: list[dict]) -> VertexPredictionResult:

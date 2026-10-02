@@ -3,12 +3,18 @@ from datetime import datetime
 
 import pytest
 
+from config import settings
+from core.retrieval import AVAILABLE_MOVIE_SUBCATEGORIES
+from core.retrieval import CINEMA_RRF_RETRIEVAL_SIZE_PER_ENDPOINT
+from core.retrieval import SIMILAR_OFFER_RETRIEVAL_SIZE
 from core.retrieval import _build_playlist_recommendation_search_filters
 from core.retrieval import _build_similar_offer_search_filters
 from core.retrieval import build_playlist_recommendation_retrieval_payload
 from core.retrieval import build_similar_offer_retrieval_payload
 from core.retrieval import fetch_all_playlist_recommendation_retrieval_predictions_from_vertex
+from core.retrieval import fetch_similar_offer_cinema_rrf_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
+from core.retrieval import is_cinema_request
 from core.user_context import UserContext
 from schemas.categories import CategoryEnum
 from schemas.categories import SearchGroupNameEnum
@@ -235,6 +241,172 @@ def test_similar_offer_payload_omits_params_when_no_filters_provided():
     """The params key must be omitted entirely (not set to {}) when no category filters are given."""
     payload = build_similar_offer_retrieval_payload(UserContextFactory.build(), "call-1", item_id="item-1")
     assert "params" not in payload
+
+
+def test_similar_offer_payload_default_size_is_100():
+    payload = build_similar_offer_retrieval_payload(UserContextFactory.build(), "call-1", item_id="item-1")
+    assert payload["size"] == SIMILAR_OFFER_RETRIEVAL_SIZE == 100
+
+
+def test_similar_offer_payload_respects_custom_size():
+    """The cinema RRF AB test overrides size to CINEMA_RRF_RETRIEVAL_SIZE_PER_ENDPOINT (500)."""
+    payload = build_similar_offer_retrieval_payload(
+        UserContextFactory.build(), "call-1", item_id="item-1", size=CINEMA_RRF_RETRIEVAL_SIZE_PER_ENDPOINT
+    )
+    assert payload["size"] == 500
+
+
+# ---------------------------------------------------------------------------
+# is_cinema_request
+# ---------------------------------------------------------------------------
+
+
+def test_is_cinema_request_true_when_categories_match_and_subcategories_unset():
+    assert is_cinema_request([CategoryEnum.CINEMA, CategoryEnum.FILM], None) is True
+
+
+def test_is_cinema_request_true_when_subcategories_also_match():
+    assert is_cinema_request([CategoryEnum.CINEMA, CategoryEnum.FILM], AVAILABLE_MOVIE_SUBCATEGORIES) is True
+
+
+def test_is_cinema_request_true_regardless_of_categories_or_subcategories_order():
+    assert (
+        is_cinema_request([CategoryEnum.FILM, CategoryEnum.CINEMA], list(reversed(AVAILABLE_MOVIE_SUBCATEGORIES)))
+        is True
+    )
+
+
+def test_is_cinema_request_false_when_categories_dont_match():
+    assert is_cinema_request([CategoryEnum.CINEMA], None) is False
+
+
+def test_is_cinema_request_false_when_categories_unset():
+    assert is_cinema_request(None, None) is False
+
+
+def test_is_cinema_request_false_when_subcategories_dont_match():
+    """
+    Categories alone are not enough: a request that asks for CINEMA/FILM categories but an
+    unrelated subcategory must not silently trigger the variant and override that filter.
+    """
+    assert is_cinema_request([CategoryEnum.CINEMA, CategoryEnum.FILM], [SubcategoryEnum.ABO_CONCERT]) is False
+
+
+def test_is_cinema_request_false_when_subcategories_are_a_strict_subset():
+    """Even a subset of the movie-screening subcategories must match exactly, not partially."""
+    assert is_cinema_request([CategoryEnum.CINEMA, CategoryEnum.FILM], [SubcategoryEnum.SEANCE_CINE]) is False
+
+
+# ---------------------------------------------------------------------------
+# fetch_similar_offer_cinema_rrf_retrieval_predictions_from_vertex
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_fetch_similar_offer_cinema_rrf_retrieval_calls_both_endpoints_and_fuses_results(mocker):
+    item_semantic_only = RecommendableItemFactory.build(item_id="item-semantic-only")
+    item_shared = RecommendableItemFactory.build(item_id="item-shared")
+    item_coreservation_only = RecommendableItemFactory.build(item_id="item-coreservation-only")
+
+    mocker.patch(
+        "core.retrieval.fetch_semantic_item_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=VertexPredictionResultFactory.build(
+            status="success", predictions=[item_semantic_only, item_shared]
+        ),
+    )
+    mocker.patch(
+        "core.retrieval.fetch_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=VertexPredictionResultFactory.build(
+            status="success", predictions=[item_shared, item_coreservation_only]
+        ),
+    )
+
+    user = UserContextFactory.build(user_id="u", is_authenticated=True)
+    result = await fetch_similar_offer_cinema_rrf_retrieval_predictions_from_vertex(
+        user, "call-1", "item-anchor", categories=None, subcategories=None, search_group_names=None
+    )
+
+    assert result.status == "success"
+    result_item_ids = {item.item_id for item in result.predictions}
+    assert result_item_ids == {"item-semantic-only", "item-shared", "item-coreservation-only"}
+    # The item present in both sources should be fused to the top (rank 1).
+    assert result.predictions[0].item_id == "item-shared"
+
+
+@pytest.mark.asyncio
+async def test_fetch_similar_offer_cinema_rrf_retrieval_status_is_error_only_if_both_sources_fail(mocker):
+    mocker.patch(
+        "core.retrieval.fetch_semantic_item_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=VertexPredictionResultFactory.build(status="error", predictions=[]),
+    )
+    mocker.patch(
+        "core.retrieval.fetch_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=VertexPredictionResultFactory.build(
+            status="success", predictions=[RecommendableItemFactory.build(item_id="item-1")]
+        ),
+    )
+
+    user = UserContextFactory.build(user_id="u", is_authenticated=True)
+    result = await fetch_similar_offer_cinema_rrf_retrieval_predictions_from_vertex(
+        user, "call-1", "item-anchor", categories=None, subcategories=None, search_group_names=None
+    )
+
+    assert result.status == "success", "One source failing while the other succeeds must not be treated as an error."
+    assert [item.item_id for item in result.predictions] == ["item-1"]
+
+
+@pytest.mark.asyncio
+async def test_fetch_similar_offer_cinema_rrf_retrieval_status_is_error_when_both_sources_fail(mocker):
+    mocker.patch(
+        "core.retrieval.fetch_semantic_item_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=VertexPredictionResultFactory.build(status="error", predictions=[]),
+    )
+    mocker.patch(
+        "core.retrieval.fetch_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=VertexPredictionResultFactory.build(status="error", predictions=[]),
+    )
+
+    user = UserContextFactory.build(user_id="u", is_authenticated=True)
+    result = await fetch_similar_offer_cinema_rrf_retrieval_predictions_from_vertex(
+        user, "call-1", "item-anchor", categories=None, subcategories=None, search_group_names=None
+    )
+
+    assert result.status == "error"
+    assert result.predictions == []
+
+
+@pytest.mark.asyncio
+async def test_fetch_similar_offer_cinema_rrf_retrieval_uses_configured_k_and_weights(mocker):
+    mocker.patch.object(settings, "CINEMA_RRF_K", 5)
+    mocker.patch.object(settings, "CINEMA_RRF_SEMANTIC_WEIGHT", 0.0)
+    mocker.patch.object(settings, "CINEMA_RRF_RECOMMENDATION_WEIGHT", 1.0)
+
+    mock_reciprocal_rank_fusion = mocker.patch("core.retrieval.reciprocal_rank_fusion", return_value=[])
+    mocker.patch(
+        "core.retrieval.fetch_semantic_item_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=VertexPredictionResultFactory.build(status="success", predictions=[]),
+    )
+    mocker.patch(
+        "core.retrieval.fetch_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=VertexPredictionResultFactory.build(status="success", predictions=[]),
+    )
+
+    user = UserContextFactory.build(user_id="u", is_authenticated=True)
+    await fetch_similar_offer_cinema_rrf_retrieval_predictions_from_vertex(
+        user, "call-1", "item-anchor", categories=None, subcategories=None, search_group_names=None
+    )
+
+    mock_reciprocal_rank_fusion.assert_called_once_with(
+        semantic_items=[], recommendation_items=[], k=5, semantic_weight=0.0, recommendation_weight=1.0
+    )
 
 
 # ---------------------------------------------------------------------------
