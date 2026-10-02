@@ -84,6 +84,8 @@ VERTEX_RETRIEVAL_ENDPOINT_NAME: str = os.environ.get(
 
 VERTEX_GRAPH_ENDPOINT_NAME: str = os.environ.get("VERTEX_GRAPH_ENDPOINT_NAME", "recommendation_graph_retrieval_stg")
 
+VERTEX_SEMANTIC_ENDPOINT_NAME: str = os.environ.get("VERTEX_SEMANTIC_ENDPOINT_NAME", "semantic_item_retrieval_stg")
+
 VERTEX_RANKING_ENDPOINT_NAME: str = os.environ.get("VERTEX_RANKING_ENDPOINT_NAME", "recommendation_user_ranking_stg")
 
 VERTEX_PREDICTION_TIMEOUT: float = float(os.environ.get("VERTEX_PREDICTION_TIMEOUT", "10.0" if IS_LOCAL else "2.0"))
@@ -94,6 +96,10 @@ VERTEX_GRAPH_RETRIEVAL_MODEL_DESCRIPTION: str = os.environ.get(
 )
 VERTEX_SIMILAR_OFFER_MODEL_DESCRIPTION: str = os.environ.get(
     "VERTEX_SIMILAR_OFFER_MODEL_DESCRIPTION", "Similar Offer Configuration (default)"
+)
+VERTEX_SEMANTIC_RETRIEVAL_MODEL_DESCRIPTION: str = os.environ.get(
+    "VERTEX_SEMANTIC_RETRIEVAL_MODEL_DESCRIPTION",
+    "Similar offers based on semantic.",
 )
 VERTEX_RECOMMENDATION_MODEL_DESCRIPTION: str = os.environ.get(
     "VERTEX_RECOMMENDATION_MODEL_DESCRIPTION", "Recommendation Configuration (default)"

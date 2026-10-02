@@ -55,7 +55,7 @@ async def get_similar_offers(  # noqa: PLR0913
         SimilarOfferModelChoices,
         Query(
             description="""The retrieval model to use for generating similar offers.
-            Options are 'graph' and 'coreservation'. Default is 'coreservation'."""
+            Options are 'graph', 'coreservation' and 'semantic'. Default is 'coreservation'."""
         ),
     ] = SimilarOfferModelChoices.coreservation,
 ) -> SimilarOfferResponse:
@@ -81,7 +81,7 @@ async def get_similar_offers(  # noqa: PLR0913
     - `categories` *(optional)*: Filter results by category.
     - `subcategories` *(optional)*: Filter results by subcategory.
     - `search_group_names` *(optional)*: Filter results by search group name.
-    - `retrieval_model` *(optional)*: Model used to retrieve similar offers (`graph` or `coreservation`).
+    - `retrieval_model` *(optional)*: Model used to retrieve similar offers (`graph`, `coreservation` or `semantic`).
       Defaults to `coreservation`.
     """
     latitude, longitude = location.latitude, location.longitude
