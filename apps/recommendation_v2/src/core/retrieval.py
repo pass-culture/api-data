@@ -123,8 +123,8 @@ def build_playlist_recommendation_retrieval_payload(
         prediction_payload["model_type"] = "tops"
         # TODO find out which vector column(s) fit best for cold start scenario.
         prediction_payload["vector_column_name"] = (
-                    "booking_trend_desc"  # "booking_number_desc","booking_creation_trend_desc", "booking_release_trend_desc"
-                )
+            "booking_trend_desc"  # "booking_number_desc","booking_creation_trend_desc", "booking_release_trend_desc"
+        )
         prediction_payload["re_rank"] = 0
     else:
         prediction_payload["model_type"] = "recommendation"
@@ -236,6 +236,7 @@ def _build_creation_trend_tops_retrieval_payload(
         "re_rank": 0,
     }
 
+
 def _build_booking_trend_tops_retrieval_payload(
     user_context: UserContext, call_id: str, params: PlaylistRequestParams
 ) -> dict[str, Any]:
@@ -252,6 +253,7 @@ def _build_booking_trend_tops_retrieval_payload(
         "vector_column_name": "booking_trend_desc",
         "re_rank": 0,
     }
+
 
 def build_all_playlist_recommendation_retrieval_payloads(
     user_context: UserContext, call_id: str, params: PlaylistRequestParams
