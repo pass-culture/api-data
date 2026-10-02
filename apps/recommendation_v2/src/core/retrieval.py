@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from connectors import graph_api_client
 from connectors import retrieval_api_client
+from connectors import semantic_item_retrieval_api_client
 from connectors.vertex_api import VertexPredictionResult
 from core.user_context import UserContext
 from models.items import NonRecommendableItems
@@ -23,6 +24,9 @@ PLAYLIST_RECOMMENDATION_RETRIEVAL_SIZE_PER_ENDPOINT = 150
 
 # ISO v1: OfferRetrievalEndpoint uses size=100.
 SIMILAR_OFFER_RETRIEVAL_SIZE = 100
+
+SEMANTIC_RETRIEVAL_SIZE = 200
+
 
 # ==============================================================================
 # PLAYLIST RECOMMENDATION
@@ -397,13 +401,14 @@ def _build_similar_offer_search_filters(
     return {"$and": and_conditions}
 
 
-def build_similar_offer_retrieval_payload(
+def build_similar_offer_retrieval_payload(  # noqa: PLR0913
     user_context: UserContext,
     call_id: str,
     item_id: str | None,
     categories: list[CategoryEnum] | None = None,
     subcategories: list[SubcategoryEnum] | None = None,
     search_group_names: list[SearchGroupNameEnum] | None = None,
+    size: int = SIMILAR_OFFER_RETRIEVAL_SIZE,
 ) -> dict[str, Any]:
     """
     Constructs the prediction payload for similar offer recommendations.
@@ -415,6 +420,7 @@ def build_similar_offer_retrieval_payload(
         categories (list[CategoryEnum] | None): Filter by categories.
         subcategories (list[SubcategoryEnum] | None): Filter by subcategories.
         search_group_names (list[SearchGroupNameEnum] | None): Filter by search groups.
+        size (int): Number of candidates to request. Defaults to SIMILAR_OFFER_RETRIEVAL_SIZE.
 
     Returns:
         dict[str, Any]: The prediction payload required by Vertex API to retrieve similar items.
@@ -427,7 +433,7 @@ def build_similar_offer_retrieval_payload(
         # A bit misleading but we keep it for consistency with the Vertex API.
         "debug": 1,
         "prefilter": 1,
-        "size": SIMILAR_OFFER_RETRIEVAL_SIZE,
+        "size": size,
         "search_after": None,
     }
 
@@ -473,6 +479,14 @@ async def fetch_graph_predictions_from_vertex(prediction_payload: dict[str, Any]
     prediction_result = await graph_api_client.fetch_retrieval_predictions(feature_payloads=[prediction_payload])
 
     return prediction_result
+
+
+@log_execution_time
+async def fetch_semantic_retrieval_predictions_from_vertex(
+    prediction_payload: dict[str, Any],
+) -> VertexPredictionResult:
+    """Calls the semantic_item_retrieval Vertex AI endpoint to retrieve content-based candidate items."""
+    return await semantic_item_retrieval_api_client.fetch_retrieval_predictions(feature_payloads=[prediction_payload])
 
 
 async def filter_out_already_booked_items(

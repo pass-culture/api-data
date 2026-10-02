@@ -3,6 +3,8 @@ from datetime import datetime
 
 import pytest
 
+from core.retrieval import SEMANTIC_RETRIEVAL_SIZE
+from core.retrieval import SIMILAR_OFFER_RETRIEVAL_SIZE
 from core.retrieval import _build_playlist_recommendation_search_filters
 from core.retrieval import _build_similar_offer_search_filters
 from core.retrieval import build_playlist_recommendation_retrieval_payload
@@ -235,6 +237,19 @@ def test_similar_offer_payload_omits_params_when_no_filters_provided():
     """The params key must be omitted entirely (not set to {}) when no category filters are given."""
     payload = build_similar_offer_retrieval_payload(UserContextFactory.build(), "call-1", item_id="item-1")
     assert "params" not in payload
+
+
+def test_similar_offer_payload_default_size():
+    payload = build_similar_offer_retrieval_payload(UserContextFactory.build(), "call-1", item_id="item-1")
+    assert payload["size"] == SIMILAR_OFFER_RETRIEVAL_SIZE
+
+
+def test_similar_offer_payload_respects_custom_size():
+    """A caller-provided size overrides the default SIMILAR_OFFER_RETRIEVAL_SIZE."""
+    payload = build_similar_offer_retrieval_payload(
+        UserContextFactory.build(), "call-1", item_id="item-1", size=SEMANTIC_RETRIEVAL_SIZE
+    )
+    assert payload["size"] == SEMANTIC_RETRIEVAL_SIZE
 
 
 # ---------------------------------------------------------------------------
