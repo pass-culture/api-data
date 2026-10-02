@@ -18,7 +18,7 @@ DEFAULT_FALLBACK_USER_AGE = 18
 
 # Thresholds used to determine if a user has enough history to exit the 'Cold Start' state
 THRESHOLD_BOOKINGS = 2
-THRESHOLD_CLICKS = 2
+THRESHOLD_CLICKS = 25
 THRESHOLD_FAVORITES = 2
 
 # Default value for unauthenticated or unknown users
