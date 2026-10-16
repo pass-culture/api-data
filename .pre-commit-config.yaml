@@ -5,7 +5,7 @@ default_install_hook_types:
 - pre-push
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.3.0
+  rev: v6.0.0
   hooks:
   - id: trailing-whitespace
   - id: end-of-file-fixer
@@ -41,13 +41,13 @@ repos:
     stages: [pre-commit]
 
 - repo: https://github.com/gitguardian/ggshield
-  rev: v1.42.0
+  rev: v1.56.0
   hooks:
     - id: ggshield
       language_version: python3
       stages: [pre-commit]
 - repo: https://github.com/semgrep/pre-commit
-  rev: '33d4462c25147807aaa122d613a04d9fbd5f4840' # v1.156.0
+  rev: 'v1.181.0'
   hooks:
     - id: semgrep
       entry: semgrep
