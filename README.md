@@ -64,6 +64,6 @@ make ruff-fix
 
 ## To run check micro service README
 
-- [Recommendation documentation](apps/recommendation/README.md)
+- [Recommendation V2 documentation](apps/recommendation_v2/README.md)
 
 - [Compliance documentation](apps/fraud/compliance/api/README.md)
