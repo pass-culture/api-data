@@ -25,14 +25,14 @@
   },
   "packageRules": [
     {
-      "description": "Group all dependency updates for the reco API",
+      "description": "Group all dependency updates for the reco v2 API",
       "matchFileNames": [
-        "apps/recommendation/api/pyproject.toml"
+        "apps/recommendation_v2/pyproject.toml"
       ],
-      "groupName": "reco-api-deps",
-      "commitMessagePrefix": "(BSR) fix(recommendation): ",
+      "groupName": "reco-api-v2-deps",
+      "commitMessagePrefix": "(BSR) fix(recommendation_v2): ",
       "commitMessageAction": "Update",
-      "commitMessageTopic": "recommendation dependencies"
+      "commitMessageTopic": "recommendation_v2 dependencies"
     },
     {
       "description": "Group all dependency updates for the compliance API",
