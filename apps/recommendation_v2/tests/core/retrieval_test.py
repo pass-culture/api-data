@@ -205,11 +205,20 @@ def test_playlist_payload_cold_start_uses_tops_model():
 
 def test_playlist_payload_warm_user_uses_recommendation_model():
     """Warm users use collaborative filtering; the cold-start-specific keys must be absent from the payload."""
-    user = UserContext(user_id="u", is_authenticated=True, bookings_count=2)
+    user = UserContext(user_id="u", is_authenticated=True, bookings_count=2, user_is_embedded=True)
     payload = build_playlist_recommendation_retrieval_payload(user, "call-1", PlaylistRequestParams())
     assert payload["model_type"] == "recommendation"
     assert "vector_column_name" not in payload
     assert "re_rank" not in payload
+
+
+def test_playlist_payload_active_unembedded_user_uses_tops_model():
+    """Active users who are not yet embedded in Two-Tower fall back to cold-start tops model."""
+    user = UserContext(user_id="u", is_authenticated=True, bookings_count=5, user_is_embedded=False)
+    payload = build_playlist_recommendation_retrieval_payload(user, "call-1", PlaylistRequestParams())
+    assert payload["model_type"] == "tops"
+    assert payload["vector_column_name"] == "booking_number_desc"
+    assert payload["re_rank"] == 0
 
 
 # ---------------------------------------------------------------------------
