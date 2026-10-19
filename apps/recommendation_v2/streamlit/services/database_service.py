@@ -14,11 +14,112 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.sql.expression import func
 
 from config import settings
+from controllers.pipeline_playlist_top_artists import TOP_ARTISTS_COUNT
 from core.user_context import THRESHOLD_BOOKINGS
 from core.user_context import THRESHOLD_CLICKS
 from core.user_context import THRESHOLD_FAVORITES
 from models.offer import RecommendableOffers
+from models.similar_artists import SimilarArtist
 from models.user import EnrichedUser
+
+
+def _build_discovery_artist_composition_dict(
+    discovery_artist_id: str,
+    similar_artists_by_top_id: dict[str, list[dict]],
+) -> dict:
+    """
+    Reconstruct the similarity-rank breakdown of a single discovery artist across the top artists.
+
+    Args:
+        discovery_artist_id (str): Artist ID of the discovery candidate.
+        similar_artists_by_top_id (dict[str, list[dict]]): Mapping of
+            ``top_artist_id -> raw similar_artists_json list``.
+
+    Returns:
+        dict: Composition metadata with ``artist_id``, ``appearance_count``, ``avg_rank``,
+        and ``ranks_by_top_artist``.
+    """
+    ranks_by_top_artist = {
+        top_artist_id: similar_entry["rank"]
+        for top_artist_id, similar_artists in similar_artists_by_top_id.items()
+        for similar_entry in similar_artists
+        if similar_entry.get("artist_id_match") == discovery_artist_id
+    }
+    similarity_ranks = list(ranks_by_top_artist.values())
+    appearance_count = len(similarity_ranks)
+    average_rank = round(sum(similarity_ranks) / appearance_count, 2) if similarity_ranks else None
+
+    return {
+        "artist_id": discovery_artist_id,
+        "appearance_count": appearance_count,
+        "avg_rank": average_rank,
+        "ranks_by_top_artist": ranks_by_top_artist,
+    }
+
+
+def get_playlist_top_artists_composition(
+    playlist_artist_ids: list[str],
+    top_artists_count: int = TOP_ARTISTS_COUNT,
+) -> tuple[list[dict], list[dict]]:
+    """
+    Reconstruct the detailed composition of a ``playlist_top_artists`` API response from the database.
+
+    The public API endpoint returns a flat list of artist IDs where:
+    - The first ``top_artists_count`` (3) elements are the category's top artists.
+    - The remaining elements are the discovery artists.
+
+    For each discovery artist, this function queries ``similar_artist_mv`` for the top artists
+    to rebuild its ``appearance_count``, ``avg_rank``, and ``ranks_by_top_artist`` breakdown
+    for display in the Streamlit debug table.
+
+    Args:
+        playlist_artist_ids (list[str]): Flat ordered list of artist IDs returned by the API.
+        top_artists_count (int): Number of leading top artists in the playlist (defaults to 3).
+
+    Returns:
+        tuple[list[dict], list[dict]]: A pair ``(top_artists, discovery_artists)`` where:
+        - ``top_artists`` contains dicts with ``artist_id`` and ``category_rank``.
+        - ``discovery_artists`` contains dicts with ``artist_id``, ``appearance_count``,
+          ``avg_rank``, and ``ranks_by_top_artist``.
+    """
+    if not playlist_artist_ids:
+        return [], []
+
+    top_artist_ids = playlist_artist_ids[:top_artists_count]
+    discovery_artist_ids = playlist_artist_ids[top_artists_count:]
+
+    async def _fetch_similar_artists_by_top_id_async() -> dict[str, list[dict]]:
+        temp_engine = create_async_engine(settings.DATABASE_URL, poolclass=pool.NullPool)
+        temp_session_factory = async_sessionmaker(temp_engine, expire_on_commit=False)
+
+        async with temp_session_factory() as session:
+            statement = select(SimilarArtist.artist_id, SimilarArtist.similar_artists_json).where(
+                SimilarArtist.artist_id.in_(top_artist_ids)
+            )
+            query_result = await session.execute(statement)
+            similar_artists_by_top_id = {row.artist_id: row.similar_artists_json or [] for row in query_result.all()}
+
+        await temp_engine.dispose()
+        return similar_artists_by_top_id
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        similar_artists_by_top_id = loop.run_until_complete(_fetch_similar_artists_by_top_id_async())
+    finally:
+        loop.close()
+
+    top_artists = [
+        {"artist_id": artist_id, "category_rank": position}
+        for position, artist_id in enumerate(top_artist_ids, start=1)
+    ]
+
+    discovery_artists = [
+        _build_discovery_artist_composition_dict(discovery_artist_id, similar_artists_by_top_id)
+        for discovery_artist_id in discovery_artist_ids
+    ]
+
+    return top_artists, discovery_artists
 
 
 def get_random_user(*, is_cold_start: bool) -> str:

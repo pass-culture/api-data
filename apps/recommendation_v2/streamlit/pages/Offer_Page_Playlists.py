@@ -64,7 +64,7 @@ def main():
         st.error("Veuillez renseigner un ID d'offre dans la barre latérale.")
 
 
-def fetch_and_display_offer_page_playlists(  # noqa: PLR0913
+def fetch_and_display_offer_page_playlists(
     offer_id: str,
     user_id: str | None,
     params: dict,

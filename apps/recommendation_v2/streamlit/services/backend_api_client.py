@@ -146,6 +146,29 @@ def fetch_similar_artist_ids(
     return similar_artists, data.get("params", {}).get("call_id", "N/A")
 
 
+def fetch_playlist_top_artists(
+    api_url: str,
+    params: dict,
+    proxies: dict | None = None,
+    api_token: str | None = None,
+) -> dict:
+    """GET the playlist_top_artists endpoint and return the raw JSON response.
+
+    Args:
+        api_url: Full endpoint URL (the `search_group_name` path param is already baked in).
+        params: URL query parameters (e.g. `score_name`, `discovery_size`).
+        proxies: Optional SOCKS5 proxy dict for VPC tunneling.
+        api_token: Optional API token injected as query param `?token=`.
+
+    Returns:
+        The raw response dict with keys 'playlist_artists' (flat list of artist IDs) and 'params'
+        (see `schemas.playlist_top_artists.PlaylistTopArtistsResponse`).
+    """
+    response = requests.get(api_url, params=_inject_token(params, api_token), proxies=proxies)
+    response.raise_for_status()
+    return response.json()
+
+
 def fetch_offer_details(offer_id: str) -> dict | None:
     """Fetch display metadata for a single offer from the backend API.
 

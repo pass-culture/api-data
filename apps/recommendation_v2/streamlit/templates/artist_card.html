@@ -5,12 +5,19 @@
 <div class="card-img artist-card-img" style="display:flex; align-items:center; justify-content:center; background:#e0e0e0; color:#888;">Pas d'image</div>
 {% endif %}
 <div class="card-content">
-    <div class="card-category">Artiste</div>
+    <div class="card-category">{{ category }}</div>
     <div class="card-title" title="{{ name }}">{{ name }}</div>
     {% if description %}
         <div class="card-desc" style="height:auto; margin-bottom:6px;">{{ description }}</div>
     {% endif %}
     <div class="card-footer">
         <div class="card-id">ID: {{ artist_id }}</div>
+        {% if backoffice_url or app_url %}
+        <div class="card-id">
+            {% if backoffice_url %}<a href="{{ backoffice_url }}" target="_blank" rel="noopener noreferrer">🛠 Backoffice</a>{% endif %}
+            {% if backoffice_url and app_url %} · {% endif %}
+            {% if app_url %}<a href="{{ app_url }}" target="_blank" rel="noopener noreferrer">📱 App jeune</a>{% endif %}
+        </div>
+        {% endif %}
     </div>
 </div>
