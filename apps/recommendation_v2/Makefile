@@ -1,6 +1,6 @@
 SHELL:=/bin/bash
 
-.PHONY: install start tunnel start-with-remote-db streamlit streamlit-remote dev-with-streamlit test unit-test integration-test all-tests-marked access-remote-swagger get-api-token show-config help
+.PHONY: install start tunnel start-with-remote-db streamlit streamlit-remote dev-with-streamlit test unit-test integration-test test-coverage-html test-coverage-term all-tests-marked access-remote-swagger get-api-token show-config help
 
 
 # ===========================================
@@ -264,6 +264,17 @@ integration-test: ## Run integration tests only (requires Docker)
 	@docker info > /dev/null 2>&1 || (echo "❌ Error: Docker is not running. Please start Docker and try again."; exit 1)
 	@echo "🧪 Running integration tests..."
 	uv run pytest tests -m integration
+
+test-coverage-html: ## Run tests with coverage and generate an HTML report (htmlcov/index.html)
+	@echo "🧪 Running tests with HTML coverage report..."
+	uv run pytest --cov=src --cov-report=html tests/
+	@echo "📄 Report available at file://$(CURDIR)/htmlcov/index.html"
+	@echo "🌐 Opening report in browser..."
+	@(open htmlcov/index.html 2>/dev/null || xdg-open htmlcov/index.html 2>/dev/null) || echo "⚠️ Could not open browser. Open file://$(CURDIR)/htmlcov/index.html manually."
+
+test-coverage-term: ## Run tests with coverage and print the report in the terminal
+	@echo "🧪 Running tests with terminal coverage report..."
+	uv run pytest --cov=src --cov-report=term-missing tests/
 
 all-tests-marked: ## Verify that every test has a unit or integration marker
 	@echo "🧪 Verifying all tests are marked..."
