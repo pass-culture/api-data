@@ -44,19 +44,17 @@ def get_random_user(*, is_cold_start: bool) -> str:
         async with temp_session_factory() as session:
             stmt = select(EnrichedUser.user_id)
 
-            # Apply cold start logic based on given thresholds
+            # Apply cold start logic based on given thresholds and embedding status
+            has_enough_activity = (
+                (EnrichedUser.booking_cnt >= THRESHOLD_BOOKINGS)
+                | (EnrichedUser.consult_offer >= THRESHOLD_CLICKS)
+                | (EnrichedUser.has_added_offer_to_favorites >= THRESHOLD_FAVORITES)
+            )
             if is_cold_start:
-                stmt = stmt.where(
-                    (EnrichedUser.booking_cnt < THRESHOLD_BOOKINGS)
-                    & (EnrichedUser.consult_offer < THRESHOLD_CLICKS)
-                    & (EnrichedUser.has_added_offer_to_favorites < THRESHOLD_FAVORITES)
-                )
+                stmt = stmt.where(~has_enough_activity | ~EnrichedUser.user_is_embedded)
             else:
-                stmt = stmt.where(
-                    (EnrichedUser.booking_cnt >= THRESHOLD_BOOKINGS)
-                    | (EnrichedUser.consult_offer >= THRESHOLD_CLICKS)
-                    | (EnrichedUser.has_added_offer_to_favorites >= THRESHOLD_FAVORITES)
-                )
+                is_warm_condition = has_enough_activity & EnrichedUser.user_is_embedded
+                stmt = stmt.where(is_warm_condition)
 
             stmt = stmt.order_by(func.random()).limit(1)
 
@@ -168,4 +166,5 @@ def get_user_metadata(user_id: str) -> dict | None:
         ),
         "user_subscription_latitude": enriched_user_record.user_subscription_latitude,
         "user_subscription_longitude": enriched_user_record.user_subscription_longitude,
+        "user_is_embedded": enriched_user_record.user_is_embedded,
     }

@@ -131,6 +131,7 @@ class EnrichedUserFactory(BaseModelFactory[EnrichedUser]):
             booking_cnt=0,
             consult_offer=0,
             has_added_offer_to_favorites=0,
+            user_is_embedded=False,
             **kwargs,
         )
 
@@ -155,6 +156,7 @@ class EnrichedUserFactory(BaseModelFactory[EnrichedUser]):
             booking_cnt=5,
             consult_offer=30,
             has_added_offer_to_favorites=5,
+            user_is_embedded=True,
             **kwargs,
         )
 
