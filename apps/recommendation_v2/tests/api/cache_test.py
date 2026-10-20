@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from schemas.offer_page_playlists import AnalyticsPlaylistTypeEnum
 from schemas.offer_page_playlists import OfferPlaylistItem
+from schemas.offer_page_playlists import OfferPlaylistParams
 from schemas.offer_page_playlists import OfferPlaylistTitleEnum
 from schemas.playlist_recommendation import RecommendationMetadata
 
@@ -65,7 +66,7 @@ def _build_offer_page_playlists_response(
         title=OfferPlaylistTitleEnum.LES_FANS_AIMENT_AUSSI,
         analytics_playlist_type=AnalyticsPlaylistTypeEnum.SAME_CATEGORY_TWO_TOWER,
         results=results,
-        params=metadata,
+        params=OfferPlaylistParams(**metadata.model_dump(exclude={"unique_call_id"})),
     )
     return factory.build(offer_id="offer-ref", playlists=[playlist])
 

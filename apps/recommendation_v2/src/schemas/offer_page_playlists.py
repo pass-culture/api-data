@@ -1,10 +1,11 @@
+import uuid
 from dataclasses import dataclass
 from enum import StrEnum
 
 from pydantic import BaseModel
+from pydantic import Field
 
 from schemas.categories import SearchGroupNameEnum
-from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.similar_offer import SimilarOfferModelChoices
 
 
@@ -72,6 +73,18 @@ class SimilarOfferPlaylistConfig:
     search_group_names: list[SearchGroupNameEnum]
 
 
+class OfferPlaylistParams(BaseModel):
+    """
+    Per-playlist generation metadata. Unlike ``RecommendationMetadata``, it has no
+    ``unique_call_id``: that identifier lives at the response level.
+    """
+
+    reco_origin: str
+    model_origin: str
+    call_id: str
+    ab_test: str | None = None
+
+
 class OfferPlaylistItem(BaseModel):
     """
     A single titled playlist within an offer page response.
@@ -89,7 +102,7 @@ class OfferPlaylistItem(BaseModel):
     title: OfferPlaylistTitleEnum
     analytics_playlist_type: AnalyticsPlaylistTypeEnum
     results: list[str]
-    params: RecommendationMetadata
+    params: OfferPlaylistParams
 
 
 class OfferPagePlaylistsResponse(BaseModel):
@@ -105,8 +118,10 @@ class OfferPagePlaylistsResponse(BaseModel):
         offer_id: The identifier of the reference offer this response was built for.
         playlists: Ordered list of playlists to display on the offer page.
         from_cache: True when the entire response was served from a Redis cache hit.
+        unique_call_id: Identifier unique to each HTTP call, regenerated even on cache hits.
     """
 
     offer_id: str
     playlists: list[OfferPlaylistItem]
     from_cache: bool = False
+    unique_call_id: str = Field(default_factory=lambda: str(uuid.uuid4()))

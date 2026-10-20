@@ -11,6 +11,7 @@ from schemas.categories import SearchGroupNameEnum
 from schemas.offer_page_playlists import AnalyticsPlaylistTypeEnum
 from schemas.offer_page_playlists import OfferPagePlaylistsResponse
 from schemas.offer_page_playlists import OfferPlaylistItem
+from schemas.offer_page_playlists import OfferPlaylistParams
 from schemas.offer_page_playlists import OfferPlaylistTitleEnum
 from schemas.offer_page_playlists import SimilarOfferPlaylistConfig
 from schemas.similar_offer import SimilarOfferModelChoices
@@ -145,7 +146,7 @@ async def _generate_single_similar_offer_playlist(
         title=playlist_config.title,
         analytics_playlist_type=playlist_config.analytics_playlist_type,
         results=similar_offers_response.results,
-        params=similar_offers_response.params,
+        params=OfferPlaylistParams(**similar_offers_response.params.model_dump(exclude={"unique_call_id"})),
     )
 
 

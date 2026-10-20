@@ -101,11 +101,10 @@ async def get_offer_page_playlists(
         )
         if isinstance(cached_result, OfferPagePlaylistsResponse):
             cached_result.from_cache = True
-            # Assign fresh unique_call_ids to each playlist so click events can be
-            # attributed to this specific page load while preserving the original
-            # call_ids that link back to the BigQuery tracking rows.
-            for playlist in cached_result.playlists:
-                playlist.params.unique_call_id = str(uuid.uuid4())
+            # Assign a fresh unique_call_id so events can be attributed to this
+            # specific call, while per-playlist call_ids are preserved (they link
+            # back to the BigQuery tracking rows).
+            cached_result.unique_call_id = str(uuid.uuid4())
             logger.info(
                 "✅ [HTTP Request Cache] Cache HIT — returning cached offer_page_playlists.",
                 extra={"offer_id": offer_id},
