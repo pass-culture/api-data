@@ -60,7 +60,7 @@ def main():
         st.error("Veuillez renseigner un ID d'offre dans la barre latérale.")
 
 
-def fetch_and_display_similar_offers(  # noqa: PLR0913
+def fetch_and_display_similar_offers(
     offer_id: str,
     retrieval_model: str,
     user_id: str | None,

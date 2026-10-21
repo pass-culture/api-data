@@ -182,11 +182,13 @@ def mock_uuid():
         patch("controllers.pipeline_playlist_recommendation.uuid.uuid4") as mock_uuid_playlist,
         patch("controllers.pipeline_similar_offer.uuid.uuid4") as mock_uuid_similar,
         patch("controllers.pipeline_similar_artists.uuid.uuid4") as mock_uuid_artists,
+        patch("controllers.pipeline_playlist_top_artists.uuid.uuid4") as mock_uuid_top_artists,
     ):
         mock_uuid_playlist.return_value = uuid.UUID(MOCK_CALL_ID)
         mock_uuid_similar.return_value = uuid.UUID(MOCK_CALL_ID)
         mock_uuid_artists.return_value = uuid.UUID(MOCK_CALL_ID)
-        yield (mock_uuid_playlist, mock_uuid_similar, mock_uuid_artists)
+        mock_uuid_top_artists.return_value = uuid.UUID(MOCK_CALL_ID)
+        yield (mock_uuid_playlist, mock_uuid_similar, mock_uuid_artists, mock_uuid_top_artists)
 
 
 @pytest.fixture(autouse=True)

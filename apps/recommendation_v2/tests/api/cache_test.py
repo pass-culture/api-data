@@ -148,7 +148,7 @@ async def _request(client: AsyncClient, method: str, url: str, body):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(_PARAMS, CACHE_ENDPOINTS)
-async def test_cache_hit_returns_from_cache_true(  # noqa: PLR0913
+async def test_cache_hit_returns_from_cache_true(
     client: AsyncClient,
     mocker,
     method,
@@ -182,7 +182,7 @@ async def test_cache_hit_returns_from_cache_true(  # noqa: PLR0913
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(_PARAMS, CACHE_ENDPOINTS)
-async def test_cache_hit_preserves_original_call_id(  # noqa: PLR0913
+async def test_cache_hit_preserves_original_call_id(
     client: AsyncClient,
     mocker,
     method,
@@ -219,7 +219,7 @@ async def test_cache_hit_preserves_original_call_id(  # noqa: PLR0913
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(_PARAMS, CACHE_ENDPOINTS)
-async def test_cache_hit_preserves_result_list(  # noqa: PLR0913
+async def test_cache_hit_preserves_result_list(
     client: AsyncClient,
     mocker,
     method,
@@ -251,7 +251,7 @@ async def test_cache_hit_preserves_result_list(  # noqa: PLR0913
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(_PARAMS, CACHE_ENDPOINTS)
-async def test_cache_miss_runs_pipeline_and_stores_result(  # noqa: PLR0913
+async def test_cache_miss_runs_pipeline_and_stores_result(
     client: AsyncClient,
     mocker,
     method,
@@ -284,7 +284,7 @@ async def test_cache_miss_runs_pipeline_and_stores_result(  # noqa: PLR0913
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(_PARAMS, CACHE_ENDPOINTS)
-async def test_cache_miss_with_empty_result_does_not_store(  # noqa: PLR0913
+async def test_cache_miss_with_empty_result_does_not_store(
     client: AsyncClient,
     mocker,
     method,
@@ -322,7 +322,7 @@ async def test_cache_miss_with_empty_result_does_not_store(  # noqa: PLR0913
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(_PARAMS, CACHE_ENDPOINTS)
-async def test_no_cache_interaction_when_disabled(  # noqa: PLR0913
+async def test_no_cache_interaction_when_disabled(
     client: AsyncClient,
     mocker,
     method,

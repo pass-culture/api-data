@@ -107,7 +107,7 @@ TOKEN_SCENARIO_PARAMS = [
 @pytest.mark.asyncio
 @pytest.mark.parametrize(("router", "method", "url", "body"), ENDPOINT_PARAMS)
 @pytest.mark.parametrize(("token_query", "token_header", "expected_status"), TOKEN_SCENARIO_PARAMS)
-async def test_token_authentication_on_all_endpoints(  # noqa: PLR0913
+async def test_token_authentication_on_all_endpoints(
     db_session,
     router: APIRouter,
     method: str,
