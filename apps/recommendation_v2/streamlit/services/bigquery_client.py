@@ -1,10 +1,19 @@
 import os
+from pathlib import Path
 
+from dotenv import load_dotenv
 from google.cloud import bigquery
 
 
+# Load the app's .env (apps/recommendation_v2/.env) so GCP_PROJECT reflects its value.
+load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=True)
+
 GCP_PROJECT = os.environ.get("GCP_PROJECT", "passculture-data-ehp")
-ENV_SHORT_NAME = os.environ.get("ENV_SHORT_NAME", "stg")
+GCP_PROJECT_TO_ENV = {
+    "passculture-data-ehp": "stg",
+    "passculture-data-prod": "prod",
+}
+ENV_SHORT_NAME = GCP_PROJECT_TO_ENV.get(GCP_PROJECT, "stg")
 DATASET_NAME = f"analytics_{ENV_SHORT_NAME}"
 ARTIST_TABLE = f"{GCP_PROJECT}.{DATASET_NAME}.global_artist"
 

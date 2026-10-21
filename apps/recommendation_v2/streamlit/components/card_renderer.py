@@ -32,6 +32,13 @@ ARTIST_BASE_URLS = {
 }
 
 
+# Offer page base URLs per environment (offer_id is appended).
+OFFER_APP_BASE_URLS = {
+    "stg": "https://app.staging.passculture.team/offre",
+    "prod": "https://passculture.app/offre",
+}
+
+
 def show_recommendations(
     offer_ids: list,
     max_offers_to_fetch: int,
@@ -405,7 +412,7 @@ def _build_jinja_render_context(offer: dict, rank_index: int, *, is_duplicate: b
         "title": title,
         "price": price_text,
         "dist": dist_details,
-        "offer_url": f"https://app.staging.passculture.team/offre/{offer_id_val}",
+        "offer_url": f"{OFFER_APP_BASE_URLS['prod' if ENV_SHORT_NAME == 'prod' else 'stg']}/{offer_id_val}",
         "offer_id": offer_id_val,
         "safe_desc": safe_desc,
         "short_desc": short_desc,
