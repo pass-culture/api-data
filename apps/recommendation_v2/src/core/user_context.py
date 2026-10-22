@@ -71,6 +71,7 @@ class UserContext:
     bookings_count: int = 0
     clicks_count: int = 0  # Mapped from 'consult_offer'
     favorites_count: int = 0  # Mapped from 'has_added_offer_to_favorites'
+    user_is_embedded: bool = False  # Mapped from 'user_is_embedded'
     remaining_credit: float = 150.0  # Business logic: theoretical OR initial
     # TODO: is 150.0 the right default value here? It was 300.0 in the previous code
 
@@ -85,14 +86,15 @@ class UserContext:
         """
         Determines if the user is in a 'Cold Start' scenario.
 
-        A user is considered 'Cold Start' if they are either unauthenticated (guest)
-        OR if they haven't interacted enough with the app (not enough clicks,
-        favorites, or bookings) to generate meaningful collaborative filtering recommendations.
+        A user is considered 'Cold Start' if they are unauthenticated (guest),
+        not yet embedded in the Two-Tower model, OR if they haven't interacted
+        enough with the app (not enough clicks, favorites, or bookings) to
+        generate meaningful collaborative filtering recommendations.
 
         Returns:
-            bool: True if the user lacks interaction history, False otherwise (Warm user).
+            bool: True if the user lacks interaction history or embedding, False otherwise (Warm user).
         """
-        if not self.is_authenticated:
+        if not self.is_authenticated or not self.user_is_embedded:
             return True
 
         has_enough_bookings = self.bookings_count >= THRESHOLD_BOOKINGS
@@ -165,6 +167,7 @@ class UserContext:
             bookings_count=database_user_record.booking_cnt or 0,
             clicks_count=database_user_record.consult_offer or 0,
             favorites_count=database_user_record.has_added_offer_to_favorites or 0,
+            user_is_embedded=database_user_record.user_is_embedded,
             remaining_credit=float(computed_credit),
             latitude=latitude,
             longitude=longitude,

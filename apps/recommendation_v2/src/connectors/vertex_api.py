@@ -94,6 +94,10 @@ class VertexAPI:
         if is_graph_endpoint and item_origin != ItemOrigin.TOPS:
             return ItemOrigin.GRAPH
 
+        is_semantic_endpoint = self.endpoint_name == settings.VERTEX_SEMANTIC_ENDPOINT_NAME
+        if is_semantic_endpoint and item_origin != ItemOrigin.TOPS:
+            return ItemOrigin.SEMANTIC
+
         return item_origin
 
     async def fetch_retrieval_predictions(self, feature_payloads: list[dict]) -> VertexPredictionResult:

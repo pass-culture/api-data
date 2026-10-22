@@ -3,6 +3,8 @@ from datetime import datetime
 
 import pytest
 
+from core.retrieval import SEMANTIC_RETRIEVAL_SIZE
+from core.retrieval import SIMILAR_OFFER_RETRIEVAL_SIZE
 from core.retrieval import _build_playlist_recommendation_search_filters
 from core.retrieval import _build_similar_offer_search_filters
 from core.retrieval import build_playlist_recommendation_retrieval_payload
@@ -203,11 +205,20 @@ def test_playlist_payload_cold_start_uses_tops_model():
 
 def test_playlist_payload_warm_user_uses_recommendation_model():
     """Warm users use collaborative filtering; the cold-start-specific keys must be absent from the payload."""
-    user = UserContext(user_id="u", is_authenticated=True, bookings_count=2)
+    user = UserContext(user_id="u", is_authenticated=True, bookings_count=2, user_is_embedded=True)
     payload = build_playlist_recommendation_retrieval_payload(user, "call-1", PlaylistRequestParams())
     assert payload["model_type"] == "recommendation"
     assert "vector_column_name" not in payload
     assert "re_rank" not in payload
+
+
+def test_playlist_payload_active_unembedded_user_uses_tops_model():
+    """Active users who are not yet embedded in Two-Tower fall back to cold-start tops model."""
+    user = UserContext(user_id="u", is_authenticated=True, bookings_count=5, user_is_embedded=False)
+    payload = build_playlist_recommendation_retrieval_payload(user, "call-1", PlaylistRequestParams())
+    assert payload["model_type"] == "tops"
+    assert payload["vector_column_name"] == "booking_number_desc"
+    assert payload["re_rank"] == 0
 
 
 # ---------------------------------------------------------------------------
@@ -235,6 +246,19 @@ def test_similar_offer_payload_omits_params_when_no_filters_provided():
     """The params key must be omitted entirely (not set to {}) when no category filters are given."""
     payload = build_similar_offer_retrieval_payload(UserContextFactory.build(), "call-1", item_id="item-1")
     assert "params" not in payload
+
+
+def test_similar_offer_payload_default_size():
+    payload = build_similar_offer_retrieval_payload(UserContextFactory.build(), "call-1", item_id="item-1")
+    assert payload["size"] == SIMILAR_OFFER_RETRIEVAL_SIZE
+
+
+def test_similar_offer_payload_respects_custom_size():
+    """A caller-provided size overrides the default SIMILAR_OFFER_RETRIEVAL_SIZE."""
+    payload = build_similar_offer_retrieval_payload(
+        UserContextFactory.build(), "call-1", item_id="item-1", size=SEMANTIC_RETRIEVAL_SIZE
+    )
+    assert payload["size"] == SEMANTIC_RETRIEVAL_SIZE
 
 
 # ---------------------------------------------------------------------------

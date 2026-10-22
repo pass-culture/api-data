@@ -10,9 +10,11 @@ from core.geo import get_iris_id_from_coordinates
 from core.geo import resolve_effective_geolocation
 from core.offer_resolution import resolve_closest_venues_from_items
 from core.ranking import rank_and_sort_offers_with_vertex
+from core.retrieval import SEMANTIC_RETRIEVAL_SIZE
 from core.retrieval import build_similar_offer_retrieval_payload
 from core.retrieval import fetch_graph_predictions_from_vertex
 from core.retrieval import fetch_retrieval_predictions_from_vertex
+from core.retrieval import fetch_semantic_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
 from core.tracking import log_past_offer_context_to_sink
 from core.user_context import UNAUTHENTICATED_USER_ID
@@ -33,7 +35,7 @@ from services.logger import logger
 SIMILAR_OFFERS_LIST_MAXIMUM_SIZE = 20
 
 
-async def generate_similar_offers(  # noqa: PLR0913
+async def generate_similar_offers(  # noqa: PLR0913, PLR0915
     db: AsyncSession,
     offer_id: str,
     retrieval_model: SimilarOfferModelChoices = SimilarOfferModelChoices.coreservation,
@@ -74,7 +76,7 @@ async def generate_similar_offers(  # noqa: PLR0913
         latitude (float | None): The user's current latitude (if geolocated).
         longitude (float | None): The user's current longitude (if geolocated).
         retrieval_model (SimilarOfferModelChoices):
-                        The retrieval model to use for similar offers (coreservation or graph).
+                        The retrieval model to use for similar offers (coreservation, graph or semantic).
     Returns:
         SimilarOfferResponse: A structured payload containing the ordered list of similar offer IDs.
     """
@@ -147,6 +149,12 @@ async def generate_similar_offers(  # noqa: PLR0913
             "has_filters": any([categories, subcategories, search_group_names]),
         },
     )
+
+    # TODO remove this quick fix when item without metadata
+    #  (search_group_name etc) will be excluded from vertex semantic retrieval
+    if retrieval_model == SimilarOfferModelChoices.semantic and not search_group_names:
+        search_group_names = list(set(SearchGroupNameEnum) - {SearchGroupNameEnum.NONE})
+
     retrieval_payload = build_similar_offer_retrieval_payload(
         user_context=user_context,
         call_id=call_id,
@@ -157,6 +165,11 @@ async def generate_similar_offers(  # noqa: PLR0913
     )
     if retrieval_model == SimilarOfferModelChoices.graph:
         vertex_raw_predictions = await fetch_graph_predictions_from_vertex(prediction_payload=retrieval_payload)
+    elif retrieval_model == SimilarOfferModelChoices.semantic:
+        retrieval_payload["size"] = SEMANTIC_RETRIEVAL_SIZE
+        vertex_raw_predictions = await fetch_semantic_retrieval_predictions_from_vertex(
+            prediction_payload=retrieval_payload
+        )
     else:
         vertex_raw_predictions = await fetch_retrieval_predictions_from_vertex(prediction_payload=retrieval_payload)
 
@@ -228,6 +241,9 @@ async def generate_similar_offers(  # noqa: PLR0913
     # failure: when retrieval fails, vertex_raw_predictions.status is "error" (see VertexAPI), and we
     # must NOT delegate to the playlist pipeline — an honest empty response allows a future retry
     # instead of masking the failure behind unrelated playlist recommendations.
+    # Like graph, semantic is excluded from this fallback: it is its own distinct retrieval source
+    # and a genuine zero-result case should surface as an empty response, not be masked by the
+    # playlist pipeline.
     vertex_retrieval_failed = vertex_raw_predictions.status == "error"
     is_coreservation_model = retrieval_model == SimilarOfferModelChoices.coreservation
     if is_coreservation_model and len(final_similar_offers) == 0 and not vertex_retrieval_failed:
@@ -276,12 +292,18 @@ async def generate_similar_offers(  # noqa: PLR0913
         )
 
     # --- 8. Logging Phase ---
-    recommendation_origin = "similar_offer" if retrieval_model == SimilarOfferModelChoices.coreservation else "graph"
-    model_description = (
-        settings.VERTEX_SIMILAR_OFFER_MODEL_DESCRIPTION
-        if retrieval_model == SimilarOfferModelChoices.coreservation
-        else settings.VERTEX_GRAPH_RETRIEVAL_MODEL_DESCRIPTION
-    )
+    retrieval_model_to_recommendation_origin: dict[SimilarOfferModelChoices, str] = {
+        SimilarOfferModelChoices.coreservation: "similar_offer",
+        SimilarOfferModelChoices.graph: "graph",
+        SimilarOfferModelChoices.semantic: "semantic",
+    }
+    retrieval_model_to_model_description: dict[SimilarOfferModelChoices, str] = {
+        SimilarOfferModelChoices.coreservation: settings.VERTEX_SIMILAR_OFFER_MODEL_DESCRIPTION,
+        SimilarOfferModelChoices.graph: settings.VERTEX_GRAPH_RETRIEVAL_MODEL_DESCRIPTION,
+        SimilarOfferModelChoices.semantic: settings.VERTEX_SEMANTIC_RETRIEVAL_MODEL_DESCRIPTION,
+    }
+    recommendation_origin = retrieval_model_to_recommendation_origin[retrieval_model]
+    model_description = retrieval_model_to_model_description[retrieval_model]
 
     log_past_offer_context_to_sink(
         user_context=user_context,

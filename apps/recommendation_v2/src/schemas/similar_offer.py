@@ -8,6 +8,7 @@ from schemas.playlist_recommendation import RecommendationMetadata
 class SimilarOfferModelChoices(StrEnum):
     graph = "graph"
     coreservation = "coreservation"
+    semantic = "semantic"
 
 
 class SimilarOfferResponse(BaseModel):

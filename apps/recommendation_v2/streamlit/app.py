@@ -52,7 +52,7 @@ def main():
         )
 
 
-def fetch_and_display_playlist_recommendations(  # noqa: PLR0913
+def fetch_and_display_playlist_recommendations(
     user_id: str,
     params: dict,
     payload: dict,
