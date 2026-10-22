@@ -14,12 +14,19 @@ def fetch_artist_details(artist_id: str) -> dict | None:
     Fetches artist metadata from BigQuery for a given artist_id.
 
     Returns:
-    - dict with keys: artist_id, artist_name, artist_description, wikidata_image_file_url
+    - dict with keys: artist_id, artist_name, artist_description, artist_computed_image,
+      wikidata_image_file_url, main_search_group_name
       or None if not found.
     """
-    client = bigquery.Client()
+    client = bigquery.Client(project=GCP_PROJECT)
     query = f"""
-        SELECT artist_id, artist_name, artist_description, wikidata_image_file_url
+        SELECT
+            artist_id,
+            artist_name,
+            artist_description,
+            artist_computed_image,
+            wikidata_image_file_url,
+            main_search_group_name
         FROM `{ARTIST_TABLE}`
         WHERE artist_id = @artist_id
         LIMIT 1
@@ -37,14 +44,22 @@ def fetch_artists_details_batch(artist_ids: list[str]) -> dict[str, dict]:
     Fetches artist metadata from BigQuery for a list of artist_ids in a single query.
 
     Returns:
-    - dict mapping artist_id → {artist_id, artist_name, artist_description, wikidata_image_file_url}
+    - dict mapping artist_id:
+        {artist_id, artist_name, artist_description, artist_computed_image,
+         wikidata_image_file_url, main_search_group_name}
     """
     if not artist_ids:
         return {}
 
-    client = bigquery.Client()
+    client = bigquery.Client(project=GCP_PROJECT)
     query = f"""
-        SELECT artist_id, artist_name, artist_description, wikidata_image_file_url
+        SELECT
+            artist_id,
+            artist_name,
+            artist_description,
+            artist_computed_image,
+            wikidata_image_file_url,
+            main_search_group_name
         FROM `{ARTIST_TABLE}`
         WHERE artist_id IN UNNEST(@artist_ids)
     """

@@ -4,10 +4,12 @@ Logic to render recommendation cards visually in the application using Jinja2 te
 
 import html as html_mod
 from pathlib import Path
+from urllib.parse import quote
 
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
 from services.backend_api_client import fetch_offer_details
+from services.bigquery_client import ENV_SHORT_NAME
 
 import streamlit as st
 from core.geo import calculate_haversine_distance_in_meters
@@ -16,6 +18,18 @@ from core.geo import calculate_haversine_distance_in_meters
 # Jinja2 Setup
 TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
+
+# Artist page base URLs per environment (artist_id is appended).
+ARTIST_BASE_URLS = {
+    "stg": {
+        "backoffice": "https://backoffice.staging.passculture.team/catalogue/artist",
+        "app": "https://app.staging.passculture.team/artiste",
+    },
+    "prod": {
+        "backoffice": "https://backoffice.passculture.team/catalogue/artist",
+        "app": "https://passculture.app/artiste",
+    },
+}
 
 
 def show_recommendations(
@@ -176,22 +190,76 @@ def show_similar_offer_source(offer_id: str, title: str):
         st.markdown(full_html.replace("            <", "<"), unsafe_allow_html=True)
 
 
-def _build_artist_jinja_context(artist: dict, rank_index: int) -> dict:
-    """Prepares context dict for the artist_card.html Jinja template."""
-    MAX_DESCRIPTION_LENGTH = 80
-    name = html_mod.escape(artist.get("artist_name", artist.get("artist_id", "Inconnu")))
-    artist_id = html_mod.escape(artist.get("artist_id", ""))
-    raw_desc = artist.get("artist_description", "") or ""
-    safe_desc = raw_desc.replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
-    description = safe_desc[:MAX_DESCRIPTION_LENGTH] + ("…" if len(safe_desc) > MAX_DESCRIPTION_LENGTH else "")
+def _build_artist_urls(artist_id: str) -> tuple[str | None, str | None]:
+    """
+    Build the Backoffice and native web-app URLs for a given artist ID.
 
-    image_url = artist.get("wikidata_image_file_url") or ""
+    Uses production URLs when ``ENV_SHORT_NAME == "prod"``, and staging URLs
+    for any other environment (``stg``, ``dev``, etc.).
+
+    Example:
+        >>> _build_artist_urls("1234-uuid")
+        ('https://backoffice.staging.passculture.team/catalogue/artist/1234-uuid',
+         'https://app.staging.passculture.team/artiste/1234-uuid')
+        >>> _build_artist_urls("")
+        (None, None)
+
+    Args:
+        artist_id (str): Unique artist identifier.
+
+    Returns:
+        tuple[str | None, str | None]: ``(backoffice_url, app_url)``, or ``(None, None)``
+        if ``artist_id`` is empty.
+    """
+    if not artist_id:
+        return None, None
+
+    environment_key = "prod" if ENV_SHORT_NAME == "prod" else "stg"
+    base_urls = ARTIST_BASE_URLS[environment_key]
+    url_encoded_artist_id = quote(str(artist_id), safe="")
+
+    backoffice_url = f"{base_urls['backoffice']}/{url_encoded_artist_id}"
+    app_url = f"{base_urls['app']}/{url_encoded_artist_id}"
+
+    return backoffice_url, app_url
+
+
+def _build_artist_jinja_context(artist: dict, rank_index: int) -> dict:
+    """
+    Prepare the template context dictionary for ``artist_card.html``.
+
+    Args:
+        artist (dict): Artist metadata dictionary fetched from BigQuery.
+        rank_index (int): 0-based rank index of the artist in the displayed carousel.
+
+    Returns:
+        dict: Escaped and formatted fields ready for Jinja2 rendering.
+    """
+    max_description_length = 80
+
+    raw_artist_id = artist.get("artist_id", "")
+    escaped_name = html_mod.escape(artist.get("artist_name", raw_artist_id or "Inconnu"))
+    escaped_artist_id = html_mod.escape(raw_artist_id)
+    raw_category = artist.get("main_search_group_name") or "Non renseignée"
+    escaped_category = html_mod.escape(str(raw_category))
+
+    raw_description = artist.get("artist_description", "") or ""
+    sanitized_description = raw_description.replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+    truncated_description = sanitized_description[:max_description_length] + (
+        "…" if len(sanitized_description) > max_description_length else ""
+    )
+
+    image_url = artist.get("artist_computed_image") or artist.get("wikidata_image_file_url") or ""
+    backoffice_url, app_url = _build_artist_urls(raw_artist_id)
 
     return {
         "rank_number": rank_index + 1,
-        "name": name,
-        "artist_id": artist_id,
-        "description": description,
+        "name": escaped_name,
+        "artist_id": escaped_artist_id,
+        "category": escaped_category,
+        "backoffice_url": backoffice_url,
+        "app_url": app_url,
+        "description": truncated_description,
         "image_url": image_url,
     }
 

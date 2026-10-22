@@ -182,11 +182,13 @@ def mock_uuid():
         patch("controllers.pipeline_playlist_recommendation.uuid.uuid4") as mock_uuid_playlist,
         patch("controllers.pipeline_similar_offer.uuid.uuid4") as mock_uuid_similar,
         patch("controllers.pipeline_similar_artists.uuid.uuid4") as mock_uuid_artists,
+        patch("controllers.pipeline_playlist_top_artists.uuid.uuid4") as mock_uuid_top_artists,
     ):
         mock_uuid_playlist.return_value = uuid.UUID(MOCK_CALL_ID)
         mock_uuid_similar.return_value = uuid.UUID(MOCK_CALL_ID)
         mock_uuid_artists.return_value = uuid.UUID(MOCK_CALL_ID)
-        yield (mock_uuid_playlist, mock_uuid_similar, mock_uuid_artists)
+        mock_uuid_top_artists.return_value = uuid.UUID(MOCK_CALL_ID)
+        yield (mock_uuid_playlist, mock_uuid_similar, mock_uuid_artists, mock_uuid_top_artists)
 
 
 @pytest.fixture(autouse=True)
@@ -218,11 +220,21 @@ def mock_vertex_retrieval(mocker):
         "controllers.pipeline_similar_offer.fetch_graph_predictions_from_vertex",
         new_callable=mocker.AsyncMock,
     )
+    mock_retrieval_semantic = mocker.patch(
+        "controllers.pipeline_similar_offer.fetch_semantic_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+    )
     mock_retrieval_playlist.return_value = RecommendableItemFactory.batch(10)
     mock_retrieval_similar.return_value = VertexPredictionResultFactory.build()
     mock_retrieval_graph.return_value = VertexPredictionResultFactory.build()
+    mock_retrieval_semantic.return_value = VertexPredictionResultFactory.build()
 
-    return mock_retrieval_playlist, mock_retrieval_similar, mock_retrieval_graph
+    return (
+        mock_retrieval_playlist,
+        mock_retrieval_similar,
+        mock_retrieval_graph,
+        mock_retrieval_semantic,
+    )
 
 
 @pytest.fixture(autouse=True)

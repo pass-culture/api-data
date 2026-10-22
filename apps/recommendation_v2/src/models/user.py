@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import sqlalchemy.orm as sa_orm
+from sqlalchemy import Boolean
 from sqlalchemy import DateTime
 from sqlalchemy import Float
 from sqlalchemy import Integer
@@ -24,3 +25,4 @@ class EnrichedUser(Base):
     user_department_code: sa_orm.Mapped[str | None] = sa_orm.mapped_column(String(3), nullable=True)
     user_subscription_latitude: sa_orm.Mapped[float | None] = sa_orm.mapped_column(Float, nullable=True)
     user_subscription_longitude: sa_orm.Mapped[float | None] = sa_orm.mapped_column(Float, nullable=True)
+    user_is_embedded: sa_orm.Mapped[bool] = sa_orm.mapped_column(Boolean)

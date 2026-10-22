@@ -480,6 +480,68 @@ async def test_similar_offer_does_not_fall_back_when_retrieval_model_is_graph(
 
 
 @pytest.mark.asyncio
+async def test_similar_offer_uses_semantic_retrieval_when_model_is_semantic(
+    db_session,
+    mock_vertex_retrieval,
+    mock_vertex_ranking,
+    mocker,
+):
+    """When retrieval_model=semantic, the semantic retrieval client must be used exclusively."""
+    reference_offer = await RecommendableOffersFactory.create_async(offer_id="offer-ref", item_id="item-ref")
+
+    semantic_items = [RecommendableItemFactory.build(is_geolocated=False, total_offers=1) for _ in range(5)]
+    _, mock_standard_fetch, mock_graph_fetch, mock_semantic_fetch = mock_vertex_retrieval
+    mock_semantic_fetch.return_value = VertexPredictionResultFactory.build(predictions=semantic_items)
+    mock_vertex_ranking[1].side_effect = lambda offers, _ctx: offers
+    mocker.patch("controllers.pipeline_similar_offer.log_past_offer_context_to_sink")
+
+    response = await generate_similar_offers(
+        db=db_session,
+        offer_id=reference_offer.offer_id,
+        retrieval_model=SimilarOfferModelChoices.semantic,
+    )
+
+    assert response.params.reco_origin == "semantic"
+    mock_semantic_fetch.assert_called_once()
+    mock_standard_fetch.assert_not_called()
+    mock_graph_fetch.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_similar_offer_does_not_fall_back_when_retrieval_model_is_semantic(
+    db_session,
+    mock_vertex_ranking,
+    mocker,
+):
+    """
+    Verifies that the fallback is NOT triggered for the semantic retrieval model,
+    even when it produces zero results, mirroring the graph retrieval behaviour.
+    """
+    reference_offer = await RecommendableOffersFactory.create_async(offer_id="offer-ref", item_id="item-ref")
+
+    mocker.patch(
+        "controllers.pipeline_similar_offer.fetch_semantic_retrieval_predictions_from_vertex",
+        new_callable=mocker.AsyncMock,
+        return_value=VertexPredictionResultFactory.build(predictions=[], status="success"),
+    )
+    mock_generate_playlist = mocker.patch(
+        "controllers.pipeline_similar_offer.generate_playlist_recommendations",
+        new_callable=mocker.AsyncMock,
+    )
+    mocker.patch("controllers.pipeline_similar_offer.log_past_offer_context_to_sink")
+
+    response = await generate_similar_offers(
+        db=db_session,
+        offer_id=reference_offer.offer_id,
+        retrieval_model=SimilarOfferModelChoices.semantic,
+    )
+
+    mock_generate_playlist.assert_not_called()
+    assert response.params.reco_origin == "semantic"
+    assert response.results == []
+
+
+@pytest.mark.asyncio
 async def test_similar_offer_uses_subscription_centroid_when_gps_missing(
     db_session,
     mock_vertex_retrieval,

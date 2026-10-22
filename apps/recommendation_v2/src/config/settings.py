@@ -84,6 +84,8 @@ VERTEX_RETRIEVAL_ENDPOINT_NAME: str = os.environ.get(
 
 VERTEX_GRAPH_ENDPOINT_NAME: str = os.environ.get("VERTEX_GRAPH_ENDPOINT_NAME", "recommendation_graph_retrieval_stg")
 
+VERTEX_SEMANTIC_ENDPOINT_NAME: str = os.environ.get("VERTEX_SEMANTIC_ENDPOINT_NAME", "semantic_item_retrieval_stg")
+
 VERTEX_RANKING_ENDPOINT_NAME: str = os.environ.get("VERTEX_RANKING_ENDPOINT_NAME", "recommendation_user_ranking_stg")
 
 VERTEX_PREDICTION_TIMEOUT: float = float(os.environ.get("VERTEX_PREDICTION_TIMEOUT", "10.0" if IS_LOCAL else "2.0"))
@@ -94,6 +96,10 @@ VERTEX_GRAPH_RETRIEVAL_MODEL_DESCRIPTION: str = os.environ.get(
 )
 VERTEX_SIMILAR_OFFER_MODEL_DESCRIPTION: str = os.environ.get(
     "VERTEX_SIMILAR_OFFER_MODEL_DESCRIPTION", "Similar Offer Configuration (default)"
+)
+VERTEX_SEMANTIC_RETRIEVAL_MODEL_DESCRIPTION: str = os.environ.get(
+    "VERTEX_SEMANTIC_RETRIEVAL_MODEL_DESCRIPTION",
+    "Similar offers based on semantic.",
 )
 VERTEX_RECOMMENDATION_MODEL_DESCRIPTION: str = os.environ.get(
     "VERTEX_RECOMMENDATION_MODEL_DESCRIPTION", "Recommendation Configuration (default)"
@@ -162,3 +168,12 @@ OFFER_RESOLUTION_CACHE_ENABLED: bool = REDIS_CACHE_ENABLED and bool(
 
 # H3 resolution used to build the offer-resolution cache key. Resolution 8 → cell area ~0.74 km².
 OFFER_RESOLUTION_CACHE_H3_RESOLUTION: int = int(os.environ.get("OFFER_RESOLUTION_CACHE_H3_RESOLUTION", "8"))
+
+# --- 11. Playlist Top Artists Configuration ---
+# Score variant used to rank each category's top artists in `artist_top_by_category`
+# when none is explicitly requested via the `score_name` query param. Exposed as a
+# setting (rather than a hardcoded constant) so it can be overridden per Cloud Run
+# revision, enabling A/B testing between different score variants.
+PLAYLIST_TOP_ARTISTS_DEFAULT_SCORE_NAME: str = os.environ.get(
+    "PLAYLIST_TOP_ARTISTS_DEFAULT_SCORE_NAME", "consultations_plus_main_category_bookings_last_30d"
+)

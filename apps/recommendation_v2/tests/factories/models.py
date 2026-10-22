@@ -10,6 +10,8 @@ from geoalchemy2 import Geometry
 from polyfactory.factories.sqlalchemy_factory import SQLAlchemyFactory
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from models.artist import Artist
+from models.artist_top_by_category import ArtistTopByCategory
 from models.iris import IrisFrance
 from models.items import NonRecommendableItems
 from models.offer import OfferMetadata
@@ -131,6 +133,7 @@ class EnrichedUserFactory(BaseModelFactory[EnrichedUser]):
             booking_cnt=0,
             consult_offer=0,
             has_added_offer_to_favorites=0,
+            user_is_embedded=False,
             **kwargs,
         )
 
@@ -155,6 +158,7 @@ class EnrichedUserFactory(BaseModelFactory[EnrichedUser]):
             booking_cnt=5,
             consult_offer=30,
             has_added_offer_to_favorites=5,
+            user_is_embedded=True,
             **kwargs,
         )
 
@@ -181,6 +185,14 @@ class PastOfferContextFactory(BaseModelFactory[PastOfferContext]):
 
 class SimilarArtistFactory(BaseModelFactory[SimilarArtist]):
     __model__ = SimilarArtist
+
+
+class ArtistTopByCategoryFactory(BaseModelFactory[ArtistTopByCategory]):
+    __model__ = ArtistTopByCategory
+
+
+class ArtistFactory(BaseModelFactory[Artist]):
+    __model__ = Artist
 
 
 class OfferMetadataFactory(BaseModelFactory[OfferMetadata]):

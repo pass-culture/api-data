@@ -25,7 +25,6 @@ dev = [
     "ipython>=8.24.0",
     "matplotlib>=3.9.2",
     "psutil>=5.9.8",
-    "streamlit>=1.45.1",
 ]
 
 

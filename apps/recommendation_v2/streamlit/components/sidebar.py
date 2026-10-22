@@ -167,6 +167,7 @@ def _render_user_metadata_toggle(user_id: str) -> None:
         "user_deposit_creation_date": "Date de dépôt",
         "user_subscription_latitude": "Latitude (département)",
         "user_subscription_longitude": "Longitude (département)",
+        "user_is_embedded": "Embeddé (Two-Tower)",
     }
 
     metadata_table_rows = [
