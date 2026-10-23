@@ -5,9 +5,9 @@ HTTP client for communicating with the recommendation API and the backend offer 
 from http import HTTPStatus
 
 import requests
+from streamlit_env_config import BACKEND_BASE_URL
 
 
-BACKEND_BASE_URL = "https://backend.staging.passculture.team"
 BACKEND_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"

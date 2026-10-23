@@ -10,9 +10,60 @@ The environment is detected in two steps:
   2. As a fallback, by reading the DEPLOY_ENV environment variable set by the Makefile.
 """
 
+import logging
 import os
+import sys
+from pathlib import Path
 
 import streamlit as st
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+    logger.addHandler(_handler)
+    logger.propagate = False
+
+
+_DOTENV_PATH = Path(__file__).resolve().parents[2] / ".env"
+_DOTENV_POLL_INTERVAL = "2s"
+# Top-level modules/packages purged on .env change (streamlit_env_config derives values at import time).
+_RELOADABLE_PACKAGES = ("services", "components", "streamlit_env_config")
+
+
+def _dotenv_mtime() -> float:
+    """Return the .env modification time (0.0 if the file does not exist)."""
+    try:
+        return _DOTENV_PATH.stat().st_mtime
+    except OSError:
+        return 0.0
+
+
+@st.fragment(run_every=_DOTENV_POLL_INTERVAL)
+def _watch_dotenv() -> None:
+    """Poll the app's .env; on change, purge cached modules and rerun the app.
+
+    Streamlit only watches Python files, and values derived from .env are computed
+    at import time (e.g. ENV_SHORT_NAME). Dropping the modules from sys.modules
+    forces a fresh import, which reloads the .env through `load_dotenv`.
+    """
+    current = _dotenv_mtime()
+    last_seen = st.session_state.setdefault("_dotenv_mtime", current)
+    if current == last_seen:
+        return
+
+    st.session_state["_dotenv_mtime"] = current
+    purged = [name for name in sys.modules if name.split(".")[0] in _RELOADABLE_PACKAGES]
+    for name in purged:
+        del sys.modules[name]
+    logger.info(
+        "🔄 .env change detected (%s): purged %d modules, rerunning the app.",
+        _DOTENV_PATH,
+        len(purged),
+    )
+    st.rerun()
 
 
 _LOCAL_HOST_PATTERNS = ("localhost", "127.0.0.", "0.0.0.0")
@@ -101,6 +152,7 @@ def render_env_banner(api_url: str) -> None:
     Args:
         api_url: The API base URL currently in use.
     """
+    _watch_dotenv()
     env_key = _detect_env(api_url)
     cfg = _ENV_CONFIG[env_key]
 

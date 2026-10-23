@@ -1,12 +1,9 @@
-import os
-
 from google.cloud import bigquery
+from streamlit_env_config import BIGQUERY_DATASET_NAME
+from streamlit_env_config import GCP_PROJECT
 
 
-GCP_PROJECT = os.environ.get("GCP_PROJECT", "passculture-data-ehp")
-ENV_SHORT_NAME = os.environ.get("ENV_SHORT_NAME", "stg")
-DATASET_NAME = f"analytics_{ENV_SHORT_NAME}"
-ARTIST_TABLE = f"{GCP_PROJECT}.{DATASET_NAME}.global_artist"
+ARTIST_TABLE = f"{GCP_PROJECT}.{BIGQUERY_DATASET_NAME}.global_artist"
 
 
 def fetch_artist_details(artist_id: str) -> dict | None:
