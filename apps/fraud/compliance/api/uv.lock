@@ -82,7 +82,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "certifi", specifier = "==2026.10.23" },
+    { name = "certifi", specifier = ">=2026.10.23" },
     { name = "fastapi", specifier = "~=0.115" },
     { name = "fastapi-versioning", specifier = "~=0.10" },
     { name = "google-cloud-logging", specifier = "~=3.12" },
