@@ -25,7 +25,13 @@
       ],
       "request": {
         "method": "POST",
-        "header": [],
+        "header": [
+          {
+            "key": "X-API-Key",
+            "value": "{{token}}",
+            "type": "text"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"isEvent\": true\n}",
@@ -36,19 +42,13 @@
           }
         },
         "url": {
-          "raw": "{{base_url}}/playlist_recommendation/{{user_id}}?token={{token}}",
+          "raw": "{{base_url}}/playlist_recommendation/{{user_id}}",
           "host": [
             "{{base_url}}"
           ],
           "path": [
             "playlist_recommendation",
             "{{user_id}}"
-          ],
-          "query": [
-            {
-              "key": "token",
-              "value": "{{token}}"
-            }
           ]
         }
       },
@@ -103,9 +103,15 @@
       ],
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "X-API-Key",
+            "value": "{{token}}",
+            "type": "text"
+          }
+        ],
         "url": {
-          "raw": "{{base_url}}/similar_offers/{{offer_id}}?token={{token}}&latitude=48.8632553&longitude=2.3688874",
+          "raw": "{{base_url}}/similar_offers/{{offer_id}}?latitude=48.8632553&longitude=2.3688874",
           "host": [
             "{{base_url}}"
           ],
@@ -114,10 +120,6 @@
             "{{offer_id}}"
           ],
           "query": [
-            {
-              "key": "token",
-              "value": "{{token}}"
-            },
             {
               "key": "latitude",
               "value": "48.8632553"
@@ -150,21 +152,21 @@
       ],
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "X-API-Key",
+            "value": "{{token}}",
+            "type": "text"
+          }
+        ],
         "url": {
-          "raw": "{{base_url}}/similar_artists/{{artist_id}}?token={{token}}",
+          "raw": "{{base_url}}/similar_artists/{{artist_id}}",
           "host": [
             "{{base_url}}"
           ],
           "path": [
             "similar_artists",
             "{{artist_id}}"
-          ],
-          "query": [
-            {
-              "key": "token",
-              "value": "{{token}}"
-            }
           ]
         }
       },

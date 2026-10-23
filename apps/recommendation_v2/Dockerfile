@@ -1,4 +1,4 @@
-FROM astral/uv:0.11-python3.13-trixie-slim
+FROM astral/uv:0.13-python3.13-trixie-slim
 
 # Build arguments for configuration
 ARG GOOGLE_CLOUD_PROJECT
