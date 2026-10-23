@@ -22,7 +22,7 @@ on:
       no_traffic:
         description: "Deploy without routing traffic (useful to prepare A/B testing)"
         required: true
-        default: true
+        default: false
         type: boolean
 
 env:
@@ -49,16 +49,16 @@ jobs:
             echo "no_traffic=$NO_TRAFFIC" | tee -a "$GITHUB_OUTPUT"
           elif [ "$REF" = "refs/heads/main" ]; then
             echo "env_name=dev" | tee -a "$GITHUB_OUTPUT"
-            echo "no_traffic=true" | tee -a "$GITHUB_OUTPUT"
+            echo "no_traffic=false" | tee -a "$GITHUB_OUTPUT"
           elif [ "$REF" = "refs/heads/staging" ]; then
             echo "env_name=staging" | tee -a "$GITHUB_OUTPUT"
-            echo "no_traffic=true" | tee -a "$GITHUB_OUTPUT"
+            echo "no_traffic=false" | tee -a "$GITHUB_OUTPUT"
           elif [ "$REF" = "refs/heads/production" ]; then
             echo "env_name=production" | tee -a "$GITHUB_OUTPUT"
-            echo "no_traffic=true" | tee -a "$GITHUB_OUTPUT"
+            echo "no_traffic=false" | tee -a "$GITHUB_OUTPUT"
           else
             echo "env_name=dev" | tee -a "$GITHUB_OUTPUT"
-            echo "no_traffic=true" | tee -a "$GITHUB_OUTPUT"
+            echo "no_traffic=false" | tee -a "$GITHUB_OUTPUT"
           fi
 
   build-and-push-docker-image:
@@ -131,13 +131,13 @@ jobs:
       contents: 'read'
       id-token: 'write'
     outputs:
-      # URL of the freshly deployed revision, reachable via its "test" tag even when
+      # URL of the freshly deployed revision, reachable via its "latest" tag even when
       # no_traffic=true. Consumed by the smoke-test job.
       url: ${{ steps.resolve_tag_url.outputs.url }}
     env:
       DATA_GCP_PROJECT: ${{ vars.DATA_GCP_PROJECT }}
       ENV_SHORT_NAME: ${{ vars.ENV_SHORT_NAME }}
-      TAG_NAME: "test"
+      TAG_NAME: "latest"
     steps:
     - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       with:
@@ -219,8 +219,15 @@ jobs:
           SQL_HOST=cloudsql-recommendation-${{ steps.sha.outputs.secret_env_name }}-ew1_private_ip:latest
 
     - uses: 'google-github-actions/setup-gcloud@v2'
+    - name: "Route 100% of traffic to the new revision"
+      if: ${{ needs.setup-job.outputs.no_traffic != 'true' }}
+      run: |
+        gcloud run services update-traffic "apireco-${ENV_SHORT_NAME}" \
+          --region "${DOCKER_REGISTRY_REGION}" \
+          --project "${DATA_GCP_PROJECT}" \
+          --to-latest
     - id: resolve_tag_url
-      name:  "Resolve test-tagged revision URL for smoke testing"
+      name:  "Resolve latest-tagged revision URL for smoke testing"
       run: |
         URL=$(gcloud run services describe "apireco-${ENV_SHORT_NAME}" \
           --region "${DOCKER_REGISTRY_REGION}" \
