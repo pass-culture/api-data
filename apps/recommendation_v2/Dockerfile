@@ -1,4 +1,15 @@
-FROM astral/uv:0.13-python3.13-trixie-slim
+ARG network_mode=default
+
+FROM astral/uv:0.13-python3.13-trixie-slim AS base-default-network-image
+
+# Local build behind a TLS-intercepting proxy: requires ./cacert.pem (git-ignored)
+FROM base-default-network-image AS base-proxy-network-image
+COPY ./cacert.pem /cacert.pem
+ENV SSL_CERT_FILE=/cacert.pem
+ENV REQUESTS_CA_BUNDLE=/cacert.pem
+ENV CURL_CA_BUNDLE=/cacert.pem
+
+FROM base-${network_mode}-network-image
 
 # Build arguments for configuration
 ARG GOOGLE_CLOUD_PROJECT
