@@ -29,6 +29,7 @@ from services.bigquery_client import fetch_artists_details_batch
 from services.database_service import get_playlist_top_artists_composition
 
 from config import settings
+from controllers.pipeline_playlist_top_artists import TOP_ARTISTS_COUNT
 from schemas.playlist_top_artists import TopArtistsSearchGroupNameEnum
 
 
@@ -38,6 +39,13 @@ DEFAULT_FILTER_HAS_BOOKABLE_OFFER_IN_MAIN_CATEGORY = True
 DEFAULT_FILTER_MAIN_CATEGORY_MATCHES_SEARCH_GROUP_NAME = True
 
 SEARCH_GROUP_NAMES = [search_group.value for search_group in TopArtistsSearchGroupNameEnum]
+
+_LOCAL_HOST_PATTERNS = ("localhost", "127.0.0.", "0.0.0.0")
+
+
+def _is_local_api_url(api_base_url: str) -> bool:
+    """Return True if the API URL targets a local server (the only case where the DB is reachable)."""
+    return any(pattern in api_base_url.lower() for pattern in _LOCAL_HOST_PATTERNS)
 
 
 def main():
@@ -57,40 +65,45 @@ def main():
 
         search_group_name = st.selectbox("Catégorie (search_group_name)", options=SEARCH_GROUP_NAMES)
 
-        filter_has_bookable_offer_in_main_category = st.toggle(
-            "✅ Exclure sans offre réservable dans la catégorie principale",
-            value=DEFAULT_FILTER_HAS_BOOKABLE_OFFER_IN_MAIN_CATEGORY,
-            help=(
-                "Si désactivé, les candidats sont gardés même sans offre active réservable "
-                "dans leur catégorie principale (ignore `artist_mv.main_search_group_name_has_bookable_offer`). "
-                "(Pris en compte uniquement si l'API tourne en local)."
-            ),
-        )
-        filter_main_category_matches_search_group_name = st.toggle(
-            "🎯 Exclure si catégorie principale différente de la catégorie demandée",
-            value=DEFAULT_FILTER_MAIN_CATEGORY_MATCHES_SEARCH_GROUP_NAME,
-            help=(
-                "Si activé, un artiste similaire est ignoré si son `main_search_group_name` "
-                "(artist_mv) ne correspond pas à la catégorie demandée (`search_group_name`). "
-                "(Pris en compte uniquement si l'API tourne en local)."
-            ),
-        )
+        # Tuning params (TopArtistsDevelopmentQueryParams) are only exposed by the API when it runs locally.
+        filter_has_bookable_offer_in_main_category = DEFAULT_FILTER_HAS_BOOKABLE_OFFER_IN_MAIN_CATEGORY
+        filter_main_category_matches_search_group_name = DEFAULT_FILTER_MAIN_CATEGORY_MATCHES_SEARCH_GROUP_NAME
+        score_name = DEFAULT_SCORE_NAME
+        discovery_size = DEFAULT_DISCOVERY_SIZE
 
-        with st.expander("Options avancées"):
-            score_name = st.text_input(
-                "Score utilisé pour le top (score_name)",
-                value=DEFAULT_SCORE_NAME,
-                help="Variante de score utilisée pour classer les artistes tops de la catégorie "
-                "(pris en compte uniquement si l'API tourne en local).",
+        if _is_local_api_url(api_base_url):
+            filter_has_bookable_offer_in_main_category = st.toggle(
+                "✅ Exclure sans offre réservable dans la catégorie principale",
+                value=DEFAULT_FILTER_HAS_BOOKABLE_OFFER_IN_MAIN_CATEGORY,
+                help=(
+                    "Si désactivé, les candidats sont gardés même sans offre active réservable "
+                    "dans leur catégorie principale (ignore `artist_mv.main_search_group_name_has_bookable_offer`)."
+                ),
             )
-            discovery_size = st.number_input(
-                "Nombre d'artistes de découverte",
-                min_value=1,
-                max_value=50,
-                value=DEFAULT_DISCOVERY_SIZE,
-                help="Nombre d'artistes de découverte retournés après les 3 tops "
-                "(pris en compte uniquement si l'API tourne en local).",
+            filter_main_category_matches_search_group_name = st.toggle(
+                "🎯 Exclure si catégorie principale différente de la catégorie demandée",
+                value=DEFAULT_FILTER_MAIN_CATEGORY_MATCHES_SEARCH_GROUP_NAME,
+                help=(
+                    "Si activé, un artiste similaire est ignoré si son `main_search_group_name` "
+                    "(artist_mv) ne correspond pas à la catégorie demandée (`search_group_name`)."
+                ),
             )
+
+            with st.expander("Options avancées"):
+                score_name = st.text_input(
+                    "Score utilisé pour le top (score_name)",
+                    value=DEFAULT_SCORE_NAME,
+                    help="Variante de score utilisée pour classer les artistes tops de la catégorie.",
+                )
+                discovery_size = st.number_input(
+                    "Nombre d'artistes de découverte",
+                    min_value=1,
+                    max_value=50,
+                    value=DEFAULT_DISCOVERY_SIZE,
+                    help="Nombre d'artistes de découverte retournés après les 3 tops.",
+                )
+        else:
+            st.caption("Options de réglage disponibles uniquement avec une API locale.")
 
         run_fetch = st.button("🚀 Obtenir la playlist", type="primary")
 
@@ -273,12 +286,14 @@ def _fetch_and_display_playlist(
     """
     # 1. Execute HTTP request against the Recommendation API
     api_url = f"{api_base_url.rstrip('/')}/playlist_top_artists/{search_group_name}"
-    query_params = {
-        "score_name": score_name,
-        "discovery_size": discovery_size,
-        "filter_has_bookable_offer_in_main_category": filter_has_bookable_offer_in_main_category,
-        "filter_main_category_matches_search_group_name": filter_main_category_matches_search_group_name,
-    }
+    query_params = {}
+    if _is_local_api_url(api_base_url):
+        query_params = {
+            "score_name": score_name,
+            "discovery_size": discovery_size,
+            "filter_has_bookable_offer_in_main_category": filter_has_bookable_offer_in_main_category,
+            "filter_main_category_matches_search_group_name": filter_main_category_matches_search_group_name,
+        }
 
     with st.spinner("Appel de l'API playlist_top_artists en cours..."):
         start_time = time_mod.time()
@@ -301,8 +316,23 @@ def _fetch_and_display_playlist(
     # 2. Reconstruct top vs. discovery composition from the database
     response_params = response_data.get("params", {}) or {}
     playlist_artist_ids = response_data.get("playlist_artists", [])
-    with st.spinner("Reconstitution de la composition de la playlist depuis la base de données..."):
-        top_artists, discovery_artists = get_playlist_top_artists_composition(playlist_artist_ids)
+    # The composition breakdown needs direct DB access, only reachable when the API runs locally.
+    is_local_api = _is_local_api_url(api_base_url)
+    top_artists: list[dict]
+    discovery_artists: list[dict]
+    if is_local_api:
+        with st.spinner("Reconstitution de la composition de la playlist depuis la base de données..."):
+            top_artists, discovery_artists = get_playlist_top_artists_composition(playlist_artist_ids)
+    else:
+        top_artists = [
+            {"artist_id": artist_id, "category_rank": position}
+            for position, artist_id in enumerate(playlist_artist_ids[:TOP_ARTISTS_COUNT], start=1)
+        ]
+        discovery_artists = [{"artist_id": artist_id} for artist_id in playlist_artist_ids[TOP_ARTISTS_COUNT:]]
+        st.info(
+            "💡 API distante : le détail de composition du bloc de découverte "
+            "(rangs de similarité) nécessite un accès direct à la base et n'est disponible qu'en local."
+        )
 
     _render_execution_summary_banner(
         api_response_time=api_response_time,
@@ -318,7 +348,9 @@ def _fetch_and_display_playlist(
         return
 
     # 3. Fetch artist display metadata from BigQuery
-    all_artist_ids = {top["artist_id"] for top in top_artists} | {artist["artist_id"] for artist in discovery_artists}
+    all_artist_ids: set[str] = {str(top["artist_id"]) for top in top_artists} | {
+        str(artist["artist_id"]) for artist in discovery_artists
+    }
     with st.spinner("Récupération des détails des artistes depuis BigQuery..."):
         artist_details_by_id = fetch_artists_details_batch(list(all_artist_ids))
 
@@ -345,11 +377,12 @@ def _fetch_and_display_playlist(
         title="🔎 Artistes de découverte (favorisent les similaires à plusieurs tops)",
     )
 
-    _render_discovery_composition_details(
-        top_artists=top_artists,
-        discovery_artists=discovery_artists,
-        artist_details_by_id=artist_details_by_id,
-    )
+    if is_local_api:
+        _render_discovery_composition_details(
+            top_artists=top_artists,
+            discovery_artists=discovery_artists,
+            artist_details_by_id=artist_details_by_id,
+        )
 
 
 if __name__ == "__main__":
