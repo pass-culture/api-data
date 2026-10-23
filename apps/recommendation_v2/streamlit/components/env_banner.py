@@ -29,7 +29,8 @@ if not logger.handlers:
 
 _DOTENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 _DOTENV_POLL_INTERVAL = "2s"
-_RELOADABLE_PACKAGES = ("services", "components")
+# Top-level modules/packages purged on .env change (streamlit_env_config derives values at import time).
+_RELOADABLE_PACKAGES = ("services", "components", "streamlit_env_config")
 
 
 def _dotenv_mtime() -> float:
