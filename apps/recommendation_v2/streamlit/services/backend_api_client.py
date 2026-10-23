@@ -15,11 +15,9 @@ BACKEND_HEADERS = {
 }
 
 
-def _inject_token(params: dict, api_token: str | None) -> dict:
-    """Return a copy of params with the API token appended if provided."""
-    if api_token:
-        return {**params, "token": api_token}
-    return params
+def _auth_headers(api_token: str | None) -> dict:
+    """Return the HTTP headers carrying the API token (``X-API-Key``) if provided."""
+    return {"X-API-Key": api_token} if api_token else {}
 
 
 def fetch_playlist_recommendation_ids(
@@ -41,7 +39,7 @@ def fetch_playlist_recommendation_ids(
     Returns:
         Tuple of (offer_ids, reco_origin, model_origin).
     """
-    response = requests.post(api_url, params=_inject_token(params, api_token), json=payload, proxies=proxies)
+    response = requests.post(api_url, params=params, json=payload, headers=_auth_headers(api_token), proxies=proxies)
     response.raise_for_status()
 
     data = response.json()
@@ -71,7 +69,7 @@ def fetch_similar_offer_ids(
     Returns:
         Tuple of (offer_ids, reco_origin, model_origin).
     """
-    response = requests.get(api_url, params=_inject_token(params, api_token), proxies=proxies)
+    response = requests.get(api_url, params=params, headers=_auth_headers(api_token), proxies=proxies)
     response.raise_for_status()
 
     data = response.json()
@@ -105,7 +103,7 @@ def fetch_offer_page_playlists(
     Returns:
         Tuple of (playlists list of {title, analytics_playlist_type, results, params}, from_cache bool).
     """
-    response = requests.get(api_url, params=_inject_token(params, api_token), proxies=proxies)
+    response = requests.get(api_url, params=params, headers=_auth_headers(api_token), proxies=proxies)
     response.raise_for_status()
 
     data = response.json()
@@ -134,7 +132,7 @@ def fetch_similar_artist_ids(
     Returns:
         Tuple of (similar_artists list of {artist_id_match, rank}, call_id).
     """
-    response = requests.get(api_url, params=_inject_token(params, api_token), proxies=proxies)
+    response = requests.get(api_url, params=params, headers=_auth_headers(api_token), proxies=proxies)
     response.raise_for_status()
 
     data = response.json()
@@ -164,7 +162,7 @@ def fetch_playlist_top_artists(
         The raw response dict with keys 'playlist_artists' (flat list of artist IDs) and 'params'
         (see `schemas.playlist_top_artists.PlaylistTopArtistsResponse`).
     """
-    response = requests.get(api_url, params=_inject_token(params, api_token), proxies=proxies)
+    response = requests.get(api_url, params=params, headers=_auth_headers(api_token), proxies=proxies)
     response.raise_for_status()
     return response.json()
 
