@@ -33,6 +33,18 @@ ENV_SHORT_NAME = GCP_PROJECT_TO_ENV.get(GCP_PROJECT, "stg")
 ENV_KEY = "prod" if ENV_SHORT_NAME == "prod" else "stg"
 
 
+# Substrings identifying a local API URL (the only case where the DB is directly reachable).
+LOCAL_HOST_PATTERNS = ("localhost", "127.0.0.", "0.0.0.0")
+
+# Deployment environment set by the Makefile (fallback to detect the targeted API env).
+DEPLOY_ENV = os.environ.get("DEPLOY_ENV", "").lower()
+
+# Remote recommendation API settings (v1 legacy / v2 default) and auth token.
+REMOTE_API_V1_URL = os.environ.get("REMOTE_API_V1_URL", "")
+REMOTE_API_URL = os.environ.get("REMOTE_API_URL", "")
+REMOTE_API_TOKEN = os.environ.get("REMOTE_API_TOKEN", "")
+
+
 # --- 3. BigQuery ---
 BIGQUERY_DATASET_NAME = f"analytics_{ENV_SHORT_NAME}"
 

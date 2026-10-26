@@ -11,9 +11,11 @@ The environment is detected in two steps:
 """
 
 import logging
-import os
 import sys
-from pathlib import Path
+
+from streamlit_env_config import DEPLOY_ENV
+from streamlit_env_config import DOTENV_PATH
+from streamlit_env_config import LOCAL_HOST_PATTERNS
 
 import streamlit as st
 
@@ -27,7 +29,6 @@ if not logger.handlers:
     logger.propagate = False
 
 
-_DOTENV_PATH = Path(__file__).resolve().parents[2] / ".env"
 _DOTENV_POLL_INTERVAL = "2s"
 # Top-level modules/packages purged on .env change (streamlit_env_config derives values at import time).
 _RELOADABLE_PACKAGES = ("services", "components", "streamlit_env_config")
@@ -36,7 +37,7 @@ _RELOADABLE_PACKAGES = ("services", "components", "streamlit_env_config")
 def _dotenv_mtime() -> float:
     """Return the .env modification time (0.0 if the file does not exist)."""
     try:
-        return _DOTENV_PATH.stat().st_mtime
+        return DOTENV_PATH.stat().st_mtime
     except OSError:
         return 0.0
 
@@ -60,13 +61,11 @@ def _watch_dotenv() -> None:
         del sys.modules[name]
     logger.info(
         "🔄 .env change detected (%s): purged %d modules, rerunning the app.",
-        _DOTENV_PATH,
+        DOTENV_PATH,
         len(purged),
     )
     st.rerun()
 
-
-_LOCAL_HOST_PATTERNS = ("localhost", "127.0.0.", "0.0.0.0")
 
 _ENV_CONFIG = {
     "local": {
@@ -119,9 +118,9 @@ def _detect_env(api_url: str) -> str:
         One of: "local", "dev", "staging", "prod".
     """
     url_lower = api_url.lower()
-    deploy_env = os.environ.get("DEPLOY_ENV", "").lower()
+    deploy_env = DEPLOY_ENV
 
-    if any(pattern in url_lower for pattern in _LOCAL_HOST_PATTERNS):
+    if any(pattern in url_lower for pattern in LOCAL_HOST_PATTERNS):
         return "local"
 
     env = "local"

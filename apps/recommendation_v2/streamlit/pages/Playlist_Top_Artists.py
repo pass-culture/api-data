@@ -27,6 +27,7 @@ from components.sidebar import _render_api_url_input
 from services.backend_api_client import fetch_playlist_top_artists
 from services.bigquery_client import fetch_artists_details_batch
 from services.database_service import get_playlist_top_artists_composition
+from streamlit_env_config import LOCAL_HOST_PATTERNS
 
 from config import settings
 from controllers.pipeline_playlist_top_artists import TOP_ARTISTS_COUNT
@@ -40,12 +41,10 @@ DEFAULT_FILTER_MAIN_CATEGORY_MATCHES_SEARCH_GROUP_NAME = True
 
 SEARCH_GROUP_NAMES = [search_group.value for search_group in TopArtistsSearchGroupNameEnum]
 
-_LOCAL_HOST_PATTERNS = ("localhost", "127.0.0.", "0.0.0.0")
-
 
 def _is_local_api_url(api_base_url: str) -> bool:
     """Return True if the API URL targets a local server (the only case where the DB is reachable)."""
-    return any(pattern in api_base_url.lower() for pattern in _LOCAL_HOST_PATTERNS)
+    return any(pattern in api_base_url.lower() for pattern in LOCAL_HOST_PATTERNS)
 
 
 def main():

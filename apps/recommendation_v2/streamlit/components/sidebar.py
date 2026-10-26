@@ -4,7 +4,6 @@ Sidebar component for the Streamlit Application.
 Presents form inputs to construct parameters and payload for the recommendation API.
 """
 
-import os
 from datetime import datetime
 from datetime import time
 
@@ -14,6 +13,10 @@ from geopy.geocoders import Nominatim
 from services.database_service import get_random_offer
 from services.database_service import get_random_user
 from services.database_service import get_user_metadata
+from streamlit_env_config import LOCAL_HOST_PATTERNS
+from streamlit_env_config import REMOTE_API_TOKEN
+from streamlit_env_config import REMOTE_API_URL
+from streamlit_env_config import REMOTE_API_V1_URL
 from streamlit_folium import st_folium
 
 import streamlit as st
@@ -26,8 +29,6 @@ from schemas.playlist_recommendation import SubcategoryEnum
 from schemas.similar_offer import SimilarOfferModelChoices
 from utils.location_presets import PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING
 
-
-_LOCAL_HOST_PATTERNS = ("localhost", "127.0.0.", "0.0.0.0")
 
 V1_LABEL = "v1 (legacy)"
 V2_LABEL = "v2 (default)"
@@ -51,8 +52,8 @@ def _render_api_url_input(default_url: str | None = None) -> tuple[str, dict | N
     if default_url is None:
         default_url = f"http://localhost:{FASTAPI_SERVER_PORT}"
 
-    remote_v1_url = os.environ.get("REMOTE_API_V1_URL", "")
-    remote_v2_url = os.environ.get("REMOTE_API_URL", "") or default_url
+    remote_v1_url = REMOTE_API_V1_URL
+    remote_v2_url = REMOTE_API_URL or default_url
 
     # Version selector is rendered first so it updates api_base_url
     # in session_state before the URL text_input reads it.
@@ -70,7 +71,7 @@ def _render_api_url_input(default_url: str | None = None) -> tuple[str, dict | N
     )
     st.session_state.api_base_url = api_url
 
-    is_local_url = any(pattern in api_url for pattern in _LOCAL_HOST_PATTERNS)
+    is_local_url = any(pattern in api_url for pattern in LOCAL_HOST_PATTERNS)
 
     if is_local_url:
         st.session_state.api_token = ""
@@ -82,7 +83,7 @@ def _render_api_url_input(default_url: str | None = None) -> tuple[str, dict | N
     st.markdown("**Token API**")
     api_token = st.text_input(
         "Token API",
-        value=st.session_state.get("api_token", os.environ.get("REMOTE_API_TOKEN", "")),
+        value=st.session_state.get("api_token", REMOTE_API_TOKEN),
         help="Requis pour les APIs distantes. Passé en query param `?token=`.",
         label_visibility="collapsed",
         placeholder="mon-token-secret",
