@@ -9,7 +9,8 @@ from urllib.parse import quote
 from jinja2 import Environment
 from jinja2 import FileSystemLoader
 from services.backend_api_client import fetch_offer_details
-from services.bigquery_client import ENV_SHORT_NAME
+from streamlit_env_config import BACKOFFICE_BASE_URL
+from streamlit_env_config import WEBAPP_BASE_URL
 
 import streamlit as st
 from core.geo import calculate_haversine_distance_in_meters
@@ -18,18 +19,6 @@ from core.geo import calculate_haversine_distance_in_meters
 # Jinja2 Setup
 TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
-
-# Artist page base URLs per environment (artist_id is appended).
-ARTIST_BASE_URLS = {
-    "stg": {
-        "backoffice": "https://backoffice.staging.passculture.team/catalogue/artist",
-        "app": "https://app.staging.passculture.team/artiste",
-    },
-    "prod": {
-        "backoffice": "https://backoffice.passculture.team/catalogue/artist",
-        "app": "https://passculture.app/artiste",
-    },
-}
 
 
 def show_recommendations(
@@ -194,8 +183,7 @@ def _build_artist_urls(artist_id: str) -> tuple[str | None, str | None]:
     """
     Build the Backoffice and native web-app URLs for a given artist ID.
 
-    Uses production URLs when ``ENV_SHORT_NAME == "prod"``, and staging URLs
-    for any other environment (``stg``, ``dev``, etc.).
+    URLs depend on the targeted environment (see ``streamlit_env_config``).
 
     Example:
         >>> _build_artist_urls("1234-uuid")
@@ -214,12 +202,10 @@ def _build_artist_urls(artist_id: str) -> tuple[str | None, str | None]:
     if not artist_id:
         return None, None
 
-    environment_key = "prod" if ENV_SHORT_NAME == "prod" else "stg"
-    base_urls = ARTIST_BASE_URLS[environment_key]
     url_encoded_artist_id = quote(str(artist_id), safe="")
 
-    backoffice_url = f"{base_urls['backoffice']}/{url_encoded_artist_id}"
-    app_url = f"{base_urls['app']}/{url_encoded_artist_id}"
+    backoffice_url = f"{BACKOFFICE_BASE_URL}/catalogue/artist/{url_encoded_artist_id}"
+    app_url = f"{WEBAPP_BASE_URL}/artiste/{url_encoded_artist_id}"
 
     return backoffice_url, app_url
 
@@ -405,7 +391,7 @@ def _build_jinja_render_context(offer: dict, rank_index: int, *, is_duplicate: b
         "title": title,
         "price": price_text,
         "dist": dist_details,
-        "offer_url": f"https://app.staging.passculture.team/offre/{offer_id_val}",
+        "offer_url": f"{WEBAPP_BASE_URL}/offre/{offer_id_val}",
         "offer_id": offer_id_val,
         "safe_desc": safe_desc,
         "short_desc": short_desc,
