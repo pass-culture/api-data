@@ -8,11 +8,11 @@ dependencies = [
     "fastapi-versioning~=0.10",
     "google-cloud-logging~=3.12",
     "gunicorn~=23.0.0",
-    "langchain~=1.3.4",
-    "langchain-google-vertexai~=2.0",
+    "langchain>=1.3.9",
+    "langchain-google-vertexai~=3.2",
     "loguru~=0.7",
     "pandas~=2.2",
-    "python-multipart~=0.0",
+    "python-multipart>=0.0.31",
     "tqdm>=4.67.3",
     "uvicorn~=0.22",
 ]
@@ -39,6 +39,17 @@ environments = [
 index-strategy = "unsafe-best-match"
 constraint-dependencies = [
     "langchain-core >= 1.2.22", # CVE-2026-34070
+    "anyio >= 4.14.2", # GHSA-5p39-cfhj-2xmp, GHSA-82r6-8w77-94w6, PYSEC-2026-4024, PYSEC-2026-4025
+    "cryptography >= 50.0.0", # GHSA-537c-gmf6-5ccf, GHSA-g6cj-pr64-35w5, GHSA-jwv3-5hgf-82ww, GHSA-m2h6-j472-rp4c, PYSEC-2026-3552, PYSEC-2026-3553, PYSEC-2026-3554
+    "idna >= 3.15", # GHSA-65pc-fj4g-8rjx, PYSEC-2026-215
+    "langgraph-sdk >= 0.4.4", # GHSA-fvww-7h3r-vfhp, PYSEC-2026-4240
+    "langsmith >= 0.8.18", # GHSA-f4xh-w4cj-qxq8
+    "opentelemetry-api >= 1.45.1", # GHSA-xcq7-p3pf-p88h
+    "pillow >= 13.0.0", # GHSA-22hg-r758-rrw9, GHSA-24rc-8hj2-v98c, GHSA-254f-3936-288h, GHSA-27h8-gf7j-v5hc, GHSA-332p-7hrc-92wf, GHSA-3j72-p6qg-6xp7, GHSA-4558-3h8r-v8xp, GHSA-45hq-cxwh-f6vc, GHSA-462x-pgg6-55fp, GHSA-4rm8-3hmm-39fg, GHSA-4rr5-89j8-mwwm, GHSA-4x4j-2g7c-83w6, GHSA-58r4-6rv3-gfh8, GHSA-5x8w-8jj5-q52h, GHSA-5x94-69rx-g8h2, GHSA-5xm2-6676-qcp9, GHSA-62p4-gmf7-7g93, GHSA-654x-cwwv-5j9c, GHSA-65qm-jvmh-6pqg, GHSA-6r8x-57c9-28j4, GHSA-74r2-7ff9-mjj2, GHSA-78g4-xqwv-q3g8, GHSA-7mwm-ghpf-9vrm, GHSA-8g5g-8vmr-9782, GHSA-8v84-f9pq-wr9x, GHSA-9hw9-ch79-4vh6, GHSA-9v9v-9qvf-h2hj, GHSA-c6hw-5grf-ff96, GHSA-cp9v-662q-vvx9, GHSA-f2g6-542v-9j58, GHSA-fc9g-5qg7-mf45, GHSA-fj7v-r99m-22gq, GHSA-g4qv-2jxx-769h, GHSA-g7cr-3p24-7wf7, GHSA-g842-9rc4-69pw, GHSA-gg2r-wvfm-q9rx, GHSA-j4m9-6w36-pw47, GHSA-jg86-v3jv-hrpm, GHSA-jjj6-mw9f-p565, GHSA-mrfp-p49p-3hf2, GHSA-p4wg-p73j-c528, GHSA-p8hx-v2p6-rp84, GHSA-pchr-8j38-3x4p, GHSA-pg7v-jwj7-p798, GHSA-phj9-mv4w-65pm, GHSA-q45j-58j2-45rg, GHSA-rfgq-q3w2-pmv2, GHSA-v9pv-5gc8-w2m6, GHSA-vjc4-5qp5-m44j, GHSA-vx6w-vv9f-6gvg, GHSA-w889-685w-c8fh, GHSA-xgh8-jp6q-p5x8, GHSA-xj96-63gp-2gmr, GHSA-xvh5-g6gv-559v, PYSEC-2026-2253, PYSEC-2026-2254, PYSEC-2026-2255, PYSEC-2026-2256, PYSEC-2026-2257, PYSEC-2026-3451, PYSEC-2026-3452, PYSEC-2026-3453, PYSEC-2026-3454, PYSEC-2026-3493, PYSEC-2026-3494, PYSEC-2026-3495, PYSEC-2026-3496, PYSEC-2026-4326, PYSEC-2026-4327, PYSEC-2026-4328
+    "pyarrow >= 23.0.1", # GHSA-rgxp-2hwp-jwgg, PYSEC-2026-113
+    "pyasn1 >= 0.6.4", # GHSA-8ppf-4f7h-5ppj, GHSA-hm4w-wwcw-mr6r, GHSA-m4p7-r5rc-7g4j, PYSEC-2026-3455, PYSEC-2026-3456, PYSEC-2026-3457
+    "starlette >= 1.3.1", # GHSA-82w8-qh3p-5jfq, GHSA-86qp-5c8j-p5mr, GHSA-jp82-jpqv-5vv3, GHSA-wqp7-x3pw-xc5r, GHSA-x746-7m8f-x49c, PYSEC-2026-161, PYSEC-2026-2280, PYSEC-2026-2281, PYSEC-2026-248, PYSEC-2026-249
+    "urllib3 >= 2.8.0", # GHSA-8988-9cw3-xx77, GHSA-gh4c-6fx4-qh6g, GHSA-vxq7-64xx-v4gw, PYSEC-2026-4175, PYSEC-2026-4176, PYSEC-2026-4177
 ]
 
 [[tool.uv.index]]
