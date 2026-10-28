@@ -9,6 +9,12 @@ dependencies = [
     "ruff==0.14.14",
 ]
 
+[tool.uv]
+constraint-dependencies = [
+    "filelock >= 3.20.3", # GHSA-qmgc-5h2g-mvrw, PYSEC-2026-1374
+    "virtualenv >= 21.14.9", # GHSA-394h-qwmc-48pf, GHSA-43mp-35q3-x3fq, GHSA-494p-63j8-28p3, GHSA-558c-9hv2-4prj, GHSA-597g-3phw-6986, GHSA-5vjq-rrrf-7h2q, GHSA-6w3r-xr62-4xcp, GHSA-8rjx-v5ww-45pp, GHSA-94p9-xgh2-xp45, GHSA-9h9j-4vrj-gf7g, GHSA-c947-3pg5-gm8q, GHSA-c978-59m8-c77v, GHSA-cw65-gx24-rc82, GHSA-cx28-75q4-x26q, GHSA-fc2g-4w5p-6whm, GHSA-hhxq-47xx-j5xx, GHSA-p58f-9548-mpm2, GHSA-qmx5-4p3x-wvqf, GHSA-vxj4-q4g9-crj7, GHSA-x78j-v8h9-3j2q, PYSEC-2026-2009, PYSEC-2026-4011, PYSEC-2026-4012, PYSEC-2026-4013, PYSEC-2026-4014
+]
+
 ## ruff
 # Recommended ruff config for now, to be updated as we go along.
 [tool.ruff]
