@@ -34,8 +34,9 @@ jobs:
         env:
           REF: ${{ github.ref }}
           ENV: ${{ inputs.environment }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             echo "env_name=$ENV" | tee -a "$GITHUB_OUTPUT"
           elif [ "$REF" = "refs/heads/main" ]; then
             echo "env_name=dev" | tee -a "$GITHUB_OUTPUT"
@@ -73,20 +74,20 @@ jobs:
         with:
           persist-credentials: false
       - name: "Connect to Secret Manager"
-        uses: "google-github-actions/auth@v2"
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
       - name: "Get secrets for Slack"
         id: "secrets"
-        uses: "google-github-actions/get-secretmanager-secrets@v2"
+        uses: google-github-actions/get-secretmanager-secrets@bc9c54b29fdffb8a47776820a7d26e77b379d262 # v3.0.0
         with:
           secrets: |-
             SLACK_BOT_TOKEN:passculture-metier-ehp/passculture-ci-slack-bot-token
-      - uses: technote-space/workflow-conclusion-action@v3
+      - uses: technote-space/workflow-conclusion-action@45ce8e0eb155657ab8ccf346ade734257fd196a5 # v3.0.3
       - name: "Post to a Slack channel"
         if: always()
-        uses: slackapi/slack-github-action@v1.23.0
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
         env:
           SLACK_BOT_TOKEN: ${{ steps.secrets.outputs.SLACK_BOT_TOKEN }}
         with:
