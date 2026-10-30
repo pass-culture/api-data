@@ -11,6 +11,7 @@ from core.ranking import rank_and_sort_offers_with_vertex
 from core.retrieval import build_all_playlist_recommendation_retrieval_payloads
 from core.retrieval import fetch_all_playlist_recommendation_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
+from core.tracking import DeferredTrackingContext
 from core.tracking import log_past_offer_context_to_sink
 from core.user_context import UNAUTHENTICATED_USER_ID
 from core.user_context import UserContext
@@ -26,7 +27,12 @@ PLAYLIST_RECOMMENDATION_MAXIMUM_SIZE = 20
 
 
 async def generate_playlist_recommendations(
-    db: AsyncSession, user_id: str, latitude: float | None, longitude: float | None, params: PlaylistRequestParams
+    db: AsyncSession,
+    user_id: str,
+    latitude: float | None,
+    longitude: float | None,
+    params: PlaylistRequestParams,
+    deferred_tracking_sink: list[DeferredTrackingContext] | None = None,
 ) -> RecommendationResponse:
     """
     Orchestrates the entire recommendation pipeline to generate a personalized playlist of offers.
@@ -176,15 +182,28 @@ async def generate_playlist_recommendations(
         recommendation_origin = "cold_start" if user_context.is_cold_start else "algo"
 
     if user_context.is_authenticated:
-        log_past_offer_context_to_sink(
-            user_context=user_context,
-            final_playlist=final_playlist,
-            params=params,
-            call_id=call_id,
-            reco_origin=recommendation_origin,
-            context_name="recommendation",
-            model_description=settings.VERTEX_RECOMMENDATION_MODEL_DESCRIPTION,
-        )
+        if deferred_tracking_sink is not None:
+            deferred_tracking_sink.append(
+                DeferredTrackingContext(
+                    user_context=user_context,
+                    final_playlist=final_playlist,
+                    params=params,
+                    call_id=call_id,
+                    reco_origin=recommendation_origin,
+                    context_name="recommendation",
+                    model_description=settings.VERTEX_RECOMMENDATION_MODEL_DESCRIPTION,
+                )
+            )
+        else:
+            log_past_offer_context_to_sink(
+                user_context=user_context,
+                final_playlist=final_playlist,
+                params=params,
+                call_id=call_id,
+                reco_origin=recommendation_origin,
+                context_name="recommendation",
+                model_description=settings.VERTEX_RECOMMENDATION_MODEL_DESCRIPTION,
+            )
     else:
         # If the user does not exist in our database (is_authenticated=False), we skip tracking to avoid polluting
         # the dataset with guest/unknown users who cannot produce engagement signals (clicks/bookings).
