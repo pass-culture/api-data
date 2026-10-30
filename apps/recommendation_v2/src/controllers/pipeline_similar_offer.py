@@ -265,17 +265,13 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
             subcategories=subcategories,
             search_group_names=search_group_names,
         )
-        fallback_kwargs = {}
-        if deferred_tracking_sink is not None:
-            fallback_kwargs["deferred_tracking_sink"] = deferred_tracking_sink
-
         fallback_response = await generate_playlist_recommendations(
             db=db,
             user_id=user_context.user_id,
             latitude=user_context.latitude,
             longitude=user_context.longitude,
             params=fallback_params,
-            **fallback_kwargs,
+            deferred_tracking_sink=deferred_tracking_sink,
         )
 
         logger.info(
