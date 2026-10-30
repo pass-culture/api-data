@@ -43,8 +43,9 @@ jobs:
           REF: ${{ github.ref }}
           ENV: ${{ inputs.environment }}
           NO_TRAFFIC: ${{ inputs.no_traffic }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
             echo "env_name=$ENV" | tee -a "$GITHUB_OUTPUT"
             echo "no_traffic=$NO_TRAFFIC" | tee -a "$GITHUB_OUTPUT"
           elif [ "$REF" = "refs/heads/main" ]; then
@@ -77,13 +78,13 @@ jobs:
         with:
           persist-credentials: false
       - name: "Connect to Secret Manager"
-        uses: 'google-github-actions/auth@v2'
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
       - name: "Get secrets for Artifact Registry"
         id: 'secrets'
-        uses: 'google-github-actions/get-secretmanager-secrets@v2'
+        uses: google-github-actions/get-secretmanager-secrets@bc9c54b29fdffb8a47776820a7d26e77b379d262 # v3.0.0
         with:
           secrets: |-
             ARTIFACT_REGISTRY_SERVICE_ACCOUNT:passculture-metier-ehp/passculture-main-artifact-registry-service-account
@@ -96,11 +97,11 @@ jobs:
         run: echo "short_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: "Set up Docker Buildx"
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - id: "openid-auth"
         name: "Authenticate with Google Cloud"
-        uses: "google-github-actions/auth@v2"
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           create_credentials_file: false
           token_format: "access_token"
@@ -108,14 +109,14 @@ jobs:
           service_account: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
 
       - name: "Docker login"
-        uses: docker/login-action@v3
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: "${{ env.DOCKER_REGISTRY_REGION }}-docker.pkg.dev"
           username: "oauth2accesstoken"
           password: "${{ steps.openid-auth.outputs.access_token }}"
 
       - name: "Build and push docker image"
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: apps/recommendation_v2
           push: true
@@ -143,13 +144,13 @@ jobs:
       with:
         persist-credentials: false
     - name: "Connect to Secret Manager"
-      uses: 'google-github-actions/auth@v2'
+      uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
       with:
         workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
         service_account: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
     - name: "Get secrets for Cloud Run"
       id: 'secrets'
-      uses: 'google-github-actions/get-secretmanager-secrets@v2'
+      uses: google-github-actions/get-secretmanager-secrets@bc9c54b29fdffb8a47776820a7d26e77b379d262 # v3.0.0
       with:
         secrets: |-
           ARTIFACT_REGISTRY_SERVICE_ACCOUNT:passculture-metier-ehp/passculture-main-artifact-registry-service-account
@@ -159,26 +160,29 @@ jobs:
       run: echo "DOCKER_REPO=${DOCKER_REGISTRY_REGION}-docker.pkg.dev/${DOCKER_REGISTRY_PROJECT_ID}/${DOCKER_REGISTRY_REPOSITORY}" >> "$GITHUB_OUTPUT"
     - name: "Get short SHA"
       id: "sha"
+      env:
+        ENV_SHORT_NAME: ${{ env.ENV_SHORT_NAME }}
+
       run: |
         echo "short_sha=${GITHUB_SHA}" | tee -a "$GITHUB_OUTPUT"
         echo "very_short_sha=$(echo "$GITHUB_SHA" | cut -c1-7)" | tee -a "$GITHUB_OUTPUT"
         echo "rand=$(tr -dc 'a-z0-9' < /dev/urandom | head -c 3)" | tee -a "$GITHUB_OUTPUT"
 
-        if [ "${{ env.ENV_SHORT_NAME }}" = "prod" ]; then
+        if [ "$ENV_SHORT_NAME" = "prod" ]; then
           echo "env_long_name=production" >> "$GITHUB_OUTPUT"
           echo "secret_env_name=production" >> "$GITHUB_OUTPUT"
-        elif [ "${{ env.ENV_SHORT_NAME }}" = "stg" ]; then
+        elif [ "$ENV_SHORT_NAME" = "stg" ]; then
           echo "env_long_name=staging" >> "$GITHUB_OUTPUT"
-          echo "secret_env_name=${{ env.ENV_SHORT_NAME }}" >> "$GITHUB_OUTPUT"
-        elif [ "${{ env.ENV_SHORT_NAME }}" = "dev" ]; then
+          echo "secret_env_name=$ENV_SHORT_NAME" >> "$GITHUB_OUTPUT"
+        elif [ "$ENV_SHORT_NAME" = "dev" ]; then
           echo "env_long_name=testing" >> "$GITHUB_OUTPUT"
-          echo "secret_env_name=${{ env.ENV_SHORT_NAME }}" >> "$GITHUB_OUTPUT"
+          echo "secret_env_name=$ENV_SHORT_NAME" >> "$GITHUB_OUTPUT"
         else
-          echo "env_long_name=${{ env.ENV_SHORT_NAME }}" >> "$GITHUB_OUTPUT"
-          echo "secret_env_name=${{ env.ENV_SHORT_NAME }}" >> "$GITHUB_OUTPUT"
+          echo "env_long_name=$ENV_SHORT_NAME" >> "$GITHUB_OUTPUT"
+          echo "secret_env_name=$ENV_SHORT_NAME" >> "$GITHUB_OUTPUT"
         fi
 
-    - uses: 'google-github-actions/auth@v2'
+    - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
       name: "Authenticate with Google Cloud for deploy"
       with:
         workload_identity_provider: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER }}
@@ -186,7 +190,7 @@ jobs:
 
     - id: 'deploy'
       name: 'Deploy to Cloud Run'
-      uses: 'google-github-actions/deploy-cloudrun@v2'
+      uses: google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d # v3
       with:
         service: "apireco-${{ env.ENV_SHORT_NAME }}"
         suffix: "v2-${{ steps.sha.outputs.very_short_sha }}-${{ steps.sha.outputs.rand }}"
@@ -218,7 +222,7 @@ jobs:
           SQL_BASE_USER=cloudsql-recommendation-${{ steps.sha.outputs.secret_env_name }}-ew1_database_credentials_username:latest
           SQL_HOST=cloudsql-recommendation-${{ steps.sha.outputs.secret_env_name }}-ew1_private_ip:latest
 
-    - uses: 'google-github-actions/setup-gcloud@v2'
+    - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
     - name: "Route 100% of traffic to the new revision"
       if: ${{ needs.setup-job.outputs.no_traffic != 'true' }}
       run: |
@@ -263,20 +267,20 @@ jobs:
     if: always()
     steps:
       - name: "Connect to Secret Manager"
-        uses: "google-github-actions/auth@v2"
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
       - name: "Get secrets for Slack"
         id: "secrets"
-        uses: "google-github-actions/get-secretmanager-secrets@v2"
+        uses: google-github-actions/get-secretmanager-secrets@bc9c54b29fdffb8a47776820a7d26e77b379d262 # v3.0.0
         with:
           secrets: |-
             SLACK_BOT_TOKEN:passculture-metier-ehp/passculture-ci-slack-bot-token
-      - uses: technote-space/workflow-conclusion-action@v3
+      - uses: technote-space/workflow-conclusion-action@45ce8e0eb155657ab8ccf346ade734257fd196a5 # v3.0.3
       - name: "Post to a Slack channel"
         if: always()
-        uses: slackapi/slack-github-action@v1.23.0
+        uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4.0.0
         env:
           SLACK_BOT_TOKEN: ${{ steps.secrets.outputs.SLACK_BOT_TOKEN }}
         with:

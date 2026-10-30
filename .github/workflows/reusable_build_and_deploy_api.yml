@@ -43,13 +43,13 @@ jobs:
         with:
           persist-credentials: false
       - name: "Connect to Secret Manager"
-        uses: 'google-github-actions/auth@v2'
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
       - name: "Get secrets for Slack"
         id: 'secrets'
-        uses: 'google-github-actions/get-secretmanager-secrets@v2'
+        uses: google-github-actions/get-secretmanager-secrets@bc9c54b29fdffb8a47776820a7d26e77b379d262 # v3.0.0
         with:
           secrets: |-
             ARTIFACT_REGISTRY_SERVICE_ACCOUNT:passculture-metier-ehp/passculture-main-artifact-registry-service-account
@@ -61,25 +61,25 @@ jobs:
         id: "sha"
         run: echo "short_sha=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
       - name: "Set up Docker Buildx"
-        uses: docker/setup-buildx-action@v2.2.1
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
         with:
           driver: docker
       - id: "openid-auth"
         name: "Authenticate with Google Cloud"
-        uses: "google-github-actions/auth@v2"
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           create_credentials_file: false
           token_format: "access_token"
           workload_identity_provider: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
       - name: "Docker login"
-        uses: docker/login-action@v2.1.0
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           registry: "${{ env.DOCKER_REGISTRY_REGION }}-docker.pkg.dev"
           username: "oauth2accesstoken"
           password: "${{ steps.openid-auth.outputs.access_token }}"
       - name: "Build and push ${{ inputs.API_NAME }} docker image"
-        uses: docker/build-push-action@v3.2.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ${{ inputs.API_SOURCE_PATH }}
           push: true
@@ -94,15 +94,17 @@ jobs:
       contents: 'read'
       id-token: 'write'
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
+        persist-credentials: false
     - name: "Connect to Secret Manager"
-      uses: 'google-github-actions/auth@v2'
+      uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
       with:
         workload_identity_provider: ${{ secrets.GCP_EHP_WORKLOAD_IDENTITY_PROVIDER }}
         service_account: ${{ secrets.GCP_EHP_SERVICE_ACCOUNT }}
     - name: "Get secrets for Slack"
       id: 'secrets'
-      uses: 'google-github-actions/get-secretmanager-secrets@v2'
+      uses: google-github-actions/get-secretmanager-secrets@bc9c54b29fdffb8a47776820a7d26e77b379d262 # v3.0.0
       with:
         secrets: |-
           ARTIFACT_REGISTRY_SERVICE_ACCOUNT:passculture-metier-ehp/passculture-main-artifact-registry-service-account
@@ -113,12 +115,12 @@ jobs:
     - name: "Get short SHA"
       id: "sha"
       run: echo "short_sha=${GITHUB_SHA}" | tee -a "$GITHUB_OUTPUT"
-    - uses: 'google-github-actions/auth@v2'
+    - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
       with:
         workload_identity_provider: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_WORKLOAD_IDENTITY_PROVIDER }}
         service_account: ${{ steps.secrets.outputs.ARTIFACT_REGISTRY_SERVICE_ACCOUNT }}
     - id: 'deploy'
-      uses: 'google-github-actions/deploy-cloudrun@v1'
+      uses: google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d # v3
       with:
         service: "${{ inputs.API_SERVICE_NAME }}-${{ env.ENV_SHORT_NAME }}"
         image: "${{ steps.vars.outputs.DOCKER_REPO }}/api-data/${{ inputs.API_NAME }}:${{ steps.sha.outputs.short_sha }}"
