@@ -1,4 +1,5 @@
 import asyncio
+from collections import deque
 
 from fastapi import HTTPException
 from fastapi import status
@@ -19,6 +20,9 @@ from schemas.similar_offer import SimilarOfferModelChoices
 from services.db import AsyncSessionFactory
 from services.logger import logger
 
+
+# Minimum number of remaining duplicates needed to remove one from each playlist at once.
+MIN_DUPLICATES_FOR_PAIR_REMOVAL = 2
 
 # Search groups that use dual same-type playlists (coreservation + graph).
 SEARCH_GROUPS_WITH_DUAL_SAME_TYPE_PLAYLISTS: frozenset[SearchGroupNameEnum] = frozenset(
@@ -120,13 +124,13 @@ def _select_duplicates_to_remove(
 
     ``sorted_duplicates`` must be sorted by ``(pos_1 - pos_2, pos_1)`` descending: its start holds the
     offers worst-ranked in playlist 1 (removed from playlist 1 first), its end holds the offers
-    worst-ranked in playlist 2 (removed from playlist 2 first). Two pointers (``left`` / ``right``)
-    walk through the list from both ends, in three phases:
+    worst-ranked in playlist 2 (removed from playlist 2 first). The duplicates are consumed from both
+    ends of a ``deque`` (``popleft`` for playlist 1, ``pop`` for playlist 2), in three phases:
 
     1. Size balancing: while the playlists differ in size and duplicates remain, remove a duplicate
-       from the longer playlist (from the left end for playlist 1, from the right end for playlist 2).
-    2. Equal split: once sizes are equal, remove duplicates by pairs, one from each playlist
-       (left end for playlist 1, right end for playlist 2), so sizes stay equal.
+       from the longer playlist.
+    2. Equal split: once sizes are equal, remove duplicates by pairs, one from each playlist,
+       so sizes stay equal.
     3. Odd tie-break: if a single duplicate remains, remove it from the playlist where its position
        is larger (worse-ranked); on an exact tie (``pos_1 == pos_2``), remove it from playlist 2.
 
@@ -143,55 +147,43 @@ def _select_duplicates_to_remove(
     remove_from_1: set[str] = set()
     remove_from_2: set[str] = set()
 
-    left = 0
-    right = len(sorted_duplicates) - 1
+    # Duplicates still to assign. Front = worst-ranked in playlist 1, back = worst-ranked in playlist 2.
+    remaining_duplicates = deque(sorted_duplicates)
     size_1 = len(results_1)
     size_2 = len(results_2)
 
-    # Phase 1: Reduce size imbalance by removing from the larger playlist first.
-    while left <= right and size_1 != size_2:
+    # Phase 1: while one playlist is longer than the other, remove duplicates from the longer one.
+    while remaining_duplicates and size_1 != size_2:
         if size_1 > size_2:
-            offer_to_remove = sorted_duplicates[left]
+            offer_to_remove = remaining_duplicates.popleft()
             remove_from_1.add(offer_to_remove)
-            left += 1
             size_1 -= 1
-            logger.debug(
-                "⚖️ [Phase 1 - Size balancing] Removed duplicate from playlist 1 (longer playlist).",
-                extra={
-                    "offer_id": offer_to_remove,
-                    "pos_1": pos_1[offer_to_remove],
-                    "pos_2": pos_2[offer_to_remove],
-                    "new_size_1": size_1,
-                    "new_size_2": size_2,
-                },
-            )
+            removed_from = "playlist_1"
         else:
-            offer_to_remove = sorted_duplicates[right]
+            offer_to_remove = remaining_duplicates.pop()
             remove_from_2.add(offer_to_remove)
-            right -= 1
             size_2 -= 1
-            logger.debug(
-                "⚖️ [Phase 1 - Size balancing] Removed duplicate from playlist 2 (longer playlist).",
-                extra={
-                    "offer_id": offer_to_remove,
-                    "pos_1": pos_1[offer_to_remove],
-                    "pos_2": pos_2[offer_to_remove],
-                    "new_size_1": size_1,
-                    "new_size_2": size_2,
-                },
-            )
+            removed_from = "playlist_2"
+        logger.debug(
+            "⚖️ [Phase 1 - Size balancing] Removed duplicate from the longer playlist.",
+            extra={
+                "offer_id": offer_to_remove,
+                "removed_from": removed_from,
+                "pos_1": pos_1[offer_to_remove],
+                "pos_2": pos_2[offer_to_remove],
+                "new_size_1": size_1,
+                "new_size_2": size_2,
+            },
+        )
 
-    # Phase 2: Playlists now have equal sizes (if any duplicates remain).
-    # Split pairs evenly between playlist_1 and playlist_2.
-    while right - left + 1 >= 2:  # noqa: PLR2004
-        offer_removed_1 = sorted_duplicates[left]
+    # Phase 2: sizes are equal, so remove duplicates by pairs (one per playlist) to keep them equal.
+    while len(remaining_duplicates) >= MIN_DUPLICATES_FOR_PAIR_REMOVAL:
+        offer_removed_1 = remaining_duplicates.popleft()
         remove_from_1.add(offer_removed_1)
-        left += 1
         size_1 -= 1
 
-        offer_removed_2 = sorted_duplicates[right]
+        offer_removed_2 = remaining_duplicates.pop()
         remove_from_2.add(offer_removed_2)
-        right -= 1
         size_2 -= 1
 
         logger.debug(
@@ -212,10 +204,10 @@ def _select_duplicates_to_remove(
             },
         )
 
-    # Phase 3: If one odd duplicate remains at equal playlist size, break tie by position
-    # (remove where position is worse; if equal position, remove from playlist_2).
-    if left == right:
-        last_duplicate = sorted_duplicates[left]
+    # Phase 3: at most one duplicate is left. Remove it from the playlist where it is worse-ranked
+    # (larger position); on an exact tie, remove it from playlist 2.
+    if remaining_duplicates:
+        last_duplicate = remaining_duplicates.pop()
         if pos_1[last_duplicate] > pos_2[last_duplicate]:
             remove_from_1.add(last_duplicate)
             size_1 -= 1
