@@ -16,6 +16,7 @@ from core.retrieval import fetch_graph_predictions_from_vertex
 from core.retrieval import fetch_retrieval_predictions_from_vertex
 from core.retrieval import fetch_semantic_retrieval_predictions_from_vertex
 from core.retrieval import filter_out_already_booked_items
+from core.tracking import DeferredTrackingContext
 from core.tracking import log_past_offer_context_to_sink
 from core.user_context import UNAUTHENTICATED_USER_ID
 from core.user_context import UserContext
@@ -45,6 +46,7 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
     search_group_names: list[SearchGroupNameEnum] | None = None,
     latitude: float | None = None,
     longitude: float | None = None,
+    deferred_tracking_sink: list[DeferredTrackingContext] | None = None,
 ) -> SimilarOfferResponse:
     """
     Orchestrates the pipeline to generate a list of offers similar to a given offer.
@@ -263,12 +265,17 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
             subcategories=subcategories,
             search_group_names=search_group_names,
         )
+        fallback_kwargs = {}
+        if deferred_tracking_sink is not None:
+            fallback_kwargs["deferred_tracking_sink"] = deferred_tracking_sink
+
         fallback_response = await generate_playlist_recommendations(
             db=db,
             user_id=user_context.user_id,
             latitude=user_context.latitude,
             longitude=user_context.longitude,
             params=fallback_params,
+            **fallback_kwargs,
         )
 
         logger.info(
@@ -305,16 +312,30 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
     recommendation_origin = retrieval_model_to_recommendation_origin[retrieval_model]
     model_description = retrieval_model_to_model_description[retrieval_model]
 
-    log_past_offer_context_to_sink(
-        user_context=user_context,
-        final_playlist=final_similar_offers,
-        params=None,
-        call_id=call_id,
-        reco_origin=recommendation_origin,
-        context_name="similar_offer",
-        model_description=model_description,
-        input_offer_id=offer_id,
-    )
+    if deferred_tracking_sink is not None:
+        deferred_tracking_sink.append(
+            DeferredTrackingContext(
+                user_context=user_context,
+                final_playlist=final_similar_offers,
+                params=None,
+                call_id=call_id,
+                reco_origin=recommendation_origin,
+                context_name="similar_offer",
+                model_description=model_description,
+                input_offer_id=offer_id,
+            )
+        )
+    else:
+        log_past_offer_context_to_sink(
+            user_context=user_context,
+            final_playlist=final_similar_offers,
+            params=None,
+            call_id=call_id,
+            reco_origin=recommendation_origin,
+            context_name="similar_offer",
+            model_description=model_description,
+            input_offer_id=offer_id,
+        )
 
     return SimilarOfferResponse(
         results=[offer.offer_id for offer in final_similar_offers],

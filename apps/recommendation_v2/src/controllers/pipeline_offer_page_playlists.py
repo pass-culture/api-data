@@ -6,6 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from controllers.pipeline_similar_offer import generate_similar_offers
+from core.tracking import DeferredTrackingContext
+from core.tracking import log_past_offer_context_to_sink
 from models.offer import OfferMetadata
 from schemas.categories import SearchGroupNameEnum
 from schemas.offer_page_playlists import AnalyticsPlaylistTypeEnum
@@ -103,15 +105,215 @@ def build_similar_offer_playlist_configs(offer_search_group: SearchGroupNameEnum
     ]
 
 
+def deduplicate_and_balance_playlists(playlists: list[OfferPlaylistItem]) -> list[OfferPlaylistItem]:
+    """
+    Remove duplicate offers shared between the two offer-page playlists while balancing their lengths.
+
+    Balancing & rank-priority rules
+    --------------------------------
+    1. Identify all ``offer_id`` values present in both ``playlist_1`` and ``playlist_2``.
+    2. Sort duplicate offers by ``(pos_1 - pos_2, pos_1)`` descending:
+       - Offers at the start of this sorted list have ``pos_1 >> pos_2`` (worse-ranked in
+         ``playlist_1`` than in ``playlist_2``) and are the best candidates to remove from ``playlist_1``.
+       - Offers at the end have ``pos_2 >> pos_1`` (worse-ranked in ``playlist_2`` than in
+         ``playlist_1``) and are the best candidates to remove from ``playlist_2``.
+    3. While one playlist is strictly longer than the other and duplicates remain, remove
+       duplicates from the longer playlist (using the end of the sorted list that minimizes
+       rank loss).
+    4. Once both playlists have the same size:
+       - Pairs of remaining duplicates are split evenly (1 removed from ``playlist_1``,
+         1 removed from ``playlist_2``), again picking the worst-ranked candidates in each.
+       - If one odd duplicate remains at equal playlist sizes, remove it from the playlist
+         where its position index is larger (worse-ranked). On an exact position tie
+         (``pos_1 == pos_2``), remove it from ``playlist_2``.
+
+    Args:
+        playlists: The list of generated :class:`OfferPlaylistItem` objects (expected length 2).
+
+    Returns:
+        The same list of :class:`OfferPlaylistItem` objects with ``results`` deduplicated in place.
+    """
+    if len(playlists) < 2:  # noqa: PLR2004
+        return playlists
+
+    playlist_1, playlist_2 = playlists[0], playlists[1]
+    results_1 = playlist_1.results
+    results_2 = playlist_2.results
+
+    pos_1 = {offer_id: index for index, offer_id in enumerate(results_1)}
+    pos_2 = {offer_id: index for index, offer_id in enumerate(results_2)}
+    duplicates = [offer_id for offer_id in results_1 if offer_id in pos_2]
+    if not duplicates:
+        logger.debug(
+            "⚖️ Deduplication skipped: no duplicate offers found between playlists.",
+            extra={
+                "playlist_1_size": len(results_1),
+                "playlist_2_size": len(results_2),
+            },
+        )
+        return playlists
+
+    # Sort descending by (pos_1 - pos_2, pos_1):
+    # - left side: worst-placed in playlist_1 relative to playlist_2 -> remove from playlist_1
+    # - right side: worst-placed in playlist_2 relative to playlist_1 -> remove from playlist_2
+    sorted_duplicates = sorted(
+        duplicates,
+        key=lambda offer_id: (pos_1[offer_id] - pos_2[offer_id], pos_1[offer_id]),
+        reverse=True,
+    )
+
+    logger.debug(
+        "🔍 Starting offer_page_playlists deduplication.",
+        extra={
+            "playlist_1_initial_size": len(results_1),
+            "playlist_2_initial_size": len(results_2),
+            "duplicates_count": len(sorted_duplicates),
+            "sorted_duplicates": [
+                {
+                    "offer_id": offer_id,
+                    "pos_1": pos_1[offer_id],
+                    "pos_2": pos_2[offer_id],
+                    "pos_delta": pos_1[offer_id] - pos_2[offer_id],
+                }
+                for offer_id in sorted_duplicates
+            ],
+        },
+    )
+
+    remove_from_1: set[str] = set()
+    remove_from_2: set[str] = set()
+
+    left = 0
+    right = len(sorted_duplicates) - 1
+    size_1 = len(results_1)
+    size_2 = len(results_2)
+
+    # Phase 1: Reduce size imbalance by removing from the larger playlist first.
+    while left <= right and size_1 != size_2:
+        if size_1 > size_2:
+            offer_to_remove = sorted_duplicates[left]
+            remove_from_1.add(offer_to_remove)
+            left += 1
+            size_1 -= 1
+            logger.debug(
+                "⚖️ [Phase 1 - Size balancing] Removed duplicate from playlist 1 (longer playlist).",
+                extra={
+                    "offer_id": offer_to_remove,
+                    "pos_1": pos_1[offer_to_remove],
+                    "pos_2": pos_2[offer_to_remove],
+                    "new_size_1": size_1,
+                    "new_size_2": size_2,
+                },
+            )
+        else:
+            offer_to_remove = sorted_duplicates[right]
+            remove_from_2.add(offer_to_remove)
+            right -= 1
+            size_2 -= 1
+            logger.debug(
+                "⚖️ [Phase 1 - Size balancing] Removed duplicate from playlist 2 (longer playlist).",
+                extra={
+                    "offer_id": offer_to_remove,
+                    "pos_1": pos_1[offer_to_remove],
+                    "pos_2": pos_2[offer_to_remove],
+                    "new_size_1": size_1,
+                    "new_size_2": size_2,
+                },
+            )
+
+    # Phase 2: Playlists now have equal sizes (if any duplicates remain).
+    # Split pairs evenly between playlist_1 and playlist_2.
+    while right - left + 1 >= 2:  # noqa: PLR2004
+        offer_removed_1 = sorted_duplicates[left]
+        remove_from_1.add(offer_removed_1)
+        left += 1
+        size_1 -= 1
+
+        offer_removed_2 = sorted_duplicates[right]
+        remove_from_2.add(offer_removed_2)
+        right -= 1
+        size_2 -= 1
+
+        logger.debug(
+            "⚖️ [Phase 2 - Equal split] Removed 1 duplicate from each playlist to keep sizes balanced.",
+            extra={
+                "removed_from_playlist_1": {
+                    "offer_id": offer_removed_1,
+                    "pos_1": pos_1[offer_removed_1],
+                    "pos_2": pos_2[offer_removed_1],
+                },
+                "removed_from_playlist_2": {
+                    "offer_id": offer_removed_2,
+                    "pos_1": pos_1[offer_removed_2],
+                    "pos_2": pos_2[offer_removed_2],
+                },
+                "new_size_1": size_1,
+                "new_size_2": size_2,
+            },
+        )
+
+    # Phase 3: If one odd duplicate remains at equal playlist size, break tie by position
+    # (remove where position is worse; if equal position, remove from playlist_2).
+    if left == right:
+        last_duplicate = sorted_duplicates[left]
+        if pos_1[last_duplicate] > pos_2[last_duplicate]:
+            remove_from_1.add(last_duplicate)
+            size_1 -= 1
+            removed_target = "playlist_1"
+            reason = "worse_position_in_playlist_1"
+        else:
+            remove_from_2.add(last_duplicate)
+            size_2 -= 1
+            removed_target = "playlist_2"
+            reason = (
+                "worse_position_in_playlist_2"
+                if pos_2[last_duplicate] > pos_1[last_duplicate]
+                else "equal_position_tie_breaker_playlist_2"
+            )
+        logger.debug(
+            "⚖️ [Phase 3 - Odd tie-breaker] Resolved last remaining duplicate at equal playlist size.",
+            extra={
+                "offer_id": last_duplicate,
+                "pos_1": pos_1[last_duplicate],
+                "pos_2": pos_2[last_duplicate],
+                "removed_from": removed_target,
+                "reason": reason,
+                "new_size_1": size_1,
+                "new_size_2": size_2,
+            },
+        )
+
+    playlist_1.results = [offer_id for offer_id in results_1 if offer_id not in remove_from_1]
+    playlist_2.results = [offer_id for offer_id in results_2 if offer_id not in remove_from_2]
+
+    logger.info(
+        "⚖️ Deduplicated and balanced offer_page_playlists.",
+        extra={
+            "playlist_1_initial_size": len(results_1),
+            "playlist_2_initial_size": len(results_2),
+            "duplicates_found": len(duplicates),
+            "removed_from_playlist_1_count": len(remove_from_1),
+            "removed_from_playlist_2_count": len(remove_from_2),
+            "removed_from_playlist_1": sorted(remove_from_1),
+            "removed_from_playlist_2": sorted(remove_from_2),
+            "playlist_1_final_size": len(playlist_1.results),
+            "playlist_2_final_size": len(playlist_2.results),
+        },
+    )
+
+    return playlists
+
+
 async def _generate_single_similar_offer_playlist(
     playlist_config: SimilarOfferPlaylistConfig,
     offer_id: str,
     user_id: str | None,
     latitude: float | None,
     longitude: float | None,
-) -> OfferPlaylistItem:
+) -> tuple[OfferPlaylistItem, list[DeferredTrackingContext]]:
     """
-    Run the ``generate_similar_offers`` pipeline for a single playlist config.
+    Run the ``generate_similar_offers`` pipeline for a single playlist config
+    with deferred BigQuery tracking so that only post-deduplication offers are logged.
 
     Each call opens its own dedicated ``AsyncSession`` because SQLAlchemy async
     sessions are **not** safe for concurrent use: sharing a single session across
@@ -128,8 +330,11 @@ async def _generate_single_similar_offer_playlist(
         longitude: The user's current GPS longitude.
 
     Returns:
-        The generated :class:`OfferPlaylistItem`, ready to be included in the response.
+        A tuple of the generated :class:`OfferPlaylistItem` and the list of
+        :class:`DeferredTrackingContext` entries to flush after deduplication.
     """
+    deferred_tracking_sink: list[DeferredTrackingContext] = []
+
     async with AsyncSessionFactory() as playlist_db_session:
         similar_offers_response = await generate_similar_offers(
             db=playlist_db_session,
@@ -139,14 +344,40 @@ async def _generate_single_similar_offer_playlist(
             search_group_names=playlist_config.search_group_names,
             latitude=latitude,
             longitude=longitude,
+            deferred_tracking_sink=deferred_tracking_sink,
         )
 
-    return OfferPlaylistItem(
+    playlist_item = OfferPlaylistItem(
         title=playlist_config.title,
         analytics_playlist_type=playlist_config.analytics_playlist_type,
         results=similar_offers_response.results,
         params=similar_offers_response.params,
     )
+    return playlist_item, deferred_tracking_sink
+
+
+def _flush_deferred_tracking_for_playlists(
+    playlists: list[OfferPlaylistItem],
+    deferred_tracking_per_playlist: list[list[DeferredTrackingContext]],
+) -> None:
+    """
+    Flush deferred BigQuery tracking logs for each playlist, keeping only offers
+    that survived cross-playlist deduplication (and preserving their final order).
+    """
+    for playlist_item, tracking_contexts in zip(playlists, deferred_tracking_per_playlist, strict=True):
+        kept_offer_ids = set(playlist_item.results)
+        for tracking_context in tracking_contexts:
+            displayed_offers = [offer for offer in tracking_context.final_playlist if offer.offer_id in kept_offer_ids]
+            log_past_offer_context_to_sink(
+                user_context=tracking_context.user_context,
+                final_playlist=displayed_offers,
+                params=tracking_context.params,
+                call_id=tracking_context.call_id,
+                reco_origin=tracking_context.reco_origin,
+                context_name=tracking_context.context_name,
+                model_description=tracking_context.model_description,
+                input_offer_id=tracking_context.input_offer_id,
+            )
 
 
 async def generate_offer_page_playlists(
@@ -157,7 +388,8 @@ async def generate_offer_page_playlists(
     longitude: float | None = None,
 ) -> OfferPagePlaylistsResponse:
     """
-    Build all recommendation playlists for an offer detail page in parallel.
+    Build all recommendation playlists for an offer detail page in parallel,
+    then deduplicate and balance their sizes before logging displayed offers to BigQuery.
 
     Each playlist is produced by a dedicated ``generate_similar_offers`` call,
     each running with its **own** ``AsyncSession``.  SQLAlchemy async sessions
@@ -215,7 +447,7 @@ async def generate_offer_page_playlists(
         },
     )
 
-    playlist_items = await asyncio.gather(
+    generated_results = await asyncio.gather(
         *[
             _generate_single_similar_offer_playlist(
                 playlist_config=playlist_config,
@@ -227,6 +459,12 @@ async def generate_offer_page_playlists(
             for playlist_config in similar_offer_playlist_configs
         ]
     )
+
+    playlist_items = [item for item, _ in generated_results]
+    deferred_tracking_per_playlist = [tracking_contexts for _, tracking_contexts in generated_results]
+
+    deduplicate_and_balance_playlists(playlist_items)
+    _flush_deferred_tracking_for_playlists(playlist_items, deferred_tracking_per_playlist)
 
     logger.info(
         "✅ offer_page_playlists pipeline completed.",
@@ -241,5 +479,5 @@ async def generate_offer_page_playlists(
 
     return OfferPagePlaylistsResponse(
         offer_id=offer_id,
-        playlists=list(playlist_items),
+        playlists=playlist_items,
     )
