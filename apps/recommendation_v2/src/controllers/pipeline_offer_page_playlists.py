@@ -105,81 +105,41 @@ def build_similar_offer_playlist_configs(offer_search_group: SearchGroupNameEnum
     ]
 
 
-def deduplicate_and_balance_playlists(playlists: list[OfferPlaylistItem]) -> list[OfferPlaylistItem]:
+def _select_duplicates_to_remove(
+    sorted_duplicates: list[str],
+    pos_1: dict[str, int],
+    pos_2: dict[str, int],
+    results_1: list[str],
+    results_2: list[str],
+) -> tuple[set[str], set[str]]:
     """
-    Remove duplicate offers shared between the two offer-page playlists while balancing their lengths.
+    Decide from which playlist each duplicate offer must be removed so that both end up with the same size.
 
-    Balancing & rank-priority rules
-    --------------------------------
-    1. Identify all ``offer_id`` values present in both ``playlist_1`` and ``playlist_2``.
-    2. Sort duplicate offers by ``(pos_1 - pos_2, pos_1)`` descending:
-       - Offers at the start of this sorted list have ``pos_1 >> pos_2`` (worse-ranked in
-         ``playlist_1`` than in ``playlist_2``) and are the best candidates to remove from ``playlist_1``.
-       - Offers at the end have ``pos_2 >> pos_1`` (worse-ranked in ``playlist_2`` than in
-         ``playlist_1``) and are the best candidates to remove from ``playlist_2``.
-    3. While one playlist is strictly longer than the other and duplicates remain, remove
-       duplicates from the longer playlist (using the end of the sorted list that minimizes
-       rank loss).
-    4. Once both playlists have the same size:
-       - Pairs of remaining duplicates are split evenly (1 removed from ``playlist_1``,
-         1 removed from ``playlist_2``), again picking the worst-ranked candidates in each.
-       - If one odd duplicate remains at equal playlist sizes, remove it from the playlist
-         where its position index is larger (worse-ranked). On an exact position tie
-         (``pos_1 == pos_2``), remove it from ``playlist_2``.
+    Each duplicate offer (present in both playlists) is assigned to exactly one playlist for removal,
+    so it only remains in the other one. Removals are chosen to lose as little ranking as possible.
+
+    ``sorted_duplicates`` must be sorted by ``(pos_1 - pos_2, pos_1)`` descending: its start holds the
+    offers worst-ranked in playlist 1 (removed from playlist 1 first), its end holds the offers
+    worst-ranked in playlist 2 (removed from playlist 2 first). Two pointers (``left`` / ``right``)
+    walk through the list from both ends, in three phases:
+
+    1. Size balancing: while the playlists differ in size and duplicates remain, remove a duplicate
+       from the longer playlist (from the left end for playlist 1, from the right end for playlist 2).
+    2. Equal split: once sizes are equal, remove duplicates by pairs, one from each playlist
+       (left end for playlist 1, right end for playlist 2), so sizes stay equal.
+    3. Odd tie-break: if a single duplicate remains, remove it from the playlist where its position
+       is larger (worse-ranked); on an exact tie (``pos_1 == pos_2``), remove it from playlist 2.
 
     Args:
-        playlists: The list of generated :class:`OfferPlaylistItem` objects (expected length 2).
+        sorted_duplicates: Offer ids present in both playlists, sorted as described above.
+        pos_1: Position (index) of each offer in playlist 1.
+        pos_2: Position (index) of each offer in playlist 2.
+        results_1: Offer ids of playlist 1 (only its size is used).
+        results_2: Offer ids of playlist 2 (only its size is used).
 
     Returns:
-        The same list of :class:`OfferPlaylistItem` objects with ``results`` deduplicated in place.
+        A tuple ``(remove_from_1, remove_from_2)`` of offer id sets to remove from playlist 1 and 2.
     """
-    if len(playlists) < 2:  # noqa: PLR2004
-        return playlists
-
-    playlist_1, playlist_2 = playlists[0], playlists[1]
-    results_1 = playlist_1.results
-    results_2 = playlist_2.results
-
-    pos_1 = {offer_id: index for index, offer_id in enumerate(results_1)}
-    pos_2 = {offer_id: index for index, offer_id in enumerate(results_2)}
-    duplicates = [offer_id for offer_id in results_1 if offer_id in pos_2]
-    if not duplicates:
-        logger.debug(
-            "⚖️ Deduplication skipped: no duplicate offers found between playlists.",
-            extra={
-                "playlist_1_size": len(results_1),
-                "playlist_2_size": len(results_2),
-            },
-        )
-        return playlists
-
-    # Sort descending by (pos_1 - pos_2, pos_1):
-    # - left side: worst-placed in playlist_1 relative to playlist_2 -> remove from playlist_1
-    # - right side: worst-placed in playlist_2 relative to playlist_1 -> remove from playlist_2
-    sorted_duplicates = sorted(
-        duplicates,
-        key=lambda offer_id: (pos_1[offer_id] - pos_2[offer_id], pos_1[offer_id]),
-        reverse=True,
-    )
-
-    logger.debug(
-        "🔍 Starting offer_page_playlists deduplication.",
-        extra={
-            "playlist_1_initial_size": len(results_1),
-            "playlist_2_initial_size": len(results_2),
-            "duplicates_count": len(sorted_duplicates),
-            "sorted_duplicates": [
-                {
-                    "offer_id": offer_id,
-                    "pos_1": pos_1[offer_id],
-                    "pos_2": pos_2[offer_id],
-                    "pos_delta": pos_1[offer_id] - pos_2[offer_id],
-                }
-                for offer_id in sorted_duplicates
-            ],
-        },
-    )
-
     remove_from_1: set[str] = set()
     remove_from_2: set[str] = set()
 
@@ -282,6 +242,83 @@ def deduplicate_and_balance_playlists(playlists: list[OfferPlaylistItem]) -> lis
                 "new_size_2": size_2,
             },
         )
+
+    return remove_from_1, remove_from_2
+
+
+def deduplicate_and_balance_playlists(playlists: list[OfferPlaylistItem]) -> list[OfferPlaylistItem]:
+    """
+    Remove duplicate offers shared between the two offer-page playlists while balancing their lengths.
+
+    Steps
+    -----
+    1. Compute the position of each offer in ``playlist_1`` (``pos_1``) and ``playlist_2`` (``pos_2``).
+    2. Identify all ``offer_id`` values present in both playlists. If there are none, return unchanged.
+    3. Sort these duplicates by ``(pos_1 - pos_2, pos_1)`` descending:
+       - the start of the list holds offers ranked worse in ``playlist_1`` than in ``playlist_2``
+         (best candidates to remove from ``playlist_1``);
+       - the end of the list holds offers ranked worse in ``playlist_2`` than in ``playlist_1``
+         (best candidates to remove from ``playlist_2``).
+    4. Delegate to :func:`_select_duplicates_to_remove` to decide, for each duplicate, from which
+       playlist it is removed (size balancing first, then even split, then tie-break).
+    5. Rebuild ``results`` of both playlists without the removed offers (relative order preserved).
+
+    Playlists with fewer than two entries are returned untouched.
+
+    Args:
+        playlists: The list of generated :class:`OfferPlaylistItem` objects (expected length 2).
+
+    Returns:
+        The same list of :class:`OfferPlaylistItem` objects with ``results`` deduplicated in place.
+    """
+    if len(playlists) < 2:  # noqa: PLR2004
+        return playlists
+
+    playlist_1, playlist_2 = playlists[0], playlists[1]
+    results_1 = playlist_1.results
+    results_2 = playlist_2.results
+
+    pos_1 = {offer_id: index for index, offer_id in enumerate(results_1)}
+    pos_2 = {offer_id: index for index, offer_id in enumerate(results_2)}
+    duplicates = [offer_id for offer_id in results_1 if offer_id in pos_2]
+    if not duplicates:
+        logger.debug(
+            "⚖️ Deduplication skipped: no duplicate offers found between playlists.",
+            extra={
+                "playlist_1_size": len(results_1),
+                "playlist_2_size": len(results_2),
+            },
+        )
+        return playlists
+
+    # Sort descending by (pos_1 - pos_2, pos_1):
+    # - left side: worst-placed in playlist_1 relative to playlist_2 -> remove from playlist_1
+    # - right side: worst-placed in playlist_2 relative to playlist_1 -> remove from playlist_2
+    sorted_duplicates = sorted(
+        duplicates,
+        key=lambda offer_id: (pos_1[offer_id] - pos_2[offer_id], pos_1[offer_id]),
+        reverse=True,
+    )
+
+    logger.debug(
+        "🔍 Starting offer_page_playlists deduplication.",
+        extra={
+            "playlist_1_initial_size": len(results_1),
+            "playlist_2_initial_size": len(results_2),
+            "duplicates_count": len(sorted_duplicates),
+            "sorted_duplicates": [
+                {
+                    "offer_id": offer_id,
+                    "pos_1": pos_1[offer_id],
+                    "pos_2": pos_2[offer_id],
+                    "pos_delta": pos_1[offer_id] - pos_2[offer_id],
+                }
+                for offer_id in sorted_duplicates
+            ],
+        },
+    )
+
+    remove_from_1, remove_from_2 = _select_duplicates_to_remove(sorted_duplicates, pos_1, pos_2, results_1, results_2)
 
     playlist_1.results = [offer_id for offer_id in results_1 if offer_id not in remove_from_1]
     playlist_2.results = [offer_id for offer_id in results_2 if offer_id not in remove_from_2]
