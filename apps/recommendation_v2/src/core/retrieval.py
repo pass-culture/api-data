@@ -90,12 +90,13 @@ def _build_playlist_recommendation_search_filters(
         and_conditions.append({"is_geolocated": {"$eq": val}})
 
     # 4. List mappings (Translate domain fields to Vertex specific fields)
+    ## Add gtls_id to the list_mappings if user_context.is_qpi is True
     list_mappings = {
         "categories": "category",
         "subcategories": "subcategory_id",
         "search_group_names": "search_group_name",
+        "gtl_id": "gtl_id",
     }
-
     for param_field, vertex_field in list_mappings.items():
         values = getattr(params, param_field)
         if values:
@@ -240,6 +241,22 @@ def _build_creation_trend_tops_retrieval_payload(
         "re_rank": 0,
     }
 
+def _build_qpi_retrieval_payload(
+    user_context: UserContext, call_id: str, params: PlaylistRequestParams
+) -> dict[str, Any]:
+    """
+    Builds the QPI retrieval payload.
+
+    ISO v1: QPIRetrievalEndpoint — model_type="tops", vector_column_name="booking_number_desc".
+    """
+    base = _build_base_playlist_recommendation_payload(user_context, call_id, params)
+
+    return {
+        **base,
+        "model_type": "tops",
+        "vector_column_name": "booking_release_trend_desc",
+        "re_rank": 0,
+    }
 
 def build_all_playlist_recommendation_retrieval_payloads(
     user_context: UserContext, call_id: str, params: PlaylistRequestParams
@@ -276,6 +293,8 @@ def build_all_playlist_recommendation_retrieval_payloads(
         >>> len(payloads)  # 4 for warm start, 1 for cold start
         4
     """
+    if user_context.is_qpi:
+        return [_build_qpi_retrieval_payload(user_context, call_id, params)]
     if user_context.is_cold_start:
         return [_build_booking_number_tops_retrieval_payload(user_context, call_id, params)]
 

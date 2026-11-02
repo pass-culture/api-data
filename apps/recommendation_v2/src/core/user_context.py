@@ -65,6 +65,7 @@ class UserContext:
 
     user_id: str
     is_authenticated: bool = False
+    is_qpi: bool = False
 
     # --- Ranking & ML Features ---
     age: int = DEFAULT_FALLBACK_USER_AGE
@@ -119,6 +120,7 @@ class UserContext:
         longitude: float | None = None,
         iris_id: str | None = None,
         geolocation_source: GeoLocationSource | None = None,
+        is_qpi: bool = False,
     ) -> "UserContext":
         """
         Factory method to build a UserContext from an SQLAlchemy model instance.
@@ -134,6 +136,8 @@ class UserContext:
             iris_id (str | None): The resolved geographical IRIS zone ID.
             geolocation_source (GeoLocationSource | None): How the effective coordinates were resolved,
                 or None if no location could be determined.
+            is_qpi (bool): Whether the request originates from the QPI (Quiz de Préférences Initial)
+                onboarding flow. Defaults to False when not provided by the caller.
 
         Returns:
             UserContext: A fully initialized context object.
@@ -144,6 +148,7 @@ class UserContext:
             return cls(
                 user_id=UNAUTHENTICATED_USER_ID,
                 is_authenticated=False,
+                is_qpi=is_qpi,
                 latitude=latitude,
                 longitude=longitude,
                 geolocation_source=geolocation_source,
@@ -163,6 +168,7 @@ class UserContext:
         return cls(
             user_id=user_id,
             is_authenticated=True,
+            is_qpi=is_qpi,
             age=calculate_user_age_from_birthdate(database_user_record.user_birth_date),
             bookings_count=database_user_record.booking_cnt or 0,
             clicks_count=database_user_record.consult_offer or 0,

@@ -32,6 +32,7 @@ class PlaylistRequestParams(BaseModel):
     is_duo: bool | None = None
     is_restrained: bool | None = True
     is_digital: bool | None = None
+    is_qpi: bool = False
 
     # --- Financial Constraints ---
     price_max: float | None = Field(default=None, ge=0, le=300)
@@ -41,6 +42,12 @@ class PlaylistRequestParams(BaseModel):
     categories: list[CategoryEnum] | None = None
     subcategories: list[SubcategoryEnum] | None = None
     search_group_names: list[SearchGroupNameEnum] | None = None
+
+    # --- QPI (Quiz de Préférences Initial) Filters ---
+    # UX category names selected by the user during onboarding (e.g. "Mangas ou BD").
+    # Resolved server-side into `gtl_id` via qpi_gtl_mapping_mv when `is_qpi` is True.
+    ux_names: list[str] | None = None
+    gtl_id: list[str] | None = None
 
 
 class RecommendationMetadata(BaseModel):

@@ -7,6 +7,7 @@ from core.diversification import apply_offer_diversification
 from core.geo import get_iris_id_from_coordinates
 from core.geo import resolve_effective_geolocation
 from core.offer_resolution import resolve_closest_venues_from_items
+from core.qpi import resolve_gtl_ids_from_ux_names
 from core.ranking import rank_and_sort_offers_with_vertex
 from core.retrieval import build_all_playlist_recommendation_retrieval_payloads
 from core.retrieval import fetch_all_playlist_recommendation_retrieval_predictions_from_vertex
@@ -59,7 +60,6 @@ async def generate_playlist_recommendations(
     call_id_context.set(call_id)
 
     db_user = await db.get(EnrichedUser, user_id)
-
     effective_latitude, effective_longitude, geolocation_source = resolve_effective_geolocation(
         latitude=latitude,
         longitude=longitude,
@@ -76,7 +76,12 @@ async def generate_playlist_recommendations(
         longitude=effective_longitude,
         iris_id=iris_id,
         geolocation_source=geolocation_source,
+        is_qpi=params.is_qpi,
     )
+    if user_context.is_qpi:
+        # Map the user's QPI ux_names (assumed already available on the request params)
+        # to Titelive gtl_ids via qpi_gtl_mapping_mv, so the retrieval payload can filter on them.
+        params.gtl_id = await resolve_gtl_ids_from_ux_names(db, params.ux_names or [])
 
     logger.info(
         "🚀 Starting playlist_recommendation pipeline.",
