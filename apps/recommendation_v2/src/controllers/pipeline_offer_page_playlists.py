@@ -87,10 +87,23 @@ def build_similar_offer_playlist_configs(offer_search_group: SearchGroupNameEnum
     cross_type_search_groups = [
         search_group for search_group in ALL_SEARCH_GROUPS if search_group != offer_search_group
     ]
+
+    # --- HACK for AB testing ---
+    # For CINEMA, the 1st playlist ("Les fans aiment aussi") is the A/B test target (coreservation + semantic
+    # mix ranked by RRF, see the HACK block in generate_offer_page_playlists). Its analytics type is set here,
+    # at config-build time, so the variant is visible from the very start of the pipeline (logs included).
+    # The pipeline detects the variant from this analytics type.
+    same_type_analytics_playlist_type = (
+        AnalyticsPlaylistTypeEnum.SAME_CATEGORY_TWO_TOWER_SEMANTIC_RRF
+        if offer_search_group == SearchGroupNameEnum.CINEMA
+        else AnalyticsPlaylistTypeEnum.SAME_CATEGORY_TWO_TOWER
+    )
+    # --- End of HACK for AB testing ---
+
     return [
         SimilarOfferPlaylistConfig(
             title=OfferPlaylistTitleEnum.LES_FANS_AIMENT_AUSSI,
-            analytics_playlist_type=AnalyticsPlaylistTypeEnum.SAME_CATEGORY_TWO_TOWER,
+            analytics_playlist_type=same_type_analytics_playlist_type,
             retrieval_model=SimilarOfferModelChoices.coreservation,
             search_group_names=[offer_search_group],
         ),
@@ -109,6 +122,11 @@ async def _generate_single_similar_offer_playlist(
     user_id: str | None,
     latitude: float | None,
     longitude: float | None,
+    # --- HACK for AB testing ---
+    # Forwarded to generate_similar_offers (see the HACK block in generate_offer_page_playlists).
+    *,
+    rrf_semantic_mix: bool = False,
+    # --- End of HACK for AB testing ---
 ) -> OfferPlaylistItem:
     """
     Run the ``generate_similar_offers`` pipeline for a single playlist config.
@@ -139,6 +157,7 @@ async def _generate_single_similar_offer_playlist(
             search_group_names=playlist_config.search_group_names,
             latitude=latitude,
             longitude=longitude,
+            rrf_semantic_mix=rrf_semantic_mix,
         )
 
     return OfferPlaylistItem(
@@ -215,18 +234,63 @@ async def generate_offer_page_playlists(
         },
     )
 
-    playlist_items = await asyncio.gather(
-        *[
+    playlist_generation_tasks = []
+    for playlist_config in similar_offer_playlist_configs:
+        # --- HACK for AB testing ---
+        # Context: On an offer page, the API returns an ordered list of "similar offer" playlists
+        # (see build_similar_offer_playlist_configs). The 1st playlist is always "Les fans aiment aussi"
+        # (same search group as the reference offer, coreservation model).
+        #
+        # This AB test targets the 1st playlist ("Les fans aiment aussi") of CINEMA offer pages only.
+        #   - Baseline (A): coreservation (two tower) similar_offer retrieval only.
+        #   - Variant (B): a *mix* of two retrieval sources, fused at item level
+        #     with core.ranking.reciprocal_rank_fusion (RRF, weights: semantic 1.5 / coreservation 1.0):
+        #       - similar_offer based on the coreservation (two tower) model
+        #       - similar_offer based on the semantic retrieval model
+        # The final order of the playlist is the RRF order (the Vertex ranking model is skipped
+        # in generate_similar_offers for this variant, see its own HACK block).
+        #
+        # Trigger condition: the playlist config carries the SAME_CATEGORY_TWO_TOWER_SEMANTIC_RRF analytics type,
+        # which build_similar_offer_playlist_configs only assigns to the 1st playlist of CINEMA offers.
+        # The 2nd playlist and all other categories are left untouched.
+        # The baseline (main) does not contain this block, so no runtime flag is needed.
+        #
+        # Resolution cache: NOT isolated per variant. The test only changes which items are retrieved
+        # and how they are ordered, not how an item is resolved to a venue.
+        # HTTP cache is isolated automatically through AB_TEST_VARIANT_LABEL.
+        rrf_semantic_mix = (
+            playlist_config.analytics_playlist_type == AnalyticsPlaylistTypeEnum.SAME_CATEGORY_TWO_TOWER_SEMANTIC_RRF
+        )
+        if rrf_semantic_mix:
+            logger.debug(
+                "⚠️ 🧪 [A/B TEST] AB test hack triggered: => 1st playlist built as a coreservation + semantic "
+                "mix ranked by RRF.",
+                extra={
+                    "offer_id": offer_id,
+                    "playlist": playlist_config.title,
+                    "original_retrieval_model": playlist_config.retrieval_model.value,
+                    "new_retrieval_models": [
+                        SimilarOfferModelChoices.coreservation.value,
+                        SimilarOfferModelChoices.semantic.value,
+                    ],
+                    "search_group_names": [s.value for s in playlist_config.search_group_names],
+                    "analytics_playlist_type": playlist_config.analytics_playlist_type.value,
+                },
+            )
+        # --- End of HACK for AB testing ---
+
+        playlist_generation_tasks.append(
             _generate_single_similar_offer_playlist(
                 playlist_config=playlist_config,
                 offer_id=offer_id,
                 user_id=user_id,
                 latitude=latitude,
                 longitude=longitude,
+                rrf_semantic_mix=rrf_semantic_mix,
             )
-            for playlist_config in similar_offer_playlist_configs
-        ]
-    )
+        )
+
+    playlist_items = await asyncio.gather(*playlist_generation_tasks)
 
     logger.info(
         "✅ offer_page_playlists pipeline completed.",

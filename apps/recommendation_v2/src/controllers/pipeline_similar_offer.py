@@ -1,15 +1,18 @@
+import asyncio
 import uuid
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from config import settings
+from connectors.vertex_api import VertexPredictionResult
 from controllers.pipeline_playlist_recommendation import generate_playlist_recommendations
 from core.diversification import apply_offer_diversification
 from core.geo import get_iris_id_from_coordinates
 from core.geo import resolve_effective_geolocation
 from core.offer_resolution import resolve_closest_venues_from_items
 from core.ranking import rank_and_sort_offers_with_vertex
+from core.ranking import reciprocal_rank_fusion
 from core.retrieval import SEMANTIC_RETRIEVAL_SIZE
 from core.retrieval import build_similar_offer_retrieval_payload
 from core.retrieval import fetch_graph_predictions_from_vertex
@@ -45,6 +48,12 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
     search_group_names: list[SearchGroupNameEnum] | None = None,
     latitude: float | None = None,
     longitude: float | None = None,
+    # --- HACK for AB testing ---
+    # When True, retrieval = coreservation + semantic fused by RRF, and the Vertex ranking model is skipped.
+    # See the HACK blocks in the retrieval and ranking phases below.
+    *,
+    rrf_semantic_mix: bool = False,
+    # --- End of HACK for AB testing ---
 ) -> SimilarOfferResponse:
     """
     Orchestrates the pipeline to generate a list of offers similar to a given offer.
@@ -163,7 +172,57 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
         subcategories=subcategories,
         search_group_names=search_group_names,
     )
-    if retrieval_model == SimilarOfferModelChoices.graph:
+    if rrf_semantic_mix:
+        # --- HACK for AB testing ---
+        # Context: AB test on the offer page 1st playlist of CINEMA (see generate_offer_page_playlists).
+        # The variant retrieves candidates from TWO sources in parallel and fuses them with
+        # core.ranking.reciprocal_rank_fusion (item level, k=DEFAULT_K, weighted: semantic 1.5 / coreservation 1.0):
+        #   - coreservation (two tower) similar-item retrieval
+        #   - semantic retrieval (same filters as the coreservation payload, but with its own size
+        #     SEMANTIC_RETRIEVAL_SIZE, as for the semantic model)
+        # Trigger condition: rrf_semantic_mix=True (only set for the 1st playlist of CINEMA offer pages).
+        # The fused item_rank/item_score replace the retrieval ones; the filtering and resolution
+        # phases are unchanged, and the Vertex ranking phase is skipped to preserve the RRF order.
+        # If one source fails, the other one is used alone; the retrieval is considered failed
+        # only if both sources fail.
+        semantic_payload = build_similar_offer_retrieval_payload(
+            user_context=user_context,
+            call_id=call_id,
+            item_id=reference_item_id,
+            categories=categories,
+            subcategories=subcategories,
+            search_group_names=search_group_names,
+        )
+        semantic_payload["size"] = SEMANTIC_RETRIEVAL_SIZE
+        coreservation_predictions, semantic_predictions = await asyncio.gather(
+            fetch_retrieval_predictions_from_vertex(prediction_payload=retrieval_payload),
+            fetch_semantic_retrieval_predictions_from_vertex(prediction_payload=semantic_payload),
+        )
+
+        fused_items = reciprocal_rank_fusion(
+            semantic_items=semantic_predictions.predictions,
+            recommendation_items=coreservation_predictions.predictions,
+            semantic_weight=1.5,
+            recommendation_weight=1.0,
+        )
+        both_sources_failed = coreservation_predictions.status == "error" and semantic_predictions.status == "error"
+        vertex_raw_predictions = VertexPredictionResult(
+            status="error" if both_sources_failed else "success",
+            predictions=fused_items,
+        )
+        logger.debug(
+            "⚠️ 🧪 [A/B TEST] AB test hack triggered: => coreservation + semantic candidates fused by RRF.",
+            extra={
+                "call_id": call_id,
+                "coreservation_count": len(coreservation_predictions.predictions),
+                "semantic_count": len(semantic_predictions.predictions),
+                "fused_count": len(fused_items),
+                "coreservation_status": coreservation_predictions.status,
+                "semantic_status": semantic_predictions.status,
+            },
+        )
+        # --- End of HACK for AB testing ---
+    elif retrieval_model == SimilarOfferModelChoices.graph:
         vertex_raw_predictions = await fetch_graph_predictions_from_vertex(prediction_payload=retrieval_payload)
     elif retrieval_model == SimilarOfferModelChoices.semantic:
         retrieval_payload["size"] = SEMANTIC_RETRIEVAL_SIZE
@@ -212,7 +271,17 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
 
     # --- 5. Ranking Phase ---
     # Re-order the filtered offers using a dedicated scoring model
-    ranked_offers = await rank_and_sort_offers_with_vertex(resolved_offers, user_context)
+    # --- HACK for AB testing ---
+    # For the RRF mix variant, the Vertex ranking model is skipped: the order must be the RRF order
+    # (item_rank overwritten by reciprocal_rank_fusion). Same fallback ordering as in
+    # rank_and_sort_offers_with_vertex when the model returns nothing.
+    if rrf_semantic_mix:
+        ranked_offers = sorted(
+            resolved_offers, key=lambda offer: offer.item_rank if offer.item_rank is not None else float("inf")
+        )
+    # --- End of HACK for AB testing ---
+    else:
+        ranked_offers = await rank_and_sort_offers_with_vertex(resolved_offers, user_context)
 
     logger.info(
         "🏆 Offers ranked by Vertex AI scoring model.",
