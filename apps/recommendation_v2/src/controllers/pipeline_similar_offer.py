@@ -374,12 +374,21 @@ async def generate_similar_offers(  # noqa: PLR0913, PLR0915
     recommendation_origin = retrieval_model_to_recommendation_origin[retrieval_model]
     model_description = retrieval_model_to_model_description[retrieval_model]
 
+    # --- HACK for AB testing ---
+    # For the RRF mix variant, the final order (item_rank/item_score) is determined by reciprocal_rank_fusion,
+    # not by the ranking model (Vertex ranking is skipped). These rows must therefore not be used as training
+    # data for the ranking model: ml_reco__ranking_endpoint_training excludes
+    # reco_origin_request_type = "cinema", so the tracked reco_origin is forced to "cinema".
+    # The API response keeps the real recommendation_origin.
+    tracking_reco_origin = "cinema" if rrf_semantic_mix else recommendation_origin
+    # --- End of HACK for AB testing ---
+
     log_past_offer_context_to_sink(
         user_context=user_context,
         final_playlist=final_similar_offers,
         params=None,
         call_id=call_id,
-        reco_origin=recommendation_origin,
+        reco_origin=tracking_reco_origin,
         context_name="similar_offer",
         model_description=model_description,
         input_offer_id=offer_id,
