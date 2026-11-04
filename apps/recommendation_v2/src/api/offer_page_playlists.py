@@ -156,4 +156,10 @@ async def get_offer_page_playlists(
         },
     )
 
+    # TODO (jmontagnat - 2026-11-04): remove this debug log. It only exists to display the raw output of the endpoint.
+    logger.debug(
+        "🐞 Raw offer_page_playlists endpoint output.",
+        extra={"offer_id": offer_id, "raw_output": result.model_dump(mode="json")},
+    )
+
     return result
