@@ -233,7 +233,12 @@ async def generate_offer_page_playlists(
         extra={
             "offer_id": offer_id,
             "playlists": [
-                {"title": playlist.title, "type": playlist.analytics_playlist_type, "count": len(playlist.results)}
+                {
+                    "title": playlist.title,
+                    "type": playlist.analytics_playlist_type,
+                    "count": len(playlist.results),
+                    "call_id": playlist.params.call_id,
+                }
                 for playlist in playlist_items
             ],
         },
