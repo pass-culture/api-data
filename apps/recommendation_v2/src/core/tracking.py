@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import UTC
 from datetime import datetime
 
@@ -13,6 +14,24 @@ from schemas.tracking_payload import TrackingOfferExtraData
 from schemas.tracking_payload import TrackingRequestExtraData
 from schemas.tracking_payload import TrackingUserExtraData
 from services.logger import logger
+
+
+@dataclass
+class DeferredTrackingContext:
+    """
+    Holds the tracking context of a generated playlist so that logging to the
+    GCP BigQuery sink can be deferred until post-processing (such as cross-playlist
+    deduplication in ``offer_page_playlists``) has finalized the displayed offers.
+    """
+
+    user_context: UserContext
+    final_playlist: list[EnrichedRecommendableOffer]
+    params: PlaylistRequestParams | None
+    call_id: str
+    reco_origin: str
+    context_name: str
+    model_description: str
+    input_offer_id: str | None = None
 
 
 def log_past_offer_context_to_sink(  # noqa: PLR0913
