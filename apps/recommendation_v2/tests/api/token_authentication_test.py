@@ -1,21 +1,19 @@
 """
 Centralised token-authentication tests for all protected endpoints.
 
-Each endpoint is tested against every token scenario — no token, invalid token,
-valid token via query parameter, and valid token via HTTP header — producing a
+Each endpoint is tested against every token scenario — no token, invalid token
+and valid token via HTTP header — producing a
 full coverage matrix through stacked ``@pytest.mark.parametrize`` decorators.
 
-Token sources
--------------
-- Query parameter : ``?token=<value>``
-- HTTP header     : ``X-API-Key: <value>``
+Token source
+------------
+- HTTP header : ``X-API-Key: <value>``
 
 Expected behaviour
 ------------------
 - No token supplied            → 401 Unauthorized
-- Invalid token (any source)   → 401 Unauthorized
-- Valid token via query param  → 200 OK  (legacy support)
-- Valid token via HTTP header  → 200 OK  (new preferred method)
+- Invalid token in header      → 401 Unauthorized
+- Valid token via HTTP header  → 200 OK
 """
 
 from unittest.mock import patch
@@ -68,35 +66,20 @@ ENDPOINT_PARAMS = [
 
 # ---------------------------------------------------------------------------
 # Token scenario matrix
-# Each entry: (token_query, token_header, expected_status_code)
+# Each entry: (token_header, expected_status_code)
 # ---------------------------------------------------------------------------
 TOKEN_SCENARIO_PARAMS = [
     pytest.param(
-        None,
         None,
         status.HTTP_401_UNAUTHORIZED,
         id="no_token->401",
     ),
     pytest.param(
         "wrong-token",
-        None,
-        status.HTTP_401_UNAUTHORIZED,
-        id="invalid_query_token->401",
-    ),
-    pytest.param(
-        None,
-        "wrong-token",
         status.HTTP_401_UNAUTHORIZED,
         id="invalid_header_token->401",
     ),
     pytest.param(
-        VALID_TOKEN,
-        None,
-        status.HTTP_200_OK,
-        id="valid_query_token->200",
-    ),
-    pytest.param(
-        None,
         VALID_TOKEN,
         status.HTTP_200_OK,
         id="valid_header_token->200",
@@ -106,20 +89,19 @@ TOKEN_SCENARIO_PARAMS = [
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(("router", "method", "url", "body"), ENDPOINT_PARAMS)
-@pytest.mark.parametrize(("token_query", "token_header", "expected_status"), TOKEN_SCENARIO_PARAMS)
+@pytest.mark.parametrize(("token_header", "expected_status"), TOKEN_SCENARIO_PARAMS)
 async def test_token_authentication_on_all_endpoints(
     db_session,
     router: APIRouter,
     method: str,
     url: str,
     body: dict | None,
-    token_query: str | None,
     token_header: str | None,
     expected_status: int,
 ):
     """
     Verifies that every protected endpoint enforces API-token authentication
-    and accepts the token from both a query parameter and an HTTP header.
+    through the ``X-API-Key`` HTTP header.
 
     A dedicated FastAPI application is built for each parametrised combination
     so that ``verify_api_token`` is always active, mirroring the production
@@ -133,7 +115,6 @@ async def test_token_authentication_on_all_endpoints(
     test_app.include_router(router, dependencies=[Depends(verify_api_token)])
     test_app.dependency_overrides[get_database_session] = override_get_database_session
 
-    query_params = {"token": token_query} if token_query is not None else {}
     headers = {"X-API-Key": token_header} if token_header is not None else {}
 
     with patch.object(settings, "API_TOKEN", VALID_TOKEN):
@@ -141,7 +122,6 @@ async def test_token_authentication_on_all_endpoints(
             response = await client.request(
                 method,
                 url,
-                params=query_params,
                 headers=headers,
                 json=body,
             )

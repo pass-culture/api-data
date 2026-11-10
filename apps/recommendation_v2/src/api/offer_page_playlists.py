@@ -145,10 +145,21 @@ async def get_offer_page_playlists(
             "offer_id": offer_id,
             "playlists_count": len(result.playlists),
             "playlists": [
-                {"title": playlist.title, "type": playlist.analytics_playlist_type, "count": len(playlist.results)}
+                {
+                    "title": playlist.title,
+                    "type": playlist.analytics_playlist_type,
+                    "count": len(playlist.results),
+                    "call_id": playlist.params.call_id,
+                }
                 for playlist in result.playlists
             ],
         },
+    )
+
+    # TODO (jmontagnat - 2026-11-04): remove this debug log. It only exists to display the raw output of the endpoint.
+    logger.debug(
+        "🐞 Raw offer_page_playlists endpoint output.",
+        extra={"offer_id": offer_id, "raw_output": result.model_dump(mode="json")},
     )
 
     return result
