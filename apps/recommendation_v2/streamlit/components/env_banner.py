@@ -10,12 +10,62 @@ The environment is detected in two steps:
   2. As a fallback, by reading the DEPLOY_ENV environment variable set by the Makefile.
 """
 
-import os
+import logging
+import sys
+
+from streamlit_env_config import DEPLOY_ENV
+from streamlit_env_config import DOTENV_PATH
+from streamlit_env_config import LOCAL_HOST_PATTERNS
 
 import streamlit as st
 
 
-_LOCAL_HOST_PATTERNS = ("localhost", "127.0.0.", "0.0.0.0")
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+    logger.addHandler(_handler)
+    logger.propagate = False
+
+
+_DOTENV_POLL_INTERVAL = "2s"
+# Top-level modules/packages purged on .env change (streamlit_env_config derives values at import time).
+_RELOADABLE_PACKAGES = ("services", "components", "streamlit_env_config")
+
+
+def _dotenv_mtime() -> float:
+    """Return the .env modification time (0.0 if the file does not exist)."""
+    try:
+        return DOTENV_PATH.stat().st_mtime
+    except OSError:
+        return 0.0
+
+
+@st.fragment(run_every=_DOTENV_POLL_INTERVAL)
+def _watch_dotenv() -> None:
+    """Poll the app's .env; on change, purge cached modules and rerun the app.
+
+    Streamlit only watches Python files, and values derived from .env are computed
+    at import time (e.g. ENV_SHORT_NAME). Dropping the modules from sys.modules
+    forces a fresh import, which reloads the .env through `load_dotenv`.
+    """
+    current = _dotenv_mtime()
+    last_seen = st.session_state.setdefault("_dotenv_mtime", current)
+    if current == last_seen:
+        return
+
+    st.session_state["_dotenv_mtime"] = current
+    purged = [name for name in sys.modules if name.split(".")[0] in _RELOADABLE_PACKAGES]
+    for name in purged:
+        del sys.modules[name]
+    logger.info(
+        "🔄 .env change detected (%s): purged %d modules, rerunning the app.",
+        DOTENV_PATH,
+        len(purged),
+    )
+    st.rerun()
+
 
 _ENV_CONFIG = {
     "local": {
@@ -68,9 +118,9 @@ def _detect_env(api_url: str) -> str:
         One of: "local", "dev", "staging", "prod".
     """
     url_lower = api_url.lower()
-    deploy_env = os.environ.get("DEPLOY_ENV", "").lower()
+    deploy_env = DEPLOY_ENV
 
-    if any(pattern in url_lower for pattern in _LOCAL_HOST_PATTERNS):
+    if any(pattern in url_lower for pattern in LOCAL_HOST_PATTERNS):
         return "local"
 
     env = "local"
@@ -101,6 +151,7 @@ def render_env_banner(api_url: str) -> None:
     Args:
         api_url: The API base URL currently in use.
     """
+    _watch_dotenv()
     env_key = _detect_env(api_url)
     cfg = _ENV_CONFIG[env_key]
 

@@ -1,6 +1,6 @@
 SHELL:=/bin/bash
 
-.PHONY: install start tunnel start-with-remote-db streamlit streamlit-remote dev-with-streamlit test unit-test integration-test test-coverage-html test-coverage-term all-tests-marked access-remote-swagger get-api-token show-config help
+.PHONY: install start tunnel start-with-remote-db streamlit streamlit-remote dev-with-streamlit test unit-test integration-test test-coverage-html test-coverage-term all-tests-marked access-remote-swagger get-api-token test-docker-local-build test-docker-local-run show-config help
 
 
 # ===========================================
@@ -94,6 +94,31 @@ reset-redis: ## Destroy and recreate the local Redis container (clears all cache
 redis-cli: ## Open an interactive Redis CLI session inside the local container
 	@echo "💬 Connecting to local Redis container..."
 	@docker exec -it reco-redis redis-cli
+
+
+# ===========================================
+# 🐳 Docker
+# ===========================================
+
+test-docker-local-build: ## Test the Docker image build locally, behind the TLS proxy (requires ./cacert.pem)
+	@docker info > /dev/null 2>&1 || (echo "❌ Error: Docker is not running. Please start Docker and try again."; exit 1)
+	@test -f cacert.pem || (echo "❌ Error: cacert.pem not found in $$(pwd). Add the proxy CA bundle first."; exit 1)
+	@echo "🐳 Building Docker image (network_mode=proxy)..."
+	@docker build --build-arg network_mode=proxy --build-arg GOOGLE_CLOUD_PROJECT=test -t reco-v2:test .
+
+test-docker-local-run: test-docker-local-build ## Build the Docker image, run it and check the health endpoint (GET /)
+	@docker rm -f reco-v2-test > /dev/null 2>&1 || true
+	@docker run -d --name reco-v2-test -p 8080:8080 -e GOOGLE_CLOUD_PROJECT=test reco-v2:test > /dev/null
+	@echo "🩺 Waiting for the API health check..."
+	@for i in $$(seq 1 30); do \
+		if curl -sf http://localhost:8080/ > /dev/null; then \
+			echo "✅ Health check OK: $$(curl -s http://localhost:8080/)"; \
+			docker rm -f reco-v2-test > /dev/null; exit 0; \
+		fi; \
+		sleep 2; \
+	done; \
+	echo "❌ Health check failed. Container logs:"; docker logs reco-v2-test 2>&1 | tail -30; \
+	docker rm -f reco-v2-test > /dev/null; exit 1
 
 
 # ===========================================
