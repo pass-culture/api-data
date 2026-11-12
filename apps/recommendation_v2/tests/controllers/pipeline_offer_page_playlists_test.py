@@ -64,7 +64,8 @@ class BuildSimilarOfferPlaylistConfigsTest:
         assert len(configs) == 2
         same_type, cross_type = configs
 
-        assert same_type.analytics_playlist_type == AnalyticsPlaylistTypeEnum.SAME_CATEGORY_TWO_TOWER
+        # A/B test: the CINEMA 1st playlist carries the coreservation + semantic RRF analytics type.
+        assert same_type.analytics_playlist_type == AnalyticsPlaylistTypeEnum.SAME_CATEGORY_TWO_TOWER_SEMANTIC_RRF
         assert same_type.search_group_names == [SearchGroupNameEnum.CINEMA]
         assert same_type.retrieval_model == SimilarOfferModelChoices.coreservation
         assert same_type.title == OfferPlaylistTitleEnum.LES_FANS_AIMENT_AUSSI
@@ -157,7 +158,8 @@ async def test_generate_offer_page_playlists_returns_correct_structure(mocker):
 
     same_type = result.playlists[0]
     assert same_type.title == OfferPlaylistTitleEnum.LES_FANS_AIMENT_AUSSI
-    assert same_type.analytics_playlist_type == AnalyticsPlaylistTypeEnum.SAME_CATEGORY_TWO_TOWER
+    # A/B test: for CINEMA, the 1st playlist is the coreservation + semantic RRF variant.
+    assert same_type.analytics_playlist_type == AnalyticsPlaylistTypeEnum.SAME_CATEGORY_TWO_TOWER_SEMANTIC_RRF
     assert same_type.results == ["offer-1", "offer-2"]
     assert same_type.params.ab_test == "test-variant"
 

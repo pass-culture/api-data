@@ -26,11 +26,16 @@ class AnalyticsPlaylistTypeEnum(StrEnum):
         SAME_CATEGORY_GRAPH: Same-category playlist retrieved with the graph model.
         OTHER_CATEGORIES_TWO_TOWER: Cross-category playlist retrieved with the
             "two tower" (coreservation) model.
+        SAME_CATEGORY_TWO_TOWER_SEMANTIC_RRF: Same-category playlist built by mixing the
+            "two tower" (coreservation) and semantic retrievals, ranked with RRF.
+            Only used by the CINEMA A/B test variant (see the ``HACK for AB testing``
+            block in ``controllers/pipeline_offer_page_playlists.py``).
     """
 
     SAME_CATEGORY_TWO_TOWER = "sameCategorySimilarOffersTwoTower"
     SAME_CATEGORY_GRAPH = "sameCategorySimilarOffersGraph"
     OTHER_CATEGORIES_TWO_TOWER = "otherCategoriesSimilarOffersTwoTower"
+    SAME_CATEGORY_TWO_TOWER_SEMANTIC_RRF = "sameCategorySimilarOffersTwoTowerSemanticRrf"
 
 
 class OfferPlaylistTitleEnum(StrEnum):
