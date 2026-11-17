@@ -49,6 +49,8 @@ class PlaylistRequestParams(BaseModel):
     ux_names: list[str] | None = None
     gtl_id: list[str] | None = None
 
+    ## temporary params 
+    gtl_labels: list[str] | None = None
 
 class RecommendationMetadata(BaseModel):
     """

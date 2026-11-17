@@ -96,6 +96,7 @@ def _build_playlist_recommendation_search_filters(
         "subcategories": "subcategory_id",
         "search_group_names": "search_group_name",
         "gtl_id": "gtl_id",
+        "gtl_labels":"gtl_l2",
     }
     for param_field, vertex_field in list_mappings.items():
         values = getattr(params, param_field)
@@ -250,7 +251,13 @@ def _build_qpi_retrieval_payload(
     ISO v1: QPIRetrievalEndpoint — model_type="tops", vector_column_name="booking_number_desc".
     """
     base = _build_base_playlist_recommendation_payload(user_context, call_id, params)
-
+    logger.info(
+        "🧩 Building QPI retrieval payload.",
+        extra={
+            "user_id": user_context.user_id,
+            "gtl_labels": params.gtl_labels,
+        },
+    )
     return {
         **base,
         "model_type": "tops",
@@ -293,7 +300,7 @@ def build_all_playlist_recommendation_retrieval_payloads(
         >>> len(payloads)  # 4 for warm start, 1 for cold start
         4
     """
-    if user_context.is_qpi:
+    if params.is_qpi:
         return [_build_qpi_retrieval_payload(user_context, call_id, params)]
     if user_context.is_cold_start:
         return [_build_booking_number_tops_retrieval_payload(user_context, call_id, params)]

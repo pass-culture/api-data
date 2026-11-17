@@ -120,7 +120,6 @@ class UserContext:
         longitude: float | None = None,
         iris_id: str | None = None,
         geolocation_source: GeoLocationSource | None = None,
-        is_qpi: bool = False,
     ) -> "UserContext":
         """
         Factory method to build a UserContext from an SQLAlchemy model instance.
@@ -148,7 +147,6 @@ class UserContext:
             return cls(
                 user_id=UNAUTHENTICATED_USER_ID,
                 is_authenticated=False,
-                is_qpi=is_qpi,
                 latitude=latitude,
                 longitude=longitude,
                 geolocation_source=geolocation_source,
