@@ -300,8 +300,8 @@ def build_all_playlist_recommendation_retrieval_payloads(
         >>> len(payloads)  # 4 for warm start, 1 for cold start
         4
     """
-    if params.is_qpi:
-        return [_build_qpi_retrieval_payload(user_context, call_id, params)]
+    # if params.is_qpi:
+    #     return [_build_qpi_retrieval_payload(user_context, call_id, params)]
     if user_context.is_cold_start:
         return [_build_booking_number_tops_retrieval_payload(user_context, call_id, params)]
 
