@@ -77,21 +77,21 @@ async def generate_playlist_recommendations(
         iris_id=iris_id,
         geolocation_source=geolocation_source,
     )
-    # if params.is_qpi:
-    #     # Map the user's QPI backend_names (assumed already available on the request params)
-    #     qpi_record=QPI_RECORD
-    #     backend_names=[record["answer_id"] for record in qpi_record]
-    #     # to Titelive gtl_labels via qpi_gtl_mapping_mv, so the retrieval payload can filter on them.
-    #     params.gtl_labels = await resolve_gtl_labels_from_backend_names(db, backend_names or [])
-    #     ##params.gtl_labels = GTL_LABELS
-    #     logger.info(
-    #         "🧩 QPI context resolved into Titelive GTL labels.",
-    #         extra={
-    #             "user_id": user_id,
-    #             "qpi_record": qpi_record,
-    #             "gtl_labels": params.gtl_labels,
-    #         },
-    #     )
+    if params.is_qpi:
+        # Map the user's QPI backend_names (assumed already available on the request params)
+        qpi_record=QPI_RECORD
+        backend_names=[record["answer_id"] for record in qpi_record]
+        # to Titelive gtl_labels via qpi_gtl_mapping_mv, so the retrieval payload can filter on them.
+        params.gtl_labels = await resolve_gtl_labels_from_backend_names(db, backend_names or [])
+        ##params.gtl_labels = GTL_LABELS
+        logger.info(
+            "🧩 QPI context resolved into Titelive GTL labels.",
+            extra={
+                "user_id": user_id,
+                "qpi_record": qpi_record,
+                "gtl_labels": params.gtl_labels,
+            },
+        )
     logger.info(
         "🚀 Starting playlist_recommendation pipeline.",
         extra={
