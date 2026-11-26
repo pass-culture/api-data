@@ -191,7 +191,7 @@ Two dedicated Makefile commands allow you to connect to and inspect remote APIs 
 
 ### Streamlit UI against a remote API
 
-Launches a local Streamlit instance connected to a remote API through a SOCKS5 tunnel. The Streamlit sidebar lets you switch between API v1 and v2, configure a proxy, and inspect each request in detail.
+Launches a local Streamlit instance connected to a remote API through a SOCKS5 tunnel. The Streamlit sidebar lets you switch between the main API and its variant deployments (e.g. A/B/C/D test variants, when `REMOTE_API_VARIANT_URLS` is set), configure a proxy, and inspect each request in detail.
 
 ```bash
 make streamlit-remote DEPLOY_ENV=stg
@@ -206,11 +206,11 @@ Once started:
 
 ### Access remote Swagger UI
 
-Opens the Swagger `/docs` of a remote API directly in Google Chrome, routed through a SOCKS5 tunnel. Supports selecting API version v1 or v2.
+Opens the Swagger `/docs` of a remote API directly in Google Chrome, routed through a SOCKS5 tunnel. Supports targeting a named variant deployment (e.g. A/B/C/D test variant) instead of the main one.
 
 ```bash
-make access-remote-swagger DEPLOY_ENV=stg           # opens v2 Swagger (default)
-make access-remote-swagger DEPLOY_ENV=stg VERSION=v1  # opens v1 Swagger
+make access-remote-swagger DEPLOY_ENV=stg            # opens main API Swagger (REMOTE_API_URL, default)
+make access-remote-swagger DEPLOY_ENV=stg VARIANT=B  # opens variant "B" Swagger (from REMOTE_API_VARIANT_URLS)
 ```
 
 ### Get a remote API token
@@ -304,8 +304,8 @@ These variables override the base `.env` when `DEPLOY_ENV=<env>` is passed to a 
 
 | Variable | Description |
 |----------|-------------|
-| `REMOTE_API_URL` | URL of the remote v2 API (used by `streamlit-remote` and `access-remote-swagger`). |
-| `REMOTE_API_V1_URL` | URL of the remote v1 API (optional, enables the v1/v2 version selector in Streamlit). |
+| `REMOTE_API_URL` | URL of the main remote API (used by `streamlit-remote` and `access-remote-swagger`). |
+| `REMOTE_API_VARIANT_URLS` | Named alternative API deployments, e.g. A/B/C/D test variants, as comma-separated `NAME=URL` pairs (`B=https://...,C=https://...`). Optional; enables the variant selector in Streamlit and `VARIANT=<NAME>` in `access-remote-swagger`. |
 | `REMOTE_API_TOKEN` | API authentication token, pre-filled in the Streamlit sidebar. |
 | `REMOTE_API_SOCKS_PORT` | Local port for the SOCKS5/HTTP proxy tunnel (default: `1080`). |
 | `BASTION_HTTP_PROXY_PORT` | Remote port tinyproxy listens on, on the IAP bastion — used by `http-proxy-tunnel` (default: `8888`). |

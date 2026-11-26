@@ -175,7 +175,7 @@ streamlit-remote: check-gcloud-auth ## Start Streamlit UI against a remote API v
 	echo "👉 Dans le Streamlit, configurez le proxy : socks5://localhost:$$SOCKS_PORT" ; \
 	DOTENV_OVERRIDE=0 \
 	REMOTE_API_URL="$$REMOTE_API_URL" \
-	REMOTE_API_V1_URL="$$REMOTE_API_V1_URL" \
+	REMOTE_API_VARIANT_URLS="$$REMOTE_API_VARIANT_URLS" \
 	REMOTE_API_TOKEN="$$REMOTE_API_TOKEN" \
 	REMOTE_API_SOCKS_PORT="$$REMOTE_API_SOCKS_PORT" \
 	uv run --no-env-file streamlit run streamlit/app.py
@@ -185,17 +185,25 @@ streamlit-remote: check-gcloud-auth ## Start Streamlit UI against a remote API v
 # 🔌 Remote access (requires DEPLOY_ENV=dev|stg|prod)
 # ===========================================
 
-# Resolve TARGET_URL based on VERSION (v1 → REMOTE_API_V1_URL, else → REMOTE_API_URL)
+# Resolve TARGET_URL based on VARIANT:
+#   - empty or "main" → REMOTE_API_URL
+#   - any other name   → matching entry in REMOTE_API_VARIANT_URLS ("B=https://...,C=https://...", e.g. A/B/C/D test variants)
 # Usage: call inside a shell block after load_env_cmd
-VERSION ?= v2
+VARIANT ?=
 define resolve_api_url
-	if [ "$(VERSION)" = "v1" ] || [ "$(VERSION)" = "V1" ] || [ "$(VERSION)" = "1" ]; then \
-		TARGET_URL="$$REMOTE_API_V1_URL" ; \
-		if [ -z "$$TARGET_URL" ]; then echo "❌ Error: REMOTE_API_V1_URL is missing in .env$(if $(DEPLOY_ENV),.$(DEPLOY_ENV),)"; exit 1; fi ; \
-	else \
+	TARGET_URL="" ; \
+	if [ -z "$(VARIANT)" ] || [ "$(VARIANT)" = "main" ]; then \
 		TARGET_URL="$$REMOTE_API_URL" ; \
-	fi ; \
-	export STREAMLIT_DEFAULT_API_VERSION="$(VERSION)"
+	else \
+		IFS=',' read -ra VARIANT_PAIRS <<< "$$REMOTE_API_VARIANT_URLS" ; \
+		for pair in "$${VARIANT_PAIRS[@]}"; do \
+			pair="$${pair// /}" ; \
+			if [ "$${pair%%=*}" = "$(VARIANT)" ]; then TARGET_URL="$${pair#*=}"; break; fi ; \
+		done ; \
+		if [ -z "$$TARGET_URL" ]; then \
+			echo "❌ Error: variant '$(VARIANT)' not found in REMOTE_API_VARIANT_URLS (.env$(if $(DEPLOY_ENV),.$(DEPLOY_ENV),)). Available: $${REMOTE_API_VARIANT_URLS:-<none>}"; exit 1; \
+		fi ; \
+	fi
 endef
 
 UNAME_S := $(shell uname -s)
@@ -205,10 +213,10 @@ else ifeq ($(UNAME_S),Darwin)
     CHROME_BIN := /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
 endif
 
-access-remote-swagger: check-gcloud-auth ## Open remote Swagger UI in Chrome via SOCKS tunnel. Requires DEPLOY_ENV=dev|stg|prod. Optional: VERSION=v1
+access-remote-swagger: check-gcloud-auth ## Open remote Swagger UI in Chrome via SOCKS tunnel. Requires DEPLOY_ENV=dev|stg|prod. Optional: VARIANT=<name>
 	@[ -n "$(DEPLOY_ENV)" ] || (echo "❌ Error: DEPLOY_ENV is required. Usage: make access-remote-swagger DEPLOY_ENV=dev|stg|prod"; exit 1)
 	$(PREPARE_SWAGGER_TUNNEL)
-	@echo "🔌 Opening SOCKS tunnel to remote API$(if $(DEPLOY_ENV), [env: $(DEPLOY_ENV)],) [$(VERSION)]..."
+	@echo "🔌 Opening SOCKS tunnel to remote API$(if $(DEPLOY_ENV), [env: $(DEPLOY_ENV)],) [variant: $(or $(VARIANT),main)]..."
 	@$(load_env_cmd) && \
 	SOCKS_PORT="$${REMOTE_API_SOCKS_PORT:-1080}" ; \
 	$(resolve_api_url) ; \

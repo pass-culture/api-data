@@ -16,7 +16,7 @@ from services.database_service import get_user_metadata
 from streamlit_env_config import LOCAL_HOST_PATTERNS
 from streamlit_env_config import REMOTE_API_TOKEN
 from streamlit_env_config import REMOTE_API_URL
-from streamlit_env_config import REMOTE_API_V1_URL
+from streamlit_env_config import REMOTE_API_VARIANT_URLS
 from streamlit_folium import st_folium
 
 import streamlit as st
@@ -30,8 +30,7 @@ from schemas.similar_offer import SimilarOfferModelChoices
 from utils.location_presets import PRESET_LOCATION_TO_GEOGRAPHIC_COORDINATES_MAPPING
 
 
-V1_LABEL = "v1 (legacy)"
-V2_LABEL = "v2 (default)"
+MAIN_LABEL = "main (default)"
 
 
 def _render_api_url_input(default_url: str | None = None) -> tuple[str, dict | None, str | None]:
@@ -39,12 +38,9 @@ def _render_api_url_input(default_url: str | None = None) -> tuple[str, dict | N
 
     Displays:
     - API base URL input (always visible, pre-filled from REMOTE_API_URL env var if set)
-    - API version radio selector (only if URL is remote AND REMOTE_API_V1_URL is set)
+    - API variant radio selector (only if REMOTE_API_VARIANT_URLS is set, e.g. A/B/C/D test variants)
     - API token input (only if URL is remote)
     - SOCKS5 proxy input (only if URL is remote)
-
-    The version selector pre-selects v1 or v2 based on the STREAMLIT_DEFAULT_API_VERSION
-    environment variable set by the Makefile (e.g. VERSION=1 → pre-select v1).
 
     Returns:
         tuple: (api_url, proxies dict or None, api_token or None)
@@ -52,19 +48,18 @@ def _render_api_url_input(default_url: str | None = None) -> tuple[str, dict | N
     if default_url is None:
         default_url = f"http://localhost:{FASTAPI_SERVER_PORT}"
 
-    remote_v1_url = REMOTE_API_V1_URL
-    remote_v2_url = REMOTE_API_URL or default_url
+    remote_main_url = REMOTE_API_URL or default_url
 
-    # Version selector is rendered first so it updates api_base_url
+    # Variant selector is rendered first so it updates api_base_url
     # in session_state before the URL text_input reads it.
-    if remote_v1_url:
-        _render_api_version_selector(remote_v1_url, remote_v2_url)
+    if REMOTE_API_VARIANT_URLS:
+        _render_api_variant_selector(remote_main_url, REMOTE_API_VARIANT_URLS)
 
     # --- API URL ---
     st.markdown("**URL de l'API**")
     api_url = st.text_input(
         "URL de base de l'API FastAPI",
-        value=st.session_state.get("api_base_url", remote_v2_url),
+        value=st.session_state.get("api_base_url", remote_main_url),
         help="Ex: http://localhost:8080 ou https://mon-api.example.com",
         label_visibility="collapsed",
         placeholder="http://localhost:8080",
@@ -109,24 +104,25 @@ def _render_api_url_input(default_url: str | None = None) -> tuple[str, dict | N
     return st.session_state.api_base_url, proxies, api_token.strip() or None
 
 
-def _render_api_version_selector(remote_v1_url: str, remote_v2_url: str) -> None:
-    """Render the v1/v2 radio selector and update the API URL in session state.
+def _render_api_variant_selector(remote_main_url: str, remote_variant_urls: dict[str, str]) -> None:
+    """Render the main/variants radio selector and update the API URL in session state.
 
     Args:
-        remote_v1_url: The base URL of the v1 (legacy) API.
-        remote_v2_url: The base URL of the v2 (default) API.
+        remote_main_url: The base URL of the main (default) API deployment.
+        remote_variant_urls: Mapping of variant name to base URL (e.g. A/B/C/D test variants).
     """
-    st.markdown("**Version de l'API**")
-    selected_version = st.radio(
-        "Version de l'API",
-        [V2_LABEL, V1_LABEL],
+    url_by_label = {MAIN_LABEL: remote_main_url, **remote_variant_urls}
+    st.markdown("**Variante de l'API**")
+    selected_label = st.radio(
+        "Variante de l'API",
+        list(url_by_label),
         horizontal=True,
         label_visibility="collapsed",
-        key="api_version_selector",
+        key="api_variant_selector",
     )
 
-    # Always sync the URL with the currently selected version
-    st.session_state.api_base_url = remote_v1_url if selected_version == V1_LABEL else remote_v2_url
+    # Always sync the URL with the currently selected variant
+    st.session_state.api_base_url = url_by_label[selected_label]
 
 
 def _render_user_metadata_toggle(user_id: str) -> None:
