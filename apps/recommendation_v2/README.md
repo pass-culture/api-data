@@ -87,6 +87,9 @@ src/
 ├── schemas/          # Pydantic models (Input/Output strict validation)
 ├── services/         # External infrastructure clients (Vertex, DB, Redis, H3, Logger)
 └── streamlit/        # Streamlit UI acting as a visual proxy for the API
+    ├── app.py            # Router (st.navigation): home page + one page per endpoint
+    ├── endpoint_pages.py # Registry of endpoint pages (add new endpoint pages here)
+    └── pages/            # Home.py + one page per API endpoint
 
 tests/
 ├── api/              # Route integration tests
