@@ -39,9 +39,20 @@ LOCAL_HOST_PATTERNS = ("localhost", "127.0.0.", "0.0.0.0")
 # Deployment environment set by the Makefile (fallback to detect the targeted API env).
 DEPLOY_ENV = os.environ.get("DEPLOY_ENV", "").lower()
 
-# Remote recommendation API settings (v1 legacy / v2 default) and auth token.
-REMOTE_API_V1_URL = os.environ.get("REMOTE_API_V1_URL", "")
+
+def _parse_variant_urls(raw: str) -> dict[str, str]:
+    """Parse "B=https://...,C=https://..." into {"B": "https://...", "C": "https://..."}."""
+    variants = {}
+    for pair in raw.split(","):
+        name, sep, url = pair.partition("=")
+        if sep and name.strip() and url.strip():
+            variants[name.strip()] = url.strip()
+    return variants
+
+
+# Remote recommendation API settings (main deployment / optional named variants, e.g. A/B/C/D test) and auth token.
 REMOTE_API_URL = os.environ.get("REMOTE_API_URL", "")
+REMOTE_API_VARIANT_URLS = _parse_variant_urls(os.environ.get("REMOTE_API_VARIANT_URLS", ""))
 REMOTE_API_TOKEN = os.environ.get("REMOTE_API_TOKEN", "")
 
 
