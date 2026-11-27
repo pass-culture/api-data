@@ -41,6 +41,8 @@ class EnrichedRecommendableOffer:
     category: str
     subcategory_id: str
     search_group_name: str
+    gtl_id: str | None
+    gtl_label: str | None
 
     # --- Popularity & Engagement Metrics ---
     booking_number: int

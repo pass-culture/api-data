@@ -32,6 +32,7 @@ class PlaylistRequestParams(BaseModel):
     is_duo: bool | None = None
     is_restrained: bool | None = True
     is_digital: bool | None = None
+    is_qpi: bool = False
 
     # --- Financial Constraints ---
     price_max: float | None = Field(default=None, ge=0, le=300)
@@ -41,6 +42,9 @@ class PlaylistRequestParams(BaseModel):
     categories: list[CategoryEnum] | None = None
     subcategories: list[SubcategoryEnum] | None = None
     search_group_names: list[SearchGroupNameEnum] | None = None
+
+    # --- QPI (Quiz de Préférences Initial) Filters ---
+    qpi_answers: list[dict[str, str | list[str]]] | None = None
 
 
 class RecommendationMetadata(BaseModel):

@@ -515,6 +515,7 @@ def _render_playlist_recommendation_payload_filters() -> dict:
         is_duo = st.selectbox("Duo", [None, True, False])
         is_restrained = st.selectbox("Restreint", [True, False, None], index=0)
         is_digital = st.selectbox("Numérique", [None, True, False])
+        is_qpi = st.checkbox("is_qpi (Quiz de pratiques Initial)", value=False)
 
     with st.expander("Contraintes Financières"):
         price_min = st.number_input("Prix Minimum", value=None, min_value=0.0)
@@ -539,6 +540,8 @@ def _render_playlist_recommendation_payload_filters() -> dict:
         payload["isRestrained"] = is_restrained
     if is_digital is not None:
         payload["isDigital"] = is_digital
+    if is_qpi:
+        payload["isQpi"] = is_qpi
     if price_min is not None:
         payload["priceMin"] = price_min
     if price_max is not None:

@@ -7,6 +7,7 @@ from core.diversification import apply_offer_diversification
 from core.geo import get_iris_id_from_coordinates
 from core.geo import resolve_effective_geolocation
 from core.offer_resolution import resolve_closest_venues_from_items
+from core.qpi import resolve_gtl_labels_from_backend_names
 from core.ranking import rank_and_sort_offers_with_vertex
 from core.retrieval import build_all_playlist_recommendation_retrieval_payloads
 from core.retrieval import fetch_all_playlist_recommendation_retrieval_predictions_from_vertex
@@ -20,7 +21,7 @@ from schemas.playlist_recommendation import RecommendationMetadata
 from schemas.playlist_recommendation import RecommendationResponse
 from services.logger import call_id_context
 from services.logger import logger
-
+from utils.qpi_record import QPI_RECORD,GTL_LABELS
 
 PLAYLIST_RECOMMENDATION_MAXIMUM_SIZE = 20
 
@@ -59,7 +60,6 @@ async def generate_playlist_recommendations(
     call_id_context.set(call_id)
 
     db_user = await db.get(EnrichedUser, user_id)
-
     effective_latitude, effective_longitude, geolocation_source = resolve_effective_geolocation(
         latitude=latitude,
         longitude=longitude,
@@ -77,7 +77,29 @@ async def generate_playlist_recommendations(
         iris_id=iris_id,
         geolocation_source=geolocation_source,
     )
-
+    if params.is_qpi:
+        qpi_record = params.qpi_answers or QPI_RECORD
+        if qpi_record==QPI_RECORD:
+            logger.info(
+                "No QPI answers provided by the client; using default QPI record.",
+                extra={"user_id": user_id, "qpi_record": qpi_record},
+            )
+        backend_names = [
+            answer_id
+            for record in qpi_record
+            if record["question_id"] in ("MUSIQUES", "LIVRES")
+            for answer_id in record["answer_ids"]
+        ]
+        params.gtl_labels = await resolve_gtl_labels_from_backend_names(db, backend_names or [])
+        logger.info(
+            "🧩 QPI context resolved into Titelive GTL labels.",
+            extra={
+                "user_id": user_id,
+                "qpi_record": qpi_record,
+                "backend_names": backend_names,
+                "gtl_labels": params.gtl_labels,
+            },
+        )
     logger.info(
         "🚀 Starting playlist_recommendation pipeline.",
         extra={
@@ -85,6 +107,7 @@ async def generate_playlist_recommendations(
             "is_authenticated": user_context.is_authenticated,
             "is_cold_start": user_context.is_cold_start,
             "is_geolocated": user_context.is_geolocated,
+            "is_qpi": params.is_qpi,
             "iris_id": iris_id,
             "remaining_credit": user_context.remaining_credit,
             "bookings_count": user_context.bookings_count,
@@ -111,7 +134,8 @@ async def generate_playlist_recommendations(
 
     logger.info(
         "📦 Raw candidates retrieved from Vertex AI.",
-        extra={"raw_candidate_count": len(raw_candidate_items)},
+        extra={"raw_candidate_count": len(raw_candidate_items)
+               ,"head": [item.dict() for item in raw_candidate_items[:1]]},
     )
 
     # --- 3. Filtering Phase & Resolution ---
@@ -172,8 +196,13 @@ async def generate_playlist_recommendations(
     # --- 6. Logging & Formatting Phase ---
     if user_context.user_id == UNAUTHENTICATED_USER_ID:
         recommendation_origin = "unknown"
+    elif user_context.is_cold_start:
+        recommendation_origin = "cold_start"
+    elif params.is_qpi:
+        recommendation_origin = "qpi"
     else:
-        recommendation_origin = "cold_start" if user_context.is_cold_start else "algo"
+        recommendation_origin = "algo"
+    # recommendation_origin = "cold_start" if user_context.is_cold_start else "algo"
 
     if user_context.is_authenticated:
         log_past_offer_context_to_sink(

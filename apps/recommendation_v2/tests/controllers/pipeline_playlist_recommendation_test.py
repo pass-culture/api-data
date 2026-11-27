@@ -56,6 +56,8 @@ def _make_enriched_offer(
         category="LIVRES_PAPIER",
         subcategory_id="LIVRE_PAPIER",
         search_group_name=search_group_name,
+        gtl_id=None,
+        gtl_label=None,
         booking_number=0,
         booking_number_last_7_days=0,
         booking_number_last_14_days=0,

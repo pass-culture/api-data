@@ -54,6 +54,7 @@ class RecommendableItem(BaseModel):
 
     # Granular classification tags (GTL - Global Taxonomy Level)
     gtl_id: str | None
+    gtl_l2: str | None
     gtl_l3: str | None
     gtl_l4: str | None
 
