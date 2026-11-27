@@ -44,13 +44,8 @@ class PlaylistRequestParams(BaseModel):
     search_group_names: list[SearchGroupNameEnum] | None = None
 
     # --- QPI (Quiz de Préférences Initial) Filters ---
-    # UX category names selected by the user during onboarding (e.g. "Mangas ou BD").
-    # Resolved server-side into `gtl_id` via qpi_gtl_mapping_mv when `is_qpi` is True.
-    ux_names: list[str] | None = None
-    gtl_id: list[str] | None = None
+    qpi_answers: list[dict[str, str | list[str]]] | None = None
 
-    ## temporary params 
-    gtl_labels: list[str] | None = None
 
 class RecommendationMetadata(BaseModel):
     """

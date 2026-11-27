@@ -78,17 +78,25 @@ async def generate_playlist_recommendations(
         geolocation_source=geolocation_source,
     )
     if params.is_qpi:
-        # Map the user's QPI backend_names (assumed already available on the request params)
-        qpi_record=QPI_RECORD
-        backend_names=[record["answer_id"] for record in qpi_record]
-        # to Titelive gtl_labels via qpi_gtl_mapping_mv, so the retrieval payload can filter on them.
+        qpi_record = params.qpi_answers or QPI_RECORD
+        if qpi_record==QPI_RECORD:
+            logger.info(
+                "No QPI answers provided by the client; using default QPI record.",
+                extra={"user_id": user_id, "qpi_record": qpi_record},
+            )
+        backend_names = [
+            answer_id
+            for record in qpi_record
+            if record["question_id"] in ("MUSIQUES", "LIVRES")
+            for answer_id in record["answer_ids"]
+        ]
         params.gtl_labels = await resolve_gtl_labels_from_backend_names(db, backend_names or [])
-        ##params.gtl_labels = GTL_LABELS
         logger.info(
             "🧩 QPI context resolved into Titelive GTL labels.",
             extra={
                 "user_id": user_id,
                 "qpi_record": qpi_record,
+                "backend_names": backend_names,
                 "gtl_labels": params.gtl_labels,
             },
         )
@@ -127,7 +135,7 @@ async def generate_playlist_recommendations(
     logger.info(
         "📦 Raw candidates retrieved from Vertex AI.",
         extra={"raw_candidate_count": len(raw_candidate_items)
-               ,"head": [item.dict() for item in raw_candidate_items[:5]]},
+               ,"head": [item.dict() for item in raw_candidate_items[:1]]},
     )
 
     # --- 3. Filtering Phase & Resolution ---
@@ -188,8 +196,13 @@ async def generate_playlist_recommendations(
     # --- 6. Logging & Formatting Phase ---
     if user_context.user_id == UNAUTHENTICATED_USER_ID:
         recommendation_origin = "unknown"
+    elif user_context.is_cold_start:
+        recommendation_origin = "cold_start"
+    elif params.is_qpi:
+        recommendation_origin = "qpi"
     else:
-        recommendation_origin = "cold_start" if user_context.is_cold_start else "algo"
+        recommendation_origin = "algo"
+    # recommendation_origin = "cold_start" if user_context.is_cold_start else "algo"
 
     if user_context.is_authenticated:
         log_past_offer_context_to_sink(

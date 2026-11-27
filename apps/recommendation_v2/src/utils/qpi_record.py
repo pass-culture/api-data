@@ -1,12 +1,9 @@
 QPI_RECORD=[{
   "question_id": "LIVRES",
-  "answer_id": "MANGAS"
+  "answer_ids": ["MANGAS"]
 }, {
   "question_id": "MUSIQUES",
-  "answer_id": "RAP"
-}, {
-  "question_id": "MUSIQUES",
-  "answer_id": "FILMS"
+  "answer_ids": ["RAP", "FILMS"]
 }]
 GTL_LABELS=[
     "Bandes dessinées",
